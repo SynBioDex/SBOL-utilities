@@ -21,8 +21,8 @@ doc.read('my_file.ttl')
 graph_sbol(doc)
 ```
 
-To run at the commandline:
+To run as a commandline executable:
 ```
-python3 graph_paml.py -i lib/liquid_handling.ttl
+graph_sbol.py -i my_file.ttl
 ```
 

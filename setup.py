@@ -7,5 +7,6 @@ setup(name='sbol-utilities',
             'sbol3',
             'graphviz'
       ],
+      scripts=['graph_sbol.py'],
       packages=['sbol_utilities'],
 )
