@@ -23,6 +23,6 @@ graph_sbol(doc)
 
 To run as a commandline executable:
 ```
-graph-sbol.py -i my_file.ttl
+graph-sbol -i my_file.ttl
 ```
 
