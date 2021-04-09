@@ -1,5 +1,5 @@
 # SBOL-utilities
-SBOL-utilities is a collection of scripts and functions for manipulating SBOL data that can be imported or run fromthe commandline.
+SBOL-utilities is a collection of scripts and functions for manipulating SBOL data that can be imported or run from the commandline.
 
 ## Installation
 
@@ -23,6 +23,6 @@ graph_sbol(doc)
 
 To run as a commandline executable:
 ```
-graph_sbol.py -i my_file.ttl
+graph-sbol.py -i my_file.ttl
 ```
 
