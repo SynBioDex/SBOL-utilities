@@ -4,7 +4,7 @@ SBOL-utilities is a collection of scripts and functions for manipulating SBOL da
 ## Installation
 
 ```
-pip3 install sbol_utilities
+pip3 install sbol-utilities
 ```
 
 ## Graph SBOL Documents
