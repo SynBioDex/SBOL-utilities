@@ -5,7 +5,9 @@ setup(name='sbol-utilities',
       version='1.0a1.post0',
       install_requires=[
             'sbol3',
-            'graphviz'
+            'graphviz',
+            'tyto',
+            'openpyxl'
       ],
       scripts=['graph-sbol'],
       packages=['sbol_utilities'],
