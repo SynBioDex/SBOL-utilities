@@ -31,7 +31,7 @@ def basic_sheet(wb: openpyxl.Workbook):
 
 
 def composite_sheet(wb: openpyxl.Workbook):
-    return wb['Basic Parts']
+    return wb['Composite Parts']
 
 ###############################################################
 # Metadata extraction
@@ -68,7 +68,7 @@ def read_metadata(wb: openpyxl.Workbook, doc: sbol3.Document):
 # Read a row for a basic part and turn it into SBOL
 
 
-def row_to_basic_part(row, basic_parts, linear_products, final_products):
+def row_to_basic_part(doc, row, basic_parts, linear_products, final_products):
     # Parse material from sheet row
     name = row[0].value
     if name is None:
@@ -128,9 +128,9 @@ def is_RC(name):
     return len(strip_RC(sanitized))<len(sanitized)
 # returns a list of part names
 def part_names(specification):
-    return strip_RC(specification).split(',')
+    return strip_RC(str(specification)).split(',')
 # list all the parts in the row that aren't fully resolved
-def unresolved_subparts(row):
+def unresolved_subparts(doc, row):
     return [name for spec in part_specifications(row) for name in part_names(spec) if not doc.find(string_to_display_id(name))]
 # get the part specifications until they stop
 def part_specifications(row):
@@ -232,7 +232,7 @@ def make_composite_part(document, row, composite_parts, linear_products, final_p
     composite_part.name = name
     composite_part.description = (design_notes+"\n"+description).strip()
     # add the component to the appropriate collections
-    doc.add(composite_part)
+    document.add(composite_part)
     composite_parts.members.append(composite_part.identity)
     if final_product: linear_products.members.append(composite_part.identity)
     ###############
@@ -269,11 +269,10 @@ def make_composite_part(document, row, composite_parts, linear_products, final_p
         plasmid.constraints.append(sbol3.Constraint(sbol3.SBOL_MEETS,backbone_sub,part_sub))
 
 
-
 ###############################################################
 # Entry-point method: given an openpyxl pointer to an Excel file, return an Excel doc file
 
-def excel_to_sbol(excel_wb, output_file='out', file_type='sorted-nt'):
+def excel_to_sbol(wb: openpyxl.Workbook):
     doc = sbol3.Document()
 
     logging.info('Reading metadata for collections')
@@ -281,17 +280,18 @@ def excel_to_sbol(excel_wb, output_file='out', file_type='sorted-nt'):
 
     logging.info('Reading basic parts')
     for row in basic_sheet(wb).iter_rows(min_row=20):
-        row_to_basic_part(row, basic_parts, linear_products, final_products)
+        row_to_basic_part(doc, row, basic_parts, linear_products, final_products)
     logging.info('Created ' + str(len(basic_parts.members)) + ' basic parts')
 
     logging.info('Reading composite parts and libraries')
     # first collect all rows with names
     pending_parts = {row for row in composite_sheet(wb).iter_rows(min_row=24) if row[0].value}
     while pending_parts:
-        ready = {row for row in pending_parts if not unresolved_subparts(row)}
-        if not ready: raise ValueError("Could not resolve subparts" + ''.join(
-            ("\n in '" + row[0].value + "':" + ''.join(" '" + x + "'" for x in unresolved_subparts(row))) for row in
-            pending_parts))
+        ready = {row for row in pending_parts if not unresolved_subparts(doc, row)}
+        if not ready:
+            raise ValueError("Could not resolve subparts" + ''.join(
+                ("\n in '" + row[0].value + "':" + ''.join(" '" + x + "'" for x in unresolved_subparts(doc, row)))
+                for row in pending_parts))
         for row in ready:
             make_composite_part(doc, row, composite_parts, linear_products, final_products)
         pending_parts -= ready
@@ -326,12 +326,11 @@ if __name__ == "__main__":
     output_file = args_dict['output_file']
     file_type = args_dict['file_type']
     excel_file = args_dict['excel_file']
+    outfile_name = output_file+type_to_standard_extension[file_type]
     sbol3.set_namespace(args_dict['namespace'])
 
     # Read file, convert, and write resulting document
     logging.info('Accessing Excel file '+excel_file)
-    wb = openpyxl.load_workbook(excel_file, data_only=True)
-    doc = excel_to_sbol(wb)
-    outfile_name = output_file+type_to_standard_extension[file_type]
-    doc.write(outfile_name,file_type)
+    sbol_document = excel_to_sbol(openpyxl.load_workbook(excel_file, data_only=True))
+    sbol_document.write(outfile_name,file_type)
     logging.info('SBOL file written to '+outfile_name)
