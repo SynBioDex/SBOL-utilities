@@ -25,7 +25,7 @@ class TestExcelToSBOL(unittest.TestCase):
         assert len(doc.find('LinearDNAProducts').members) == 2
         assert len(doc.find('FinalProducts').members) == 2
 
-        temp_name = tempfile.gettempdir()+next(tempfile._get_candidate_names())
+        temp_name = tempfile.gettempdir()+'/'+next(tempfile._get_candidate_names())
         doc.write(temp_name, sbol3.SORTED_NTRIPLES)
         assert filecmp.cmp(temp_name,TESTFILE_DIR+'/simple_library.nt')
 
@@ -40,7 +40,7 @@ class TestExcelToSBOL(unittest.TestCase):
         assert len(doc.find('LinearDNAProducts').members) == 2
         assert len(doc.find('FinalProducts').members) == 2
 
-        temp_name = tempfile.gettempdir()+next(tempfile._get_candidate_names())
+        temp_name = tempfile.gettempdir()+'/'+next(tempfile._get_candidate_names())
         doc.write(temp_name, sbol3.SORTED_NTRIPLES)
         assert filecmp.cmp(temp_name,TESTFILE_DIR+'/constraints_library.nt')
 
