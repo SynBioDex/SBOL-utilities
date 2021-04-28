@@ -4,21 +4,13 @@ import sbol3
 import openpyxl
 import tyto
 import warnings
-import argparse
 import logging
 import re
+import argparse
+
 
 ###############################################################
 # Utilities
-
-type_to_standard_extension = { # pySBOL3/issues/244
-    sbol3.SORTED_NTRIPLES: '.nt',
-    sbol3.NTRIPLES: '.nt',
-    sbol3.JSONLD: '.json',
-    sbol3.RDF_XML: '.xml',
-    sbol3.TURTLE: '.ttl'
-}
-
 
 def string_to_display_id(name):
     display_id = name.strip().replace(" ","_").replace("-","_") # display id is name processed to comply with rules
@@ -303,34 +295,44 @@ def excel_to_sbol(wb: openpyxl.Workbook):
     return doc
 
 
+
+type_to_standard_extension = {  # TODO: remove after resolution of pySBOL3/issues/244
+    sbol3.SORTED_NTRIPLES: '.nt',
+    sbol3.NTRIPLES: '.nt',
+    sbol3.JSONLD: '.json',
+    sbol3.RDF_XML: '.xml',
+    sbol3.TURTLE: '.ttl'
+}
+
 ###############################################################
 # Main wrapper: read from input file, invoke excel_to_sbol, then write to output file
 
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('excel_file',help="Excel file used as input")
-    parser.add_argument('-n','--namespace',dest='namespace',
+    parser.add_argument('excel_file', help="Excel file used as input")
+    parser.add_argument('-n', '--namespace', dest='namespace',
                         help="Namespace for Components in output file")
-    parser.add_argument('-o','--output',dest='output_file', default='out',
+    parser.add_argument('-o', '--output', dest='output_file', default='out',
                         help="Name of SBOL file to be written")
-    parser.add_argument('-t','--file-type',dest='file_type', default=sbol3.SORTED_NTRIPLES,
+    parser.add_argument('-t', '--file-type', dest='file_type', default=sbol3.SORTED_NTRIPLES,
                         help="Name of SBOL file to output to (excluding type)")
-    parser.add_argument('-v','--verbose',dest='verbose',action='count', default=0,
+    parser.add_argument('--verbose', '-v', dest='verbose', action='count', default=0,
                         help="Print running explanation of conversion process")
     args_dict = vars(parser.parse_args())
 
     # Extract arguments:
     verbosity = args_dict['verbose']
-    logging.basicConfig(format='%(levelname)s:%(message)s',
-                        level=(logging.WARN if verbosity==0 else logging.INFO if verbosity==1 else logging.DEBUG))
+    logging.getLogger().setLevel(level=(logging.WARN if verbosity == 0 else logging.INFO if verbosity == 1 else logging.DEBUG))
     output_file = args_dict['output_file']
     file_type = args_dict['file_type']
     excel_file = args_dict['excel_file']
     outfile_name = output_file+type_to_standard_extension[file_type]
     sbol3.set_namespace(args_dict['namespace'])
 
+    print('verbosity is '+str(verbosity))
+
     # Read file, convert, and write resulting document
     logging.info('Accessing Excel file '+excel_file)
     sbol_document = excel_to_sbol(openpyxl.load_workbook(excel_file, data_only=True))
-    sbol_document.write(outfile_name,file_type)
+    sbol_document.write(outfile_name, file_type)
     logging.info('SBOL file written to '+outfile_name)

@@ -8,7 +8,10 @@ setup(name='sbol-utilities',
             'graphviz',
             'tyto',
             'openpyxl'
-      ],
+            ],
       scripts=['graph-sbol'],
+      entry_points = {
+            'console_scripts': ['excel-to-sbol=sbol_utilities.excel_to_sbol:main']
+      },
       packages=['sbol_utilities'],
-)
+      )

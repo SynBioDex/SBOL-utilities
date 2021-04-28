@@ -1,1 +1,0 @@
-from .excel_to_sbol import excel_to_sbol
