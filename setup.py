@@ -5,8 +5,13 @@ setup(name='sbol-utilities',
       version='1.0a1.post0',
       install_requires=[
             'sbol3',
-            'graphviz'
-      ],
+            'graphviz',
+            'tyto',
+            'openpyxl'
+            ],
       scripts=['graph-sbol'],
+      entry_points = {
+            'console_scripts': ['excel-to-sbol=sbol_utilities.excel_to_sbol:main']
+      },
       packages=['sbol_utilities'],
-)
+      )

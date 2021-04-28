@@ -30,3 +30,6 @@ To run as a commandline executable:
 graph-sbol -i my_file.ttl
 ```
 
+### Convert an Excel template file to SBOL
+
+The `excel_to_sbol` utility reads an Excel file specifying a library of basic and composite parts, formatted following `sbol_library_template.xlsx`.
