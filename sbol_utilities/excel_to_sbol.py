@@ -277,16 +277,16 @@ def excel_to_sbol(wb: openpyxl.Workbook):
 
     logging.info('Reading composite parts and libraries')
     # first collect all rows with names
-    pending_parts = {row for row in composite_sheet(wb).iter_rows(min_row=24) if row[0].value}
+    pending_parts = [row for row in composite_sheet(wb).iter_rows(min_row=24) if row[0].value]
     while pending_parts:
-        ready = {row for row in pending_parts if not unresolved_subparts(doc, row)}
+        ready = [row for row in pending_parts if not unresolved_subparts(doc, row)]
         if not ready:
             raise ValueError("Could not resolve subparts" + ''.join(
                 ("\n in '" + row[0].value + "':" + ''.join(" '" + x + "'" for x in unresolved_subparts(doc, row)))
                 for row in pending_parts))
         for row in ready:
             make_composite_part(doc, row, composite_parts, linear_products, final_products)
-        pending_parts -= ready
+        pending_parts = [p for p in pending_parts if p not in ready] # subtract parts from stable list
     logging.info('Created ' + str(len(composite_parts.members)) + ' composite parts or libraries')
 
     logging.info('Created SBOL document with '+str(len(basic_parts.members))+' basic parts and '+str(len(composite_parts.members))+' composite parts or libraries')
