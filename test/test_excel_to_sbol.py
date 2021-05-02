@@ -30,7 +30,7 @@ def test_conversion():
 
     temp_name = tempfile.gettempdir() + '/' + next(tempfile._get_candidate_names())
     doc.write(temp_name, sbol3.SORTED_NTRIPLES)
-    assert filecmp.cmp(temp_name, TESTFILE_DIR + '/simple_library.nt')
+    assert filecmp.cmp(temp_name, TESTFILE_DIR + '/simple_library.nt',shallow=False)
 
 
 def test_constraints():
@@ -46,7 +46,7 @@ def test_constraints():
 
     temp_name = tempfile.gettempdir() + '/' + next(tempfile._get_candidate_names())
     doc.write(temp_name, sbol3.SORTED_NTRIPLES)
-    assert filecmp.cmp(temp_name, TESTFILE_DIR + '/constraints_library.nt')
+    assert filecmp.cmp(temp_name, TESTFILE_DIR + '/constraints_library.nt',shallow=False)
 
 
 def test_commandline():
@@ -54,4 +54,4 @@ def test_commandline():
     test_args = ['excel_file', '-vv', TESTFILE_DIR + '/simple_library.xlsx', '-o', temp_name, '-n', 'http://sbolstandard.org/testfiles/']
     with patch.object(sys, 'argv', test_args):
         sbol_utilities.excel_to_sbol.main()
-    assert filecmp.cmp(temp_name+'.nt', TESTFILE_DIR + '/simple_library.nt')
+    assert filecmp.cmp(temp_name+'.nt', TESTFILE_DIR + '/simple_library.nt',shallow=False)
