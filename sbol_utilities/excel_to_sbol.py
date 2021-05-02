@@ -185,7 +185,7 @@ def make_combinatorial_derivation(document, display_id,part_lists,reverse_comple
             for part in part_list:
                 if isinstance(part,sbol3.Component): var.variants.append(part)
                 elif isinstance(part,sbol3.CombinatorialDerivation): var.variant_derivations.append(part)
-                else: raise ValueError("Don't know how to make library element for "+part.name+", a "+print(part))
+                else: raise ValueError("Don't know how to make library element for "+part.name+", a "+str(part))
         else: # otherwise it's a fixed element of the template
             sub = sbol3.SubComponent(part_list[0])
             template.features.append(sub)
@@ -328,8 +328,6 @@ def main():
     excel_file = args_dict['excel_file']
     outfile_name = output_file+type_to_standard_extension[file_type]
     sbol3.set_namespace(args_dict['namespace'])
-
-    print('verbosity is '+str(verbosity))
 
     # Read file, convert, and write resulting document
     logging.info('Accessing Excel file '+excel_file)
