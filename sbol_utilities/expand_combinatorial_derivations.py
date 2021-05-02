@@ -126,7 +126,7 @@ def expand_derivations(targets: list):
 
 def root_combinatorial_derivations(doc: sbol3.Document):
     cds = {o for o in doc.objects if isinstance(o, sbol3.CombinatorialDerivation)}
-    children = set(flatten([v.variant_derivations for cd in cds for v in cd.variable_features]))
+    children = set(flatten([[d.lookup() for d in v.variant_derivations] for cd in cds for v in cd.variable_features]))
     return cds - children  # Roots are those CDs that are not a child of any other CD
 
 
@@ -173,7 +173,7 @@ def main():
     if targets:
         targets = [input_doc.find(cd) for cd in targets]
     else:
-        targets = root_combinatorial_derivations(input_doc)
+        targets = list(root_combinatorial_derivations(input_doc))
     # Expand CDs
     derivative_collections = expand_derivations(targets)
     # Write a document containing only the expansions
