@@ -55,7 +55,7 @@ def replace_feature(component, old, new):
     component.features.remove(old)
     component.features.append(new)
     # should be more thorough, but kludging to just look at constraints
-    for ct in id_sort(component.constraints):
+    for ct in component.constraints:
         if ct.subject == old.identity: ct.subject = new.identity
         if ct.object == old.identity: ct.object = new.identity
 
