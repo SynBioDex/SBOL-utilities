@@ -2,7 +2,7 @@ import argparse
 import logging
 import sbol3
 import itertools
-from .helper_functions import flatten, copy_toplevel_and_dependencies, replace_feature
+from .helper_functions import flatten, copy_toplevel_and_dependencies, replace_feature, id_sort
 
 
 ###############################################################
@@ -31,18 +31,18 @@ class CombinatorialDerivationExpander:
     # pull all components out of a possibly recursive collection
     def collection_values(self, c: sbol3.Collection):
         assert all(isinstance(x.lookup(), sbol3.Collection) or isinstance(x.lookup(), sbol3.Component) for x in c.members)
-        values = [x.lookup() for x in c.members if isinstance(x.lookup(), sbol3.Component)] + \
-            flatten([self.collection_values(x) for x in c.members if isinstance(x.lookup(), sbol3.Collection)])
+        values = [x.lookup() for x in id_sort(c.members) if isinstance(x.lookup(), sbol3.Component)] + \
+            id_sort(flatten([self.collection_values(x) for x in c.members if isinstance(x.lookup(), sbol3.Collection)]))
         logging.debug("Found "+str(len(values))+" values in collection "+c.display_id)
         return values
 
     # flatten a variable to collect all of its values
     def cd_variable_values(self, v: sbol3.VariableFeature):
         logging.debug("Finding values for " + v.variable.lookup().name)
-        sub_cd_collections = [self.derivation_to_collection(d.lookup()) for d in v.variant_derivations]
-        values = [x.lookup() for x in v.variants] + flatten(
-            [self.collection_values(c) for c in v.variant_collections]) + flatten(
-            self.collection_values(c) for c in sub_cd_collections)
+        sub_cd_collections = [self.derivation_to_collection(d.lookup()) for d in id_sort(v.variant_derivations)]
+        values = [x.lookup() for x in id_sort(v.variants)] + \
+                 id_sort(flatten([self.collection_values(c) for c in id_sort(v.variant_collections)])) + \
+                 id_sort(flatten(self.collection_values(c) for c in id_sort(sub_cd_collections)))
         logging.debug("Found " + str(len(values)) + " total values for " + v.variable.lookup().name)
         return values
 
@@ -59,7 +59,7 @@ class CombinatorialDerivationExpander:
         # if it doesn't already exist, we'll build it
         logging.debug("Expanding combinatorial derivation " + cd.display_id)
         # first get all of the values
-        values = [self.cd_variable_values(v) for v in cd.variable_features]
+        values = [id_sort(self.cd_variable_values(v)) for v in id_sort(cd.variable_features)]
         # if this is de facto a collection rather than a CD, just return it directly
         if is_library(cd):
             logging.debug("Interpreting combinatorial derivation " + cd.display_id + " as library")
@@ -80,8 +80,8 @@ class CombinatorialDerivationExpander:
                 # Replace variables with values
                 newsubs = {
                     derived.features[cd.template.lookup().features.index(f.variable.lookup())]: sbol3.SubComponent(v)
-                    for f, v in zip(cd.variable_features, a)}
-                for f in newsubs.keys():
+                    for f, v in zip(id_sort(cd.variable_features), a)}
+                for f in id_sort(newsubs.keys()):
                     replace_feature(derived, f, newsubs[f])
                 # Need to remap everything that points to this feature as well
                 # TODO: confirm that variant satisfies constraints
@@ -171,9 +171,9 @@ def main():
     input_doc = sbol3.Document()
     input_doc.read(input_file)
     if targets:
-        targets = [input_doc.find(cd) for cd in targets]
+        targets = id_sort([input_doc.find(cd) for cd in targets])
     else:
-        targets = list(root_combinatorial_derivations(input_doc))
+        targets = id_sort(root_combinatorial_derivations(input_doc))
     # Expand CDs
     derivative_collections = expand_derivations(targets)
     # Write a document containing only the expansions

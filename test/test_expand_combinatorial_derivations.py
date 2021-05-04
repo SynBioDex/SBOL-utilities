@@ -2,7 +2,7 @@ import sbol_utilities.expand_combinatorial_derivations
 import sbol_utilities.helper_functions
 import tempfile
 import sbol3
-import filecmp
+from sbol_utilities.helper_functions import assert_files_identical
 import os
 import logging
 import sys
@@ -35,7 +35,7 @@ def test_expansion():
 
     temp_name = tempfile.gettempdir() + '/' + next(tempfile._get_candidate_names())
     output_doc.write(temp_name, sbol3.SORTED_NTRIPLES)
-    #assert filecmp.cmp(temp_name, TESTFILE_DIR + '/expanded_simple_library.nt') # problem per pySBOL3 issue #231
+    assert_files_identical(temp_name, TESTFILE_DIR + '/expanded_simple_library.nt')
 
 
 #def test_constraints():
@@ -59,4 +59,4 @@ def test_commandline():
     test_args = ['excel_file', '-vv', TESTFILE_DIR + '/simple_library.nt', '-o', temp_name]
     with patch.object(sys, 'argv', test_args):
         sbol_utilities.expand_combinatorial_derivations.main()
-    #assert filecmp.cmp(temp_name+'.nt', TESTFILE_DIR + '/expanded_simple_library.nt') # problem per pySBOL3 issue #231
+    assert_files_identical(temp_name+'.nt', TESTFILE_DIR + '/expanded_simple_library.nt')

@@ -5,12 +5,23 @@ import difflib
 #########################
 # Collection of shared helper functions for utilities package
 
+
+# Flatten list of lists into a single list
 def flatten(collection):
     return [item for sublist in collection for item in sublist]
 
 
+#########################
+# Kludge materials that should be removed after certain issues are resolved
 
-## Kludges for copying certain types of TopLevel objects
+
+# Workaround for pySBOL3 issue #231: should be applied to every iteration on a collection of SBOL objects
+def id_sort(i: iter):
+    sortable = list(i)
+    sortable.sort(key=lambda x: x.identity if isinstance(x, sbol3.Identified) else x.lookup().identity)
+    return sortable
+
+# Kludges for copying certain types of TopLevel objects
 # TODO: delete after resolution of pySBOL issue #235
 def copy_toplevel_and_dependencies(target, t):
     if not target.find(t.identity):
@@ -25,15 +36,15 @@ def copy_toplevel_and_dependencies(target, t):
 
 def copy_collection_and_dependencies(target, c):
     c.copy(target)
-    for m in c.members:
+    for m in id_sort(c.members):
         copy_toplevel_and_dependencies(target, m.lookup())
 
 def copy_component_and_dependencies(target, c):
     c.copy(target)
-    for f in c.features:
+    for f in id_sort(c.features):
         if isinstance(f,sbol3.SubComponent):
             copy_toplevel_and_dependencies(target, f.instance_of.lookup())
-    for s in c.sequences:
+    for s in id_sort(c.sequences):
         copy_toplevel_and_dependencies(target, s.lookup())
 
 
@@ -44,7 +55,7 @@ def replace_feature(component, old, new):
     component.features.remove(old)
     component.features.append(new)
     # should be more thorough, but kludging to just look at constraints
-    for ct in component.constraints:
+    for ct in id_sort(component.constraints):
         if ct.subject == old.identity: ct.subject = new.identity
         if ct.object == old.identity: ct.object = new.identity
 
