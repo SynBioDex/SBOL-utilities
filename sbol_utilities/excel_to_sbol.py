@@ -185,7 +185,7 @@ def make_combinatorial_derivation(document, display_id,part_lists,reverse_comple
             for part in part_list:
                 if isinstance(part,sbol3.Component): var.variants.append(part)
                 elif isinstance(part,sbol3.CombinatorialDerivation): var.variant_derivations.append(part)
-                else: raise ValueError("Don't know how to make library element for "+part.name+", a "+print(part))
+                else: raise ValueError("Don't know how to make library element for "+part.name+", a "+str(part))
         else: # otherwise it's a fixed element of the template
             sub = sbol3.SubComponent(part_list[0])
             template.features.append(sub)
@@ -277,16 +277,16 @@ def excel_to_sbol(wb: openpyxl.Workbook):
 
     logging.info('Reading composite parts and libraries')
     # first collect all rows with names
-    pending_parts = {row for row in composite_sheet(wb).iter_rows(min_row=24) if row[0].value}
+    pending_parts = [row for row in composite_sheet(wb).iter_rows(min_row=24) if row[0].value]
     while pending_parts:
-        ready = {row for row in pending_parts if not unresolved_subparts(doc, row)}
+        ready = [row for row in pending_parts if not unresolved_subparts(doc, row)]
         if not ready:
             raise ValueError("Could not resolve subparts" + ''.join(
                 ("\n in '" + row[0].value + "':" + ''.join(" '" + x + "'" for x in unresolved_subparts(doc, row)))
                 for row in pending_parts))
         for row in ready:
             make_composite_part(doc, row, composite_parts, linear_products, final_products)
-        pending_parts -= ready
+        pending_parts = [p for p in pending_parts if p not in ready] # subtract parts from stable list
     logging.info('Created ' + str(len(composite_parts.members)) + ' composite parts or libraries')
 
     logging.info('Created SBOL document with '+str(len(basic_parts.members))+' basic parts and '+str(len(composite_parts.members))+' composite parts or libraries')
@@ -328,8 +328,6 @@ def main():
     excel_file = args_dict['excel_file']
     outfile_name = output_file+type_to_standard_extension[file_type]
     sbol3.set_namespace(args_dict['namespace'])
-
-    print('verbosity is '+str(verbosity))
 
     # Read file, convert, and write resulting document
     logging.info('Accessing Excel file '+excel_file)
