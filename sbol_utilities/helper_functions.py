@@ -18,7 +18,7 @@ def flatten(collection):
 # Workaround for pySBOL3 issue #231: should be applied to every iteration on a collection of SBOL objects
 def id_sort(i: iter):
     sortable = list(i)
-    sortable.sort(key=lambda x: x.identity if isinstance(x, sbol3.Identified) else x.lookup().identity)
+    sortable.sort(key=lambda x: x.identity if isinstance(x, sbol3.Identified) else x)
     return sortable
 
 # Kludges for copying certain types of TopLevel objects
