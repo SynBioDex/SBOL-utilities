@@ -38,7 +38,7 @@ def test_expansion():
     #assert_files_identical(temp_name, TESTFILE_DIR + '/expanded_simple_library.nt') # TODO: work around pySBOL3 issue #231
 
 
-#def test_constraints():
+#def test_constraints():  # TODO: to be added when constraint-handling is incorporated.
     # wb = openpyxl.load_workbook(TESTFILE_DIR + '/constraints_library.nt', data_only=True)
     # sbol3.set_namespace('http://sbolstandard.org/testfiles/')
     # doc = sbol_utilities.excel_to_sbol.excel_to_sbol(wb)
