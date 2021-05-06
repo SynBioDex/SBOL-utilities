@@ -2,7 +2,7 @@ import argparse
 import logging
 import sbol3
 import itertools
-from .helper_functions import flatten, copy_toplevel_and_dependencies, replace_feature, id_sort
+from .helper_functions import flatten, copy_toplevel_and_dependencies, replace_feature, id_sort, sort_owned_objects
 
 ###############################################################
 # Helper functions:
