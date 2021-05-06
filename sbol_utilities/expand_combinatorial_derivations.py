@@ -4,6 +4,14 @@ import sbol3
 import itertools
 from .helper_functions import flatten, copy_toplevel_and_dependencies, replace_feature, id_sort
 
+###############################################################
+# Evil patch to stabilize order returned in cloning
+
+# TODO: for addressing pySBOL3 issue #231
+def sort_owned_objects(self):
+    for k in self._owned_objects.keys():
+        self._owned_objects[k] = id_sort(self._owned_objects[k])
+
 
 ###############################################################
 # Helper functions:
@@ -52,6 +60,7 @@ class CombinatorialDerivationExpander:
     # We'll do this by a simple depth first search initially, since the numbers shouldn't be too large
     def derivation_to_collection(self, cd: sbol3.CombinatorialDerivation):
         doc = cd.document
+        sort_owned_objects(cd.template.lookup()) # TODO: issue #231
         # we've already converted this CombinatorialDerivation to a Collection, just return the conversion
         if cd in self.expanded_derivations.keys():
             logging.debug('Found previous expansion of ' + cd.display_id)
