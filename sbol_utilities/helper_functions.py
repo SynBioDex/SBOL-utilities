@@ -16,13 +16,22 @@ def flatten(collection):
 
 
 # Workaround for pySBOL3 issue #231: should be applied to every iteration on a collection of SBOL objects
+# TODO: delete after resolution of pySBOL3 issue #231
 def id_sort(i: iter):
     sortable = list(i)
     sortable.sort(key=lambda x: x.identity if isinstance(x, sbol3.Identified) else x)
     return sortable
 
+# Patch to stabilize order returned in cloning, part of the pySBOL3 issue #231 workaround
+# TODO: delete after resolution of pySBOL3 issue #231
+def sort_owned_objects(self):
+    for k in self._owned_objects.keys():
+        self._owned_objects[k] = id_sort(self._owned_objects[k])
+
+
+
 # Kludges for copying certain types of TopLevel objects
-# TODO: delete after resolution of pySBOL issue #235
+# TODO: delete after resolution of pySBOL issue #235, along with following functions
 def copy_toplevel_and_dependencies(target, t):
     if not target.find(t.identity):
         if isinstance(t, sbol3.Collection):
