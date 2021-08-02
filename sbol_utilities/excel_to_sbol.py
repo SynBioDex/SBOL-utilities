@@ -1,98 +1,154 @@
 import unicodedata
-
-import sbol3
-import openpyxl
-import tyto
 import warnings
 import logging
 import re
 import argparse
 
+import sbol3
+import openpyxl
+import tyto
 
-###############################################################
-# Utilities
 
+def expand_configuration(values: dict) -> dict:
+    """
+    Initialize sheet configuration dictionary
+    :param values: Dictionary of overrides for defaults
+    :return configuration with all defaults filled in
+    """
+    # set up the default values
+    default_values = {
+        'basic_sheet': 'Basic Parts',
+        'basic_parts_name': 'B1',
+        'basic_parts_description': 'A11',
+        'basic_first_row': 20,
+        'basic_name_col': 0,
+        'basic_row_col': 1,
+        'basic_notes_col': 2,
+        'basic_description_col': 4,
+        'basic_source_prefix_col': 5,
+        'basic_source_id_col': 6,
+        'basic_final_col': 9,
+        'basic_circular_col': 10,
+        'basic_length_col': 11,
+        'basic_sequence_col': 12,
+
+        'composite_sheet': 'Composite Parts',
+        'composite_parts_name': 'B1',
+        'composite_parts_description': 'A11',
+        'composite_first_row': 24,
+        'composite_name_col': 0,
+        'composite_notes_col': 1,
+        'composite_description_col': 2,
+        'composite_final_col': 3,
+        'composite_strain_col': 4,
+        'composite_context_col': 5,
+        'composite_constraints_col': 6
+
+    }
+    # override with supplied values
+    values_to_use = default_values
+    if values is not None:
+        for k, v in values.items():
+            if k not in default_values:
+                raise ValueError(f'Sheet configuration has no setting "{k}"')
+            values_to_use[k] = v
+    # initialize the dictionary
+    return values_to_use
+
+
+# TODO: remove after resolution of https://github.com/SynBioDex/pySBOL3/issues/191
 def string_to_display_id(name):
-    display_id = name.strip().replace(" ","_").replace("-","_") # display id is name processed to comply with rules
-    if display_id[0].isdigit(): display_id = "_"+display_id
+    replacements = {' ': '_', '-': '_', '.': '_'}
+    # make replacements in order to try to get a compliant displayID
+    display_id = "".join([replacements.get(c, c) for c in name.strip()])
+    if display_id[0].isdigit():
+        display_id = "_"+display_id
     return display_id
 
 
-def basic_sheet(wb: openpyxl.Workbook):
-    return wb['Basic Parts']
-
-
-def composite_sheet(wb: openpyxl.Workbook):
-    return wb['Composite Parts']
-
-###############################################################
-# Metadata extraction
-
-
-def read_metadata(wb: openpyxl.Workbook, doc: sbol3.Document):
+def read_metadata(wb: openpyxl.Workbook, doc: sbol3.Document, config: dict):
+    """
+    Extract metadata and build collections
+    :param wb: Excel workbook to extract material from
+    :param doc: SBOL document to build collections in
+    :param config: dictionary of sheet parsing configuration variables
+    :return: Tuple of SBOL collections for basic, composite, linear, and final parts
+    """
     # Read the metadata
-    wsB = basic_sheet(wb)
-    basic_parts_name = wsB['B1'].value
-    basic_parts_description = wsB['A11'].value
+    ws_b = wb[config['basic_sheet']]
+    bp_name = ws_b[config['basic_parts_name']].value
+    bp_description = ws_b[config['basic_parts_description']].value
 
-    wsC = composite_sheet(wb)
-    composite_parts_name = wsC['B1'].value
-    composite_parts_description = wsC['A11'].value
+    ws_c = wb[config['composite_sheet']]
+    if config['composite_parts_name']:
+        cp_name = ws_c[config['composite_parts_name']].value
+        cp_description = ws_c[config['composite_parts_description']].value
+    else:
+        cp_name = bp_name
+        cp_description = bp_description
 
     # Make the collections
-    basic_parts = sbol3.Collection('BasicParts', name = basic_parts_name, description = basic_parts_description)
+    basic_parts = sbol3.Collection('BasicParts', name=bp_name, description=bp_description)
     doc.add(basic_parts)
 
-    composite_parts = sbol3.Collection('CompositeParts', name = composite_parts_name, description = composite_parts_description)
+    composite_parts = sbol3.Collection('CompositeParts', name=cp_name, description=cp_description)
     doc.add(composite_parts)
 
-    linear_products = sbol3.Collection('LinearDNAProducts', name = 'Linear DNA Products', description = 'Linear DNA constructs to be fabricated')
+    linear_products = sbol3.Collection('LinearDNAProducts', name='Linear DNA Products',
+                                       description='Linear DNA constructs to be fabricated')
     doc.add(linear_products)
 
-    final_products = sbol3.Collection('FinalProducts', name = 'Final Products', description = 'Final products desired for actual fabrication')
+    final_products = sbol3.Collection('FinalProducts', name='Final Products',
+                                      description='Final products desired for actual fabrication')
     doc.add(final_products)
 
     # return the set of created collections
     return basic_parts, composite_parts, linear_products, final_products
 
 
-###############################################################
-# Read a row for a basic part and turn it into SBOL
-
-
-def row_to_basic_part(doc, row, basic_parts, linear_products, final_products):
+def row_to_basic_part(doc: sbol3.Document, row, basic_parts: sbol3.Collection, linear_products: sbol3.Collection,
+                      final_products: sbol3.Collection, config: dict):
+    """
+    Read a row for a basic part and turn it into SBOL Component
+    :param doc: Document to add parts to
+    :param row: Excel row to be processed
+    :param basic_parts: collection of parts to add to
+    :param linear_products: collection of linear parts to add to
+    :param final_products: collection of final parts to add to
+    :param config: dictionary of sheet parsing configuration variables
+    :return: None
+    """
     # Parse material from sheet row
-    name = row[0].value
+    name = row[config['basic_name_col']].value
     if name is None:
         return  # skip lines without names
     display_id = string_to_display_id(name)
     try:
-        raw_role = row[1].value  # try to look up with tyto; if fail, leave blank or add to description
+        raw_role = row[config['basic_row_col']].value  # look up with tyto; if fail, leave blank or add to description
         role = (tyto.SO.get_uri_by_term(raw_role) if raw_role else None)
     except LookupError:
         role = None
-    design_notes = (row[2].value if row[2].value else "")
-    description = (row[4].value if row[4].value else "")
-    final_product = row[9].value # boolean
-    circular = row[10].value # boolean
-    length = row[11].value
-    raw_sequence = row[12].value
+    design_notes = (row[config['basic_notes_col']].value if row[config['basic_notes_col']].value else "")
+    description = (row[config['basic_description_col']].value if row[config['basic_description_col']].value else "")
+    final_product = row[config['basic_final_col']].value  # boolean
+    circular = row[config['basic_circular_col']].value  # boolean
+    length = row[config['basic_length_col']].value
+    raw_sequence = row[config['basic_sequence_col']].value
     sequence = (None if raw_sequence is None else "".join(unicodedata.normalize("NFKD", raw_sequence).upper().split()))
-    assert (sequence is None and length==0) or len(sequence)==length, \
-        'Part "'+name+'" has a mismatched sequence length: check for bad characters and extra whitespace'
+    if not ((sequence is None and length == 0) or len(sequence) == length):
+        raise ValueError(f'Part "{name}" has mismatched sequence length: check for bad characters and extra whitespace')
 
     # build a component from the material
-    logging.debug('Creating basic part "'+name+'"')
-    component = sbol3.Component(display_id, sbol3.SBO_DNA)
+    logging.debug(f'Creating basic part "{name}"')
+    component = sbol3.Component(display_id, sbol3.SBO_DNA, name=name,
+                                description=f'{design_notes}\n{description}'.strip())
     doc.add(component)
-    component.name = name
-    component.description = (design_notes+"\n"+description).strip()
-    if role: component.roles.append(role)
-    if circular: component.types.append(sbol3.SO_CIRCULAR)
+    if role:
+        component.roles.append(role)
+    if circular:
+        component.types.append(sbol3.SO_CIRCULAR)
     if sequence:
-        sbol_seq = sbol3.Sequence(display_id+"_sequence")
-        sbol_seq.encoding = 'https://identifiers.org/edam:format_1207'  ### BUG: pySBOL #185
-        sbol_seq.elements = sequence
+        sbol_seq = sbol3.Sequence(f'{display_id}_sequence', encoding=sbol3.IUPAC_DNA_ENCODING, elements=sequence)
         doc.add(sbol_seq)
         component.sequences.append(sbol_seq.identity)
 
@@ -138,7 +194,8 @@ def make_composite_component(display_id,part_lists,reverse_complements):
     # for each part, make a SubComponent and link them together in sequence
     last_sub = None
     for part_list,rc in zip(part_lists,reverse_complements):
-        assert len(part_list)==1
+        if not len(part_list)==1:
+            raise ValueError(f'Part list should have precisely one element, but is {part_list}')
         sub = sbol3.SubComponent(part_list[0])
         sub.orientation = (sbol3.SBOL_REVERSE_COMPLEMENT if rc else sbol3.SBOL_INLINE)
         composite_part.features.append(sub)
@@ -148,20 +205,25 @@ def make_composite_component(display_id,part_lists,reverse_complements):
     return composite_part
 
 constraint_pattern = re.compile('Part (\d+) (.+) Part (\d+)')
-constraint_dict = {'same as':sbol3.SBOL_VERIFY_IDENTICAL,
-                   'different from':sbol3.SBOL_DIFFERENT_FROM,
-                   'same orientation as':sbol3.SBOL_SAME_ORIENTATION_AS,
-                   'different orientation from':sbol3.SBOL_SAME_ORIENTATION_AS}
+constraint_dict = {'same as': sbol3.SBOL_VERIFY_IDENTICAL,
+                   'different from': sbol3.SBOL_DIFFERENT_FROM,
+                   'same orientation as': sbol3.SBOL_SAME_ORIENTATION_AS,
+                   'different orientation from': sbol3.SBOL_SAME_ORIENTATION_AS}
 def make_constraint(constraint, part_list):
     m = constraint_pattern.match(constraint)
-    assert m, ValueError("Constraint '"+constraint+"' does not match pattern 'Part X relation Part Y'")
-    try: restriction = constraint_dict[m.group(2)]
-    except KeyError: raise ValueError("Do not recognize constraint relation '"+restriction+"'")
+    if not m:
+        raise ValueError(f'Constraint "{constraint}" does not match pattern "Part X relation Part Y"')
+    try:
+        restriction = constraint_dict[m.group(2)]
+    except KeyError:
+        raise ValueError(f'Do not recognize constraint relation "{restriction}"')
     x = int(m.group(1))
     y = int(m.group(3))
-    assert x is not y, ValueError("A part cannot constrain itself: "+constraint)
+    if x is y:
+        raise ValueError(f'A part cannot constrain itself: {constraint}')
     for n in [x,y]:
-       assert n>0 and n<=len(part_list), ValueError("Part number "+str(n)+" is not between 1 and "+str(len(part_list)))
+       if not (0 < n <= len(part_list)):
+           raise ValueError(f'Part number "{str(n)}" is not between 1 and {len(part_list)}')
     return sbol3.Constraint(restriction, part_list[x-1], part_list[y-1])
 
 
@@ -201,45 +263,64 @@ def make_combinatorial_derivation(document, display_id,part_lists,reverse_comple
     return cd
 
 
-def make_composite_part(document, row, composite_parts, linear_products, final_products):
+def make_composite_part(document, row, composite_parts, linear_products, final_products, config):
+    """
+    Create a composite part from a row in the composites sheet
+    :param document: Document to add parts to
+    :param row: Excel row to be processed
+    :param composite_parts: collection of parts to add to
+    :param linear_products: collection of linear parts to add to
+    :param final_products: collection of final parts to add to
+    :param config: dictionary of sheet parsing configuration variables
+    """
     # Parse material from sheet row
-    name = row[0].value
+    name = row[config['composite_name_col']].value
     display_id = string_to_display_id(name)
-    design_notes = (row[1].value if row[1].value else "")
-    description = (row[2].value if row[2].value else "")
-    final_product = row[3].value # boolean
-    transformed_strain = row[4].value
-    backbone_or_locus = row[5].value
-    constraints = row[6].value
+    design_notes = (row[config['composite_notes_col']].value if row[config['composite_notes_col']].value else "")
+    description = \
+        (row[config['composite_description_col']].value if row[config['composite_description_col']].value else "")
+    final_product = row[config['composite_final_col']].value  # boolean
+    transformed_strain = row[config['composite_strain_col']].value
+    backbone_or_locus = row[config['composite_context_col']].value
+    constraints = row[config['composite_constraints_col']].value
     reverse_complements = [is_RC(spec) for spec in part_specifications(row)]
-    part_lists = [[document.find(string_to_display_id(name)) for name in part_names(spec)] for spec in part_specifications(row)]
-    combinatorial = any(x for x in part_lists if len(x)>1 or isinstance(x[0],sbol3.CombinatorialDerivation))
+    part_lists = \
+        [[document.find(string_to_display_id(name)) for name in part_names(spec)] for spec in part_specifications(row)]
+    combinatorial = any(x for x in part_lists if len(x) > 1 or isinstance(x[0], sbol3.CombinatorialDerivation))
+
     # Build the composite
-    logging.debug("Creating "+("library" if combinatorial else "composite part")+' "'+name+'"')
-    linear_dna_display_id = (display_id + "_ins" if backbone_or_locus else display_id)
+    logging.debug(f'Creating {"library" if combinatorial else "composite part"} "{name}"')
+    linear_dna_display_id = (f'{display_id}_ins' if backbone_or_locus else display_id)
     if combinatorial:
-        composite_part = make_combinatorial_derivation(document,linear_dna_display_id,part_lists,reverse_complements,constraints)
+        composite_part = make_combinatorial_derivation(document, linear_dna_display_id, part_lists, reverse_complements,
+                                                       constraints)
     else:
-        composite_part = make_composite_component(linear_dna_display_id,part_lists,reverse_complements)
+        composite_part = make_composite_component(linear_dna_display_id, part_lists, reverse_complements)
     composite_part.name = name
-    composite_part.description = (design_notes+"\n"+description).strip()
+    composite_part.description = f'{design_notes}\n{description}'.strip()
+
     # add the component to the appropriate collections
     document.add(composite_part)
     composite_parts.members.append(composite_part.identity)
-    if final_product: linear_products.members.append(composite_part.identity)
+    if final_product:
+        linear_products.members.append(composite_part.identity)
+
     ###############
     # Consider strain and locus information
-    if transformed_strain: warnings.warn("Not yet handling strain information: "+transformed_strain)
+    if transformed_strain:
+        warnings.warn("Not yet handling strain information: "+transformed_strain)
     if backbone_or_locus:
-        #warnings.warn("Assuming plasmid backbone, not locus: "+backbone_or_locus)
+        # TODO: handle integration locuses as well as plasmid backbones
         backbone = document.find(string_to_display_id(backbone_or_locus))
-        assert backbone, ValueError("Couldn't find specified backbone '"+backbone_or_locus+"'")
-        assert tyto.SO.get_uri_by_term('plasmid') in backbone.roles, ValueError("Specified backbone '"+backbone_or_locus+"' is not a plasmid")
+        if backbone is None:
+            raise ValueError(f'Could not find specified backbone "{backbone_or_locus}"')
+        if tyto.SO.get_uri_by_term('plasmid') not in backbone.roles:
+            raise ValueError(f'Specified backbone "{backbone_or_locus}" is not a plasmid')
         if combinatorial:
-            logging.debug("Embedding library '" + composite_part.name + "' in plasmid backbone '" + backbone_or_locus + "'")
-            plasmid = sbol3.Component(display_id + "_template", sbol3.SBO_DNA)
+            logging.debug(f"Embedding library '{composite_part.name}' in plasmid backbone '{backbone_or_locus}'")
+            plasmid = sbol3.Component(f'{display_id}_template', sbol3.SBO_DNA)
             document.add(plasmid)
-            part_sub = sbol3.LocalSubComponent({sbol3.SBO_DNA})
+            part_sub = sbol3.LocalSubComponent([sbol3.SBO_DNA])
             part_sub.name = "Inserted Construct"
             plasmid.features.append(part_sub)
             plasmid_cd = sbol3.CombinatorialDerivation(display_id, plasmid)
@@ -247,53 +328,60 @@ def make_composite_part(document, row, composite_parts, linear_products, final_p
             part_var = sbol3.VariableFeature(cardinality=sbol3.SBOL_ONE, variable=part_sub)
             plasmid_cd.variable_features.append(part_var)
             part_var.variant_derivations.append(composite_part)
-            if final_product: final_products.members.append(plasmid_cd)
+            if final_product:
+                final_products.members.append(plasmid_cd)
         else:
-            logging.debug("Embedding part '" + composite_part.name + "' in plasmid backbone '" + backbone_or_locus + "'")
-            plasmid = sbol3.Component(display_id,sbol3.SBO_DNA)
+            logging.debug(f'Embedding part "{composite_part.name}" in plasmid backbone "{backbone_or_locus}"')
+            plasmid = sbol3.Component(display_id, sbol3.SBO_DNA)
             document.add(plasmid)
             part_sub = sbol3.SubComponent(composite_part)
             plasmid.features.append(part_sub)
-            if final_product: final_products.members += {plasmid}
+            if final_product:
+                final_products.members += {plasmid}
         backbone_sub = sbol3.SubComponent(backbone)
         plasmid.features.append(backbone_sub)
-        plasmid.constraints.append(sbol3.Constraint(sbol3.SBOL_MEETS,part_sub,backbone_sub))
-        plasmid.constraints.append(sbol3.Constraint(sbol3.SBOL_MEETS,backbone_sub,part_sub))
+        plasmid.constraints.append(sbol3.Constraint(sbol3.SBOL_MEETS, part_sub, backbone_sub))
+        plasmid.constraints.append(sbol3.Constraint(sbol3.SBOL_MEETS, backbone_sub, part_sub))
 
 
-###############################################################
-# Entry-point method: given an openpyxl pointer to an Excel file, return an Excel doc file
-
-def excel_to_sbol(wb: openpyxl.Workbook):
+def excel_to_sbol(wb: openpyxl.Workbook, config: dict = None) -> sbol3.Document:
+    """
+    Take an open Excel file, return an SBOL document
+    :param wb: openpyxl pointer to an Excel file
+    :param config: dictionary of sheet parsing configuration variables
+    :return: Document containing all SBOL extracted from Excel sheet
+    """
+    config = expand_configuration(config)
     doc = sbol3.Document()
 
     logging.info('Reading metadata for collections')
-    basic_parts, composite_parts, linear_products, final_products = read_metadata(wb, doc)
+    basic_parts, composite_parts, linear_products, final_products = read_metadata(wb, doc, config)
 
     logging.info('Reading basic parts')
-    for row in basic_sheet(wb).iter_rows(min_row=20):
-        row_to_basic_part(doc, row, basic_parts, linear_products, final_products)
-    logging.info('Created ' + str(len(basic_parts.members)) + ' basic parts')
+    for row in wb[config['basic_sheet']].iter_rows(min_row=config['basic_first_row']):
+        row_to_basic_part(doc, row, basic_parts, linear_products, final_products, config)
+    logging.info(f'Created {len(basic_parts.members)} basic parts')
 
     logging.info('Reading composite parts and libraries')
     # first collect all rows with names
-    pending_parts = [row for row in composite_sheet(wb).iter_rows(min_row=24) if row[0].value]
+    pending_parts = [row for row in wb[config['composite_sheet']].iter_rows(min_row=config['composite_first_row'])
+                     if row[config['composite_name_col']].value]
     while pending_parts:
         ready = [row for row in pending_parts if not unresolved_subparts(doc, row)]
         if not ready:
             raise ValueError("Could not resolve subparts" + ''.join(
-                ("\n in '" + row[0].value + "':" + ''.join(" '" + x + "'" for x in unresolved_subparts(doc, row)))
+                (f"\n in '{row[config['composite_name_col']].value}':" +
+                 ''.join(f" '{x}'" for x in unresolved_subparts(doc, row)))
                 for row in pending_parts))
         for row in ready:
-            make_composite_part(doc, row, composite_parts, linear_products, final_products)
-        pending_parts = [p for p in pending_parts if p not in ready] # subtract parts from stable list
-    logging.info('Created ' + str(len(composite_parts.members)) + ' composite parts or libraries')
+            make_composite_part(doc, row, composite_parts, linear_products, final_products, config)
+        pending_parts = [p for p in pending_parts if p not in ready]  # subtract parts from stable list
+    logging.info(f'Created {len(composite_parts.members)} composite parts or libraries')
 
-    logging.info('Created SBOL document with '+str(len(basic_parts.members))+' basic parts and '+str(len(composite_parts.members))+' composite parts or libraries')
+    logging.info(f'Count {len(basic_parts.members)} basic parts, {len(composite_parts.members)} composites/libraries')
     report = doc.validate()
-    logging.info('Validation of document found ' + str(len(report.errors)) + ' errors and ' + str(len(report.warnings)) + ' warnings')
+    logging.info(f'Validation of document found {len(report.errors)} errors and {len(report.warnings)} warnings')
     return doc
-
 
 
 type_to_standard_extension = {  # TODO: remove after resolution of pySBOL3/issues/244
@@ -304,10 +392,11 @@ type_to_standard_extension = {  # TODO: remove after resolution of pySBOL3/issue
     sbol3.TURTLE: '.ttl'
 }
 
-###############################################################
-# Main wrapper: read from input file, invoke excel_to_sbol, then write to output file
 
 def main():
+    """
+    Main wrapper: read from input file, invoke excel_to_sbol, then write to output file
+    """
     parser = argparse.ArgumentParser()
     parser.add_argument('excel_file', help="Excel file used as input")
     parser.add_argument('-n', '--namespace', dest='namespace',
@@ -322,7 +411,8 @@ def main():
 
     # Extract arguments:
     verbosity = args_dict['verbose']
-    logging.getLogger().setLevel(level=(logging.WARN if verbosity == 0 else logging.INFO if verbosity == 1 else logging.DEBUG))
+    log_level = logging.WARN if verbosity == 0 else logging.INFO if verbosity == 1 else logging.DEBUG
+    logging.getLogger().setLevel(level=log_level)
     output_file = args_dict['output_file']
     file_type = args_dict['file_type']
     excel_file = args_dict['excel_file']
