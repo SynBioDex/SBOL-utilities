@@ -32,4 +32,8 @@ graph-sbol -i my_file.ttl
 
 ### Convert an Excel template file to SBOL
 
-The `excel_to_sbol` utility reads an Excel file specifying a library of basic and composite parts, formatted following `sbol_library_template.xlsx`.
+The `excel-to-sbol` utility reads an Excel file specifying a library of basic and composite parts, formatted following `sbol_library_template.xlsx`.
+
+### Expand the combinatorial derivations in an SBOL file
+
+The `sbol-expand-derivations` utility searches through an SBOL file for CombinatorialDerivation objects and expands them to create a library of all of the specific constructs.
