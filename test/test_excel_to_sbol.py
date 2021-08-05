@@ -40,7 +40,7 @@ def test_custom_conversion():
         'basic_parts_name': 'C2',
         'basic_parts_description': 'A12',
         'basic_first_row': 21,
-        'basic_row_col': 2,
+        'basic_role_col': 2,
         'basic_notes_col': 3,
         'basic_description_col': 5,
         'basic_source_prefix_col': 6,

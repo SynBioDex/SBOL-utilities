@@ -22,7 +22,7 @@ def expand_configuration(values: dict) -> dict:
         'basic_parts_description': 'A11',
         'basic_first_row': 20,
         'basic_name_col': 0,
-        'basic_row_col': 1,
+        'basic_role_col': 1,
         'basic_notes_col': 2,
         'basic_description_col': 4,
         'basic_source_prefix_col': 5,
@@ -43,7 +43,6 @@ def expand_configuration(values: dict) -> dict:
         'composite_strain_col': 4,
         'composite_context_col': 5,
         'composite_constraints_col': 6
-
     }
     # override with supplied values
     values_to_use = default_values
@@ -58,9 +57,17 @@ def expand_configuration(values: dict) -> dict:
 
 # TODO: remove after resolution of https://github.com/SynBioDex/pySBOL3/issues/191
 def string_to_display_id(name):
-    replacements = {' ': '_', '-': '_', '.': '_'}
-    # make replacements in order to try to get a compliant displayID
-    display_id = "".join([replacements.get(c, c) for c in name.strip()])
+    def sanitize_character(c):
+        replacements = {' ': '_', '-': '_', '.': '_'}
+        c = replacements.get(c, c)  # first, see if there is a wired replacement
+        if c.isalnum() or c == '_':  # keep allowed characters
+            return c
+        else:  # all others are changed into a reduced & compatible form of their unicode name
+            return f'_{unicodedata.name(c).replace(" SIGN","").replace(" ","_")}'
+
+    # make replacements in order to get a compliant displayID
+    display_id = "".join([sanitize_character(c) for c in name.strip()])
+    # prepend underscore if there is an initial digit
     if display_id[0].isdigit():
         display_id = "_"+display_id
     return display_id
@@ -124,7 +131,7 @@ def row_to_basic_part(doc: sbol3.Document, row, basic_parts: sbol3.Collection, l
         return  # skip lines without names
     display_id = string_to_display_id(name)
     try:
-        raw_role = row[config['basic_row_col']].value  # look up with tyto; if fail, leave blank or add to description
+        raw_role = row[config['basic_role_col']].value  # look up with tyto; if fail, leave blank or add to description
         role = (tyto.SO.get_uri_by_term(raw_role) if raw_role else None)
     except LookupError:
         role = None
@@ -280,9 +287,9 @@ def make_composite_part(document, row, composite_parts, linear_products, final_p
     description = \
         (row[config['composite_description_col']].value if row[config['composite_description_col']].value else "")
     final_product = row[config['composite_final_col']].value  # boolean
-    transformed_strain = row[config['composite_strain_col']].value
-    backbone_or_locus = row[config['composite_context_col']].value
-    constraints = row[config['composite_constraints_col']].value
+    transformed_strain = row[config['composite_strain_col']].value if config['composite_strain_col'] else None
+    backbone_or_locus = row[config['composite_context_col']].value if config['composite_context_col'] else None
+    constraints = row[config['composite_constraints_col']].value if config['composite_constraints_col'] else None
     reverse_complements = [is_RC(spec) for spec in part_specifications(row)]
     part_lists = \
         [[document.find(string_to_display_id(name)) for name in part_names(spec)] for spec in part_specifications(row)]
@@ -401,6 +408,8 @@ def main():
     parser.add_argument('excel_file', help="Excel file used as input")
     parser.add_argument('-n', '--namespace', dest='namespace',
                         help="Namespace for Components in output file")
+    parser.add_argument('-l', '--local', dest='local', default=None,
+                        help="Local path for Components in output file")
     parser.add_argument('-o', '--output', dest='output_file', default='out',
                         help="Name of SBOL file to be written")
     parser.add_argument('-t', '--file-type', dest='file_type', default=sbol3.SORTED_NTRIPLES,
@@ -418,6 +427,9 @@ def main():
     excel_file = args_dict['excel_file']
     outfile_name = output_file+type_to_standard_extension[file_type]
     sbol3.set_namespace(args_dict['namespace'])
+    # TODO: unkludge after resolution of https://github.com/SynBioDex/pySBOL3/issues/288
+    if args_dict['local']:
+        sbol3.set_namespace(f"{args_dict['namespace']}/{args_dict['local']}")
 
     # Read file, convert, and write resulting document
     logging.info('Accessing Excel file '+excel_file)
