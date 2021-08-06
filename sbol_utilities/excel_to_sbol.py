@@ -8,6 +8,10 @@ import sbol3
 import openpyxl
 import tyto
 
+BASIC_PARTS_COLLECTION = 'BasicParts'
+COMPOSITE_PARTS_COLLECTION = 'CompositeParts'
+LINEAR_PRODUCTS_COLLECTION = 'LinearDNAProducts'
+FINAL_PRODUCTS_COLLECTION = 'FinalProducts'
 
 def expand_configuration(values: dict) -> dict:
     """
@@ -95,23 +99,22 @@ def read_metadata(wb: openpyxl.Workbook, doc: sbol3.Document, config: dict):
         cp_description = bp_description
 
     # Make the collections
-    basic_parts = sbol3.Collection('BasicParts', name=bp_name, description=bp_description)
+    basic_parts = sbol3.Collection(BASIC_PARTS_COLLECTION, name=bp_name, description=bp_description)
     doc.add(basic_parts)
 
-    composite_parts = sbol3.Collection('CompositeParts', name=cp_name, description=cp_description)
+    composite_parts = sbol3.Collection(COMPOSITE_PARTS_COLLECTION, name=cp_name, description=cp_description)
     doc.add(composite_parts)
 
-    linear_products = sbol3.Collection('LinearDNAProducts', name='Linear DNA Products',
+    linear_products = sbol3.Collection(LINEAR_PRODUCTS_COLLECTION, name='Linear DNA Products',
                                        description='Linear DNA constructs to be fabricated')
     doc.add(linear_products)
 
-    final_products = sbol3.Collection('FinalProducts', name='Final Products',
+    final_products = sbol3.Collection(FINAL_PRODUCTS_COLLECTION, name='Final Products',
                                       description='Final products desired for actual fabrication')
     doc.add(final_products)
 
     # return the set of created collections
     return basic_parts, composite_parts, linear_products, final_products
-
 
 # TODO: remove kludge after resolution of https://github.com/SynBioDex/tyto/issues/21
 tyto_cache = {}
