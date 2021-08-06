@@ -113,6 +113,20 @@ def read_metadata(wb: openpyxl.Workbook, doc: sbol3.Document, config: dict):
     return basic_parts, composite_parts, linear_products, final_products
 
 
+# TODO: remove kludge after resolution of https://github.com/SynBioDex/tyto/issues/21
+tyto_cache = {}
+def tyto_lookup_with_caching(term: str) -> str:
+    if term not in tyto_cache:
+        try:
+            tyto_cache[term] = tyto.SO.get_uri_by_term(term)
+        except LookupError as e:
+            tyto_cache[term] = e
+    if isinstance(tyto_cache[term], LookupError):
+        raise tyto_cache[term]
+    else:
+        return tyto_cache[term]
+
+
 def row_to_basic_part(doc: sbol3.Document, row, basic_parts: sbol3.Collection, linear_products: sbol3.Collection,
                       final_products: sbol3.Collection, config: dict):
     """
@@ -132,8 +146,9 @@ def row_to_basic_part(doc: sbol3.Document, row, basic_parts: sbol3.Collection, l
     display_id = string_to_display_id(name)
     try:
         raw_role = row[config['basic_role_col']].value  # look up with tyto; if fail, leave blank or add to description
-        role = (tyto.SO.get_uri_by_term(raw_role) if raw_role else None)
+        role = (tyto_lookup_with_caching(raw_role) if raw_role else None)
     except LookupError:
+        logging.warning(f'Role "{raw_role}" could not be found in Sequence Ontology')
         role = None
     design_notes = (row[config['basic_notes_col']].value if row[config['basic_notes_col']].value else "")
     description = (row[config['basic_description_col']].value if row[config['basic_description_col']].value else "")
