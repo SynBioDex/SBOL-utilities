@@ -306,7 +306,8 @@ def make_composite_part(document, row, composite_parts, linear_products, final_p
         (row[config['composite_description_col']].value if row[config['composite_description_col']].value else "")
     final_product = row[config['composite_final_col']].value  # boolean
     transformed_strain = row[config['composite_strain_col']].value if config['composite_strain_col'] else None
-    backbone_or_locus = row[config['composite_context_col']].value if config['composite_context_col'] else None
+    backbone_or_locus_raw = row[config['composite_context_col']].value if config['composite_context_col'] else None
+    backbone_or_locus = part_names(backbone_or_locus_raw) if backbone_or_locus_raw else []
     constraints = row[config['composite_constraints_col']].value if config['composite_constraints_col'] else None
     reverse_complements = [is_RC(spec) for spec in part_specifications(row)]
     part_lists = \
@@ -336,17 +337,16 @@ def make_composite_part(document, row, composite_parts, linear_products, final_p
         warnings.warn("Not yet handling strain information: "+transformed_strain)
     if backbone_or_locus:
         # TODO: handle integration locuses as well as plasmid backbones
-        backbone = document.find(string_to_display_id(backbone_or_locus))
-        if backbone is None:
-            raise ValueError(f'Could not find specified backbone "{backbone_or_locus}"')
-        if tyto.SO.get_uri_by_term('plasmid') not in backbone.roles:
-            raise ValueError(f'Specified backbone "{backbone_or_locus}" is not a plasmid')
+        backbones = [document.find(string_to_display_id(name)) for name in backbone_or_locus]
+        if any(b is None for b in backbones):
+            raise ValueError(f'Could not find specified backbone(s) "{backbone_or_locus}"')
+        if any(tyto.SO.get_uri_by_term('plasmid') not in b.roles for b in backbones):
+            raise ValueError(f'Specified backbones "{backbone_or_locus}" are not all plasmids')
         if combinatorial:
-            logging.debug(f"Embedding library '{composite_part.name}' in plasmid backbone '{backbone_or_locus}'")
+            logging.debug(f"Embedding library '{composite_part.name}' in plasmid backbone(s) '{backbone_or_locus}'")
             plasmid = sbol3.Component(f'{display_id}_template', sbol3.SBO_DNA)
             document.add(plasmid)
-            part_sub = sbol3.LocalSubComponent([sbol3.SBO_DNA])
-            part_sub.name = "Inserted Construct"
+            part_sub = sbol3.LocalSubComponent([sbol3.SBO_DNA], name = "Inserted Construct")
             plasmid.features.append(part_sub)
             plasmid_cd = sbol3.CombinatorialDerivation(display_id, plasmid)
             document.add(plasmid_cd)
@@ -356,15 +356,36 @@ def make_composite_part(document, row, composite_parts, linear_products, final_p
             if final_product:
                 final_products.members.append(plasmid_cd)
         else:
-            logging.debug(f'Embedding part "{composite_part.name}" in plasmid backbone "{backbone_or_locus}"')
-            plasmid = sbol3.Component(display_id, sbol3.SBO_DNA)
-            document.add(plasmid)
-            part_sub = sbol3.SubComponent(composite_part)
-            plasmid.features.append(part_sub)
-            if final_product:
-                final_products.members += {plasmid}
-        backbone_sub = sbol3.SubComponent(backbone)
-        plasmid.features.append(backbone_sub)
+            if len(backbones) == 1:
+                logging.debug(f'Embedding part "{composite_part.name}" in plasmid backbone "{backbone_or_locus}"')
+                plasmid = sbol3.Component(display_id, sbol3.SBO_DNA)
+                document.add(plasmid)
+                part_sub = sbol3.SubComponent(composite_part)
+                plasmid.features.append(part_sub)
+                if final_product:
+                    final_products.members += {plasmid}
+            else:
+                logging.debug(f'Embedding part "{composite_part.name}" in plasmid library "{backbone_or_locus}"')
+                plasmid = sbol3.Component(f'{display_id}_template', sbol3.SBO_DNA)
+                document.add(plasmid)
+                part_sub = sbol3.SubComponent(composite_part)
+                plasmid.features.append(part_sub)
+                plasmid_cd = sbol3.CombinatorialDerivation(display_id, plasmid)
+                document.add(plasmid_cd)
+                if final_product:
+                    final_products.members.append(plasmid_cd)
+
+        if len(backbones) == 1:
+            backbone_sub = sbol3.SubComponent(backbones[0])
+            plasmid.features.append(backbone_sub)
+        else:
+            backbone_sub = sbol3.LocalSubComponent([sbol3.SBO_DNA])
+            backbone_sub.name = "Vector"
+            plasmid.features.append(backbone_sub)
+            backbone_var = sbol3.VariableFeature(cardinality=sbol3.SBOL_ONE, variable=backbone_sub)
+            plasmid_cd.variable_features.append(backbone_var)
+            backbone_var.variants += backbones
+
         plasmid.constraints.append(sbol3.Constraint(sbol3.SBOL_MEETS, part_sub, backbone_sub))
         plasmid.constraints.append(sbol3.Constraint(sbol3.SBOL_MEETS, backbone_sub, part_sub))
 
