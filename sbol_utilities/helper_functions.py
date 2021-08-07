@@ -10,6 +10,22 @@ import difflib
 def flatten(collection):
     return [item for sublist in collection for item in sublist]
 
+# Find a part by name rather than by displayID or URI
+def toplevel_named(doc: sbol3.Document, name:str) -> sbol3.Identified:
+    """Find the unique TopLevel document object with the given name
+
+    :param doc: SBOL document to search
+    :param name: name to look for
+    :return: object, if found, or None if not
+    :raises ValueError: if there are multiple objects with the given name
+    """
+    found = [o for o in doc.objects if o.name == name]
+    if len(found) == 0:
+        return None
+    elif len(found) == 1:
+        return found[0]
+    else:
+        raise ValueError(f'Name is not unique: {name}')
 
 #########################
 # Kludge materials that should be removed after certain issues are resolved

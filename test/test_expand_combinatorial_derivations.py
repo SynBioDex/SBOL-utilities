@@ -22,7 +22,7 @@ def test_expansion():
     doc.read(TESTFILE_DIR + '/simple_library.nt')
     sbol3.set_namespace('http://sbolstandard.org/testfiles/')
     roots = list(sbol_utilities.expand_combinatorial_derivations.root_combinatorial_derivations(doc))
-    assert len(roots) == 1
+    assert len(roots) == 1, f'Unexpected roots: {[r.identity for r in roots]}'
     derivative_collections = sbol_utilities.expand_combinatorial_derivations.expand_derivations(roots)
     assert not doc.validate().errors and not doc.validate().warnings
     assert len(doc.find('Round_1_order_collection').members) == 24
