@@ -182,7 +182,7 @@ def row_to_basic_part(doc: sbol3.Document, row, basic_parts: sbol3.Collection, l
     identity = None
     if source_id and source_prefix:
         if source_prefix.strip() in source_table:
-            display_id = source_id.strip()
+            display_id = string_to_display_id(source_id.strip())
             identity = f'{source_table[source_prefix.strip()]}/{display_id}'
         else:
             logging.warning(f'Part "{name}" ignoring non-literal source: {source_prefix}')
@@ -234,10 +234,18 @@ def part_names(specification):
     return [name.strip() for name in strip_RC(str(specification)).split(',')]
 # list all the parts in the row that aren't fully resolved
 def unresolved_subparts(doc: sbol3.Document, row, config):
-    return [name for spec in part_specifications(row, config) for name in part_names(spec) if not toplevel_named(doc,name)]
+    return [name for spec in part_specifications(row, config) for name in part_names(spec) if not partname_to_part(doc,name)]
 # get the part specifications until they stop
 def part_specifications(row, config):
     return (cell.value for cell in row[config['composite_first_part_col']:] if cell.value)
+def partname_to_part(doc: sbol3.Document, name_or_display_id: str):
+    """Look up a part by its displayID or its name, searching first by displayID, then by name
+
+    :param doc: SBOL document to search
+    :param name_or_display_id: string to look up
+    :return: object if found, None if not
+    """
+    return doc.find(name_or_display_id) or toplevel_named(doc,name_or_display_id)
 
 ###############################################################
 # Functions for making composites, combinatorials, and libraries
@@ -341,7 +349,7 @@ def make_composite_part(document, row, composite_parts, linear_products, final_p
     constraints = row[config['composite_constraints_col']].value if config['composite_constraints_col'] else None
     reverse_complements = [is_RC(spec) for spec in part_specifications(row,config)]
     part_lists = \
-        [[toplevel_named(document, name) for name in part_names(spec)] for spec in part_specifications(row, config)]
+        [[partname_to_part(document, name) for name in part_names(spec)] for spec in part_specifications(row, config)]
     combinatorial = any(x for x in part_lists if len(x) > 1 or isinstance(x[0], sbol3.CombinatorialDerivation))
 
     # Build the composite
@@ -367,7 +375,7 @@ def make_composite_part(document, row, composite_parts, linear_products, final_p
         warnings.warn("Not yet handling strain information: "+transformed_strain)
     if backbone_or_locus:
         # TODO: handle integration locuses as well as plasmid backbones
-        backbones = [toplevel_named(document,name) for name in backbone_or_locus]
+        backbones = [partname_to_part(document,name) for name in backbone_or_locus]
         if any(b is None for b in backbones):
             raise ValueError(f'Could not find specified backbone(s) "{backbone_or_locus}"')
         if any(tyto.SO.get_uri_by_term('plasmid') not in b.roles for b in backbones):
