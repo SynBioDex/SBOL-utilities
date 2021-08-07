@@ -46,7 +46,8 @@ def expand_configuration(values: dict) -> dict:
         'composite_final_col': 3,
         'composite_strain_col': 4,
         'composite_context_col': 5,
-        'composite_constraints_col': 6
+        'composite_constraints_col': 6,
+        'composite_first_part_col': 7
     }
     # override with supplied values
     values_to_use = default_values
@@ -203,11 +204,11 @@ def is_RC(name):
 def part_names(specification):
     return strip_RC(str(specification)).split(',')
 # list all the parts in the row that aren't fully resolved
-def unresolved_subparts(doc, row):
-    return [name for spec in part_specifications(row) for name in part_names(spec) if not doc.find(string_to_display_id(name))]
+def unresolved_subparts(doc, row, config):
+    return [name for spec in part_specifications(row, config) for name in part_names(spec) if not doc.find(string_to_display_id(name))]
 # get the part specifications until they stop
-def part_specifications(row):
-    return (cell.value for cell in row[7:] if cell.value)
+def part_specifications(row, config):
+    return (cell.value for cell in row[config['composite_first_part_col']:] if cell.value)
 
 ###############################################################
 # Functions for making composites, combinatorials, and libraries
@@ -309,9 +310,9 @@ def make_composite_part(document, row, composite_parts, linear_products, final_p
     backbone_or_locus_raw = row[config['composite_context_col']].value if config['composite_context_col'] else None
     backbone_or_locus = part_names(backbone_or_locus_raw) if backbone_or_locus_raw else []
     constraints = row[config['composite_constraints_col']].value if config['composite_constraints_col'] else None
-    reverse_complements = [is_RC(spec) for spec in part_specifications(row)]
+    reverse_complements = [is_RC(spec) for spec in part_specifications(row,config)]
     part_lists = \
-        [[document.find(string_to_display_id(name)) for name in part_names(spec)] for spec in part_specifications(row)]
+        [[document.find(string_to_display_id(name)) for name in part_names(spec)] for spec in part_specifications(row,config)]
     combinatorial = any(x for x in part_lists if len(x) > 1 or isinstance(x[0], sbol3.CombinatorialDerivation))
 
     # Build the composite
@@ -413,11 +414,11 @@ def excel_to_sbol(wb: openpyxl.Workbook, config: dict = None) -> sbol3.Document:
     pending_parts = [row for row in wb[config['composite_sheet']].iter_rows(min_row=config['composite_first_row'])
                      if row[config['composite_name_col']].value]
     while pending_parts:
-        ready = [row for row in pending_parts if not unresolved_subparts(doc, row)]
+        ready = [row for row in pending_parts if not unresolved_subparts(doc, row, config)]
         if not ready:
             raise ValueError("Could not resolve subparts" + ''.join(
                 (f"\n in '{row[config['composite_name_col']].value}':" +
-                 ''.join(f" '{x}'" for x in unresolved_subparts(doc, row)))
+                 ''.join(f" '{x}'" for x in unresolved_subparts(doc, row, config)))
                 for row in pending_parts))
         for row in ready:
             make_composite_part(doc, row, composite_parts, linear_products, final_products, config)

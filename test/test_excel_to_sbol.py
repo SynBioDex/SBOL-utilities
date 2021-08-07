@@ -48,7 +48,8 @@ def test_custom_conversion():
         'basic_final_col': 10,
         'basic_circular_col': 11,
         'basic_length_col': 12,
-        'basic_sequence_col': 13
+        'basic_sequence_col': 13,
+        'composite_first_part_col': 8
     }
     doc = sbol_utilities.excel_to_sbol.excel_to_sbol(wb,config)
 
