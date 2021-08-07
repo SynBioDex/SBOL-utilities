@@ -182,7 +182,7 @@ def row_to_basic_part(doc: sbol3.Document, row, basic_parts: sbol3.Collection, l
     identity = None
     if source_id and source_prefix:
         if source_prefix.strip() in source_table:
-            display_id = source_id.strip()
+            display_id = string_to_display_id(source_id.strip())
             identity = f'{source_table[source_prefix.strip()]}/{display_id}'
         else:
             logging.warning(f'Part "{name}" ignoring non-literal source: {source_prefix}')
