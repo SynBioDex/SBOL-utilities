@@ -22,7 +22,7 @@ def test_expansion():
     doc.read(TESTFILE_DIR + '/simple_library.nt')
     sbol3.set_namespace('http://sbolstandard.org/testfiles/')
     roots = list(sbol_utilities.expand_combinatorial_derivations.root_combinatorial_derivations(doc))
-    assert len(roots) == 1
+    assert len(roots) == 1, f'Unexpected roots: {[r.identity for r in roots]}'
     derivative_collections = sbol_utilities.expand_combinatorial_derivations.expand_derivations(roots)
     assert not doc.validate().errors and not doc.validate().warnings
     assert len(doc.find('Round_1_order_collection').members) == 24
@@ -36,6 +36,18 @@ def test_expansion():
     temp_name = tempfile.gettempdir() + '/' + next(tempfile._get_candidate_names())
     output_doc.write(temp_name, sbol3.SORTED_NTRIPLES)
     assert_files_identical(temp_name, TESTFILE_DIR + '/expanded_simple_library.nt') # TODO: work around pySBOL3 issue #231
+
+def test_multibackbone():
+    doc = sbol3.Document()
+    doc.read(TESTFILE_DIR + '/two_backbones.nt')
+    sbol3.set_namespace('http://sbolstandard.org/testfiles/')
+    roots = list(sbol_utilities.expand_combinatorial_derivations.root_combinatorial_derivations(doc))
+    assert len(roots) == 2
+    derivative_collections = sbol_utilities.expand_combinatorial_derivations.expand_derivations(roots)
+    assert not doc.validate().errors and not doc.validate().warnings
+    assert len(doc.find('Two_by_six_ins_collection').members) == 6
+    assert len(doc.find('Two_by_six_derivatives').members) == 12
+    assert len(doc.find('Backbone_variants_derivatives').members) == 2
 
 
 #def test_constraints():  # TODO: to be added when constraint-handling is incorporated.

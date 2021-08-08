@@ -48,7 +48,8 @@ def test_custom_conversion():
         'basic_final_col': 10,
         'basic_circular_col': 11,
         'basic_length_col': 12,
-        'basic_sequence_col': 13
+        'basic_sequence_col': 13,
+        'composite_first_part_col': 8
     }
     doc = sbol_utilities.excel_to_sbol.excel_to_sbol(wb,config)
 
@@ -61,6 +62,20 @@ def test_custom_conversion():
     temp_name = tempfile.gettempdir() + '/' + next(tempfile._get_candidate_names())
     doc.write(temp_name, sbol3.SORTED_NTRIPLES)
     assert_files_identical(temp_name, TESTFILE_DIR + '/simple_library.nt')
+
+def test_multibackbone():
+    wb = openpyxl.load_workbook(TESTFILE_DIR + '/two_backbones.xlsx', data_only=True)
+    sbol3.set_namespace('http://sbolstandard.org/testfiles/')
+    doc = sbol_utilities.excel_to_sbol.excel_to_sbol(wb)
+    assert not doc.validate().errors and not doc.validate().warnings
+    assert len(doc.find('BasicParts').members) == 9
+    assert len(doc.find('CompositeParts').members) == 2
+    assert len(doc.find('LinearDNAProducts').members) == 2
+    assert len(doc.find('FinalProducts').members) == 2
+
+    temp_name = tempfile.gettempdir() + '/' + next(tempfile._get_candidate_names())
+    doc.write(temp_name, sbol3.SORTED_NTRIPLES)
+    assert_files_identical(temp_name, TESTFILE_DIR + '/two_backbones.nt')
 
 
 def test_constraints():
