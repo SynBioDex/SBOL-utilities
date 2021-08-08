@@ -10,9 +10,8 @@ import difflib
 def flatten(collection):
     return [item for sublist in collection for item in sublist]
 
-# Find a part by name rather than by displayID or URI
 def toplevel_named(doc: sbol3.Document, name:str) -> sbol3.Identified:
-    """Find the unique TopLevel document object with the given name
+    """Find the unique TopLevel document object with the given name (rather than displayID or URI)
 
     :param doc: SBOL document to search
     :param name: name to look for
@@ -26,6 +25,34 @@ def toplevel_named(doc: sbol3.Document, name:str) -> sbol3.Identified:
         return found[0]
     else:
         raise ValueError(f'Name is not unique: {name}')
+
+
+def unambiguous_dna_sequence(sequence: str) -> bool:
+    """Check if a sequence consists only of unambiguous DNA characters
+
+    :param sequence: string to be checked
+    :return: True if unambiguous DNA, false otherwise
+    """
+    return sequence.lower().strip('acgt') == ''
+
+
+def unambiguous_rna_sequence(sequence: str) -> bool:
+    """Check if a sequence consists only of unambiguous RNA characters
+
+    :param sequence: string to be checked
+    :return: True if unambiguous DNA, false otherwise
+    """
+    return sequence.lower().strip('acgu') == ''
+
+
+def unambiguous_protein_sequence(sequence: str) -> bool:
+    """Check if a sequence consists only of unambiguous protein characters
+
+    :param sequence: string to be checked
+    :return: True if unambiguous DNA, false otherwise
+    """
+    return sequence.lower().strip('acdefghiklmnpqrstvwy') == ''
+
 
 #########################
 # Kludge materials that should be removed after certain issues are resolved
