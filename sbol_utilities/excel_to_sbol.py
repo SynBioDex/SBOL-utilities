@@ -7,7 +7,7 @@ import argparse
 import sbol3
 import openpyxl
 import tyto
-from .helper_functions import toplevel_named
+from .helper_functions import toplevel_named, strip_sbol2_version
 
 BASIC_PARTS_COLLECTION = 'BasicParts'
 COMPOSITE_PARTS_COLLECTION = 'CompositeParts'
@@ -181,9 +181,13 @@ def row_to_basic_part(doc: sbol3.Document, row, basic_parts: sbol3.Collection, l
     # identity comes from source if set to a literal table, from display_id if not set
     identity = None
     if source_id and source_prefix:
-        if source_prefix.strip() in source_table:
-            display_id = string_to_display_id(source_id.strip())
-            identity = f'{source_table[source_prefix.strip()]}/{display_id}'
+        source_prefix = source_prefix.strip()
+        if source_prefix in source_table:
+            if source_table[source_prefix]:
+                display_id = string_to_display_id(source_id.strip())
+                identity = f'{source_table[source_prefix]}/{display_id}'
+            else:  # when there is no prefix, use the bare value (in SBOL3 format)
+                identity = strip_sbol2_version(source_id.strip())
         else:
             logging.warning(f'Part "{name}" ignoring non-literal source: {source_prefix}')
     elif source_id:

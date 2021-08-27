@@ -218,6 +218,7 @@
 <http://sbolstandard.org/testfiles/BasicParts> <http://sbols.org/v3#member> <http://sbolstandard.org/testfiles/meffCFP> .
 <http://sbolstandard.org/testfiles/BasicParts> <http://sbols.org/v3#member> <http://sbolstandard.org/testfiles/mmilCFP> .
 <http://sbolstandard.org/testfiles/BasicParts> <http://sbols.org/v3#member> <http://sbolstandard.org/testfiles/pSB1C3> .
+<http://sbolstandard.org/testfiles/BasicParts> <http://sbols.org/v3#member> <https://synbiohub.programmingbiology.org/public/Eco1C1G1T1/LmrA> .
 <http://sbolstandard.org/testfiles/BasicParts> <http://sbols.org/v3#member> <https://www.ncbi.nlm.nih.gov/nuccore/ATP07149_1> .
 <http://sbolstandard.org/testfiles/BasicParts> <http://sbols.org/v3#name> "Fluorescence calibration basic parts" .
 <http://sbolstandard.org/testfiles/BasicParts> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://sbols.org/v3#Collection> .
@@ -664,6 +665,12 @@
 <http://sbolstandard.org/testfiles/pSB1C3> <http://sbols.org/v3#type> <https://identifiers.org/SBO:0000251> .
 <http://sbolstandard.org/testfiles/pSB1C3> <http://sbols.org/v3#type> <https://identifiers.org/SO:0000988> .
 <http://sbolstandard.org/testfiles/pSB1C3> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://sbols.org/v3#Component> .
+<https://synbiohub.programmingbiology.org/public/Eco1C1G1T1/LmrA> <http://sbols.org/v3#description> "" .
+<https://synbiohub.programmingbiology.org/public/Eco1C1G1T1/LmrA> <http://sbols.org/v3#displayId> "LmrA" .
+<https://synbiohub.programmingbiology.org/public/Eco1C1G1T1/LmrA> <http://sbols.org/v3#hasNamespace> <http://sbolstandard.org/testfiles/> .
+<https://synbiohub.programmingbiology.org/public/Eco1C1G1T1/LmrA> <http://sbols.org/v3#name> "LmrA" .
+<https://synbiohub.programmingbiology.org/public/Eco1C1G1T1/LmrA> <http://sbols.org/v3#type> <https://identifiers.org/SBO:0000251> .
+<https://synbiohub.programmingbiology.org/public/Eco1C1G1T1/LmrA> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://sbols.org/v3#Component> .
 <https://www.ncbi.nlm.nih.gov/nuccore/ATP07149_1> <http://sbols.org/v3#description> "Cyan FP; codon optimized using IDT tool <https://www.idtdna.com/CodonOpt>\nmCerulean3" .
 <https://www.ncbi.nlm.nih.gov/nuccore/ATP07149_1> <http://sbols.org/v3#displayId> "ATP07149_1" .
 <https://www.ncbi.nlm.nih.gov/nuccore/ATP07149_1> <http://sbols.org/v3#hasNamespace> <http://sbolstandard.org/testfiles/> .
