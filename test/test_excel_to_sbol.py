@@ -23,7 +23,7 @@ def test_conversion():
     doc = sbol_utilities.excel_to_sbol.excel_to_sbol(wb)
 
     assert not doc.validate().errors and not doc.validate().warnings
-    assert len(doc.find('BasicParts').members) == 25
+    assert len(doc.find('BasicParts').members) == 26
     assert len(doc.find('CompositeParts').members) == 6
     assert len(doc.find('LinearDNAProducts').members) == 2
     assert len(doc.find('FinalProducts').members) == 2
@@ -54,7 +54,7 @@ def test_custom_conversion():
     doc = sbol_utilities.excel_to_sbol.excel_to_sbol(wb,config)
 
     assert not doc.validate().errors and not doc.validate().warnings
-    assert len(doc.find('BasicParts').members) == 25
+    assert len(doc.find('BasicParts').members) == 26
     assert len(doc.find('CompositeParts').members) == 6
     assert len(doc.find('LinearDNAProducts').members) == 2
     assert len(doc.find('FinalProducts').members) == 2
