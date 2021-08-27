@@ -189,7 +189,7 @@ def row_to_basic_part(doc: sbol3.Document, row, basic_parts: sbol3.Collection, l
             else:  # when there is no prefix, use the bare value (in SBOL3 format)
                 identity = strip_sbol2_version(source_id.strip())
         else:
-            logging.warning(f'Part "{name}" ignoring non-literal source: {source_prefix}')
+            logging.info(f'Part "{name}" ignoring non-literal source: {source_prefix}')
     elif source_id:
         logging.warning(f'Part "{name}" has source ID specified but not prefix: {source_id}')
     elif source_prefix:
