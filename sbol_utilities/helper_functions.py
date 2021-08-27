@@ -54,6 +54,19 @@ def unambiguous_protein_sequence(sequence: str) -> bool:
     return sequence.lower().strip('acdefghiklmnpqrstvwy') == ''
 
 
+def strip_sbol2_version(identity: str) -> str:
+    """Ensure that an SBOL2 or SBOL3 URI is an SBOL3 URI by stripping any SBOL2 version identifier from the end
+
+    :param identity: URI to be sanitized
+    :return: URI without terminal version, if any
+    """
+    last_segment = identity.split('/')[-1]
+    try:
+        sbol2_version = int(last_segment)  # if last segment is a number...
+        return identity.rsplit('/',1)[0]  # ... then return everything else
+    except ValueError:  # if last segment was not a number, there is no version to strip
+        return identity
+
 #########################
 # Kludge materials that should be removed after certain issues are resolved
 
