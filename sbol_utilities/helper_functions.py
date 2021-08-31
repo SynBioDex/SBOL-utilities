@@ -1,3 +1,5 @@
+from typing import Iterable
+
 import sbol3
 import filecmp
 import difflib
@@ -7,7 +9,7 @@ import difflib
 
 
 # Flatten list of lists into a single list
-def flatten(collection):
+def flatten(collection: Iterable[list]) -> list:
     return [item for sublist in collection for item in sublist]
 
 def toplevel_named(doc: sbol3.Document, name:str) -> sbol3.Identified:
