@@ -2,7 +2,8 @@ import argparse
 import logging
 import sbol3
 import itertools
-from .helper_functions import flatten, copy_toplevel_and_dependencies, replace_feature, id_sort, sort_owned_objects
+from .helper_functions import flatten, copy_toplevel_and_dependencies, replace_feature, id_sort, sort_owned_objects, \
+    type_to_standard_extension
 
 
 def cd_assigment_to_display_id(cd: sbol3.CombinatorialDerivation, assignment: tuple) -> str:
@@ -143,15 +144,6 @@ def root_combinatorial_derivations(doc: sbol3.Document) -> set[sbol3.Combinatori
     cds = {o for o in doc.objects if isinstance(o, sbol3.CombinatorialDerivation)}
     children = set(flatten([[d.lookup() for d in v.variant_derivations] for cd in cds for v in cd.variable_features]))
     return cds - children  # Roots are those CDs that are not a child of any other CD
-
-
-type_to_standard_extension = {  # TODO: remove after resolution of pySBOL3/issues/244
-    sbol3.SORTED_NTRIPLES: '.nt',
-    sbol3.NTRIPLES: '.nt',
-    sbol3.JSONLD: '.json',
-    sbol3.RDF_XML: '.xml',
-    sbol3.TURTLE: '.ttl'
-}
 
 
 def main():

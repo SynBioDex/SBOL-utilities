@@ -7,7 +7,7 @@ import argparse
 import sbol3
 import openpyxl
 import tyto
-from .helper_functions import toplevel_named, strip_sbol2_version
+from .helper_functions import toplevel_named, strip_sbol2_version, type_to_standard_extension
 
 BASIC_PARTS_COLLECTION = 'BasicParts'
 COMPOSITE_PARTS_COLLECTION = 'CompositeParts'
@@ -470,15 +470,6 @@ def excel_to_sbol(wb: openpyxl.Workbook, config: dict = None) -> sbol3.Document:
     report = doc.validate()
     logging.info(f'Validation of document found {len(report.errors)} errors and {len(report.warnings)} warnings')
     return doc
-
-
-type_to_standard_extension = {  # TODO: remove after resolution of pySBOL3/issues/244
-    sbol3.SORTED_NTRIPLES: '.nt',
-    sbol3.NTRIPLES: '.nt',
-    sbol3.JSONLD: '.json',
-    sbol3.RDF_XML: '.xml',
-    sbol3.TURTLE: '.ttl'
-}
 
 
 def main():

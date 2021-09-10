@@ -7,7 +7,6 @@ import difflib
 #########################
 # Collection of shared helper functions for utilities package
 
-
 # Flatten list of lists into a single list
 def flatten(collection: Iterable[list]) -> list:
     return [item for sublist in collection for item in sublist]
@@ -70,8 +69,15 @@ def strip_sbol2_version(identity: str) -> str:
         return identity
 
 #########################
-# Kludge materials that should be removed after certain issues are resolved
+# Kludge/workaround materials that should be removed after certain issues are resolved
 
+type_to_standard_extension = {  # TODO: remove after resolution of pySBOL3/issues/244
+    sbol3.SORTED_NTRIPLES: '.nt',
+    sbol3.NTRIPLES: '.nt',
+    sbol3.JSONLD: '.json',
+    sbol3.RDF_XML: '.xml',
+    sbol3.TURTLE: '.ttl'
+}
 
 # Workaround for pySBOL3 issue #231: should be applied to every iteration on a collection of SBOL objects
 # TODO: delete after resolution of pySBOL3 issue #231
