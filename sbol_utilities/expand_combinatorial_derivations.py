@@ -110,8 +110,14 @@ class CombinatorialDerivationExpander:
 ###############################################################
 # Entry point function
 
-# Takes a list of targets, all of which should be in the same input document, and expands within that document
 def expand_derivations(targets: list[sbol3.CombinatorialDerivation]) -> list[sbol3.Collection]:
+    """Given a list of CombinatorialDerivations, expand each to make all of the variants that instantiate the
+    specification for each CombinatorialDerivation. All of the expansions are stored in the document.
+    Note: assumes exhaustive sampling strategy
+
+    :param targets: list of CombinatorialDerivations to expand, all of which should be in the same SBOL document
+    :return: list of SBOL Collections, one for each target (in same order as targets)
+    """
     # Make sure input is a unique set of CombinatorialDerivation objects
     assert all(isinstance(t, sbol3.CombinatorialDerivation) for t in targets), \
         'Some expansion targets are not SBOL CombinatorialDerivation objects: ' + \

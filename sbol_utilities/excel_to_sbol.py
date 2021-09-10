@@ -14,6 +14,17 @@ COMPOSITE_PARTS_COLLECTION = 'CompositeParts'
 LINEAR_PRODUCTS_COLLECTION = 'LinearDNAProducts'
 FINAL_PRODUCTS_COLLECTION = 'FinalProducts'
 
+def is_plasmid(component: sbol3.Component) -> bool:
+    """Check if an SBOL Component is a plasmid-like structure, i.e., either circular or having a plasmid role
+
+    :param component: design to be checked
+    :return: true if plasmid
+    """
+    return (sbol3.SO_CIRCULAR in component.types) or \
+        any(r for r in component.roles
+            if tyto.SO.plasmid.is_ancestor_of(r) or tyto.SO.vector_replicon.is_ancestor_of(r))
+
+
 def expand_configuration(values: dict) -> dict:
     """
     Initialize sheet configuration dictionary
@@ -382,7 +393,7 @@ def make_composite_part(document, row, composite_parts, linear_products, final_p
         backbones = [partname_to_part(document,name) for name in backbone_or_locus]
         if any(b is None for b in backbones):
             raise ValueError(f'Could not find specified backbone(s) "{backbone_or_locus}"')
-        if any(tyto.SO.get_uri_by_term('plasmid') not in b.roles for b in backbones):
+        if any(not is_plasmid(b) for b in backbones):
             raise ValueError(f'Specified backbones "{backbone_or_locus}" are not all plasmids')
         if combinatorial:
             logging.debug(f"Embedding library '{composite_part.name}' in plasmid backbone(s) '{backbone_or_locus}'")
