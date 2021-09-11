@@ -109,26 +109,21 @@ def calculate_sequences(doc: sbol3.Document) -> list[sbol3.Sequence]:
     new_sequences = []
 
     # figure out which components are potential targets for expansion
-    print('Searching for targets')
     dna_components = {obj for obj in doc.objects if isinstance(obj, sbol3.Component) and sbol3.SBO_DNA in obj.types}
     resolved = {c for c in dna_components if resolved_dna_component(c)}
     pending_resolution = {c for c in (dna_components-resolved) if order_subcomponents(c) and not resolved_dna_component(c)}
     logging.info(f'Found {len(dna_components)} DNA components, {len(pending_resolution)} needing sequences computed')
 
-    print('Beginning calculation')
     # loop through sequences, attempting to resolve each in turn
     while pending_resolution:
-        print('Checking for resolvable')
         resolvable = {c for c in pending_resolution if ready_to_resolve(c, {str(r.identity) for r in resolved})}
         if not resolvable:
             break
         for c in resolvable:
             new_sequences.append(compute_sequence(c))
-            print(f'Computed sequence for {c.display_id}')
             logging.info(f'Computed sequence for {c.display_id}')
         resolved = resolved.union(resolvable)
         pending_resolution -= resolvable
-    print('Finished calculation')
 
     if len(pending_resolution) == 0:
         logging.info('All sequences resolved')
