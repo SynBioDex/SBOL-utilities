@@ -45,7 +45,6 @@ def order_subcomponents(component: sbol3.Component) -> Union[tuple[list[sbol3.Fe
     if circular and len(meetings) == len(component.features):
         meetings -= {m for m in meetings if m.subject == circular_components[0].identity}
 
-    # TODO: accelerate this function by caching the lookups
     unordered = list(component.features)
     while meetings:
         # Meetings that can go next are any that are a subject and not an object
