@@ -1,4 +1,4 @@
-from typing import Iterable
+from typing import Iterable, Union
 
 import sbol3
 import filecmp
@@ -8,6 +8,9 @@ import difflib
 # Collection of shared helper functions for utilities package
 
 # Flatten list of lists into a single list
+import tyto
+
+
 def flatten(collection: Iterable[list]) -> list:
     return [item for sublist in collection for item in sublist]
 
@@ -67,6 +70,27 @@ def strip_sbol2_version(identity: str) -> str:
         return identity.rsplit('/',1)[0]  # ... then return everything else
     except ValueError:  # if last segment was not a number, there is no version to strip
         return identity
+
+
+def is_plasmid(obj: Union[sbol3.Component, sbol3.Feature]) -> bool:
+    """Check if an SBOL Component or Feature is a plasmid-like structure, i.e., either circular or having a plasmid role
+
+    :param obj: design to be checked
+    :return: true if plasmid
+    """
+    def has_plasmid_role(x):
+        return any(r for r in x.roles if tyto.SO.plasmid.is_ancestor_of(r) or tyto.SO.vector_replicon.is_ancestor_of(r))
+
+    if has_plasmid_role(obj):  # both components and features have roles that can indicate a plasmid type
+        return True
+    elif isinstance(obj, sbol3.Component) or isinstance(obj, sbol3.LocalSubComponent) or \
+            isinstance(obj, sbol3.ExternallyDefined): # if there's a type, check for circularity
+        return sbol3.SO_CIRCULAR in obj.types
+    elif isinstance(obj, sbol3.SubComponent): # if it's a subcomponent, check its definition
+        return is_plasmid(obj.instance_of.lookup())
+    else:
+        return False
+
 
 #########################
 # Kludge/workaround materials that should be removed after certain issues are resolved

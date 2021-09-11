@@ -14,6 +14,7 @@ from sbol_utilities.expand_combinatorial_derivations import expand_derivations
 class Test2To3Conversion(unittest.TestCase):
     def test_calculate_sequences(self):
         """Test inference of sequences"""
+        sbol3.set_namespace('http://sbolstandard.org/testfiles/')
         test_dir = os.path.dirname(os.path.realpath(__file__))
         doc = sbol3.Document()
         doc.read(os.path.join(test_dir, 'test_files', 'expanded_simple_library.nt'))
@@ -28,9 +29,12 @@ class Test2To3Conversion(unittest.TestCase):
         #   FPs small: none with missing vector, 2x9 = 18 for insert combinations
         #   Round 1 order, All FPs: none - libraries
         #   UNSX-UP, BB-B0032-BB: 1 each = 2
+        for s in new_seqs: print(s.identity)
         assert len(new_seqs) == 20, f'Expected 20 new sequences, but found {len(new_seqs)}'
         sequence_count = len([o for o in doc.objects if isinstance(o, sbol3.Sequence)])
         assert sequence_count - prior_sequence_count == len(new_seqs)
+        # spot-check a couple of sequence lengths
+
 
         # run it again: no additional sequences should get computed
         new_seqs = calculate_sequences(doc)
@@ -64,6 +68,15 @@ class Test2To3Conversion(unittest.TestCase):
         assert len(new_seqs) == 10, f'Expected 10 new sequences, but found {len(new_seqs)}'
         sequence_count = len([o for o in doc.objects if isinstance(o, sbol3.Sequence)])
         assert sequence_count - prior_sequence_count == len(new_seqs)
+        # spot-check a couple of sequence lengths:
+        assert len(doc.find('Test1_R0040_sequence').elements) == (60+54)
+        assert len(doc.find('Test1_J364002_sequence').elements) == (60+918)
+        # TODO: make the vector sequence name less ugly for constructs like this:
+        assert len(doc.find('Test2_Test2_ins_J23101_sequence').elements) == (120+35+129)
+        expected = 'TTTACAGCTAGCTCAGTCCTAGGTATTATGCTAGCCCAGGCATCAAATAAAACGAAAGGCTCAGTCGAAAGACTGGGCCTTTCGTTTTATCTGTTGT' \
+                   'TTGTCGGTGAACGCTCTCTACTAGAGTCACACTGGCTCACCTTCGGGTGGGCCTTTCTGCGTTTATAATATATATATTCTCTCTCTCCGCGCGCGCG' \
+                   'GAGAGAGAGAATATATATATTCTCTCTCTCCGCGCGCGCGGAGAGAGAGAATATATATATTCTCTCTCTCCGCGCGCGCGGAGAGAGAGA'
+        assert doc.find('Test2_Test2_ins_J23101_sequence').elements == expected
 
         # run it again: no additional sequences should get computed
         new_seqs = calculate_sequences(doc)

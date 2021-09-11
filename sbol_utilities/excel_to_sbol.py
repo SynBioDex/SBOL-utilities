@@ -7,22 +7,12 @@ import argparse
 import sbol3
 import openpyxl
 import tyto
-from .helper_functions import toplevel_named, strip_sbol2_version, type_to_standard_extension
+from .helper_functions import toplevel_named, strip_sbol2_version, type_to_standard_extension, is_plasmid
 
 BASIC_PARTS_COLLECTION = 'BasicParts'
 COMPOSITE_PARTS_COLLECTION = 'CompositeParts'
 LINEAR_PRODUCTS_COLLECTION = 'LinearDNAProducts'
 FINAL_PRODUCTS_COLLECTION = 'FinalProducts'
-
-def is_plasmid(component: sbol3.Component) -> bool:
-    """Check if an SBOL Component is a plasmid-like structure, i.e., either circular or having a plasmid role
-
-    :param component: design to be checked
-    :return: true if plasmid
-    """
-    return (sbol3.SO_CIRCULAR in component.types) or \
-        any(r for r in component.roles
-            if tyto.SO.plasmid.is_ancestor_of(r) or tyto.SO.vector_replicon.is_ancestor_of(r))
 
 
 def expand_configuration(values: dict) -> dict:

@@ -1,24 +1,51 @@
 import argparse
 import logging
+from typing import Union
 
 import sbol3
-import tyto
 
-from sbol_utilities.helper_functions import type_to_standard_extension
+from sbol_utilities.helper_functions import type_to_standard_extension, is_plasmid, id_sort
+
 
 ###############################################################
 # Collect all components of type DNA and resolve sequences until blocked
 
-def resolved_dna_component(component):
-    return isinstance(component,sbol3.Component) and sbol3.SBO_DNA in component.types and len(component.sequences)>0
+def resolved_dna_component(component: sbol3.Component) -> bool:
+    """ Check if a DNA component still needs its sequence calculated
 
-# sort by finding one meet relation at a time
-def order_subcomponents(component):
-    if len(component.features)==1: # if there's precisely one component, it doesn't need ordering
-        return [component.features[0]]
-    # otherwise, for N components, we should have a chain of N-1 meetings
+    :param component: SBOL Component to check
+    :return: True if it has a DNa sequence; false otherwise
+    """
+    return sbol3.SBO_DNA in component.types and len(component.sequences) > 0
+
+
+def order_subcomponents(component: sbol3.Component) -> Union[tuple[list[sbol3.Feature], bool], None]:
+    """Attempt to find a sorted order of features in an SBOL Component, so its sequence can be calculated from theirs
+    Conduct the sort by walking through one meet relation at a time (excepting a circular component)
+
+    :param component: Component whose features are to be oreered
+    :return: if the features can be ordered, return a list of features in the order that they should be joined and
+    a boolean indicating if it's circular. If the features cannot be ordered, return None
+    """
+    # first, check for circularity of the construct
+    circular_components = id_sort(f for f in component.features if is_plasmid(f))
+    circular = len(circular_components) > 0
+
+    # if there are no features, then no sequence can be computed
+    if not component.features:
+        return None
+    # if there's precisely one feature, it doesn't need ordering
+    if len(component.features) == 1:
+        return [component.features[0]], circular
+
+    # otherwise, for N components, we should have a chain of N-1 meetings (possibly excepting one circular)
     order = []
-    meetings = {c for c in component.constraints if c.restriction==sbol3.SBOL_MEETS}
+    meetings = {c for c in component.constraints if c.restriction == sbol3.SBOL_MEETS}
+    # given a potential loop, designate the first circular component as the loop and remove any meetings starting there
+    if circular and len(meetings) == len(component.features):
+        meetings -= {m for m in meetings if m.subject == circular_components[0].identity}
+
+    # TODO: accelerate this function by caching the lookups
     unordered = list(component.features)
     while meetings:
         # Meetings that can go next are any that are a subject and not an object
@@ -36,12 +63,14 @@ def order_subcomponents(component):
             object = subject_meetings.pop().object.lookup()
             order.append(object) # add the last one
             unordered.remove(object)
-    # if all components have been ordered, then return the order
-    assert unordered or (len(order)==len(component.features))
-    return (order if not unordered else None)
 
-def ready_to_resolve(component):
-    return all(isinstance(f,sbol3.SubComponent) and resolved_dna_component(f.instance_of.lookup()) for f in component.features) and order_subcomponents(component)
+    # if all components have been ordered, then return the order
+    assert unordered or (len(order) == len(component.features))
+    return (order if not unordered else None), circular
+
+# assumes already ordered
+def ready_to_resolve(component: sbol3.Component, resolved: list[str]):
+    return all(isinstance(f,sbol3.SubComponent) and str(f.instance_of) in resolved for f in component.features)
 
 def compute_sequence(component: sbol3.Component) -> sbol3.Sequence:
     """Compute the sequence of a component and add this information into the Component in place
@@ -49,7 +78,7 @@ def compute_sequence(component: sbol3.Component) -> sbol3.Sequence:
     :param component: Component whose sequence is to be computed
     :return: Sequence that has been computed
     """
-    sorted = order_subcomponents(component)
+    sorted, circular = order_subcomponents(component)
     # make the blank sequence
     sequence = sbol3.Sequence(component.display_id+"_sequence", encoding='https://identifiers.org/edam:format_1207') #   ### BUG: pySBOL #185
     sequence.elements = '' # Should be in keywords, except pySBOL3 #208
@@ -80,28 +109,35 @@ def calculate_sequences(doc: sbol3.Document) -> list[sbol3.Sequence]:
     new_sequences = []
 
     # figure out which components are potential targets for expansion
+    print('Searching for targets')
     dna_components = {obj for obj in doc.objects if isinstance(obj, sbol3.Component) and sbol3.SBO_DNA in obj.types}
-    pending_resolution = {c for c in dna_components if not resolved_dna_component(c)}
+    resolved = {c for c in dna_components if resolved_dna_component(c)}
+    pending_resolution = {c for c in (dna_components-resolved) if order_subcomponents(c) and not resolved_dna_component(c)}
     logging.info(f'Found {len(dna_components)} DNA components, {len(pending_resolution)} needing sequences computed')
 
+    print('Beginning calculation')
     # loop through sequences, attempting to resolve each in turn
     while pending_resolution:
-        resolvable = {c for c in pending_resolution if ready_to_resolve(c)}
+        print('Checking for resolvable')
+        resolvable = {c for c in pending_resolution if ready_to_resolve(c, {str(r.identity) for r in resolved})}
         if not resolvable:
             break
         for c in resolvable:
             new_sequences.append(compute_sequence(c))
-            logging.info('Computed sequence for ' + c.display_id)
+            print(f'Computed sequence for {c.display_id}')
+            logging.info(f'Computed sequence for {c.display_id}')
+        resolved = resolved.union(resolvable)
         pending_resolution -= resolvable
+    print('Finished calculation')
 
     if len(pending_resolution) == 0:
         logging.info('All sequences resolved')
     else:
-        logging.info('Could not resolve all sequences: ' + str(len(pending_resolution)) + ' remain without a sequence')
+        logging.info(f'Could not resolve all sequences: {len(pending_resolution)} remain without a sequence')
 
     # Make sure the document is still OK, then return
     report = doc.validate()
-    logging.info('Document validation found '+str(len(report.errors))+' errors, '+str(len(report.warnings))+' warnings')
+    logging.info(f'Document validation found {len(report.errors)} errors, {len(report.warnings)} warnings')
     return new_sequences
 
 
