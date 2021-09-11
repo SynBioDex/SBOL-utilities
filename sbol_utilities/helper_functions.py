@@ -79,7 +79,18 @@ def is_plasmid(obj: Union[sbol3.Component, sbol3.Feature]) -> bool:
     :return: true if plasmid
     """
     def has_plasmid_role(x):
-        return any(r for r in x.roles if tyto.SO.plasmid.is_ancestor_of(r) or tyto.SO.vector_replicon.is_ancestor_of(r))
+        # TODO: replace speed-kludge with this proper query after resolution of https://github.com/SynBioDex/tyto/issues/32
+        #return any(r for r in x.roles if tyto.SO.plasmid.is_ancestor_of(r) or tyto.SO.vector_replicon.is_ancestor_of(r))
+        # speed-kludge alternative:
+        plasmid_roles = {tyto.SO.plasmid, tyto.SO.vector_replicon, tyto.SO.plasmid_vector}
+        for r in x.roles:
+            try:
+                regularized = tyto.SO.get_uri_by_term(tyto.SO.get_term_by_uri(r))
+                if regularized in plasmid_roles:
+                    return True
+            except LookupError:
+                pass
+        return False
 
     if has_plasmid_role(obj):  # both components and features have roles that can indicate a plasmid type
         return True
