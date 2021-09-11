@@ -2,41 +2,55 @@ import argparse
 import logging
 import sbol3
 import itertools
-from .helper_functions import flatten, copy_toplevel_and_dependencies, replace_feature, id_sort, sort_owned_objects
+from .helper_functions import flatten, copy_toplevel_and_dependencies, replace_feature, id_sort, sort_owned_objects, \
+    type_to_standard_extension
 
-###############################################################
-# Helper functions:
 
-# Makes a unique display-id for any assignment of values
-def cd_assigment_to_display_id(cd: sbol3.CombinatorialDerivation, assignment: tuple):
+def cd_assigment_to_display_id(cd: sbol3.CombinatorialDerivation, assignment: tuple) -> str:
+    """Makes a unique display-id for any assignment of values
+
+    :param cd: CombinatorialDerivation being expanded
+    :param assignment: tuple of variables to expand
+    :return: display ID for this combination
+    """
     return cd.display_id + ''.join("_" + a.display_id for a in assignment)
 
 
-# returns true if the CombinatorialDerivation can be collapsed into a simple Collection of values
-def is_library(cd: sbol3.CombinatorialDerivation):
+def is_library(cd: sbol3.CombinatorialDerivation) -> bool:
+    """Check if the CombinatorialDerivation can be collapsed into a simple Collection of values
+
+    :param cd: CombinatorialDerivation being checked
+    :return: true if it can be reduced to a Collection
+    """
     c = cd.template.lookup()
     one_var = len(cd.variable_features) == 1 and len(c.features) == 1
     simple = not c.sequences and not c.interactions and not c.constraints and not c.interfaces and not c.models
     return one_var and simple
 
 
-###############################################################
-# Class for expanding combinatorial derivations by walking their substructures
-
 class CombinatorialDerivationExpander:
+    """Class for expanding combinatorial derivations by walking their substructures"""
     def __init__(self):
-        self.expanded_derivations = {}
+        self.expanded_derivations:dict[sbol3.CombinatorialDerivation,sbol3.Collection] = {}
 
-    # pull all components out of a possibly recursive collection
-    def collection_values(self, c: sbol3.Collection):
+    def collection_values(self, c: sbol3.Collection) -> list[sbol3.Component]:
+        """Pull all SBOL Components out of a possibly recursive collection
+
+        :param c: Collection for extraction
+        :return: list of Component values found
+        """
         assert all(isinstance(x.lookup(), sbol3.Collection) or isinstance(x.lookup(), sbol3.Component) for x in c.members)
         values = [x.lookup() for x in id_sort(c.members) if isinstance(x.lookup(), sbol3.Component)] + \
             id_sort(flatten([self.collection_values(x) for x in c.members if isinstance(x.lookup(), sbol3.Collection)]))
         logging.debug("Found "+str(len(values))+" values in collection "+c.display_id)
         return values
 
-    # flatten a variable to collect all of its values
-    def cd_variable_values(self, v: sbol3.VariableFeature):
+    def cd_variable_values(self, v: sbol3.VariableFeature) -> list[sbol3.Component]:
+        """Flatten a variable to collect all of its values
+
+        :param v: Variable to be flattened
+        :return: list of Component values found
+        """
         logging.debug("Finding values for " + v.variable.lookup().name)
         sub_cd_collections = [self.derivation_to_collection(d.lookup()) for d in id_sort(v.variant_derivations)]
         values = [x.lookup() for x in id_sort(v.variants)] + \
@@ -96,8 +110,14 @@ class CombinatorialDerivationExpander:
 ###############################################################
 # Entry point function
 
-# Takes a list of targets, all of which should be in the same input document, and expands within that document
-def expand_derivations(targets: list):
+def expand_derivations(targets: list[sbol3.CombinatorialDerivation]) -> list[sbol3.Collection]:
+    """Given a list of CombinatorialDerivations, expand each to make all of the variants that instantiate the
+    specification for each CombinatorialDerivation. All of the expansions are stored in the document.
+    Note: assumes exhaustive sampling strategy
+
+    :param targets: list of CombinatorialDerivations to expand, all of which should be in the same SBOL document
+    :return: list of SBOL Collections, one for each target (in same order as targets)
+    """
     # Make sure input is a unique set of CombinatorialDerivation objects
     assert all(isinstance(t, sbol3.CombinatorialDerivation) for t in targets), \
         'Some expansion targets are not SBOL CombinatorialDerivation objects: ' + \
@@ -120,29 +140,23 @@ def expand_derivations(targets: list):
     logging.info('Document validation found '+str(len(report.errors))+' errors, '+str(len(report.warnings))+' warnings')
     return [expander.expanded_derivations[t] for t in targets]
 
-###############################################################
-# Utility to find all of the root CDs in a document
 
+def root_combinatorial_derivations(doc: sbol3.Document) -> set[sbol3.CombinatorialDerivation]:
+    """ Find all of the root CombinatorialDerivations in a document (i.e., those not referred to be another CD)
 
-def root_combinatorial_derivations(doc: sbol3.Document):
+    :param doc: Document to search
+    :return: set of root CDs
+    """
     cds = {o for o in doc.objects if isinstance(o, sbol3.CombinatorialDerivation)}
     children = set(flatten([[d.lookup() for d in v.variant_derivations] for cd in cds for v in cd.variable_features]))
     return cds - children  # Roots are those CDs that are not a child of any other CD
 
 
-###############################################################
-# Main wrapper: read from input file, invoke expand_derivations, then write to output file
-
-type_to_standard_extension = {  # TODO: remove after resolution of pySBOL3/issues/244
-    sbol3.SORTED_NTRIPLES: '.nt',
-    sbol3.NTRIPLES: '.nt',
-    sbol3.JSONLD: '.json',
-    sbol3.RDF_XML: '.xml',
-    sbol3.TURTLE: '.ttl'
-}
-
-
 def main():
+    """Main wrapper: read from input file, invoke expand_derivations, then write to output file
+
+    :return: None
+    """
     parser = argparse.ArgumentParser()
     parser.add_argument('input_file', help="SBOL file used as input")
     parser.add_argument('-x', '--expansion-target', dest='targets', action='append', default=None,

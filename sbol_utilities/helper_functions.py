@@ -1,3 +1,5 @@
+from typing import Iterable, Union
+
 import sbol3
 import filecmp
 import difflib
@@ -5,9 +7,11 @@ import difflib
 #########################
 # Collection of shared helper functions for utilities package
 
-
 # Flatten list of lists into a single list
-def flatten(collection):
+import tyto
+
+
+def flatten(collection: Iterable[list]) -> list:
     return [item for sublist in collection for item in sublist]
 
 def toplevel_named(doc: sbol3.Document, name:str) -> sbol3.Identified:
@@ -67,9 +71,48 @@ def strip_sbol2_version(identity: str) -> str:
     except ValueError:  # if last segment was not a number, there is no version to strip
         return identity
 
-#########################
-# Kludge materials that should be removed after certain issues are resolved
 
+def is_plasmid(obj: Union[sbol3.Component, sbol3.Feature]) -> bool:
+    """Check if an SBOL Component or Feature is a plasmid-like structure, i.e., either circular or having a plasmid role
+
+    :param obj: design to be checked
+    :return: true if plasmid
+    """
+    def has_plasmid_role(x):
+        # TODO: replace speed-kludge with this proper query after resolution of https://github.com/SynBioDex/tyto/issues/32
+        #return any(r for r in x.roles if tyto.SO.plasmid.is_ancestor_of(r) or tyto.SO.vector_replicon.is_ancestor_of(r))
+        # speed-kludge alternative:
+        plasmid_roles = {tyto.SO.plasmid, tyto.SO.vector_replicon, tyto.SO.plasmid_vector}
+        for r in x.roles:
+            try:
+                regularized = tyto.SO.get_uri_by_term(tyto.SO.get_term_by_uri(r))
+                if regularized in plasmid_roles:
+                    return True
+            except LookupError:
+                pass
+        return False
+
+    if has_plasmid_role(obj):  # both components and features have roles that can indicate a plasmid type
+        return True
+    elif isinstance(obj, sbol3.Component) or isinstance(obj, sbol3.LocalSubComponent) or \
+            isinstance(obj, sbol3.ExternallyDefined): # if there's a type, check for circularity
+        return sbol3.SO_CIRCULAR in obj.types
+    elif isinstance(obj, sbol3.SubComponent): # if it's a subcomponent, check its definition
+        return is_plasmid(obj.instance_of.lookup())
+    else:
+        return False
+
+
+#########################
+# Kludge/workaround materials that should be removed after certain issues are resolved
+
+type_to_standard_extension = {  # TODO: remove after resolution of pySBOL3/issues/244
+    sbol3.SORTED_NTRIPLES: '.nt',
+    sbol3.NTRIPLES: '.nt',
+    sbol3.JSONLD: '.json',
+    sbol3.RDF_XML: '.xml',
+    sbol3.TURTLE: '.ttl'
+}
 
 # Workaround for pySBOL3 issue #231: should be applied to every iteration on a collection of SBOL objects
 # TODO: delete after resolution of pySBOL3 issue #231
