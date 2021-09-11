@@ -7,12 +7,13 @@ import argparse
 import sbol3
 import openpyxl
 import tyto
-from .helper_functions import toplevel_named, strip_sbol2_version
+from .helper_functions import toplevel_named, strip_sbol2_version, type_to_standard_extension, is_plasmid
 
 BASIC_PARTS_COLLECTION = 'BasicParts'
 COMPOSITE_PARTS_COLLECTION = 'CompositeParts'
 LINEAR_PRODUCTS_COLLECTION = 'LinearDNAProducts'
 FINAL_PRODUCTS_COLLECTION = 'FinalProducts'
+
 
 def expand_configuration(values: dict) -> dict:
     """
@@ -382,7 +383,7 @@ def make_composite_part(document, row, composite_parts, linear_products, final_p
         backbones = [partname_to_part(document,name) for name in backbone_or_locus]
         if any(b is None for b in backbones):
             raise ValueError(f'Could not find specified backbone(s) "{backbone_or_locus}"')
-        if any(tyto.SO.get_uri_by_term('plasmid') not in b.roles for b in backbones):
+        if any(not is_plasmid(b) for b in backbones):
             raise ValueError(f'Specified backbones "{backbone_or_locus}" are not all plasmids')
         if combinatorial:
             logging.debug(f"Embedding library '{composite_part.name}' in plasmid backbone(s) '{backbone_or_locus}'")
@@ -470,15 +471,6 @@ def excel_to_sbol(wb: openpyxl.Workbook, config: dict = None) -> sbol3.Document:
     report = doc.validate()
     logging.info(f'Validation of document found {len(report.errors)} errors and {len(report.warnings)} warnings')
     return doc
-
-
-type_to_standard_extension = {  # TODO: remove after resolution of pySBOL3/issues/244
-    sbol3.SORTED_NTRIPLES: '.nt',
-    sbol3.NTRIPLES: '.nt',
-    sbol3.JSONLD: '.json',
-    sbol3.RDF_XML: '.xml',
-    sbol3.TURTLE: '.ttl'
-}
 
 
 def main():
