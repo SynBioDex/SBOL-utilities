@@ -37,3 +37,7 @@ The `excel-to-sbol` utility reads an Excel file specifying a library of basic an
 ### Expand the combinatorial derivations in an SBOL file
 
 The `sbol-expand-derivations` utility searches through an SBOL file for CombinatorialDerivation objects and expands them to create a library of all of the specific constructs.
+
+### Calculate sequences of DNA components in an SBOL file
+
+The `sbol-calculate-sequences` utility attempts to calculate the sequence of any DNA Component that can be fully specified from the sequences of its sub-components.
