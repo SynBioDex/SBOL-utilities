@@ -15,7 +15,8 @@ setup(name='sbol-utilities',
       scripts=['graph-sbol'],
       entry_points = {
             'console_scripts': ['excel-to-sbol=sbol_utilities.excel_to_sbol:main',
-                                'sbol-expand-derivations=sbol_utilities.expand_combinatorial_derivations:main']
+                                'sbol-expand-derivations=sbol_utilities.expand_combinatorial_derivations:main',
+                                'sbol-calculate-sequences=sbol_utilities.calculate_sequences:main']
       },
       packages=['sbol_utilities'],
       )
