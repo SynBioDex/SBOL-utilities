@@ -156,7 +156,8 @@ def main():
     output_file = args_dict['output_file']
     file_type = args_dict['file_type']
     sbol_file = args_dict['sbol_file']
-    outfile_name = output_file+type_to_standard_extension[file_type]
+    extension = type_to_standard_extension[file_type]
+    outfile_name = output_file if output_file.endswith(extension) else output_file+extension
 
     # Read file, convert, and write resulting document
     logging.info('Reading SBOL file '+sbol_file)

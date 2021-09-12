@@ -65,6 +65,7 @@ class CombinatorialDerivationExpander:
     # We'll do this by a simple depth first search initially, since the numbers shouldn't be too large
     def derivation_to_collection(self, cd: sbol3.CombinatorialDerivation):
         doc = cd.document
+        sbol3.set_namespace(cd.namespace) # use the namespace of the CD for all of its products
         sort_owned_objects(cd.template.lookup()) # TODO: issue #231
         # we've already converted this CombinatorialDerivation to a Collection, just return the conversion
         if cd in self.expanded_derivations.keys():
@@ -77,11 +78,11 @@ class CombinatorialDerivationExpander:
         # if this is de facto a collection rather than a CD, just return it directly
         if is_library(cd):
             logging.debug("Interpreting combinatorial derivation " + cd.display_id + " as library")
-            derivatives = sbol3.Collection(cd.display_id + "_collection")
+            derivatives = sbol3.Collection(cd.identity + "_collection")
             doc.add(derivatives)
             derivatives.members += values[0]
         else:
-            derivatives = sbol3.Collection(cd.display_id + "_derivatives")
+            derivatives = sbol3.Collection(cd.identity + "_derivatives")
             doc.add(derivatives)
             # create a product-space of all of the possible assignments, then evaluate each in a scratch document
             assignments = itertools.product(*values)
@@ -177,7 +178,8 @@ def main():
     output_file = args_dict['output_file']
     file_type = args_dict['file_type']
     input_file = args_dict['input_file']
-    outfile_name = output_file+type_to_standard_extension[file_type]
+    extension = type_to_standard_extension[file_type]
+    outfile_name = output_file if output_file.endswith(extension) else output_file+extension
     targets = args_dict['targets']
 
     # Read file and find the target CombinatorialDerivation objects
