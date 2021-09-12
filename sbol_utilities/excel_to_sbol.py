@@ -498,7 +498,8 @@ def main():
     output_file = args_dict['output_file']
     file_type = args_dict['file_type']
     excel_file = args_dict['excel_file']
-    outfile_name = output_file+type_to_standard_extension[file_type]
+    extension = type_to_standard_extension[file_type]
+    outfile_name = output_file if output_file.endswith(extension) else output_file+extension
     sbol3.set_namespace(args_dict['namespace'])
     # TODO: unkludge after resolution of https://github.com/SynBioDex/pySBOL3/issues/288
     if args_dict['local']:

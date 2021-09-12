@@ -166,14 +166,3 @@ def replace_feature(component, old, new):
     for ct in component.constraints:
         if ct.subject == old.identity: ct.subject = new.identity
         if ct.object == old.identity: ct.object = new.identity
-
-
-########################
-# Used in testing; TODO: figure out how to host it in a test helpers file rather than the package
-# check if two files are identical; if not, report their diff
-def assert_files_identical(file1, file2):
-    if not filecmp.cmp(file1, file2, shallow=False):
-        with open(file1, 'r') as f1:
-            with open(file2, 'r') as f2:
-                diff = difflib.unified_diff(f1.readlines(), f2.readlines(), fromfile=file1, tofile=file2)
-        raise AssertionError("File differs from expected value:\n"+''.join(diff))
