@@ -5,7 +5,7 @@ setup(name='sbol-utilities',
       long_description='SBOL-utilities is a collection of scripts and functions for manipulating SBOL 3 data that '
                        'can be imported as packages or run from the command line.',
       long_description_content_type='text/markdown',
-      version='1.0a7',
+      version='1.0a8',
       install_requires=[
             'sbol3',
             'graphviz',
