@@ -7,7 +7,7 @@ setup(name='sbol-utilities',
       long_description_content_type='text/markdown',
       version='1.0a8',
       install_requires=[
-            'sbol3',
+            'sbol3==1.0b5',
             'graphviz',
             'tyto',
             'openpyxl'
