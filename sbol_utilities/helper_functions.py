@@ -1,20 +1,23 @@
-from typing import Iterable, Union
+import unicodedata
+from typing import Iterable, Union, Optional
 
 import sbol3
-import filecmp
-import difflib
+import tyto
 
 #########################
 # Collection of shared helper functions for utilities package
 
-# Flatten list of lists into a single list
-import tyto
-
 
 def flatten(collection: Iterable[list]) -> list:
+    """Flatten list of lists into a single list
+
+    :param collection: list of lists
+    :return: flattened list
+    """
     return [item for sublist in collection for item in sublist]
 
-def toplevel_named(doc: sbol3.Document, name:str) -> sbol3.Identified:
+
+def toplevel_named(doc: sbol3.Document, name: str) -> Optional[sbol3.Identified]:
     """Find the unique TopLevel document object with the given name (rather than displayID or URI)
 
     :param doc: SBOL document to search
@@ -67,9 +70,79 @@ def strip_sbol2_version(identity: str) -> str:
     last_segment = identity.split('/')[-1]
     try:
         sbol2_version = int(last_segment)  # if last segment is a number...
-        return identity.rsplit('/',1)[0]  # ... then return everything else
+        return identity.rsplit('/', 1)[0]  # ... then return everything else
     except ValueError:  # if last segment was not a number, there is no version to strip
         return identity
+
+
+# TODO: replace with EDAM format entries when SBOL2 and SBOL3 can be differentiated
+GENETIC_DESIGN_FILE_TYPES = {
+    'FASTA': {'.fasta', '.fa'},
+    'GenBank': {'.genbank', '.gb'},
+    'SBOL2': {'.xml'},
+    'SBOL3': {sbol3.NTRIPLES: {'.nt'},
+              sbol3.RDF_XML: {'.rdf'},
+              sbol3.TURTLE: {'.ttl'},
+              sbol3.JSONLD: {'.json', '.jsonld'}
+              }
+}
+
+
+def design_file_type(name: str) -> Optional[str]:
+    """Guess a genetic design file's type from its name
+
+    :param name: file name (path allowed)
+    :return: type name (from GENETIC_DESIGN_FILE_TYPES) if known, None if not
+    """
+    for t, v in GENETIC_DESIGN_FILE_TYPES.items():
+        if isinstance(v, set):
+            if any(x for x in v if name.endswith(x)):
+                return t
+        else:  # dictionary
+            if any(sub for sub in v.values() if any(x for x in sub if name.endswith(x))):
+                return t
+    return None
+
+
+def strip_filetype_suffix(identity: str) -> str:
+    """Prettify a URL by stripping standard genetic design file type suffixes off of it
+
+    :param identity: URL to sanitize
+    :return: sanitized URL
+    """
+    extensions = flatten((flatten(v.values()) if isinstance(v, dict) else v) for v in GENETIC_DESIGN_FILE_TYPES.values())
+    for x in extensions:
+        if identity.endswith(x):
+            return identity.removesuffix(x)
+    return identity
+
+
+# TODO: remove after resolution of https://github.com/SynBioDex/pySBOL3/issues/191
+def string_to_display_id(name):
+    def sanitize_character(c):
+        replacements = {' ': '_', '-': '_', '.': '_'}
+        c = replacements.get(c, c)  # first, see if there is a wired replacement
+        if c.isalnum() or c == '_':  # keep allowed characters
+            return c
+        else:  # all others are changed into a reduced & compatible form of their unicode name
+            return f'_{unicodedata.name(c).replace(" SIGN","").replace(" ","_")}'
+
+    # make replacements in order to get a compliant displayID
+    display_id = "".join([sanitize_character(c) for c in name.strip()])
+    # prepend underscore if there is an initial digit
+    if display_id[0].isdigit():
+        display_id = "_"+display_id
+    return display_id
+
+
+def url_to_identity(url: str) -> str:
+    """Sanitize a URL string for use as an identity, turning everything after the last "/" to sanitize as a displayId
+
+    :param url: URL to sanitize
+    :return: equivalent identity
+    """
+    split = url.rsplit('/',maxsplit=1)
+    return f'{split[0]}/{string_to_display_id(split[1])}'
 
 
 def is_plasmid(obj: Union[sbol3.Component, sbol3.Feature]) -> bool:
@@ -166,3 +239,17 @@ def replace_feature(component, old, new):
     for ct in component.constraints:
         if ct.subject == old.identity: ct.subject = new.identity
         if ct.object == old.identity: ct.object = new.identity
+
+
+# TODO: remove kludge after resolution of https://github.com/SynBioDex/tyto/issues/21
+tyto_cache = {}
+def tyto_lookup_with_caching(term: str) -> str:
+    if term not in tyto_cache:
+        try:
+            tyto_cache[term] = tyto.SO.get_uri_by_term(term)
+        except LookupError as e:
+            tyto_cache[term] = e
+    if isinstance(tyto_cache[term], LookupError):
+        raise tyto_cache[term]
+    else:
+        return tyto_cache[term]
