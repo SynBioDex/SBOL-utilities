@@ -1,3 +1,5 @@
+import difflib
+import filecmp
 import unittest
 
 from sbol_utilities.helper_functions import *
@@ -27,11 +29,16 @@ class TestHelpers(unittest.TestCase):
         assert unambiguous_protein_sequence('tklqpntvir')
         assert not unambiguous_protein_sequence('tklqxpntvir')
 
-    def test_sbol2_version_stripping(self):
+    def test_url_sanitization(self):
+        # SBOL2 version stripping:
         assert strip_sbol2_version('https://synbiohub.programmingbiology.org/public/Eco1C1G1T1/LmrA/1') == \
                'https://synbiohub.programmingbiology.org/public/Eco1C1G1T1/LmrA'
         assert strip_sbol2_version('https://synbiohub.programmingbiology.org/public/Eco1C1G1T1/LmrA') == \
                'https://synbiohub.programmingbiology.org/public/Eco1C1G1T1/LmrA'
+
+        # displayId cleaning:
+        assert string_to_display_id('GB30248.1') == 'GB30248_1'
+        assert url_to_identity('http://foo/bar/baz.qux') == 'http://foo/bar/baz_qux'
 
 if __name__ == '__main__':
     unittest.main()

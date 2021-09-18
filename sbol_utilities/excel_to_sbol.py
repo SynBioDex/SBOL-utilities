@@ -6,8 +6,8 @@ import argparse
 
 import sbol3
 import openpyxl
-import tyto
-from .helper_functions import toplevel_named, strip_sbol2_version, type_to_standard_extension, is_plasmid
+from .helper_functions import toplevel_named, strip_sbol2_version, type_to_standard_extension, is_plasmid, \
+    tyto_lookup_with_caching, string_to_display_id, url_to_identity
 
 BASIC_PARTS_COLLECTION = 'BasicParts'
 COMPOSITE_PARTS_COLLECTION = 'CompositeParts'
@@ -68,24 +68,6 @@ def expand_configuration(values: dict) -> dict:
     return values_to_use
 
 
-# TODO: remove after resolution of https://github.com/SynBioDex/pySBOL3/issues/191
-def string_to_display_id(name):
-    def sanitize_character(c):
-        replacements = {' ': '_', '-': '_', '.': '_'}
-        c = replacements.get(c, c)  # first, see if there is a wired replacement
-        if c.isalnum() or c == '_':  # keep allowed characters
-            return c
-        else:  # all others are changed into a reduced & compatible form of their unicode name
-            return f'_{unicodedata.name(c).replace(" SIGN","").replace(" ","_")}'
-
-    # make replacements in order to get a compliant displayID
-    display_id = "".join([sanitize_character(c) for c in name.strip()])
-    # prepend underscore if there is an initial digit
-    if display_id[0].isdigit():
-        display_id = "_"+display_id
-    return display_id
-
-
 def read_metadata(wb: openpyxl.Workbook, doc: sbol3.Document, config: dict):
     """
     Extract metadata and build collections
@@ -123,25 +105,12 @@ def read_metadata(wb: openpyxl.Workbook, doc: sbol3.Document, config: dict):
     doc.add(final_products)
 
     # also collect any necessary data tables from extra sheets
-    source_table = {row[config['source_name_col']].value:row[config['source_uri_col']].value
+    source_table = {row[config['source_name_col']].value: row[config['source_uri_col']].value
                     for row in wb[config['sources_sheet']].iter_rows(min_row=config['sources_first_row'])
                     if row[config['source_literal_col']].value}
 
     # return the set of created collections
     return basic_parts, composite_parts, linear_products, final_products, source_table
-
-# TODO: remove kludge after resolution of https://github.com/SynBioDex/tyto/issues/21
-tyto_cache = {}
-def tyto_lookup_with_caching(term: str) -> str:
-    if term not in tyto_cache:
-        try:
-            tyto_cache[term] = tyto.SO.get_uri_by_term(term)
-        except LookupError as e:
-            tyto_cache[term] = e
-    if isinstance(tyto_cache[term], LookupError):
-        raise tyto_cache[term]
-    else:
-        return tyto_cache[term]
 
 
 def row_to_basic_part(doc: sbol3.Document, row, basic_parts: sbol3.Collection, linear_products: sbol3.Collection,
@@ -161,8 +130,8 @@ def row_to_basic_part(doc: sbol3.Document, row, basic_parts: sbol3.Collection, l
     name = row[config['basic_name_col']].value
     if name is None:
         return  # skip lines without names
-    try:
-        raw_role = row[config['basic_role_col']].value  # look up with tyto; if fail, leave blank or add to description
+    raw_role = row[config['basic_role_col']].value
+    try:  # look up with tyto; if fail, leave blank or add to description
         role = (tyto_lookup_with_caching(raw_role) if raw_role else None)
     except LookupError:
         logging.warning(f'Role "{raw_role}" could not be found in Sequence Ontology')
@@ -181,6 +150,8 @@ def row_to_basic_part(doc: sbol3.Document, row, basic_parts: sbol3.Collection, l
 
     # identity comes from source if set to a literal table, from display_id if not set
     identity = None
+    display_id = None
+    was_derived_from = None
     if source_id and source_prefix:
         source_prefix = source_prefix.strip()
         if source_prefix in source_table:
@@ -188,7 +159,9 @@ def row_to_basic_part(doc: sbol3.Document, row, basic_parts: sbol3.Collection, l
                 display_id = string_to_display_id(source_id.strip())
                 identity = f'{source_table[source_prefix]}/{display_id}'
             else:  # when there is no prefix, use the bare value (in SBOL3 format)
-                identity = strip_sbol2_version(source_id.strip())
+                raw_url = source_id.strip()
+                identity = url_to_identity(strip_sbol2_version(raw_url))
+                was_derived_from = raw_url
         else:
             logging.info(f'Part "{name}" ignoring non-literal source: {source_prefix}')
     elif source_id:
@@ -202,6 +175,8 @@ def row_to_basic_part(doc: sbol3.Document, row, basic_parts: sbol3.Collection, l
     logging.debug(f'Creating basic part "{name}"')
     component = sbol3.Component(identity or display_id, sbol3.SBO_DNA, name=name,
                                 description=f'{design_notes}\n{description}'.strip())
+    if was_derived_from:
+        component.derived_from.append(was_derived_from)
     doc.add(component)
     if role:
         component.roles.append(role)
@@ -284,7 +259,7 @@ def make_constraint(constraint, part_list):
     try:
         restriction = constraint_dict[m.group(2)]
     except KeyError:
-        raise ValueError(f'Do not recognize constraint relation "{restriction}"')
+        raise ValueError(f'Do not recognize constraint relation in "{constraint}"')
     x = int(m.group(1))
     y = int(m.group(3))
     if x is y:

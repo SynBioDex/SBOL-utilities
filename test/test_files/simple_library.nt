@@ -671,6 +671,7 @@
 <https://synbiohub.programmingbiology.org/public/Eco1C1G1T1/LmrA> <http://sbols.org/v3#name> "LmrA" .
 <https://synbiohub.programmingbiology.org/public/Eco1C1G1T1/LmrA> <http://sbols.org/v3#type> <https://identifiers.org/SBO:0000251> .
 <https://synbiohub.programmingbiology.org/public/Eco1C1G1T1/LmrA> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://sbols.org/v3#Component> .
+<https://synbiohub.programmingbiology.org/public/Eco1C1G1T1/LmrA> <http://www.w3.org/ns/prov#wasDerivedFrom> <https://synbiohub.programmingbiology.org/public/Eco1C1G1T1/LmrA/1> .
 <https://www.ncbi.nlm.nih.gov/nuccore/ATP07149_1> <http://sbols.org/v3#description> "Cyan FP; codon optimized using IDT tool <https://www.idtdna.com/CodonOpt>\nmCerulean3" .
 <https://www.ncbi.nlm.nih.gov/nuccore/ATP07149_1> <http://sbols.org/v3#displayId> "ATP07149_1" .
 <https://www.ncbi.nlm.nih.gov/nuccore/ATP07149_1> <http://sbols.org/v3#hasNamespace> <http://sbolstandard.org/testfiles/> .
