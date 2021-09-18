@@ -75,6 +75,48 @@ def strip_sbol2_version(identity: str) -> str:
         return identity
 
 
+# TODO: replace with EDAM format entries when SBOL2 and SBOL3 can be differentiated
+GENETIC_DESIGN_FILE_TYPES = {
+    'FASTA': {'.fasta', '.fa'},
+    'GenBank': {'.genbank', '.gb'},
+    'SBOL2': {'.xml'},
+    'SBOL3': {sbol3.NTRIPLES: {'.nt'},
+              sbol3.RDF_XML: {'.rdf'},
+              sbol3.TURTLE: {'.ttl'},
+              sbol3.JSONLD: {'.json', '.jsonld'}
+              }
+}
+
+
+def design_file_type(name: str) -> Optional[str]:
+    """Guess a genetic design file's type from its name
+
+    :param name: file name (path allowed)
+    :return: type name (from GENETIC_DESIGN_FILE_TYPES) if known, None if not
+    """
+    for t, v in GENETIC_DESIGN_FILE_TYPES.items():
+        if isinstance(v, set):
+            if any(x for x in v if name.endswith(x)):
+                return t
+        else:  # dictionary
+            if any(sub for sub in v.values() if any(x for x in sub if name.endswith(x))):
+                return t
+    return None
+
+
+def strip_filetype_suffix(identity: str) -> str:
+    """Prettify a URL by stripping standard genetic design file type suffixes off of it
+
+    :param identity: URL to sanitize
+    :return: sanitized URL
+    """
+    extensions = flatten((flatten(v.values()) if isinstance(v, dict) else v) for v in GENETIC_DESIGN_FILE_TYPES.values())
+    for x in extensions:
+        if identity.endswith(x):
+            return identity.removesuffix(x)
+    return identity
+
+
 # TODO: remove after resolution of https://github.com/SynBioDex/pySBOL3/issues/191
 def string_to_display_id(name):
     def sanitize_character(c):

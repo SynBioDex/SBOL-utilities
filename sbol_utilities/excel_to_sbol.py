@@ -7,7 +7,7 @@ import argparse
 import sbol3
 import openpyxl
 from .helper_functions import toplevel_named, strip_sbol2_version, type_to_standard_extension, is_plasmid, \
-    tyto_lookup_with_caching, string_to_display_id, url_to_identity
+    tyto_lookup_with_caching, string_to_display_id, url_to_identity, strip_filetype_suffix
 
 BASIC_PARTS_COLLECTION = 'BasicParts'
 COMPOSITE_PARTS_COLLECTION = 'CompositeParts'
@@ -160,7 +160,7 @@ def row_to_basic_part(doc: sbol3.Document, row, basic_parts: sbol3.Collection, l
                 identity = f'{source_table[source_prefix]}/{display_id}'
             else:  # when there is no prefix, use the bare value (in SBOL3 format)
                 raw_url = source_id.strip()
-                identity = url_to_identity(strip_sbol2_version(raw_url))
+                identity = url_to_identity(strip_filetype_suffix(strip_sbol2_version(raw_url)))
                 was_derived_from = raw_url
         else:
             logging.info(f'Part "{name}" ignoring non-literal source: {source_prefix}')

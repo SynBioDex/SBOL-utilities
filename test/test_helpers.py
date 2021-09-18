@@ -40,5 +40,13 @@ class TestHelpers(unittest.TestCase):
         assert string_to_display_id('GB30248.1') == 'GB30248_1'
         assert url_to_identity('http://foo/bar/baz.qux') == 'http://foo/bar/baz_qux'
 
+        # extension detection and stripping
+        assert design_file_type('something.fasta') == 'FASTA'
+        assert design_file_type('something.xlsx') == None
+        assert design_file_type('something.xml') == 'SBOL2'
+        assert design_file_type('something.nt') == 'SBOL3'
+        assert strip_filetype_suffix('http://foo/bar/baz.gb') == 'http://foo/bar/baz'
+        assert strip_filetype_suffix('http://foo/bar/baz.qux') == 'http://foo/bar/baz.qux'
+
 if __name__ == '__main__':
     unittest.main()
