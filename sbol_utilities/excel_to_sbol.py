@@ -183,7 +183,7 @@ def row_to_basic_part(doc: sbol3.Document, row, basic_parts: sbol3.Collection, l
     if circular:
         component.types.append(sbol3.SO_CIRCULAR)
     if sequence:
-        sbol_seq = sbol3.Sequence(f'{display_id}_sequence', encoding=sbol3.IUPAC_DNA_ENCODING, elements=sequence)
+        sbol_seq = sbol3.Sequence(f'{component.display_id}_sequence', encoding=sbol3.IUPAC_DNA_ENCODING, elements=sequence)
         doc.add(sbol_seq)
         component.sequences.append(sbol_seq.identity)
 
