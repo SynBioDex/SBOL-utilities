@@ -4,11 +4,9 @@ from typing import List, Tuple, Union
 
 import sbol3
 
-from sbol_utilities.helper_functions import type_to_standard_extension, is_plasmid, id_sort
+from sbol_utilities.helper_functions import is_plasmid
+from sbol_utilities.workarounds import type_to_standard_extension, id_sort
 
-
-###############################################################
-# Collect all components of type DNA and resolve sequences until blocked
 
 def resolved_dna_component(component: sbol3.Component) -> bool:
     """ Check if a DNA component still needs its sequence calculated

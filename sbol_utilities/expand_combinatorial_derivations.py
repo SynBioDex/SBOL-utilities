@@ -4,7 +4,8 @@ from typing import List, Set
 
 import sbol3
 import itertools
-from .helper_functions import flatten, copy_toplevel_and_dependencies, replace_feature, id_sort, sort_owned_objects, \
+from .helper_functions import flatten
+from .workarounds import copy_toplevel_and_dependencies, replace_feature, id_sort, sort_owned_objects, \
     type_to_standard_extension
 
 

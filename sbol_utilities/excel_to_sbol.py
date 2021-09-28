@@ -6,8 +6,9 @@ import argparse
 
 import sbol3
 import openpyxl
-from .helper_functions import toplevel_named, strip_sbol2_version, type_to_standard_extension, is_plasmid, \
-    tyto_lookup_with_caching, string_to_display_id, url_to_identity, strip_filetype_suffix
+from .helper_functions import toplevel_named, strip_sbol2_version, is_plasmid, string_to_display_id, url_to_identity, \
+    strip_filetype_suffix
+from .workarounds import type_to_standard_extension, tyto_lookup_with_caching
 
 BASIC_PARTS_COLLECTION = 'BasicParts'
 COMPOSITE_PARTS_COLLECTION = 'CompositeParts'
