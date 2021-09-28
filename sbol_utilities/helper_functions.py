@@ -114,7 +114,7 @@ def strip_filetype_suffix(identity: str) -> str:
     extensions = flatten((flatten(v.values()) if isinstance(v, dict) else v) for v in GENETIC_DESIGN_FILE_TYPES.values())
     for x in extensions:
         if identity.endswith(x):
-            return identity.removesuffix(x)
+            return identity[:-(len(x))]
     return identity
 
 
