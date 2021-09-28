@@ -21,14 +21,6 @@ def assert_files_identical(file1: str, file2: str) -> None:
 
 class TestHelpers(unittest.TestCase):
 
-    def test_sequence_validators(self):
-        assert unambiguous_dna_sequence('actGATCG')
-        assert not unambiguous_dna_sequence('this is a non-DNA string')
-        assert unambiguous_rna_sequence('acugaucg')
-        assert not unambiguous_rna_sequence('actgatcg')
-        assert unambiguous_protein_sequence('tklqpntvir')
-        assert not unambiguous_protein_sequence('tklqxpntvir')
-
     def test_url_sanitization(self):
         # SBOL2 version stripping:
         assert strip_sbol2_version('https://synbiohub.programmingbiology.org/public/Eco1C1G1T1/LmrA/1') == \
