@@ -12,9 +12,19 @@ on:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
-    
+    strategy:
+      matrix:
+        # Default builds are on Ubuntu
+        os: [ubuntu-latest]
+        python-version: [3.7, 3.8, 3.9, pypy-3.7]
+        include:
+          # Also test on macOS and Windows using latest Python 3
+          - os: macos-latest
+            python-version: 3.x
+          - os: windows-latest
+            python-version: 3.x
+            
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python 3.9
