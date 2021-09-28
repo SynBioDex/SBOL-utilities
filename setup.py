@@ -29,9 +29,9 @@ setup(name='sbol-utilities',
       # What does your project relate to?
       keywords='synthetic biology',
       install_requires=[
-            'sbol3==1.0b5',
+            'sbol3>=1.0b7',
             'graphviz',
-            'tyto',
+            'tyto>=1.0-beta',
             'openpyxl'
             ],
       scripts=['graph-sbol'],
