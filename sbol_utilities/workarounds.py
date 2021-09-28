@@ -101,3 +101,35 @@ def tyto_lookup_with_caching(term: str) -> str:
         raise tyto_cache[term]
     else:
         return tyto_cache[term]
+
+
+# TODO: remove after resolution of https://github.com/SynBioDex/pySBOL3/issues/234
+def get_parent(self: sbol3.Identified) -> Optional[sbol3.Identified]:
+    """Find the parent of this child object
+
+    :param self: Object to search from
+    :return: parent or None if it cannot be found (e.g., this is a toplevel)
+    """
+    if self.identity:
+        return self.document.find(self.identity.rsplit('/', 1)[0])
+    else:
+        return None
+sbol3.Identified.get_parent = get_parent
+
+
+# TODO: remove after resolution of https://github.com/SynBioDex/pySBOL3/issues/234
+def get_toplevel(self: sbol3.Identified) -> Optional[sbol3.TopLevel]:
+    """Find the SBOL3 TopLevel object containing this SBOL3 object
+
+    :param self: Object to search from
+    :return: Enclosing TopLevel (self if it is a TopLevel) or None if there is nothing enclosing
+    """
+    if isinstance(self, sbol3.TopLevel):
+        return self
+    else:
+        parent = self.get_parent()
+        if parent:
+            return get_toplevel(parent)
+        else:
+            return None
+
