@@ -1,5 +1,7 @@
 import argparse
 import logging
+from typing import List, Set
+
 import sbol3
 import itertools
 from .helper_functions import flatten, copy_toplevel_and_dependencies, replace_feature, id_sort, sort_owned_objects, \
@@ -33,7 +35,7 @@ class CombinatorialDerivationExpander:
     def __init__(self):
         self.expanded_derivations:dict[sbol3.CombinatorialDerivation,sbol3.Collection] = {}
 
-    def collection_values(self, c: sbol3.Collection) -> list[sbol3.Component]:
+    def collection_values(self, c: sbol3.Collection) -> List[sbol3.Component]:
         """Pull all SBOL Components out of a possibly recursive collection
 
         :param c: Collection for extraction
@@ -45,7 +47,7 @@ class CombinatorialDerivationExpander:
         logging.debug("Found "+str(len(values))+" values in collection "+c.display_id)
         return values
 
-    def cd_variable_values(self, v: sbol3.VariableFeature) -> list[sbol3.Component]:
+    def cd_variable_values(self, v: sbol3.VariableFeature) -> List[sbol3.Component]:
         """Flatten a variable to collect all of its values
 
         :param v: Variable to be flattened
@@ -59,11 +61,15 @@ class CombinatorialDerivationExpander:
         logging.debug("Found " + str(len(values)) + " total values for " + v.variable.lookup().name)
         return values
 
-    # Takes a CombinatorialDerivation and list of all those previously expanded, return a Collection of all of the
-    # variants generated from the CD, which have been added to its containing document
-    # Method: recursively instantiate all variables of the document
-    # We'll do this by a simple depth first search initially, since the numbers shouldn't be too large
-    def derivation_to_collection(self, cd: sbol3.CombinatorialDerivation):
+    def derivation_to_collection(self, cd: sbol3.CombinatorialDerivation) -> sbol3.Collection:
+        """Takes a CombinatorialDerivation and list of all those previously expanded, return a Collection of all of the
+        variants generated from the CD, which have been added to its containing document
+        Method: recursively instantiate all variables of the document
+        We'll do this by a simple depth first search initially, since the numbers shouldn't be too large
+
+        :param cd: derivation to expand
+        :return: collection of derivative Components
+        """
         doc = cd.document
         sbol3.set_namespace(cd.namespace) # use the namespace of the CD for all of its products
         sort_owned_objects(cd.template.lookup()) # TODO: issue #231
@@ -111,7 +117,7 @@ class CombinatorialDerivationExpander:
 ###############################################################
 # Entry point function
 
-def expand_derivations(targets: list[sbol3.CombinatorialDerivation]) -> list[sbol3.Collection]:
+def expand_derivations(targets: List[sbol3.CombinatorialDerivation]) -> List[sbol3.Collection]:
     """Given a list of CombinatorialDerivations, expand each to make all of the variants that instantiate the
     specification for each CombinatorialDerivation. All of the expansions are stored in the document.
     Note: assumes exhaustive sampling strategy
@@ -142,7 +148,7 @@ def expand_derivations(targets: list[sbol3.CombinatorialDerivation]) -> list[sbo
     return [expander.expanded_derivations[t] for t in targets]
 
 
-def root_combinatorial_derivations(doc: sbol3.Document) -> set[sbol3.CombinatorialDerivation]:
+def root_combinatorial_derivations(doc: sbol3.Document) -> Set[sbol3.CombinatorialDerivation]:
     """ Find all of the root CombinatorialDerivations in a document (i.e., those not referred to be another CD)
 
     :param doc: Document to search
