@@ -1017,7 +1017,7 @@
 <http://sbolstandard.org/testfiles/mCherry> <http://sbols.org/v3#displayId> "mCherry" .
 <http://sbolstandard.org/testfiles/mCherry> <http://sbols.org/v3#hasNamespace> <http://sbolstandard.org/testfiles/> .
 <http://sbolstandard.org/testfiles/mCherry> <http://sbols.org/v3#hasSequence> <http://sbolstandard.org/testfiles/mCherry_sequence> .
-<http://sbolstandard.org/testfiles/mCherry> <http://sbols.org/v3#name> "mCherry " .
+<http://sbolstandard.org/testfiles/mCherry> <http://sbols.org/v3#name> "mCherry" .
 <http://sbolstandard.org/testfiles/mCherry> <http://sbols.org/v3#role> <https://identifiers.org/SO:0000316> .
 <http://sbolstandard.org/testfiles/mCherry> <http://sbols.org/v3#type> <https://identifiers.org/SBO:0000251> .
 <http://sbolstandard.org/testfiles/mCherry> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://sbols.org/v3#Component> .

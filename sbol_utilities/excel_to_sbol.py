@@ -131,6 +131,8 @@ def row_to_basic_part(doc: sbol3.Document, row, basic_parts: sbol3.Collection, l
     name = row[config['basic_name_col']].value
     if name is None:
         return  # skip lines without names
+    else:
+        name = name.strip()  # make sure we're discarding whitespace
     raw_role = row[config['basic_role_col']].value
     try:  # look up with tyto; if fail, leave blank or add to description
         role = (tyto_lookup_with_caching(raw_role) if raw_role else None)
