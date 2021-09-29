@@ -124,7 +124,7 @@ def order(five_prime: Union[sbol3.Feature, sbol3.Component], three_prime: Union[
     five_prime = ensure_singleton_feature(system, five_prime)
     three_prime = ensure_singleton_feature(system, three_prime)
     # add a containment relation
-    system.constraints.append(sbol3.Constraint(sbol3.SBOL_CONTAINS, subject=five_prime, object=three_prime))
+    system.constraints.append(sbol3.Constraint(sbol3.SBOL_MEETS, subject=five_prime, object=three_prime))
     return three_prime
 
 
