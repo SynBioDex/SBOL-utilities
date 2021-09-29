@@ -1,10 +1,9 @@
 import argparse
 import logging
+import itertools
 from typing import List, Set
 
 import sbol3
-import itertools
-from .helper_functions import flatten
 from .workarounds import copy_toplevel_and_dependencies, replace_feature, id_sort, sort_owned_objects, \
     type_to_standard_extension
 
@@ -44,7 +43,7 @@ class CombinatorialDerivationExpander:
         """
         assert all(isinstance(x.lookup(), sbol3.Collection) or isinstance(x.lookup(), sbol3.Component) for x in c.members)
         values = [x.lookup() for x in id_sort(c.members) if isinstance(x.lookup(), sbol3.Component)] + \
-            id_sort(flatten([self.collection_values(x) for x in c.members if isinstance(x.lookup(), sbol3.Collection)]))
+            id_sort(itertools.chain(*([self.collection_values(x) for x in c.members if isinstance(x.lookup(), sbol3.Collection)])))
         logging.debug("Found "+str(len(values))+" values in collection "+c.display_id)
         return values
 
@@ -57,8 +56,8 @@ class CombinatorialDerivationExpander:
         logging.debug("Finding values for " + v.variable.lookup().name)
         sub_cd_collections = [self.derivation_to_collection(d.lookup()) for d in id_sort(v.variant_derivations)]
         values = [x.lookup() for x in id_sort(v.variants)] + \
-                 id_sort(flatten([self.collection_values(c) for c in id_sort(v.variant_collections)])) + \
-                 id_sort(flatten(self.collection_values(c) for c in id_sort(sub_cd_collections)))
+                 id_sort(itertools.chain(*[self.collection_values(c) for c in id_sort(v.variant_collections)])) + \
+                 id_sort(itertools.chain(*(self.collection_values(c) for c in id_sort(sub_cd_collections))))
         logging.debug("Found " + str(len(values)) + " total values for " + v.variable.lookup().name)
         return values
 
@@ -156,7 +155,7 @@ def root_combinatorial_derivations(doc: sbol3.Document) -> Set[sbol3.Combinatori
     :return: set of root CDs
     """
     cds = {o for o in doc.objects if isinstance(o, sbol3.CombinatorialDerivation)}
-    children = set(flatten([[d.lookup() for d in v.variant_derivations] for cd in cds for v in cd.variable_features]))
+    children = set(itertools.chain(*([[d.lookup() for d in v.variant_derivations] for cd in cds for v in cd.variable_features])))
     return cds - children  # Roots are those CDs that are not a child of any other CD
 
 

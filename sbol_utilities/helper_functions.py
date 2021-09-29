@@ -1,13 +1,16 @@
+import logging
+import itertools
 from typing import Iterable, Union, Optional
 
 import sbol3
 import tyto
 
-
-#########################
-# Collection of shared helper functions for utilities package
 from sbol_utilities.workarounds import string_to_display_id
 
+
+#########################
+# Collection of miscellaneous helper functions for utilities package
+# These should be considered experimental and may be removed at any time
 
 def flatten(collection: Iterable[list]) -> list:
     """Flatten list of lists into a single list
@@ -15,7 +18,8 @@ def flatten(collection: Iterable[list]) -> list:
     :param collection: list of lists
     :return: flattened list
     """
-    return [item for sublist in collection for item in sublist]
+    logging.warning('Deprecated: switch to using itertools.chain(*collection)')
+    return list(itertools.chain(*collection))
 
 
 def toplevel_named(doc: sbol3.Document, name: str) -> Optional[sbol3.Identified]:
@@ -33,33 +37,6 @@ def toplevel_named(doc: sbol3.Document, name: str) -> Optional[sbol3.Identified]
         return found[0]
     else:
         raise ValueError(f'Name is not unique: {name}')
-
-
-def unambiguous_dna_sequence(sequence: str) -> bool:
-    """Check if a sequence consists only of unambiguous DNA characters
-
-    :param sequence: string to be checked
-    :return: True if unambiguous DNA, false otherwise
-    """
-    return sequence.lower().strip('acgt') == ''
-
-
-def unambiguous_rna_sequence(sequence: str) -> bool:
-    """Check if a sequence consists only of unambiguous RNA characters
-
-    :param sequence: string to be checked
-    :return: True if unambiguous DNA, false otherwise
-    """
-    return sequence.lower().strip('acgu') == ''
-
-
-def unambiguous_protein_sequence(sequence: str) -> bool:
-    """Check if a sequence consists only of unambiguous protein characters
-
-    :param sequence: string to be checked
-    :return: True if unambiguous DNA, false otherwise
-    """
-    return sequence.lower().strip('acdefghiklmnpqrstvwy') == ''
 
 
 def strip_sbol2_version(identity: str) -> str:
@@ -111,10 +88,10 @@ def strip_filetype_suffix(identity: str) -> str:
     :param identity: URL to sanitize
     :return: sanitized URL
     """
-    extensions = flatten((flatten(v.values()) if isinstance(v, dict) else v) for v in GENETIC_DESIGN_FILE_TYPES.values())
+    extensions = itertools.chain(*((itertools.chain(*v.values()) if isinstance(v, dict) else v) for v in GENETIC_DESIGN_FILE_TYPES.values()))
     for x in extensions:
         if identity.endswith(x):
-            return identity[:-(len(x))]
+            return identity[:-(len(x))]  # TODO: change to removesuffix when python 3.9 is the minimum version
     return identity
 
 
