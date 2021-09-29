@@ -8,7 +8,6 @@ import tyto
 # This file contains workarounds for known issues in pySBOL3
 # They will be removed when pySBOL3 upgrades fix the issues
 
-
 # TODO: remove after resolution of https://github.com/SynBioDex/pySBOL3/issues/191
 def string_to_display_id(name: str) -> str:
     def sanitize_character(c):
