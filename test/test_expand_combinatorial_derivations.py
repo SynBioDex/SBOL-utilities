@@ -9,6 +9,7 @@ import logging
 import sys
 from unittest.mock import patch
 
+from sbol_utilities.workarounds import copy_toplevel_and_dependencies
 from test_helpers import assert_files_identical
 
 TESTFILE_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'test_files')
@@ -31,7 +32,7 @@ class TestCDExpansion(unittest.TestCase):
 
         output_doc = sbol3.Document()
         for c in derivative_collections:
-            sbol_utilities.helper_functions.copy_toplevel_and_dependencies(output_doc, c)
+            copy_toplevel_and_dependencies(output_doc, c)
         assert not len(output_doc.validate())
 
         temp_name = tempfile.mkstemp(suffix='.nt')[1]

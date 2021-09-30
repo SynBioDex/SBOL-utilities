@@ -6,8 +6,9 @@ import argparse
 
 import sbol3
 import openpyxl
-from .helper_functions import toplevel_named, strip_sbol2_version, type_to_standard_extension, is_plasmid, \
-    tyto_lookup_with_caching, string_to_display_id, url_to_identity, strip_filetype_suffix
+from .helper_functions import toplevel_named, strip_sbol2_version, is_plasmid, string_to_display_id, url_to_identity, \
+    strip_filetype_suffix
+from .workarounds import type_to_standard_extension, tyto_lookup_with_caching
 
 BASIC_PARTS_COLLECTION = 'BasicParts'
 COMPOSITE_PARTS_COLLECTION = 'CompositeParts'
@@ -130,6 +131,8 @@ def row_to_basic_part(doc: sbol3.Document, row, basic_parts: sbol3.Collection, l
     name = row[config['basic_name_col']].value
     if name is None:
         return  # skip lines without names
+    else:
+        name = name.strip()  # make sure we're discarding whitespace
     raw_role = row[config['basic_role_col']].value
     try:  # look up with tyto; if fail, leave blank or add to description
         role = (tyto_lookup_with_caching(raw_role) if raw_role else None)
@@ -183,7 +186,7 @@ def row_to_basic_part(doc: sbol3.Document, row, basic_parts: sbol3.Collection, l
     if circular:
         component.types.append(sbol3.SO_CIRCULAR)
     if sequence:
-        sbol_seq = sbol3.Sequence(f'{display_id}_sequence', encoding=sbol3.IUPAC_DNA_ENCODING, elements=sequence)
+        sbol_seq = sbol3.Sequence(f'{component.identity}_sequence', encoding=sbol3.IUPAC_DNA_ENCODING, elements=sequence)
         doc.add(sbol_seq)
         component.sequences.append(sbol_seq.identity)
 

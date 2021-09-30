@@ -1,14 +1,12 @@
 import argparse
 import logging
-from typing import Union
+from typing import List, Tuple, Union
 
 import sbol3
 
-from sbol_utilities.helper_functions import type_to_standard_extension, is_plasmid, id_sort
+from sbol_utilities.helper_functions import is_plasmid
+from sbol_utilities.workarounds import type_to_standard_extension, id_sort
 
-
-###############################################################
-# Collect all components of type DNA and resolve sequences until blocked
 
 def resolved_dna_component(component: sbol3.Component) -> bool:
     """ Check if a DNA component still needs its sequence calculated
@@ -19,7 +17,7 @@ def resolved_dna_component(component: sbol3.Component) -> bool:
     return sbol3.SBO_DNA in component.types and len(component.sequences) > 0
 
 
-def order_subcomponents(component: sbol3.Component) -> Union[tuple[list[sbol3.Feature], bool], None]:
+def order_subcomponents(component: sbol3.Component) -> Union[Tuple[List[sbol3.Feature], bool], None]:
     """Attempt to find a sorted order of features in an SBOL Component, so its sequence can be calculated from theirs
     Conduct the sort by walking through one meet relation at a time (excepting a circular component)
 
@@ -68,7 +66,7 @@ def order_subcomponents(component: sbol3.Component) -> Union[tuple[list[sbol3.Fe
     return (order if not unordered else None), circular
 
 # assumes already ordered
-def ready_to_resolve(component: sbol3.Component, resolved: list[str]):
+def ready_to_resolve(component: sbol3.Component, resolved: List[str]):
     return all(isinstance(f,sbol3.SubComponent) and str(f.instance_of) in resolved for f in component.features)
 
 def compute_sequence(component: sbol3.Component) -> sbol3.Sequence:
@@ -99,7 +97,7 @@ def compute_sequence(component: sbol3.Component) -> sbol3.Sequence:
 # Entry point function
 
 # Takes a list of targets, all of which should be in the same input document, and expands within that document
-def calculate_sequences(doc: sbol3.Document) -> list[sbol3.Sequence]:
+def calculate_sequences(doc: sbol3.Document) -> List[sbol3.Sequence]:
     """Attempt to calculate missing sequences of Components from their features
 
     :param doc: Document where sequences will be calculated
