@@ -13,13 +13,14 @@ from sbol_utilities.workarounds import string_to_display_id
 # These should be considered experimental and may be removed at any time
 
 def flatten(collection: Iterable[list]) -> list:
-    """Flatten list of lists into a single list
-
-    :param collection: list of lists
-    :return: flattened list
-    """
+    """Deprecated: switch to using itertools.chain(*collection)"""
     logging.warning('Deprecated: switch to using itertools.chain(*collection)')
     return list(itertools.chain(*collection))
+
+
+def id_sort(i: iter):
+    """Sort a collection of SBOL objects and/or URIs by identity URI"""
+    return sorted(i, key=lambda x: x.identity if isinstance(x, sbol3.Identified) else x)
 
 
 def toplevel_named(doc: sbol3.Document, name: str) -> Optional[sbol3.Identified]:

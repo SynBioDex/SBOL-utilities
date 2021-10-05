@@ -6,9 +6,11 @@ import argparse
 
 import sbol3
 import openpyxl
+import tyto
+
 from .helper_functions import toplevel_named, strip_sbol2_version, is_plasmid, string_to_display_id, url_to_identity, \
     strip_filetype_suffix
-from .workarounds import type_to_standard_extension, tyto_lookup_with_caching
+from .workarounds import type_to_standard_extension
 
 BASIC_PARTS_COLLECTION = 'BasicParts'
 COMPOSITE_PARTS_COLLECTION = 'CompositeParts'
@@ -135,7 +137,7 @@ def row_to_basic_part(doc: sbol3.Document, row, basic_parts: sbol3.Collection, l
         name = name.strip()  # make sure we're discarding whitespace
     raw_role = row[config['basic_role_col']].value
     try:  # look up with tyto; if fail, leave blank or add to description
-        role = (tyto_lookup_with_caching(raw_role) if raw_role else None)
+        role = (tyto.SO.get_uri_by_term(raw_role) if raw_role else None)
     except LookupError:
         logging.warning(f'Role "{raw_role}" could not be found in Sequence Ontology')
         role = None
