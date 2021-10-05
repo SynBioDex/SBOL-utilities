@@ -4,10 +4,10 @@ from typing import Optional
 import sbol3
 import tyto
 
-from sbol_utilities import helper_functions
-
 #############
 # Deprecated functions
+from sbol_utilities.helper_functions import id_sort
+
 
 def string_to_display_id(name: str) -> str:
     # TODO: remove after a couple of releases
@@ -15,14 +15,7 @@ def string_to_display_id(name: str) -> str:
     return sbol3.string_to_display_id(name)
 
 
-def id_sort(i: iter):
-    """Sort a collection of SBOL objects and/or URIs by identity URI"""
-    logging.warning('sbol_utilities.workarounds.string_to_display_id has been moved to helper_functions')
-    helper_functions.id_sort(i)
-
-
 # TODO: remove kludge after resolution of https://github.com/SynBioDex/tyto/issues/21
-tyto_cache = {}
 def tyto_lookup_with_caching(term: str) -> str:
     logging.warning('sbol_utilities.workarounds.tyto_lookup_with_caching is deprecated; tyto now caches')
     return tyto.SO.get_uri_by_term(term)
@@ -45,7 +38,7 @@ type_to_standard_extension = {  # TODO: remove after resolution of https://githu
 def sort_owned_objects(self):
     """Patch to stabilize order returned in cloning, part of the pySBOL3 issue #231 workaround"""
     for k in self._owned_objects.keys():
-        self._owned_objects[k] = helper_functions.id_sort(self._owned_objects[k])
+        self._owned_objects[k] = id_sort(self._owned_objects[k])
 
 
 
@@ -64,15 +57,15 @@ def copy_toplevel_and_dependencies(target, t):
 
 def copy_collection_and_dependencies(target, c):
     c.copy(target)
-    for m in helper_functions.id_sort(c.members):
+    for m in id_sort(c.members):
         copy_toplevel_and_dependencies(target, m.lookup())
 
 def copy_component_and_dependencies(target, c):
     c.copy(target)
-    for f in helper_functions.id_sort(c.features):
+    for f in id_sort(c.features):
         if isinstance(f,sbol3.SubComponent):
             copy_toplevel_and_dependencies(target, f.instance_of.lookup())
-    for s in helper_functions.id_sort(c.sequences):
+    for s in id_sort(c.sequences):
         copy_toplevel_and_dependencies(target, s.lookup())
 
 
