@@ -4,7 +4,8 @@ import itertools
 from typing import List, Set
 
 import sbol3
-from .workarounds import copy_toplevel_and_dependencies, replace_feature, id_sort, sort_owned_objects, \
+from .helper_functions import id_sort
+from .workarounds import copy_toplevel_and_dependencies, replace_feature, sort_owned_objects, \
     type_to_standard_extension
 
 
@@ -26,7 +27,7 @@ def is_library(cd: sbol3.CombinatorialDerivation) -> bool:
     """
     c = cd.template.lookup()
     one_var = len(cd.variable_features) == 1 and len(c.features) == 1
-    simple = not c.sequences and not c.interactions and not c.constraints and not c.interfaces and not c.models
+    simple = not c.sequences and not c.interactions and not c.constraints and not c.interface and not c.models
     return one_var and simple
 
 
@@ -72,7 +73,7 @@ class CombinatorialDerivationExpander:
         """
         doc = cd.document
         sbol3.set_namespace(cd.namespace) # use the namespace of the CD for all of its products
-        sort_owned_objects(cd.template.lookup()) # TODO: issue #231
+        sort_owned_objects(cd.template.lookup()) # TODO: https://github.com/SynBioDex/pySBOL3/issues/231
         # we've already converted this CombinatorialDerivation to a Collection, just return the conversion
         if cd in self.expanded_derivations.keys():
             logging.debug('Found previous expansion of ' + cd.display_id)
@@ -201,7 +202,7 @@ def main():
     # Write a document containing only the expansions
     output_doc = sbol3.Document()
     for c in derivative_collections:
-        copy_toplevel_and_dependencies(output_doc, c)  # TODO: adjust after resolution of pySBOL issue #235
+        copy_toplevel_and_dependencies(output_doc, c)  # TODO: adjust after resolution of https://github.com/SynBioDex/pySBOL3/issues/235
     report = output_doc.validate()
     logging.info('Document validation found '+str(len(report.errors))+' errors, '+str(len(report.warnings))+' warnings')
     output_doc.write(outfile_name, file_type)

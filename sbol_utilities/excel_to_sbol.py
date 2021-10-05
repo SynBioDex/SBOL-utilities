@@ -6,9 +6,10 @@ import argparse
 
 import sbol3
 import openpyxl
-from .helper_functions import toplevel_named, strip_sbol2_version, is_plasmid, string_to_display_id, url_to_identity, \
-    strip_filetype_suffix
-from .workarounds import type_to_standard_extension, tyto_lookup_with_caching
+import tyto
+
+from .helper_functions import toplevel_named, strip_sbol2_version, is_plasmid, url_to_identity, strip_filetype_suffix
+from .workarounds import type_to_standard_extension
 
 BASIC_PARTS_COLLECTION = 'BasicParts'
 COMPOSITE_PARTS_COLLECTION = 'CompositeParts'
@@ -135,7 +136,7 @@ def row_to_basic_part(doc: sbol3.Document, row, basic_parts: sbol3.Collection, l
         name = name.strip()  # make sure we're discarding whitespace
     raw_role = row[config['basic_role_col']].value
     try:  # look up with tyto; if fail, leave blank or add to description
-        role = (tyto_lookup_with_caching(raw_role) if raw_role else None)
+        role = (tyto.SO.get_uri_by_term(raw_role) if raw_role else None)
     except LookupError:
         logging.warning(f'Role "{raw_role}" could not be found in Sequence Ontology')
         role = None
@@ -159,7 +160,7 @@ def row_to_basic_part(doc: sbol3.Document, row, basic_parts: sbol3.Collection, l
         source_prefix = source_prefix.strip()
         if source_prefix in source_table:
             if source_table[source_prefix]:
-                display_id = string_to_display_id(source_id.strip())
+                display_id = sbol3.string_to_display_id(source_id.strip())
                 identity = f'{source_table[source_prefix]}/{display_id}'
             else:  # when there is no prefix, use the bare value (in SBOL3 format)
                 raw_url = source_id.strip()
@@ -172,7 +173,7 @@ def row_to_basic_part(doc: sbol3.Document, row, basic_parts: sbol3.Collection, l
     elif source_prefix:
         logging.warning(f'Part "{name}" has source prefix specified but not ID: {source_prefix}')
     if not identity:
-        display_id = string_to_display_id(name)
+        display_id = sbol3.string_to_display_id(name)
 
     # build a component from the material
     logging.debug(f'Creating basic part "{name}"')
@@ -321,7 +322,7 @@ def make_composite_part(document, row, composite_parts, linear_products, final_p
     """
     # Parse material from sheet row
     name = row[config['composite_name_col']].value
-    display_id = string_to_display_id(name)
+    display_id = sbol3.string_to_display_id(name)
     design_notes = (row[config['composite_notes_col']].value if row[config['composite_notes_col']].value else "")
     description = \
         (row[config['composite_description_col']].value if row[config['composite_description_col']].value else "")

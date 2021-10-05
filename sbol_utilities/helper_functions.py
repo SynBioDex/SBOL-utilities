@@ -5,21 +5,20 @@ from typing import Iterable, Union, Optional
 import sbol3
 import tyto
 
-from sbol_utilities.workarounds import string_to_display_id
-
-
 #########################
 # Collection of miscellaneous helper functions for utilities package
 # These should be considered experimental and may be removed at any time
 
-def flatten(collection: Iterable[list]) -> list:
-    """Flatten list of lists into a single list
 
-    :param collection: list of lists
-    :return: flattened list
-    """
+def flatten(collection: Iterable[list]) -> list:
+    """Deprecated: switch to using itertools.chain(*collection)"""
     logging.warning('Deprecated: switch to using itertools.chain(*collection)')
     return list(itertools.chain(*collection))
+
+
+def id_sort(i: iter):
+    """Sort a collection of SBOL objects and/or URIs by identity URI"""
+    return sorted(i, key=lambda x: x.identity if isinstance(x, sbol3.Identified) else x)
 
 
 def toplevel_named(doc: sbol3.Document, name: str) -> Optional[sbol3.Identified]:
@@ -101,8 +100,8 @@ def url_to_identity(url: str) -> str:
     :param url: URL to sanitize
     :return: equivalent identity
     """
-    split = url.rsplit('/',maxsplit=1)
-    return f'{split[0]}/{string_to_display_id(split[1])}'
+    split = url.rsplit('/', maxsplit=1)
+    return f'{split[0]}/{sbol3.string_to_display_id(split[1])}'
 
 
 def is_plasmid(obj: Union[sbol3.Component, sbol3.Feature]) -> bool:
@@ -128,11 +127,9 @@ def is_plasmid(obj: Union[sbol3.Component, sbol3.Feature]) -> bool:
     if has_plasmid_role(obj):  # both components and features have roles that can indicate a plasmid type
         return True
     elif isinstance(obj, sbol3.Component) or isinstance(obj, sbol3.LocalSubComponent) or \
-            isinstance(obj, sbol3.ExternallyDefined): # if there's a type, check for circularity
+            isinstance(obj, sbol3.ExternallyDefined):  # if there's a type, check for circularity
         return sbol3.SO_CIRCULAR in obj.types
-    elif isinstance(obj, sbol3.SubComponent): # if it's a subcomponent, check its definition
+    elif isinstance(obj, sbol3.SubComponent):  # if it's a subcomponent, check its definition
         return is_plasmid(obj.instance_of.lookup())
     else:
         return False
-
-

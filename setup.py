@@ -7,7 +7,7 @@ setup(name='sbol-utilities',
       long_description_content_type='text/markdown',
       url='https://github.com/SynBioDex/SBOL-utilities',
       license='MIT License',
-      version='1.0a10',
+      version='1.0a11',
       # See https://pypi.python.org/pypi?%3Aaction=list_classifiers
       classifiers=[
             # How mature is this project? Common values are
@@ -32,7 +32,7 @@ setup(name='sbol-utilities',
       # What does your project relate to?
       keywords='synthetic biology',
       install_requires=[
-            'sbol3>=1.0b7',
+            'sbol3>=1.0b8',
             'graphviz',
             'tyto>=1.0-beta',
             'openpyxl'

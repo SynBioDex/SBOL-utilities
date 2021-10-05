@@ -3,7 +3,8 @@ from typing import Dict, Iterable, List, Union, Set, Optional
 import sbol3
 import tyto
 
-from sbol_utilities.workarounds import get_parent, id_sort
+from sbol_utilities.helper_functions import id_sort
+from sbol_utilities.workarounds import get_parent
 
 
 # TODO: consider allowing return of LocalSubComponent and ExternallyDefined
