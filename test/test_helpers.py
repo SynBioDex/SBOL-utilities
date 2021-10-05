@@ -29,7 +29,6 @@ class TestHelpers(unittest.TestCase):
                'https://synbiohub.programmingbiology.org/public/Eco1C1G1T1/LmrA'
 
         # displayId cleaning:
-        assert string_to_display_id('GB30248.1') == 'GB30248_1'
         assert url_to_identity('http://foo/bar/baz.qux') == 'http://foo/bar/baz_qux'
 
         # extension detection and stripping
