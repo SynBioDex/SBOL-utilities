@@ -36,10 +36,9 @@ type_to_standard_extension = {  # TODO: remove after resolution of pySBOL3/issue
 
 # Workaround for pySBOL3 issue #231: should be applied to every iteration on a collection of SBOL objects
 # TODO: delete after resolution of pySBOL3 issue #231
+# Actually, more likely to be handled by https://github.com/SynBioDex/pySBOL3/issues/320
 def id_sort(i: iter):
-    sortable = list(i)
-    sortable.sort(key=lambda x: x.identity if isinstance(x, sbol3.Identified) else x)
-    return sortable
+    return sorted(i, key=lambda x: x.identity if isinstance(x, sbol3.Identified) else x)
 
 # Patch to stabilize order returned in cloning, part of the pySBOL3 issue #231 workaround
 # TODO: delete after resolution of pySBOL3 issue #231

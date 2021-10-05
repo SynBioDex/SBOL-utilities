@@ -26,7 +26,7 @@ def is_library(cd: sbol3.CombinatorialDerivation) -> bool:
     """
     c = cd.template.lookup()
     one_var = len(cd.variable_features) == 1 and len(c.features) == 1
-    simple = not c.sequences and not c.interactions and not c.constraints and not c.interfaces and not c.models
+    simple = not c.sequences and not c.interactions and not c.constraints and not c.interface and not c.models
     return one_var and simple
 
 

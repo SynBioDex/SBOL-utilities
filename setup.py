@@ -32,7 +32,7 @@ setup(name='sbol-utilities',
       # What does your project relate to?
       keywords='synthetic biology',
       install_requires=[
-            'sbol3>=1.0b7',
+            'sbol3>=1.0b8',
             'graphviz',
             'tyto>=1.0-beta',
             'openpyxl'
