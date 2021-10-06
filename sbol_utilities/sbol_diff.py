@@ -3,7 +3,7 @@ import logging
 import os
 import sys
 import time
-from typing import Union, Tuple
+from typing import Union, Tuple, Optional, Sequence
 
 import rdflib.compare
 
@@ -18,7 +18,7 @@ def init_logging(debug=False):
     logging.Formatter.converter = time.gmtime
 
 
-def parse_args(args=None):
+def parse_args(args: Optional[Sequence[str]] = None):
     parser = argparse.ArgumentParser()
     parser.add_argument('file1', metavar='FILE1',
                         help='First Input File')
@@ -46,10 +46,12 @@ def diff_rdf(g1: rdflib.Graph, g2: rdflib.Graph) -> Tuple[rdflib.Graph, rdflib.G
     return rdf_diff
 
 
-def report_triples(header, graph):
-    print(header)
+def report_triples(header: Optional[str], graph: rdflib.Graph) -> None:
+    if header:
+        print(header)
     for s, p, o in graph:
         print(f'\t{s}, {p}, {o}')
+    return None
 
 
 def report_diffs(fpath1: str, in1: rdflib.Graph,
@@ -62,7 +64,7 @@ def report_diffs(fpath1: str, in1: rdflib.Graph,
         report_triples(header, in2)
 
 
-def sbol_diff(fpath1: str, fpath2: str, silent=False) -> int:
+def sbol_diff(fpath1: str, fpath2: str, silent: bool = False) -> int:
     sbol1 = load_rdf(fpath1)
     sbol2 = load_rdf(fpath2)
     _, in1, in2 = diff_rdf(sbol1, sbol2)
@@ -74,7 +76,7 @@ def sbol_diff(fpath1: str, fpath2: str, silent=False) -> int:
         return 1
 
 
-def main(argv=None):
+def main(argv: Optional[Sequence[str]] = None) -> int:
     args = parse_args(argv)
     init_logging(args.debug)
     return sbol_diff(args.file1, args.file2, silent=args.silent)
