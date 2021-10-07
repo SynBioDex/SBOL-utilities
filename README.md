@@ -41,3 +41,7 @@ The `sbol-expand-derivations` utility searches through an SBOL file for Combinat
 ### Calculate sequences of DNA components in an SBOL file
 
 The `sbol-calculate-sequences` utility attempts to calculate the sequence of any DNA Component that can be fully specified from the sequences of its sub-components.
+
+### Compute the difference between two SBOL3 documents
+The `sbol-diff` utility computes the difference between two SBOL3 documents
+and reports the differences.
