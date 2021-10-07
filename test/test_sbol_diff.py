@@ -28,12 +28,12 @@ class TestSbolDiff(unittest.TestCase):
 
     def test_sbol_diff(self):
         # Invoke sbol_utilities.sbol_diff.sbol_diff directly
-        actual = sbol_utilities.sbol_diff.sbol_diff(ESL_SBOL_PATH,
+        actual = sbol_utilities.sbol_diff.file_diff(ESL_SBOL_PATH,
                                                     ESL_SBOL_PATH,
                                                     silent=True)
         expected = 0
         self.assertEqual(expected, actual)
-        actual = sbol_utilities.sbol_diff.sbol_diff(ESL_SBOL_PATH,
+        actual = sbol_utilities.sbol_diff.file_diff(ESL_SBOL_PATH,
                                                     SL_SBOL_PATH,
                                                     silent=True)
         expected = 1
