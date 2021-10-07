@@ -3,6 +3,8 @@ import sys
 import unittest
 from unittest.mock import patch
 
+import sbol3
+
 import sbol_utilities.sbol_diff
 
 TEST_DIR = os.path.dirname(os.path.realpath(__file__))
@@ -26,8 +28,8 @@ class TestSbolDiff(unittest.TestCase):
             status = sbol_utilities.sbol_diff.main()
         self.assertEqual(1, status)
 
-    def test_sbol_diff(self):
-        # Invoke sbol_utilities.sbol_diff.sbol_diff directly
+    def test_file_diff(self):
+        # Invoke sbol_utilities.sbol_diff.file_diff directly
         actual = sbol_utilities.sbol_diff.file_diff(ESL_SBOL_PATH,
                                                     ESL_SBOL_PATH,
                                                     silent=True)
@@ -36,6 +38,21 @@ class TestSbolDiff(unittest.TestCase):
         actual = sbol_utilities.sbol_diff.file_diff(ESL_SBOL_PATH,
                                                     SL_SBOL_PATH,
                                                     silent=True)
+        expected = 1
+        self.assertEqual(expected, actual)
+
+    def test_doc_diff(self):
+        # Invoke sbol_utilities.sbol_diff.doc_diff directly
+        esl_doc = sbol3.Document()
+        esl_doc.read(ESL_SBOL_PATH)
+        sl_doc = sbol3.Document()
+        sl_doc.read(SL_SBOL_PATH)
+        actual = sbol_utilities.sbol_diff.doc_diff(esl_doc, esl_doc,
+                                                   silent=True)
+        expected = 0
+        self.assertEqual(expected, actual)
+        actual = sbol_utilities.sbol_diff.doc_diff(esl_doc, sl_doc,
+                                                   silent=True)
         expected = 1
         self.assertEqual(expected, actual)
 
