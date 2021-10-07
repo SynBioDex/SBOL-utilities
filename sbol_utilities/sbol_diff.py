@@ -8,30 +8,6 @@ from typing import Union, Tuple, Optional, Sequence
 import rdflib.compare
 
 
-def init_logging(debug=False):
-    msg_format = "%(asctime)s.%(msecs)03dZ:%(levelname)s:%(message)s"
-    date_format = "%Y-%m-%dT%H:%M:%S"
-    level = logging.INFO
-    if debug:
-        level = logging.DEBUG
-    logging.basicConfig(format=msg_format, datefmt=date_format, level=level)
-    logging.Formatter.converter = time.gmtime
-
-
-def parse_args(args: Optional[Sequence[str]] = None):
-    parser = argparse.ArgumentParser()
-    parser.add_argument('file1', metavar='FILE1',
-                        help='First Input File')
-    parser.add_argument('file2', metavar='FILE2',
-                        help='Second Input File')
-    parser.add_argument('-s', '--silent', action='store_true',
-                        help='Generate no output, only status')
-    parser.add_argument('--debug', action='store_true',
-                        help='Enable debug logging (default: disabled)')
-    args = parser.parse_args(args)
-    return args
-
-
 def load_rdf(fpath: Union[str, bytes, os.PathLike]) -> rdflib.Graph:
     rdf_format = rdflib.util.guess_format(fpath)
     graph1 = rdflib.Graph()
@@ -74,6 +50,30 @@ def sbol_diff(fpath1: str, fpath2: str, silent: bool = False) -> int:
         if not silent:
             report_diffs(fpath1, in1, fpath2, in2)
         return 1
+
+
+def init_logging(debug=False):
+    msg_format = "%(asctime)s.%(msecs)03dZ:%(levelname)s:%(message)s"
+    date_format = "%Y-%m-%dT%H:%M:%S"
+    level = logging.INFO
+    if debug:
+        level = logging.DEBUG
+    logging.basicConfig(format=msg_format, datefmt=date_format, level=level)
+    logging.Formatter.converter = time.gmtime
+
+
+def parse_args(args: Optional[Sequence[str]] = None):
+    parser = argparse.ArgumentParser()
+    parser.add_argument('file1', metavar='FILE1',
+                        help='First Input File')
+    parser.add_argument('file2', metavar='FILE2',
+                        help='Second Input File')
+    parser.add_argument('-s', '--silent', action='store_true',
+                        help='Generate no output, only status')
+    parser.add_argument('--debug', action='store_true',
+                        help='Enable debug logging (default: disabled)')
+    args = parser.parse_args(args)
+    return args
 
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
