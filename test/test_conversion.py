@@ -8,7 +8,8 @@ import sbol3
 from sbol_utilities.conversion import convert2to3, convert3to2, convert_to_genbank, convert_to_fasta, \
     convert_from_fasta, convert_from_genbank
 from helpers import copy_to_tmp
-# TODO: add tests over convert_from_fasta and convert_from_genbank
+from sbol_utilities.sbol_diff import doc_diff
+# TODO: Add command-line utilities and test them too
 
 
 class Test2To3Conversion(unittest.TestCase):
@@ -73,6 +74,19 @@ class Test2To3Conversion(unittest.TestCase):
         comparison_file = os.path.join(test_dir, 'test_files', 'BBa_J23101.gb')
         assert filecmp.cmp(outfile, comparison_file), f'Converted GenBank file {comparison_file} is not identical'
 
+    def test_conversion_from_genbank(self):
+        """Test ability to convert from GenBank to SBOL3"""
+        # Get the GenBank test document and convert
+        tmp_sub = copy_to_tmp(package=['BBa_J23101.gb'])
+        doc3 = convert_from_genbank(os.path.join(tmp_sub, 'BBa_J23101.gb'), 'https://synbiohub.org/public/igem')
+
+        # Note: cannot directly round-trip because converter is a) lossy, and b) inserts extra materials
+        test_dir = os.path.dirname(os.path.realpath(__file__))
+        comparison_file = os.path.join(test_dir, 'test_files', 'BBa_J23101_from_genbank.nt')
+        comparison_doc = sbol3.Document()
+        comparison_doc.read(comparison_file)
+        assert not doc_diff(doc3, comparison_doc), f'Converted GenBank file not identical to {comparison_file}'
+
     def test_genbank_multi_conversion(self):
         """Test ability to convert from SBOL3 to GenBank"""
         # Get the SBOL3 test document
@@ -95,13 +109,28 @@ class Test2To3Conversion(unittest.TestCase):
         doc3 = sbol3.Document()
         doc3.read(os.path.join(tmp_sub, 'BBa_J23101.nt'))
 
-        # Convert to SBOL2 and check contents
+        # Convert to FASTA and check contents
         outfile = os.path.join(tmp_sub, 'BBa_J23101.fasta')
         convert_to_fasta(doc3, outfile)
 
         test_dir = os.path.dirname(os.path.realpath(__file__))
         comparison_file = os.path.join(test_dir, 'test_files', 'BBa_J23101.fasta')
         assert filecmp.cmp(outfile, comparison_file), f'Converted FASTA file {comparison_file} is not identical'
+
+    def test_conversion_from_fasta(self):
+        """Test ability to convert from SBOL3 to FASTA"""
+        """Test ability to convert from GenBank to SBOL3"""
+        # Get the SBOL3 test document
+        tmp_sub = copy_to_tmp(package=['BBa_J23101.fasta'])
+        doc3 = convert_from_fasta(os.path.join(tmp_sub, 'BBa_J23101.fasta'), 'https://synbiohub.org/public/igem')
+
+        # Note: cannot directly round-trip because converter is lossy
+        test_dir = os.path.dirname(os.path.realpath(__file__))
+        comparison_file = os.path.join(test_dir, 'test_files', 'BBa_J23101_from_fasta.nt')
+        comparison_doc = sbol3.Document()
+        comparison_doc.read(comparison_file)
+        assert not doc_diff(doc3, comparison_doc), f'Converted FASTA file not identical to {comparison_file}'
+
 
 if __name__ == '__main__':
     unittest.main()

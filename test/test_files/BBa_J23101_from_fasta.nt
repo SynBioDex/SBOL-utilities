@@ -1,0 +1,15 @@
+
+<https://synbiohub.org/public/igem/BBa_J23101> <http://sbols.org/v3#description> "BBa_J23101 constitutive promoter family member" .
+<https://synbiohub.org/public/igem/BBa_J23101> <http://sbols.org/v3#displayId> "BBa_J23101" .
+<https://synbiohub.org/public/igem/BBa_J23101> <http://sbols.org/v3#hasNamespace> <https://synbiohub.org/public/igem> .
+<https://synbiohub.org/public/igem/BBa_J23101> <http://sbols.org/v3#hasSequence> <https://synbiohub.org/public/igem/BBa_J23101_sequence> .
+<https://synbiohub.org/public/igem/BBa_J23101> <http://sbols.org/v3#name> "BBa_J23101" .
+<https://synbiohub.org/public/igem/BBa_J23101> <http://sbols.org/v3#type> <https://identifiers.org/SBO:0000251> .
+<https://synbiohub.org/public/igem/BBa_J23101> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://sbols.org/v3#Component> .
+<https://synbiohub.org/public/igem/BBa_J23101_sequence> <http://sbols.org/v3#description> "BBa_J23101 constitutive promoter family member" .
+<https://synbiohub.org/public/igem/BBa_J23101_sequence> <http://sbols.org/v3#displayId> "BBa_J23101_sequence" .
+<https://synbiohub.org/public/igem/BBa_J23101_sequence> <http://sbols.org/v3#elements> "tttacagctagctcagtcctaggtattatgctagc" .
+<https://synbiohub.org/public/igem/BBa_J23101_sequence> <http://sbols.org/v3#encoding> <https://identifiers.org/edam:format_1207> .
+<https://synbiohub.org/public/igem/BBa_J23101_sequence> <http://sbols.org/v3#hasNamespace> <https://synbiohub.org/public/igem> .
+<https://synbiohub.org/public/igem/BBa_J23101_sequence> <http://sbols.org/v3#name> "BBa_J23101" .
+<https://synbiohub.org/public/igem/BBa_J23101_sequence> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://sbols.org/v3#Sequence> .
