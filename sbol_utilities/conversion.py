@@ -16,7 +16,7 @@ from sbol_utilities.workarounds import id_sort
 
 # sbol javascript executable based on https://github.com/sboltools/sbolgraph
 # Used for conversion between SBOL2 and SBOL3
-SBOLGRAPH = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), 'sbolgraph-standalone.js')
+SBOLGRAPH = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'sbolgraph-standalone.js')
 
 
 def convert_identities2to3(sbol3_data: str) -> str:
