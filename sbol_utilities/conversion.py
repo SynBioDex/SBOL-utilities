@@ -248,7 +248,7 @@ def convert_from_genbank(path: str, namespace: str) -> sbol3.Document:
     return doc
 
 
-def convert_to_genbank(doc3: sbol3.Document, path: str) -> List[SeqRecord]:
+def convert_to_genbank(doc3: sbol3.Document, path: str) -> List[SeqRecord.SeqRecord]:
     """Convert an SBOL3 document to a GenBank file, which is written to disk
     Note that for compatibility with version control software, if no prov:modified term is available on each Component,
     then a fixed bogus datestamp of January 1, 2000 is given
