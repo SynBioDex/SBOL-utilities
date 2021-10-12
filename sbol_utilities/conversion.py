@@ -1,9 +1,11 @@
+import argparse
 import logging
 import subprocess
 import os
+import sys
 import tempfile
 import urllib
-from typing import Union, Dict, List
+from typing import Union, Dict, List, Any
 
 import rdflib
 import sbol2
@@ -11,7 +13,7 @@ import sbol3
 from Bio import SeqIO, SeqRecord
 from Bio.Seq import Seq
 
-from sbol_utilities.helper_functions import strip_sbol2_version
+from sbol_utilities.helper_functions import strip_sbol2_version, GENETIC_DESIGN_FILE_TYPES
 from sbol_utilities.workarounds import id_sort
 
 # sbol javascript executable based on https://github.com/sboltools/sbolgraph
@@ -263,7 +265,7 @@ def convert_to_genbank(doc3: sbol3.Document, path: str) -> List[SeqRecord.SeqRec
     keepers = {'http://sbols.org/v2', 'http://www.w3.org/ns/prov', 'http://purl.org/dc/terms/',
                'http://sboltools.org/backport'}
     for c in doc2.componentDefinitions: # wipe out all annotation properties
-        c.properties = {p:v for p,v in c.properties.items() if any(k for k in keepers if p.startswith(k))}
+        c.properties = {p: v for p, v in c.properties.items() if any(k for k in keepers if p.startswith(k))}
 
     gb_tmp = tempfile.mkstemp(suffix='.gb')[1]
     doc2.exportToFormat('GenBank', gb_tmp)
@@ -280,3 +282,184 @@ def convert_to_genbank(doc3: sbol3.Document, path: str) -> List[SeqRecord.SeqRec
     # write the final file
     SeqIO.write(sorted_records, path, 'gb')
     return sorted_records
+
+
+#####################################
+# Entry points for command-line usage:
+
+
+def command_line_converter(args_dict: Dict[str, Any]):
+    """Run conversions from the command line by first reading/converting input to SBOL3, then writing/converting output
+
+    :param args_dict: Parsed command line arguments
+    :return: None
+    """
+    # Extract arguments:
+    verbosity = args_dict['verbose']
+    log_level = logging.WARN if verbosity == 0 else logging.INFO if verbosity == 1 else logging.DEBUG
+    logging.getLogger().setLevel(level=log_level)
+    output_file = args_dict['output_file']
+    input_file_type = args_dict['input_file_type']
+    output_file_type = args_dict['output_file_type']
+    input_file = args_dict['input_file']
+    namespace = args_dict['namespace']
+
+    # check for errors
+    if input_file_type not in GENETIC_DESIGN_FILE_TYPES.keys():
+        logging.error(f'Unrecognized input type {input_file_type}, must be one of {GENETIC_DESIGN_FILE_TYPES.keys()}')
+        sys.exit(1)
+    if output_file_type not in GENETIC_DESIGN_FILE_TYPES.keys():
+        logging.error(f'Unrecognized output type {output_file_type}, must be one of {GENETIC_DESIGN_FILE_TYPES.keys()}')
+        sys.exit(1)
+    if input_file_type in {'FASTA', 'GenBank'} and not namespace:
+        logging.error(f'Namespace is required for conversion from FASTA or GenBank')
+        sys.exit(1)
+
+    # Load input into SBOL3
+    logging.info('Reading input file '+input_file)
+    if input_file_type == 'FASTA':
+        doc3 = convert_from_fasta(input_file, namespace)
+    elif input_file_type == 'GenBank':
+        doc3 = convert_from_genbank(input_file, namespace)
+    elif input_file_type == 'SBOL2':
+        doc2 = sbol2.Document()
+        doc2.read(input_file)
+        doc3 = convert2to3(doc2, [namespace] if namespace else None)
+    elif input_file_type == 'SBOL3':
+        doc3 = sbol3.Document()
+        doc3.read(input_file)
+    else:
+        raise ValueError(f'Unknown file type {input_file_type}; should have been caught earlier')
+
+    # Convert output from SBOL3
+    logging.info('Writing output file '+output_file)
+    if output_file_type == 'FASTA':
+        convert_to_fasta(doc3, output_file)
+    elif output_file_type == 'GenBank':
+        convert_to_genbank(doc3, output_file)
+    elif output_file_type == 'SBOL2':
+        doc2 = convert3to2(doc3)
+        doc2.write(output_file)
+    elif output_file_type == 'SBOL3':
+        doc3.write(output_file, sbol3.SORTED_NTRIPLES)
+    else:
+        raise ValueError(f'Unknown file type {output_file_type}; should have been caught earlier')
+
+
+def main():
+    """Main wrapper: read from input file, invoke conversion based on type, then write to output file"""
+    parser = argparse.ArgumentParser()
+    parser.add_argument('input_file_type', help='Input file type, options: FASTA, GenBank, SBOL2, SBOL3 (default)')
+    parser.add_argument('output_file_type', help='Output file type, options: FASTA, GenBank, SBOL2, SBOL3 (default)')
+    parser.add_argument('input_file', help='Genetic design file used as input')
+    parser.add_argument('-n', '--namespace', dest='namespace', default=None,
+                        help='Namespace URL, required for conversions from FASTA and GenBank')
+    parser.add_argument('-o', '--output', dest='output_file', default='out',
+                        help='Name of output file to be written')
+    parser.add_argument('--verbose', '-v', dest='verbose', action='count', default=0,
+                        help="Print running explanation of conversion process")
+    args_dict = vars(parser.parse_args())
+    # Call the shared command-line conversion routine
+    command_line_converter(args_dict)
+
+
+def fasta2sbol():
+    """Convert a FASTA file to an SBOL3 file"""
+    parser = argparse.ArgumentParser()
+    parser.add_argument('input_file', help='Genetic design file used as input')
+    parser.add_argument('-n', '--namespace', dest='namespace', default=None,
+                        help='Namespace URL, required for conversions from FASTA')
+    parser.add_argument('-o', '--output', dest='output_file', default='out',
+                        help='Name of output file to be written')
+    parser.add_argument('--verbose', '-v', dest='verbose', action='count', default=0,
+                        help="Print running explanation of conversion process")
+    args_dict = vars(parser.parse_args())
+    args_dict['input_file_type'] = 'FASTA'
+    args_dict['output_file_type'] = 'SBOL3'
+    # Call the shared command-line conversion routine
+    command_line_converter(args_dict)
+
+
+def genbank2sbol():
+    """Convert a GenBank file to an SBOL3 file"""
+    parser = argparse.ArgumentParser()
+    parser.add_argument('input_file', help='Genetic design file used as input')
+    parser.add_argument('-n', '--namespace', dest='namespace', default=None,
+                        help='Namespace URL, required for conversions from GenBank')
+    parser.add_argument('-o', '--output', dest='output_file', default='out',
+                        help='Name of output file to be written')
+    parser.add_argument('--verbose', '-v', dest='verbose', action='count', default=0,
+                        help="Print running explanation of conversion process")
+    args_dict = vars(parser.parse_args())
+    args_dict['input_file_type'] = 'GenBank'
+    args_dict['output_file_type'] = 'SBOL3'
+    # Call the shared command-line conversion routine
+    command_line_converter(args_dict)
+
+
+def sbol2to3():
+    """Convert an SBOL2 file to an SBOL3 file"""
+    parser = argparse.ArgumentParser()
+    parser.add_argument('input_file', help='Genetic design file used as input')
+    parser.add_argument('-n', '--namespace', dest='namespace', default=None,
+                        help='Namespace URL, optional for conversions from SBOL2')
+    parser.add_argument('-o', '--output', dest='output_file', default='out',
+                        help='Name of output file to be written')
+    parser.add_argument('--verbose', '-v', dest='verbose', action='count', default=0,
+                        help="Print running explanation of conversion process")
+    args_dict = vars(parser.parse_args())
+    args_dict['input_file_type'] = 'SBOL2'
+    args_dict['output_file_type'] = 'SBOL3'
+    # Call the shared command-line conversion routine
+    command_line_converter(args_dict)
+
+
+def sbol2fasta():
+    """Convert an SBOL3 file to a FASTA file"""
+    parser = argparse.ArgumentParser()
+    parser.add_argument('input_file', help='Genetic design file used as input')
+    parser.add_argument('-o', '--output', dest='output_file', default='out',
+                        help='Name of output file to be written')
+    parser.add_argument('--verbose', '-v', dest='verbose', action='count', default=0,
+                        help="Print running explanation of conversion process")
+    args_dict = vars(parser.parse_args())
+    args_dict['input_file_type'] = 'SBOL3'
+    args_dict['output_file_type'] = 'FASTA'
+    args_dict['namespace'] = None
+    # Call the shared command-line conversion routine
+    command_line_converter(args_dict)
+
+
+def sbol2genbank():
+    """Convert an SBOL3 file to a GenBank file"""
+    parser = argparse.ArgumentParser()
+    parser.add_argument('input_file', help='Genetic design file used as input')
+    parser.add_argument('-o', '--output', dest='output_file', default='out',
+                        help='Name of output file to be written')
+    parser.add_argument('--verbose', '-v', dest='verbose', action='count', default=0,
+                        help="Print running explanation of conversion process")
+    args_dict = vars(parser.parse_args())
+    args_dict['input_file_type'] = 'SBOL3'
+    args_dict['output_file_type'] = 'GenBank'
+    args_dict['namespace'] = None
+    # Call the shared command-line conversion routine
+    command_line_converter(args_dict)
+
+
+def sbol3to2():
+    """Convert an SBOL3 file to an SBOL2 file"""
+    parser = argparse.ArgumentParser()
+    parser.add_argument('input_file', help='Genetic design file used as input')
+    parser.add_argument('-o', '--output', dest='output_file', default='out',
+                        help='Name of output file to be written')
+    parser.add_argument('--verbose', '-v', dest='verbose', action='count', default=0,
+                        help="Print running explanation of conversion process")
+    args_dict = vars(parser.parse_args())
+    args_dict['input_file_type'] = 'SBOL3'
+    args_dict['output_file_type'] = 'SBOL2'
+    args_dict['namespace'] = None
+    # Call the shared command-line conversion routine
+    command_line_converter(args_dict)
+
+if __name__ == '__main__':
+    main()
