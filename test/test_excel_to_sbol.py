@@ -98,7 +98,7 @@ class TestExcel2SBOL(unittest.TestCase):
     def test_commandline(self):
         """Make sure function works correctly when run from the command line"""
         temp_name = tempfile.mkstemp(suffix='.nt')[1]
-        test_args = ['excel_file', '-vv', os.path.join(TESTFILE_DIR, 'simple_library.xlsx'), '-o', temp_name, '-n',
+        test_args = ['excel-to-sbol', '-vv', os.path.join(TESTFILE_DIR, 'simple_library.xlsx'), '-o', temp_name, '-n',
                      'http://sbolstandard.org/testfiles/']
         with patch.object(sys, 'argv', test_args):
             sbol_utilities.excel_to_sbol.main()

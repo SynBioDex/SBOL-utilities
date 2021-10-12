@@ -207,3 +207,7 @@ def main():
     logging.info('Document validation found '+str(len(report.errors))+' errors, '+str(len(report.warnings))+' warnings')
     output_doc.write(outfile_name, file_type)
     logging.info('Expansions SBOL file written to '+outfile_name)
+
+
+if __name__ == '__main__':
+    main()
