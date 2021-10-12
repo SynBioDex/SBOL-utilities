@@ -144,6 +144,7 @@ class Test2To3Conversion(unittest.TestCase):
             'from_fasta': os.path.join(test_files, 'BBa_J23101_from_fasta.nt'),
             'from_genbank': os.path.join(test_files, 'BBa_J23101_from_genbank.nt'),
             'sbol3': os.path.join(test_files, 'BBa_J23101.nt'),
+            'sbol323': os.path.join(test_files, 'BBa_J23101_3to2to3.nt')
         }
 
         # Run the generic command-line converter with a couple of different configurations:
@@ -157,12 +158,6 @@ class Test2To3Conversion(unittest.TestCase):
         with patch.object(sys, 'argv', test_args):
             main()
         assert filecmp.cmp(temp_name, test_file['sbol3']), f'Converted file {temp_name} is not identical'
-
-        test_args = ['sbol-converter', '-o', temp_name, '-n', 'https://synbiohub.org/public/igem', 'FASTA', 'GenBank',
-                     test_file['genbank']]
-        with patch.object(sys, 'argv', test_args):
-            main()
-        assert filecmp.cmp(temp_name, test_file['genbank']), f'Converted file {temp_name} is not identical'
 
         # Run the other six tests
         test_args = ['fasta2sbol', '-o', temp_name, '-n', 'https://synbiohub.org/public/igem', test_file['fasta']]
@@ -193,8 +188,7 @@ class Test2To3Conversion(unittest.TestCase):
         test_args = ['sbol2to3', '-o', temp_name_2, temp_name]
         with patch.object(sys, 'argv', test_args):
             sbol2to3()
-        temp_name_2 = tempfile.mkstemp()[1]
-        assert filecmp.cmp(temp_name_2, test_file['sbol3']), f'Converted file {temp_name} is not identical'
+        assert filecmp.cmp(temp_name_2, test_file['sbol323']), f'Converted file {temp_name} is not identical'
 
 
 if __name__ == '__main__':
