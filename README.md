@@ -39,8 +39,8 @@ The `excel-to-sbol` utility reads an Excel file specifying a library of basic an
 The `sbol-converter` utility converts between any of the SBOL3, SBOL2, GenBank, and FASTA formats.
 
 Additional "macro" utilities convert specifically between SBOL3 and one of the other formats: 
-- `sbol2fasta` and `fasta2sbol` convert to and from FASTA
-- `sbol2genbank` and `genbank2sbol` convert to and from GenBank
+- `sbol2fasta` and `fasta2sbol` convert from SBOL3 to FASTA and vice versa
+- `sbol2genbank` and `genbank2sbol` convert from SBOL3 to GenBank and vice versa
 - `sbol3to2` and `sbol2to3` convert to and from SBOL2
 
 ### Expand the combinatorial derivations in an SBOL file
