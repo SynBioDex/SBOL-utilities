@@ -91,8 +91,8 @@ class TestCalculateSequences(unittest.TestCase):
     def test_commandline(self):
         test_dir = os.path.dirname(os.path.realpath(__file__))
         temp_name = tempfile.mkstemp(suffix='.nt')[1]
-        test_args = ['excel_file', '-vv', os.path.join(test_dir, 'test_files', 'expanded_simple_library.nt'),
-                     '-o', temp_name]
+        test_args = ['sbol-calculate-sequences', '-vv',
+                     os.path.join(test_dir, 'test_files', 'expanded_simple_library.nt'), '-o', temp_name]
         with patch.object(sys, 'argv', test_args):
             sbol_utilities.calculate_sequences.main()
         comparison_file = os.path.join(test_dir, 'test_files', 'expanded_with_sequences.nt')

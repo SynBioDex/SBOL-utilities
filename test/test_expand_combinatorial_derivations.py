@@ -70,7 +70,7 @@ class TestCDExpansion(unittest.TestCase):
     def test_commandline(self):
         """Test expansion of combinatorial derivations from command line"""
         temp_name = tempfile.mkstemp(suffix='.nt')[1]
-        test_args = ['excel_file', '-vv', os.path.join(TESTFILE_DIR, 'simple_library.nt'), '-o', temp_name]
+        test_args = ['sbol-expand-derivations', '-vv', os.path.join(TESTFILE_DIR, 'simple_library.nt'), '-o', temp_name]
         with patch.object(sys, 'argv', test_args):
             sbol_utilities.expand_combinatorial_derivations.main()
         assert_files_identical(temp_name, os.path.join(TESTFILE_DIR, 'expanded_simple_library.nt'))

@@ -489,3 +489,7 @@ def main():
     sbol_document = excel_to_sbol(openpyxl.load_workbook(excel_file, data_only=True))
     sbol_document.write(outfile_name, file_type)
     logging.info('SBOL file written to '+outfile_name)
+
+
+if __name__ == '__main__':
+    main()
