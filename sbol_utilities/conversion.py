@@ -79,7 +79,14 @@ def convert2to3(sbol2_doc: Union[str, sbol2.Document], namespaces=None) -> sbol3
         namespaces = []
     if isinstance(sbol2_doc, sbol2.Document):
         sbol2_path = tempfile.mkstemp(suffix='.xml')[1]
-        sbol2_doc.write(sbol2_path)
+        # Turn off automatic validation on write to avoid requiring transmitting data to the validator webservice
+        # If you want validation, you should validate the document explicitly beforehand
+        was_using_validator = sbol2.Config.getOption(sbol2.ConfigOptions.VALIDATE)
+        try:
+            sbol2.Config.setOption(sbol2.ConfigOptions.VALIDATE, False)
+            sbol2_doc.write(sbol2_path)
+        finally:
+            sbol2.Config.setOption(sbol2.ConfigOptions.VALIDATE, was_using_validator)
     else:
         sbol2_path = sbol2_doc
 
@@ -185,7 +192,8 @@ def convert3to2(doc3: sbol3.Document) -> sbol2.Document:
         for sa in c.sequenceAnnotations:
             for loc in sa.locations:
                 loc.sequence = None  # remove optional sequences, per https://github.com/SynBioDex/libSBOLj/issues/621
-    doc2.validate()
+    # We explicitly do NOT validate here in order to avoid requiring transmitting data to the validator webservice
+    # If you want validation, you should run it on the document that is returned
     return doc2
 
 
@@ -235,14 +243,18 @@ def convert_from_fasta(path: str, namespace: str, identity_map: Dict[str, str] =
 
 
 # TODO: Figure out how to support multiple namespaces like we do for FASTA: currently, importing from multiple namespaces will not work correctly
-def convert_from_genbank(path: str, namespace: str) -> sbol3.Document:
+def convert_from_genbank(path: str, namespace: str, allow_genbank_online: bool = False) -> sbol3.Document:
     """Convert a GenBank document on disk into an SBOL3 document
     Specifically, the GenBank document is first imported to SBOL2, then converted from SBOL2 to SBOL3
 
     :param path: path to read GenBank file from
     :param namespace: URIs of Components will be set to {namespace}/{genbank_id}
+    :param allow_genbank_online: Allow use of the online converter (currently required)
     :return: SBOL3 document containing converted materials
     """
+    if not allow_genbank_online:
+        raise NotImplementedError('GenBank conversion currently requires use of the online SBOL validator/converter')
+
     doc2 = sbol2.Document()
     sbol2.setHomespace(namespace)
     doc2.importFromFormat(path)
@@ -250,14 +262,19 @@ def convert_from_genbank(path: str, namespace: str) -> sbol3.Document:
     return doc
 
 
-def convert_to_genbank(doc3: sbol3.Document, path: str) -> List[SeqRecord.SeqRecord]:
+def convert_to_genbank(doc3: sbol3.Document, path: str, allow_genbank_online: bool = False) -> List[SeqRecord.SeqRecord]:
     """Convert an SBOL3 document to a GenBank file, which is written to disk
     Note that for compatibility with version control software, if no prov:modified term is available on each Component,
     then a fixed bogus datestamp of January 1, 2000 is given
 
     :param doc3: SBOL3 document to convert
     :param path: path to write FASTA file to
+    :param allow_genbank_online: Allow use of the online converter (currently required)
+    :return: BioPython SeqRecord of the GenBank that was written
     """
+    if not allow_genbank_online:
+        raise NotImplementedError('GenBank conversion currently requires use of the online SBOL validator/converter')
+
     # first convert to SBOL2, then export to a temp GenBank file
     doc2 = convert3to2(doc3)
 
@@ -320,7 +337,7 @@ def command_line_converter(args_dict: Dict[str, Any]):
     if input_file_type == 'FASTA':
         doc3 = convert_from_fasta(input_file, namespace)
     elif input_file_type == 'GenBank':
-        doc3 = convert_from_genbank(input_file, namespace)
+        doc3 = convert_from_genbank(input_file, namespace, args_dict['allow_genbank_online'])
     elif input_file_type == 'SBOL2':
         doc2 = sbol2.Document()
         doc2.read(input_file)
@@ -336,7 +353,7 @@ def command_line_converter(args_dict: Dict[str, Any]):
     if output_file_type == 'FASTA':
         convert_to_fasta(doc3, output_file)
     elif output_file_type == 'GenBank':
-        convert_to_genbank(doc3, output_file)
+        convert_to_genbank(doc3, output_file, args_dict['allow_genbank_online'])
     elif output_file_type == 'SBOL2':
         doc2 = convert3to2(doc3)
         doc2.write(output_file)
@@ -358,6 +375,8 @@ def main():
                         help='Name of output file to be written')
     parser.add_argument('--verbose', '-v', dest='verbose', action='count', default=0,
                         help="Print running explanation of conversion process")
+    parser.add_argument('--allow-genbank-online', dest='allow_genbank_online', action='store_true', default=False,
+                        help='Allow GenBank conversion to send material to online converter; currently required to be True')
     args_dict = vars(parser.parse_args())
     # Call the shared command-line conversion routine
     command_line_converter(args_dict)
@@ -389,7 +408,9 @@ def genbank2sbol():
     parser.add_argument('-o', '--output', dest='output_file', default='out',
                         help='Name of output file to be written')
     parser.add_argument('--verbose', '-v', dest='verbose', action='count', default=0,
-                        help="Print running explanation of conversion process")
+                        help='Print running explanation of conversion process')
+    parser.add_argument('--allow-genbank-online', dest='allow_genbank_online', action='store_true', default=False,
+                        help='Allow GenBank conversion to send material to online converter; currently required to be True')
     args_dict = vars(parser.parse_args())
     args_dict['input_file_type'] = 'GenBank'
     args_dict['output_file_type'] = 'SBOL3'
@@ -438,6 +459,8 @@ def sbol2genbank():
                         help='Name of output file to be written')
     parser.add_argument('--verbose', '-v', dest='verbose', action='count', default=0,
                         help="Print running explanation of conversion process")
+    parser.add_argument('--allow-genbank-online', dest='allow_genbank_online', action='store_true', default=False,
+                        help='Allow GenBank conversion to send material to online converter; currently required to be True')
     args_dict = vars(parser.parse_args())
     args_dict['input_file_type'] = 'SBOL3'
     args_dict['output_file_type'] = 'GenBank'

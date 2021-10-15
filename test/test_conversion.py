@@ -72,7 +72,7 @@ class Test2To3Conversion(unittest.TestCase):
 
         # Convert to GenBank and check contents
         outfile = os.path.join(tmp_sub, 'BBa_J23101.gb')
-        convert_to_genbank(doc3, outfile)
+        convert_to_genbank(doc3, outfile, True)
 
         test_dir = os.path.dirname(os.path.realpath(__file__))
         comparison_file = os.path.join(test_dir, 'test_files', 'BBa_J23101.gb')
@@ -82,7 +82,7 @@ class Test2To3Conversion(unittest.TestCase):
         """Test ability to convert from GenBank to SBOL3"""
         # Get the GenBank test document and convert
         tmp_sub = copy_to_tmp(package=['BBa_J23101.gb'])
-        doc3 = convert_from_genbank(os.path.join(tmp_sub, 'BBa_J23101.gb'), 'https://synbiohub.org/public/igem')
+        doc3 = convert_from_genbank(os.path.join(tmp_sub, 'BBa_J23101.gb'), 'https://synbiohub.org/public/igem', True)
 
         # Note: cannot directly round-trip because converter is a) lossy, and b) inserts extra materials
         test_dir = os.path.dirname(os.path.realpath(__file__))
@@ -100,7 +100,7 @@ class Test2To3Conversion(unittest.TestCase):
 
         # Convert to GenBank and check contents
         outfile = os.path.join(tmp_sub, 'iGEM_SBOL2_imports.gb')
-        convert_to_genbank(doc3, outfile)
+        convert_to_genbank(doc3, outfile, True)
 
         test_dir = os.path.dirname(os.path.realpath(__file__))
         comparison_file = os.path.join(test_dir, 'test_files', 'iGEM_SBOL2_imports.gb')
@@ -165,17 +165,22 @@ class Test2To3Conversion(unittest.TestCase):
             fasta2sbol()
         assert filecmp.cmp(temp_name, test_file['from_fasta']), f'Converted file {temp_name} is not identical'
 
-        test_args = ['genbank2sbol', '-o', temp_name, '-n', 'https://synbiohub.org/public/igem', test_file['genbank']]
+        test_args = ['genbank2sbol', '-o', temp_name, '-n', 'https://synbiohub.org/public/igem', test_file['genbank'], '--allow-genbank-online']
         with patch.object(sys, 'argv', test_args):
             genbank2sbol()
         assert filecmp.cmp(temp_name, test_file['from_genbank']), f'Converted file {temp_name} is not identical'
+
+        # genbank conversion should fail if not given an online argument
+        test_args = ['genbank2sbol', '-o', temp_name, '-n', 'https://synbiohub.org/public/igem', test_file['genbank']]
+        with patch.object(sys, 'argv', test_args):
+            self.assertRaises(NotImplementedError, genbank2sbol)
 
         test_args = ['sbol2fasta', '-o', temp_name, test_file['sbol3']]
         with patch.object(sys, 'argv', test_args):
             sbol2fasta()
         assert filecmp.cmp(temp_name, test_file['fasta']), f'Converted file {temp_name} is not identical'
 
-        test_args = ['sbol2genbank', '-o', temp_name, test_file['sbol3']]
+        test_args = ['sbol2genbank', '-o', temp_name, test_file['sbol3'], '--allow-genbank-online']
         with patch.object(sys, 'argv', test_args):
             sbol2genbank()
         assert filecmp.cmp(temp_name, test_file['genbank']), f'Converted file {temp_name} is not identical'
