@@ -32,7 +32,7 @@ setup(name='sbol-utilities',
       # What does your project relate to?
       keywords='synthetic biology',
       install_requires=[
-            'sbol3>=1.0b8',
+            'sbol3>=1.0b8,!=1.0b9',
             'sbol2>=1.3',
             'rdflib',
             'biopython',
