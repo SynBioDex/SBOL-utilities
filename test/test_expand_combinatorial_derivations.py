@@ -23,7 +23,7 @@ class TestCDExpansion(unittest.TestCase):
         """Test basic expansion of combinatorial derivations"""
         doc = sbol3.Document()
         doc.read(os.path.join(TESTFILE_DIR, 'simple_library.nt'))
-        sbol3.set_namespace('http://sbolstandard.org/testfiles/')
+        sbol3.set_namespace('http://sbolstandard.org/testfiles')
         roots = list(sbol_utilities.expand_combinatorial_derivations.root_combinatorial_derivations(doc))
         assert len(roots) == 1, f'Unexpected roots: {[r.identity for r in roots]}'
         derivative_collections = sbol_utilities.expand_combinatorial_derivations.expand_derivations(roots)
@@ -43,7 +43,7 @@ class TestCDExpansion(unittest.TestCase):
         """Test expansion of a specification with multiple backbones"""
         doc = sbol3.Document()
         doc.read(os.path.join(TESTFILE_DIR, 'two_backbones.nt'))
-        sbol3.set_namespace('http://sbolstandard.org/testfiles/')
+        sbol3.set_namespace('http://sbolstandard.org/testfiles')
         roots = list(sbol_utilities.expand_combinatorial_derivations.root_combinatorial_derivations(doc))
         assert len(roots) == 2
         derivative_collections = sbol_utilities.expand_combinatorial_derivations.expand_derivations(roots)
@@ -54,7 +54,7 @@ class TestCDExpansion(unittest.TestCase):
 
     #def test_constraints():  # TODO: to be added when constraint-handling is incorporated.
         # wb = openpyxl.load_workbook(TESTFILE_DIR + '/constraints_library.nt', data_only=True)
-        # sbol3.set_namespace('http://sbolstandard.org/testfiles/')
+        # sbol3.set_namespace('http://sbolstandard.org/testfiles')
         # doc = sbol_utilities.excel_to_sbol.excel_to_sbol(wb)
         #
         # assert not doc.validate().errors and not doc.validate().warnings

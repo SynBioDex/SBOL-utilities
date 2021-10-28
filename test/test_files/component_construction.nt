@@ -1,6 +1,6 @@
 
 <http://sbolstandard.org/testfiles/gfp_cds> <http://sbols.org/v3#displayId> "gfp_cds" .
-<http://sbolstandard.org/testfiles/gfp_cds> <http://sbols.org/v3#hasNamespace> <http://sbolstandard.org/testfiles/> .
+<http://sbolstandard.org/testfiles/gfp_cds> <http://sbols.org/v3#hasNamespace> <http://sbolstandard.org/testfiles> .
 <http://sbolstandard.org/testfiles/gfp_cds> <http://sbols.org/v3#role> <https://identifiers.org/SO:0000316> .
 <http://sbolstandard.org/testfiles/gfp_cds> <http://sbols.org/v3#type> <https://identifiers.org/SBO:0000251> .
 <http://sbolstandard.org/testfiles/gfp_cds> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://sbols.org/v3#Component> .
@@ -84,6 +84,6 @@
 <http://sbolstandard.org/testfiles/system> <http://sbols.org/v3#hasFeature> <http://sbolstandard.org/testfiles/system/LocalSubComponent4> .
 <http://sbolstandard.org/testfiles/system> <http://sbols.org/v3#hasFeature> <http://sbolstandard.org/testfiles/system/SubComponent1> .
 <http://sbolstandard.org/testfiles/system> <http://sbols.org/v3#hasInteraction> <http://sbolstandard.org/testfiles/system/Interaction1> .
-<http://sbolstandard.org/testfiles/system> <http://sbols.org/v3#hasNamespace> <http://sbolstandard.org/testfiles/> .
+<http://sbolstandard.org/testfiles/system> <http://sbols.org/v3#hasNamespace> <http://sbolstandard.org/testfiles> .
 <http://sbolstandard.org/testfiles/system> <http://sbols.org/v3#type> <https://identifiers.org/SBO:0000241> .
 <http://sbolstandard.org/testfiles/system> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://sbols.org/v3#Component> .
