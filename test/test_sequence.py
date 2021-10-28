@@ -15,7 +15,8 @@ class TestSequence(unittest.TestCase):
         assert unambiguous_protein_sequence('tklqpntvir')
         assert not unambiguous_protein_sequence('tklqxpntvir')
 
-        s = sbol3.Sequence('http://test.org/seq', encoding=sbol3.IUPAC_DNA_ENCODING, elements='acgacg')
+        s = sbol3.Sequence('http://test.org/seq', namespace='http://test.org/',
+                           encoding=sbol3.IUPAC_DNA_ENCODING, elements='acgacg')
         assert unambiguous_dna_sequence(s)
         assert unambiguous_rna_sequence(s)  # Because DNA and RNA use the same EDAM identifier
         assert not unambiguous_protein_sequence(s)

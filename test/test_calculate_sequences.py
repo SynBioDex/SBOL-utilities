@@ -16,7 +16,7 @@ from sbol_utilities.expand_combinatorial_derivations import expand_derivations
 class TestCalculateSequences(unittest.TestCase):
     def test_calculate_sequences(self):
         """Test inference of sequences"""
-        sbol3.set_namespace('http://sbolstandard.org/testfiles/')
+        sbol3.set_namespace('http://sbolstandard.org/testfiles')
         test_dir = os.path.dirname(os.path.realpath(__file__))
         doc = sbol3.Document()
         doc.read(os.path.join(test_dir, 'test_files', 'expanded_simple_library.nt'))
@@ -51,7 +51,7 @@ class TestCalculateSequences(unittest.TestCase):
         # prep the document
         wb_name = os.path.join(test_dir, 'test_files', 'circular_inference_test.xlsx')
         wb = openpyxl.load_workbook(wb_name, data_only=True)
-        sbol3.set_namespace('http://sbolstandard.org/testfiles/')
+        sbol3.set_namespace('http://sbolstandard.org/testfiles')
         doc = excel_to_sbol(wb)
         expansions = expand_derivations([doc.find('PairedTest')])
         assert len(expansions) == 1, f'Expected 1 collection of expansions, but found {len(expansions)}'
@@ -91,8 +91,8 @@ class TestCalculateSequences(unittest.TestCase):
     def test_commandline(self):
         test_dir = os.path.dirname(os.path.realpath(__file__))
         temp_name = tempfile.mkstemp(suffix='.nt')[1]
-        test_args = ['excel_file', '-vv', os.path.join(test_dir, 'test_files', 'expanded_simple_library.nt'),
-                     '-o', temp_name]
+        test_args = ['sbol-calculate-sequences', '-vv',
+                     os.path.join(test_dir, 'test_files', 'expanded_simple_library.nt'), '-o', temp_name]
         with patch.object(sys, 'argv', test_args):
             sbol_utilities.calculate_sequences.main()
         comparison_file = os.path.join(test_dir, 'test_files', 'expanded_with_sequences.nt')

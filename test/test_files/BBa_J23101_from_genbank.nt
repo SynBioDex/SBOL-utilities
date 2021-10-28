@@ -1,0 +1,24 @@
+
+<https://synbiohub.org/public/igem/BBa_J23101> <http://sbols.org/v3#description> "constitutive promoter family member." .
+<https://synbiohub.org/public/igem/BBa_J23101> <http://sbols.org/v3#displayId> "BBa_J23101" .
+<https://synbiohub.org/public/igem/BBa_J23101> <http://sbols.org/v3#hasNamespace> <https://synbiohub.org/public/igem> .
+<https://synbiohub.org/public/igem/BBa_J23101> <http://sbols.org/v3#hasSequence> <https://synbiohub.org/public/igem/BBa_J23101_seq> .
+<https://synbiohub.org/public/igem/BBa_J23101> <http://sbols.org/v3#role> <http://identifiers.org/so/SO:0000804> .
+<https://synbiohub.org/public/igem/BBa_J23101> <http://sbols.org/v3#type> <http://identifiers.org/so/SO:0000987> .
+<https://synbiohub.org/public/igem/BBa_J23101> <http://sbols.org/v3#type> <https://identifiers.org/SBO:0000251> .
+<https://synbiohub.org/public/igem/BBa_J23101> <http://sboltools.org/backport#sbol2type> <http://sbols.org/v2#ComponentDefinition> .
+<https://synbiohub.org/public/igem/BBa_J23101> <http://sboltools.org/backport#sbol2version> "1" .
+<https://synbiohub.org/public/igem/BBa_J23101> <http://www.ncbi.nlm.nih.gov/genbank#date> "01-JAN-1980" .
+<https://synbiohub.org/public/igem/BBa_J23101> <http://www.ncbi.nlm.nih.gov/genbank#division> "UNK" .
+<https://synbiohub.org/public/igem/BBa_J23101> <http://www.ncbi.nlm.nih.gov/genbank#keywords> "." .
+<https://synbiohub.org/public/igem/BBa_J23101> <http://www.ncbi.nlm.nih.gov/genbank#locus> "BBa_J23101" .
+<https://synbiohub.org/public/igem/BBa_J23101> <http://www.ncbi.nlm.nih.gov/genbank#molecule> "DNA" .
+<https://synbiohub.org/public/igem/BBa_J23101> <http://www.ncbi.nlm.nih.gov/genbank#organism> ". ." .
+<https://synbiohub.org/public/igem/BBa_J23101> <http://www.ncbi.nlm.nih.gov/genbank#source> "." .
+<https://synbiohub.org/public/igem/BBa_J23101> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://sbols.org/v3#Component> .
+<https://synbiohub.org/public/igem/BBa_J23101_seq> <http://sbols.org/v3#displayId> "BBa_J23101_seq" .
+<https://synbiohub.org/public/igem/BBa_J23101_seq> <http://sbols.org/v3#elements> "tttacagctagctcagtcctaggtattatgctagc" .
+<https://synbiohub.org/public/igem/BBa_J23101_seq> <http://sbols.org/v3#encoding> <https://identifiers.org/edam:format_1207> .
+<https://synbiohub.org/public/igem/BBa_J23101_seq> <http://sbols.org/v3#hasNamespace> <https://synbiohub.org/public/igem> .
+<https://synbiohub.org/public/igem/BBa_J23101_seq> <http://sboltools.org/backport#sbol2version> "1" .
+<https://synbiohub.org/public/igem/BBa_J23101_seq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://sbols.org/v3#Sequence> .

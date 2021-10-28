@@ -166,3 +166,7 @@ def main():
     logging.info(f'Calculated {len(new_seqs)} new sequences')
     doc.write(outfile_name, file_type)
     logging.info('SBOL file written to '+outfile_name)
+
+
+if __name__ == '__main__':
+    main()

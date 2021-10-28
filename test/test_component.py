@@ -14,7 +14,7 @@ class TestComponent(unittest.TestCase):
 
     def test_system_building(self):
         doc = sbol3.Document()
-        sbol3.set_namespace('http://sbolstandard.org/testfiles/')
+        sbol3.set_namespace('http://sbolstandard.org/testfiles')
 
         system = sbol3.Component('system', sbol3.SBO_FUNCTIONAL_ENTITY)
         doc.add(system)

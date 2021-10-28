@@ -7,7 +7,7 @@ setup(name='sbol-utilities',
       long_description_content_type='text/markdown',
       url='https://github.com/SynBioDex/SBOL-utilities',
       license='MIT License',
-      version='1.0a11',
+      version='1.0a12',
       # See https://pypi.python.org/pypi?%3Aaction=list_classifiers
       classifiers=[
             # How mature is this project? Common values are
@@ -32,7 +32,10 @@ setup(name='sbol-utilities',
       # What does your project relate to?
       keywords='synthetic biology',
       install_requires=[
-            'sbol3>=1.0b8',
+            'sbol3>=1.0b8,!=1.0b9',
+            'sbol2>=1.3',
+            'rdflib',
+            'biopython',
             'graphviz',
             'tyto>=1.0-beta',
             'openpyxl'
@@ -41,7 +44,17 @@ setup(name='sbol-utilities',
       entry_points = {
             'console_scripts': ['excel-to-sbol=sbol_utilities.excel_to_sbol:main',
                                 'sbol-expand-derivations=sbol_utilities.expand_combinatorial_derivations:main',
-                                'sbol-calculate-sequences=sbol_utilities.calculate_sequences:main']
+                                'sbol-calculate-sequences=sbol_utilities.calculate_sequences:main',
+                                'sbol-converter=sbol_utilities.conversion:main',
+                                'sbol2to3=sbol_utilities.conversion:sbol2to3',
+                                'sbol3to2=sbol_utilities.conversion:sbol3to2',
+                                'sbol2genbank=sbol_utilities.conversion:sbol2genbank',
+                                'sbol2fasta=sbol_utilities.conversion:sbol2fasta',
+                                'genbank2sbol=sbol_utilities.conversion:genbank2sbol',
+                                'fasta2sbol=sbol_utilities.conversion:fasta2sbol',
+                                'sbol-diff=sbol_utilities.sbol_diff:main']
       },
       packages=['sbol_utilities'],
+      package_data={'sbol_utilities': ['sbolgraph-standalone.js']},
+      include_package_data=True
       )

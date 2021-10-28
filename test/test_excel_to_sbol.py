@@ -20,7 +20,7 @@ class TestExcel2SBOL(unittest.TestCase):
     def test_conversion(self):
         """Basic smoke test of Excel to SBOL3 conversion"""
         wb = openpyxl.load_workbook(os.path.join(TESTFILE_DIR, 'simple_library.xlsx'), data_only=True)
-        sbol3.set_namespace('http://sbolstandard.org/testfiles/')
+        sbol3.set_namespace('http://sbolstandard.org/testfiles')
         doc = sbol_utilities.excel_to_sbol.excel_to_sbol(wb)
 
         assert not doc.validate().errors and not doc.validate().warnings
@@ -36,7 +36,7 @@ class TestExcel2SBOL(unittest.TestCase):
     def test_custom_conversion(self):
         """Test if conversion works correctly when the config us used to change expected sheet structure"""
         wb = openpyxl.load_workbook(os.path.join(TESTFILE_DIR, 'nonstandard_simple_library.xlsx'), data_only=True)
-        sbol3.set_namespace('http://sbolstandard.org/testfiles/')
+        sbol3.set_namespace('http://sbolstandard.org/testfiles')
         config = {
             'basic_parts_name': 'C2',
             'basic_parts_description': 'A12',
@@ -67,7 +67,7 @@ class TestExcel2SBOL(unittest.TestCase):
     def test_multi_backbone(self):
         """Check if generation works correclty when there is more than one backbone option"""
         wb = openpyxl.load_workbook(os.path.join(TESTFILE_DIR, 'two_backbones.xlsx'), data_only=True)
-        sbol3.set_namespace('http://sbolstandard.org/testfiles/')
+        sbol3.set_namespace('http://sbolstandard.org/testfiles')
         doc = sbol_utilities.excel_to_sbol.excel_to_sbol(wb)
         assert not doc.validate().errors and not doc.validate().warnings
         assert len(doc.find('BasicParts').members) == 9
@@ -82,7 +82,7 @@ class TestExcel2SBOL(unittest.TestCase):
     def test_constraints(self):
         """Check if constraints are generated correctly"""
         wb = openpyxl.load_workbook(os.path.join(TESTFILE_DIR, 'constraints_library.xlsx'), data_only=True)
-        sbol3.set_namespace('http://sbolstandard.org/testfiles/')
+        sbol3.set_namespace('http://sbolstandard.org/testfiles')
         doc = sbol_utilities.excel_to_sbol.excel_to_sbol(wb)
 
         assert not doc.validate().errors and not doc.validate().warnings
@@ -98,8 +98,8 @@ class TestExcel2SBOL(unittest.TestCase):
     def test_commandline(self):
         """Make sure function works correctly when run from the command line"""
         temp_name = tempfile.mkstemp(suffix='.nt')[1]
-        test_args = ['excel_file', '-vv', os.path.join(TESTFILE_DIR, 'simple_library.xlsx'), '-o', temp_name, '-n',
-                     'http://sbolstandard.org/testfiles/']
+        test_args = ['excel-to-sbol', '-vv', os.path.join(TESTFILE_DIR, 'simple_library.xlsx'), '-o', temp_name, '-n',
+                     'http://sbolstandard.org/testfiles']
         with patch.object(sys, 'argv', test_args):
             sbol_utilities.excel_to_sbol.main()
         assert_files_identical(temp_name, os.path.join(TESTFILE_DIR, 'simple_library.nt'))

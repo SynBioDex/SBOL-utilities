@@ -156,16 +156,19 @@ def row_to_basic_part(doc: sbol3.Document, row, basic_parts: sbol3.Collection, l
     identity = None
     display_id = None
     was_derived_from = None
+    namespace = sbol3.get_namespace()
     if source_id and source_prefix:
         source_prefix = source_prefix.strip()
         if source_prefix in source_table:
             if source_table[source_prefix]:
                 display_id = sbol3.string_to_display_id(source_id.strip())
                 identity = f'{source_table[source_prefix]}/{display_id}'
+                namespace = source_table[source_prefix]
             else:  # when there is no prefix, use the bare value (in SBOL3 format)
                 raw_url = source_id.strip()
                 identity = url_to_identity(strip_filetype_suffix(strip_sbol2_version(raw_url)))
                 was_derived_from = raw_url
+                namespace = identity.rsplit('/',1)[0]  # TODO: use a helper function
         else:
             logging.info(f'Part "{name}" ignoring non-literal source: {source_prefix}')
     elif source_id:
@@ -177,7 +180,7 @@ def row_to_basic_part(doc: sbol3.Document, row, basic_parts: sbol3.Collection, l
 
     # build a component from the material
     logging.debug(f'Creating basic part "{name}"')
-    component = sbol3.Component(identity or display_id, sbol3.SBO_DNA, name=name,
+    component = sbol3.Component(identity or display_id, sbol3.SBO_DNA, name=name, namespace=namespace,
                                 description=f'{design_notes}\n{description}'.strip())
     if was_derived_from:
         component.derived_from.append(was_derived_from)
@@ -187,7 +190,8 @@ def row_to_basic_part(doc: sbol3.Document, row, basic_parts: sbol3.Collection, l
     if circular:
         component.types.append(sbol3.SO_CIRCULAR)
     if sequence:
-        sbol_seq = sbol3.Sequence(f'{component.identity}_sequence', encoding=sbol3.IUPAC_DNA_ENCODING, elements=sequence)
+        sbol_seq = sbol3.Sequence(f'{component.identity}_sequence', namespace=namespace,
+                                  encoding=sbol3.IUPAC_DNA_ENCODING, elements=sequence)
         doc.add(sbol_seq)
         component.sequences.append(sbol_seq.identity)
 
@@ -322,6 +326,10 @@ def make_composite_part(document, row, composite_parts, linear_products, final_p
     """
     # Parse material from sheet row
     name = row[config['composite_name_col']].value
+    if name is None:
+        return  # skip lines without names
+    else:
+        name = name.strip()  # make sure we're discarding whitespace
     display_id = sbol3.string_to_display_id(name)
     design_notes = (row[config['composite_notes_col']].value if row[config['composite_notes_col']].value else "")
     description = \
@@ -489,3 +497,7 @@ def main():
     sbol_document = excel_to_sbol(openpyxl.load_workbook(excel_file, data_only=True))
     sbol_document.write(outfile_name, file_type)
     logging.info('SBOL file written to '+outfile_name)
+
+
+if __name__ == '__main__':
+    main()
