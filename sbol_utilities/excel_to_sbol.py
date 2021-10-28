@@ -322,6 +322,10 @@ def make_composite_part(document, row, composite_parts, linear_products, final_p
     """
     # Parse material from sheet row
     name = row[config['composite_name_col']].value
+    if name is None:
+        return  # skip lines without names
+    else:
+        name = name.strip()  # make sure we're discarding whitespace
     display_id = sbol3.string_to_display_id(name)
     design_notes = (row[config['composite_notes_col']].value if row[config['composite_notes_col']].value else "")
     description = \
