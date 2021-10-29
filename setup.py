@@ -7,7 +7,7 @@ setup(name='sbol-utilities',
       long_description_content_type='text/markdown',
       url='https://github.com/SynBioDex/SBOL-utilities',
       license='MIT License',
-      version='1.0a12',
+      version='1.0a13',
       # See https://pypi.python.org/pypi?%3Aaction=list_classifiers
       classifiers=[
             # How mature is this project? Common values are
