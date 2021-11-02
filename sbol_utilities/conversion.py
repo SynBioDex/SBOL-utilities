@@ -232,13 +232,16 @@ def convert_from_fasta(path: str, namespace: str, identity_map: Dict[str, str] =
         for r in SeqIO.parse(f, 'fasta'):
             if identity_map and r.id in identity_map:
                 identity = identity_map[r.id]
+                # TODO: consider whether non-default remappings of namespaces will be useful
+                namespace_to_use = None  # if we got an identity directly, let the namespace be inferred
             else:
                 identity = f'{namespace}/{sbol3.string_to_display_id(r.id)}'
+                namespace_to_use = namespace
             s = sbol3.Sequence(identity+'_sequence', name=r.name, description=r.description.strip(),
-                               elements=str(r.seq), encoding=sbol3.IUPAC_DNA_ENCODING, namespace=namespace)
+                               elements=str(r.seq), encoding=sbol3.IUPAC_DNA_ENCODING, namespace=namespace_to_use)
             doc.add(s)
             doc.add(sbol3.Component(identity, sbol3.SBO_DNA, name=r.name, description=r.description.strip(),
-                                    sequences=[s.identity], namespace=namespace))
+                                    sequences=[s.identity], namespace=namespace_to_use))
     return doc
 
 
