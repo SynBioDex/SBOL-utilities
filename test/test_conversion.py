@@ -135,6 +135,21 @@ class Test2To3Conversion(unittest.TestCase):
         comparison_doc.read(comparison_file)
         assert not doc_diff(doc3, comparison_doc), f'Converted FASTA file not identical to {comparison_file}'
 
+    def test_id_map_conversion_from_fasta(self):
+        """Test ability to convert from SBOL3 to FASTA"""
+        """Test ability to convert from GenBank to SBOL3"""
+        # Get the SBOL3 test document
+        tmp_sub = copy_to_tmp(package=['BBa_J23101.fasta'])
+        doc3 = convert_from_fasta(os.path.join(tmp_sub, 'BBa_J23101.fasta'), 'https://synbiohub.org/public/igem',
+                                  identity_map={'BBa_J23101': 'https://somewhere_else.org/public/igem/BBa_J23101'})
+
+        # Note: cannot directly round-trip because converter is lossy
+        test_dir = os.path.dirname(os.path.realpath(__file__))
+        comparison_file = os.path.join(test_dir, 'test_files', 'BBa_J23101_from_fasta_altname.nt')
+        comparison_doc = sbol3.Document()
+        comparison_doc.read(comparison_file)
+        assert not doc_diff(doc3, comparison_doc), f'Converted FASTA file not identical to {comparison_file}'
+
     def test_commandline(self):
         test_files = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'test_files')
         temp_name = tempfile.mkstemp()[1]
