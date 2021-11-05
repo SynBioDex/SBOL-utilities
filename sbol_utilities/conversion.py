@@ -94,9 +94,12 @@ def convert2to3(sbol2_doc: Union[str, sbol2.Document], namespaces=None) -> sbol3
            'import', sbol2_path,
            'convert', '--target-sbol-version', '3']
     # This will raise an exception if the command fails
-    proc = subprocess.run(cmd, capture_output=True, check=True)
-    # Extract the rdf_xml output from the sbol converter
-    rdf_xml = proc.stdout.decode('utf-8')
+    try:
+        proc = subprocess.run(cmd, capture_output=True, check=True)
+        # Extract the rdf_xml output from the sbol converter
+        rdf_xml = proc.stdout.decode('utf-8')
+    except subprocess.CalledProcessError:
+        raise ValueError('Embedded SBOL 2-to-3 converter failed opaquely, indicating a likely invalid SBOL file.')
     # Post-process the conversion by updating object identities
     rdf_xml = convert_identities2to3(rdf_xml)
     doc = sbol3.Document()
@@ -181,9 +184,12 @@ def convert3to2(doc3: sbol3.Document) -> sbol2.Document:
            'import', sbol3_path,
            'convert', '--target-sbol-version', '2']
     # This will raise an exception if the command fails
-    proc = subprocess.run(cmd, capture_output=True, check=True)
-    # Extract the rdf_xml output from the sbol converter
-    rdf_xml = proc.stdout.decode('utf-8')
+    try:
+        proc = subprocess.run(cmd, capture_output=True, check=True)
+        # Extract the rdf_xml output from the sbol converter
+        rdf_xml = proc.stdout.decode('utf-8')
+    except subprocess.CalledProcessError:
+        raise ValueError('Embedded SBOL 3-to-2 converter failed opaquely, indicating a likely invalid SBOL file.')
 
     doc2 = sbol2.Document()
     doc2.readString(rdf_xml)
