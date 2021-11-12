@@ -228,6 +228,8 @@ def dna_component_with_sequence(identity: str, sequence: str, **kwargs)-> Tuple[
     dna_comp = sbol3.Component(identity, sbol3.SBO_DNA,
                                 sequences =[comp_seq],
                                 **kwargs)
+    if dna_comp.name == None:
+        dna_comp.name = identity
     return tuple([dna_comp, comp_seq])
 
 def rna_component_with_sequence(identity: str, sequence: str, **kwargs)-> Tuple[sbol3.Component, sbol3.Sequence]:
@@ -427,7 +429,11 @@ def media(identity: str, recipe = None, **kwargs)-> sbol3.Component:
     media =  sbol3.Component(identity, sbol3.SBO_FUNCTIONAL_ENTITY, **kwargs)
     media.roles.append(tyto.NCIT.Media)
     if recipe:
-        media.features.append(sbol3.Property('recipe', recipe))
+        for key, value in recipe:
+            if isinstance(key, sbol3.Component):
+                key = sbol3.SubComponent(key)
+            key.measures.append(sbol3.Measure(value[0], value[1]))
+            media.features.append(key)
     return media
 
 def strain(identity: str, **kwargs)-> sbol3.Component:
@@ -450,7 +456,7 @@ def ed_simple_chemical(definition: str, **kwargs)-> sbol3.Component:
     :param **kwargs: Keyword arguments of any other ExternallyDefined attribute.
     :return: A Component object.
     """
-    ed_simple_chemical = sbol3.ExternallyDefined(sbol3.SBO_SIMPLE_CHEMICAL, definition **kwargs)
+    ed_simple_chemical = sbol3.ExternallyDefined([sbol3.SBO_SIMPLE_CHEMICAL], definition, **kwargs)
     return ed_simple_chemical
 
 def ed_protein(definition: str, **kwargs)-> sbol3.Component:
@@ -461,5 +467,5 @@ def ed_protein(definition: str, **kwargs)-> sbol3.Component:
     :param **kwargs: Keyword arguments of any other ExternallyDefined attribute.
     :return: A Component object.
     """
-    ed_protein = sbol3.ExternallyDefined(sbol3.SBO_PROTEIN, definition **kwargs)
+    ed_protein = sbol3.ExternallyDefined([sbol3.SBO_PROTEIN], definition, **kwargs)
     return ed_protein
