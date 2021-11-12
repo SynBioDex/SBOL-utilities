@@ -429,7 +429,7 @@ def media(identity: str, recipe = None, **kwargs)-> sbol3.Component:
     media =  sbol3.Component(identity, sbol3.SBO_FUNCTIONAL_ENTITY, **kwargs)
     media.roles.append(tyto.NCIT.Media)
     if recipe:
-        for key, value in recipe:
+        for key, value in recipe.items():
             if isinstance(key, sbol3.Component):
                 key = sbol3.SubComponent(key)
             key.measures.append(sbol3.Measure(value[0], value[1]))
