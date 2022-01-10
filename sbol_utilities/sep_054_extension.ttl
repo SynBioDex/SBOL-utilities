@@ -1,0 +1,139 @@
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix sbol: <http://sbols.org/v3#> .
+@prefix sep054: <http://sbols.org/SEP054#> .
+@base <http://sbols.org/SEP054#> .
+
+<http://sbols.org/SEP054#> rdf:type owl:Ontology ;
+                               owl:imports sbol: ;
+                               rdfs:comment "Proposed package management classes from SEP 054" ;
+                               owl:versionInfo "1.0-alpha1" .
+
+sep054:Dependency rdf:type owl:Class ;
+        rdfs:comment  '''A Dependency is a statement that a module or package refers to TopLevel objects from other
+        modules or packages. Dependencies may be declared at various levels of granularity:
+        * Object: only an individual TopLevel object (along with all of its child objects)
+        * Object and references: a TopLevel object and all of the other TopLevel objects that it references in its
+          definition, except for via provenance (PROV-O) relations.
+        * Module: all of the TopLevel objects in a module, implicitly including all of its dependencies
+        * Package: all of the modules in a package, implicitly including all of its dependencies.
+
+        A dependency list MAY contain redundant or overlapping entries. For example, a dependency list may contain
+        both a package and a module within that package, both a module and specific objects in the module, or even
+        multiple entries for the same object. In this case, the effective dependency list is the union of all of the
+        individual dependencies in the list.
+
+        This permissive union behavior is intended to allow independently defined dependency lists to be safely
+        merged, e.g., in a package that depends on two other packages. Accordingly, a tool SHOULD NOT consider it
+        to be an issue of there are redundancies between Dependency objects contained by different Module objects. A
+        tool MAY, however, choose to warn users about redundancies within the dependencies of an individual Module.''';
+        rdfs:subClassOf sbol:Identified ,
+    [ rdf:type owl:Restriction ; owl:allValuesFrom sep054:Package ; owl:onProperty sep054:package ;
+      owl:minCardinality "1"^^xsd:nonNegativeInteger ; owl:maxCardinality "1"^^xsd:nonNegativeInteger ; ] ,
+    [ rdf:type owl:Restriction ; owl:allValuesFrom xsd:string ; owl:onProperty sep054:versionConstraint ;
+      owl:maxCardinality "1"^^xsd:nonNegativeInteger ; ] ,
+    [ rdf:type owl:Restriction ; owl:allValuesFrom sep054:Module ; owl:onProperty sep054:module ;
+      owl:maxCardinality "1"^^xsd:nonNegativeInteger ; ] ,
+    [ rdf:type owl:Restriction ; owl:allValuesFrom sbol:TopLevel ; owl:onProperty sep054:object ; ] ,
+    [ rdf:type owl:Restriction ; owl:allValuesFrom xsd:boolean ; owl:onProperty sep054:includeObjectReferences ;
+      owl:maxCardinality "1"^^xsd:nonNegativeInteger ; ] .
+
+sep054:package rdf:type owl:ObjectProperty ;
+        rdfs:comment '''Package that is the dependency or contains the dependency''' ;
+              rdfs:domain sep054:Dependency ;
+              rdfs:range sep054:Package ;
+              rdfs:label "package" .
+
+sep054:versionConstraint rdf:type owl:DatatypeProperty ;
+        rdfs:comment '''Statement indicating the version of the package to use. Versions SHOULD use SemVer format.
+        If this property is not provided, then any version is considered acceptable, with the highest version preferred.
+        Future work: expand to include constraints as well, e.g., >=1.2, <2''' ;
+              rdfs:domain sep054:Dependency ;
+              rdfs:range xsd:string ;
+              rdfs:label "versionConstraint" .
+
+sep054:module rdf:type owl:ObjectProperty ;
+        rdfs:comment '''If the dependency is or is contained within a specific sub-package or sub-module within a
+        package, this property specifies its URI.''' ;
+              rdfs:domain sep054:Dependency ;
+              rdfs:range sep054:Module ;
+              rdfs:label "module" .
+
+sep054:object rdf:type owl:ObjectProperty ;
+        rdfs:comment '''If dependency is specific objects rather than a complete module or package, each instance
+        of this property indicates one of those objects.''' ;
+              rdfs:domain sep054:Dependency ;
+              rdfs:range sbol:TopLevel ;
+              rdfs:label "objects" .
+
+sep054:includeObjectReferences rdf:type owl:DatatypeProperty ;
+        rdfs:comment '''By default, object dependencies are only to the specific object itself. If this value is set
+        to true, then object dependencies also imply dependencies on all of the TopLevel objects recursively referred
+        to by objects in the dependency set. For example, dependency on a plasmid implies depending on the insert
+        it is carrying, which depends in turn on the functional units in the insert, which also depends on the basic
+        parts like promoters, CDSs, terminators, that they contain.''' ;
+              rdfs:domain sep054:Dependency ;
+              rdfs:range xsd:boolean  ;
+              rdfs:label "includeObjectReferences" .
+
+
+sep054:Module rdf:type owl:Class ;
+        rdfs:comment  '''`Module` extends the `Collection` class with the following fields:
+                * `hasDependency` [0,n], URI: `Dependency` child objects
+                The `displayId` of a `Module` SHOULD be `module`, unless it is also a `package`.
+                Every `member` of a `Module` MUST have the same value for `hasNamespace` as the module itself.''' ;
+        rdfs:subClassOf sbol:Collection ,
+    [ rdf:type owl:Restriction ; owl:allValuesFrom sep054:Dependency ; owl:onProperty sep054:hasDependency ; ] .
+
+sep054:hasDependency rdf:type owl:ObjectProperty ;
+        rdfs:comment '''This property links to a description of a package dependency''' ;
+               rdfs:subPropertyOf sbol:directlyComprises ;
+              rdfs:domain sep054:Module ;
+              rdfs:range sep054:Dependency ;
+              rdfs:label "dependencies" .
+
+
+sep054:Package rdf:type owl:Class ;
+        rdfs:comment  '''A Package is a systematic aggregation of modules intended to be distributed and used as a
+        coherent whole. When stored in a hierarchical structure (e.g., files in directories), the relationship between
+        module namespaces MUST be identical to the relationship between module locations in the structure.
+        Note that packages can have sub-packages.''' ;
+        rdfs:subClassOf sep054:Module ,
+    [ rdf:type owl:Restriction ; owl:allValuesFrom xsd:string ; owl:onProperty sep054:version ;
+      owl:maxCardinality "1"^^xsd:nonNegativeInteger ; ] ,
+    [ rdf:type owl:Restriction ; owl:allValuesFrom xsd:boolean ; owl:onProperty sep054:conversion ;
+      owl:minCardinality "1"^^xsd:nonNegativeInteger ; owl:maxCardinality "1"^^xsd:nonNegativeInteger ; ] ,
+    [ rdf:type owl:Restriction ; owl:allValuesFrom xsd:string ; owl:onProperty sep054:dissociated ;
+      owl:maxCardinality "1"^^xsd:nonNegativeInteger ; ] ,
+    [ rdf:type owl:Restriction ; owl:allValuesFrom sep054:Module ; owl:onProperty sep054:hasModule ; ] .
+
+sep054:version rdf:type owl:DatatypeProperty ;
+        rdfs:comment '''The value of this property SHOULD use SemVer to indicate the version of this package. This
+        property SHOULD be set if and only if a package is a root package.''' ;
+              rdfs:domain sep054:Dependency ;
+              rdfs:range xsd:string ;
+              rdfs:label "version" .
+
+sep054:conversion rdf:type owl:DatatypeProperty ;
+        rdfs:comment '''Indicates if this is a native package (false) or conversion package (true)''' ;
+              rdfs:domain sep054:Package ;
+              rdfs:range xsd:boolean ;
+              rdfs:label "conversion" .
+
+sep054:dissociated rdf:type owl:DatatypeProperty ;
+        rdfs:comment '''If not set, this is an atomic package. If set, indicates this package is a dissociated package
+        of the type identified by the string.''' ;
+              rdfs:domain sep054:Package ;
+              rdfs:range xsd:string ;
+              rdfs:label "dissociated" .
+
+sep054:hasModule rdf:type owl:DatatypeProperty ;
+        rdfs:comment '''URI: Indicates the set of `Module` objects aggregated in the `Package`. These may be either
+        plain `Module` objects or sub-`Package` objects.''' ;
+              rdfs:domain sep054:Package ;
+              rdfs:range sep054:Module ;
+              rdfs:label "modules" .
+
+

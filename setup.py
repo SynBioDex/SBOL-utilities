@@ -38,7 +38,8 @@ setup(name='sbol-utilities',
             'biopython',
             'graphviz',
             'tyto>=1.0-beta',
-            'openpyxl'
+            'openpyxl',
+            'sbol_factory>=1.0a9'
             ],
       scripts=['graph-sbol'],
       entry_points = {
