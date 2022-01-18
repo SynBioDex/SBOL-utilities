@@ -1,9 +1,14 @@
-import sbol3
-
 import argparse
 import logging
 
-# from sbol_utilities.workarounds import type_to_standard_extension
+import sbol3
+
+# TODO: Generalize importing to work in the intended use, right now this works 
+# for calling command line functions from within the directory
+from workarounds import type_to_standard_extension
+# This is the exact same as in the other functions, should work for the actual
+# version
+# from sbol_utilities.workarounds import type_to_standard_extension # TODO: Fix installation? Not sure why I am getting an error?
 
 def main():
     """
@@ -27,8 +32,8 @@ def main():
     output_file = args_dict['output_file']
     file_type = args_dict['file_type']
     sbol_file = args_dict['sbol_file']
-    # extension = type_to_standard_extension[file_type]
-    # outfile_name = output_file if output_file.endswith(extension) else output_file+extension
+    extension = type_to_standard_extension[file_type]
+    outfile_name = output_file if output_file.endswith(extension) else output_file+extension
 
     # Read file
     logging.info('Reading SBOL file '+sbol_file)
@@ -39,12 +44,22 @@ def main():
     logging.info('Checking namespaces')
     is_module = check_namespaces(doc)
     logging.info(f'SBOL Document is a Module: {is_module}')
+    # For debugging
     print(f'SBOL Document is a Module: {is_module}')
 
-    # If all namespaces are the same, save as output file
+    # If all namespaces are the same, add module and save as new file
     if is_module:
-        doc.write(outfile_name, file_type)
-        logging.info('Module file written to '+outfile_name)
+        # TODO: Check if the file already has a module defined, if so, abort
+
+        # Define the module
+        module_name = -9999 # Where is module defined?
+
+        # Add the module to the document
+
+
+        # Write out the file
+        # doc.write(outfile_name, file_type)
+        # logging.info('Module file written to '+outfile_name)
 
 def check_namespaces(doc: sbol3.Document):
     """ Check if the namespaces of all top level objects are the same
@@ -69,7 +84,7 @@ def check_namespaces(doc: sbol3.Document):
         else:
             return False
 
-    # If all namespaces are the same, return tru
+    # If all namespaces are the same, return true
     return True
 
 if __name__ == '__main__':
