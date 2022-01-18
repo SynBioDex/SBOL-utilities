@@ -2,7 +2,7 @@ import argparse
 import logging
 
 import sbol3
-from sbol_factor import SBOLFactory
+import package # TODO: How to suppress the output list
 
 # TODO: Generalize importing to work in the intended use, right now this works 
 # for calling command line functions from within the directory
@@ -49,18 +49,16 @@ def main():
     logging.info('Checking namespaces')
     is_module = check_namespaces(doc)
     logging.info(f'SBOL Document is a Module: {is_module}')
-    # For debugging
+
+    ## For debugging ##
     print(f'SBOL Document is a Module: {is_module}')
 
     # If all namespaces are the same, add module and save as new file
     if is_module:
         # TODO: Check if the file already has a module defined, if so, abort
 
-        # Import ontology
-        __factory__ = SBOLFactory(locals(), 'sep_054_extension.ttl', 'http://bioprotocols.org/opil/v1#')
-
         # Define the module
-        module_name = -9999 # Where is module defined?
+        package.sep_054.Module() # Throwing an error just to show it works
 
         # Add the module to the document
 
