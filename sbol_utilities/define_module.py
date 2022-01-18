@@ -2,13 +2,14 @@ import argparse
 import logging
 
 import sbol3
+from sbol_factor import SBOLFactory
 
 # TODO: Generalize importing to work in the intended use, right now this works 
 # for calling command line functions from within the directory
 from workarounds import type_to_standard_extension
 # This is the exact same as in the other functions, should work for the actual
 # version
-# from sbol_utilities.workarounds import type_to_standard_extension # TODO: Fix installation? Not sure why I am getting an error?
+# from sbol_utilities.workarounds import type_to_standard_extension
 
 def main():
     """
@@ -19,21 +20,25 @@ def main():
     parser.add_argument('sbol_file', help="SBOL file used as input")
     parser.add_argument('-o', '--output', dest='output_file', default='out',
                         help="Name of SBOL file to be written")
-    parser.add_argument('-t', '--file-type', dest='file_type', default=sbol3.SORTED_NTRIPLES,
+    parser.add_argument('-t', '--file-type', dest='file_type',
+                        default=sbol3.SORTED_NTRIPLES,
                         help="Name of SBOL file to output to (excluding type)")
-    parser.add_argument('--verbose', '-v', dest='verbose', action='count', default=0,
+    parser.add_argument('--verbose', '-v', dest='verbose', action='count', 
+                        default=0,
                         help="Print running explanation of expansion process")
     args_dict = vars(parser.parse_args())
 
     # Extract arguments:
     verbosity = args_dict['verbose']
-    log_level = logging.WARN if verbosity == 0 else logging.INFO if verbosity == 1 else logging.DEBUG
+    log_level = logging.WARN if verbosity == 0 \
+        else logging.INFO if verbosity == 1 else logging.DEBUG
     logging.getLogger().setLevel(level=log_level)
     output_file = args_dict['output_file']
     file_type = args_dict['file_type']
     sbol_file = args_dict['sbol_file']
     extension = type_to_standard_extension[file_type]
-    outfile_name = output_file if output_file.endswith(extension) else output_file+extension
+    outfile_name = output_file if output_file.endswith(extension) \
+        else output_file+extension
 
     # Read file
     logging.info('Reading SBOL file '+sbol_file)
@@ -50,6 +55,9 @@ def main():
     # If all namespaces are the same, add module and save as new file
     if is_module:
         # TODO: Check if the file already has a module defined, if so, abort
+
+        # Import ontology
+        __factory__ = SBOLFactory(locals(), 'sep_054_extension.ttl', 'http://bioprotocols.org/opil/v1#')
 
         # Define the module
         module_name = -9999 # Where is module defined?
@@ -72,7 +80,7 @@ def check_namespaces(doc: sbol3.Document):
     namespace_holder = None
 
     # Loop through all TopLevel objects
-    for o in doc.objects: # TODO: Check that doc.objects means just TopLevel objects
+    for o in doc.objects:
 
         # Save the first namespace
         if namespace_holder is None:
