@@ -9,8 +9,8 @@ from sbol_utilities.workarounds import get_parent
 
 # TODO: consider allowing return of LocalSubComponent and ExternallyDefined
 def contained_components(roots: Union[sbol3.TopLevel, Iterable[sbol3.TopLevel]]) -> Set[sbol3.Component]:
-    """Find the set of all SBOL Components contained within the roots or their children
-    This will explore via Collection.member relations and Component.feature relations
+    """Find the set of all SBOL Components contained within the roots or their children.
+    This will explore via Collection.member relations and Component.feature relations.
 
     :param roots: single TopLevel or iterable collection of TopLevel objects to explore
     :return: set of Components found, including roots
@@ -36,9 +36,9 @@ def contained_components(roots: Union[sbol3.TopLevel, Iterable[sbol3.TopLevel]])
 
 
 def ensure_singleton_feature(system: sbol3.Component, target: Union[sbol3.Feature, sbol3.Component]):
-    """Return a feature associated with the target, i.e., the target itself if a feature, or a SubComponent
+    """Return a feature associated with the target, i.e., the target itself if a feature, or a SubComponent.
     If the target is not already in the system, add it.
-    Raises ValueError if given a Component with multiple instances
+    Raises ValueError if given a Component with multiple instances.
 
     :return: associated feature
     """
@@ -57,7 +57,7 @@ def ensure_singleton_feature(system: sbol3.Component, target: Union[sbol3.Featur
 
 def ensure_singleton_system(system: Optional[sbol3.Component], *features: Union[sbol3.Feature, sbol3.Component])\
         -> sbol3.Component:
-    """Check that the system referred to is unambiguous. Raises ValueError if there are multiple or zero systems
+    """Check that the system referred to is unambiguous. Raises ValueError if there are multiple or zero systems.
 
     :param system: Optional explicit specification of system
     :param features: features in the same system or components to be referenced from it
@@ -79,7 +79,7 @@ def ensure_singleton_system(system: Optional[sbol3.Component], *features: Union[
 
 def add_feature(component: sbol3.Component, to_add: Union[sbol3.Feature, sbol3.Component]) -> sbol3.Feature:
     """Pass-through adder for adding a Feature to a Component for allowing slightly more compact code.
-    Note that unlike ensure_singleton_feature, this allows adding multiple instances
+    Note that unlike ensure_singleton_feature, this allows adding multiple instances.
 
     :param component: Component to add the Feature to
     :param to_add: Feature or Component to be added to system. Components will be wrapped in a SubComponent Feature
@@ -93,8 +93,8 @@ def add_feature(component: sbol3.Component, to_add: Union[sbol3.Feature, sbol3.C
 
 def contains(container: Union[sbol3.Feature, sbol3.Component], contained: Union[sbol3.Feature, sbol3.Component],
              system: Optional[sbol3.Component] = None) -> sbol3.Feature:
-    """Assert a topological containment constraint between two features (e.g., a promoter contained in a plasmid)
-    Implicitly identifies system and creates/adds features as necessary
+    """Assert a topological containment constraint between two features (e.g., a promoter contained in a plasmid).
+    Implicitly identifies system and creates/adds features as necessary.
 
     :param container: containing feature
     :param contained: feature that is contained
@@ -112,8 +112,8 @@ def contains(container: Union[sbol3.Feature, sbol3.Component], contained: Union[
 
 def order(five_prime: Union[sbol3.Feature, sbol3.Component], three_prime: Union[sbol3.Feature, sbol3.Component],
           system: Optional[sbol3.Component] = None) -> sbol3.Feature:
-    """Assert a topological ordering constraint between two features (e.g., a CDS followed by a terminator)
-    Implicitly identifies system and creates/adds features as necessary
+    """Assert a topological ordering constraint between two features (e.g., a CDS followed by a terminator).
+    Implicitly identifies system and creates/adds features as necessary.
 
     :param five_prime: containing feature
     :param three_prime: feature that is contained
@@ -131,8 +131,8 @@ def order(five_prime: Union[sbol3.Feature, sbol3.Component], three_prime: Union[
 
 def regulate(five_prime: Union[sbol3.Feature, sbol3.Component], target: Union[sbol3.Feature, sbol3.Component],
              system: Optional[sbol3.Component] = None) -> sbol3.Feature:
-    """Connect a 5' regulatory region to control the expression of a 3' target region
-    Note: this function is an alias for "order"
+    """Connect a 5' regulatory region to control the expression of a 3' target region.
+    Note: this function is an alias for "order".
 
     :param five_prime: Regulatory region to place upstream of target
     :param target: region to be regulated (e.g., a CDS or ncRNA)
@@ -144,7 +144,7 @@ def regulate(five_prime: Union[sbol3.Feature, sbol3.Component], target: Union[sb
 
 def constitutive(target: Union[sbol3.Feature, sbol3.Component], system: Optional[sbol3.Component] = None)\
         -> sbol3.Feature:
-    """Add a constitutive promoter regulating the target feature
+    """Add a constitutive promoter regulating the target feature.
 
     :param target: 5' region for promoter to regulate
     :param system: optional explicit statement of system
@@ -172,8 +172,8 @@ def add_interaction(interaction_type: str,
                     participants: Dict[Union[sbol3.Feature, sbol3.Component], str],
                     system: sbol3.Component = None,
                     name: str = None) -> sbol3.Interaction:
-    """Compact function for creation of an interaction
-    Implicitly identifies system and creates/adds features as necessary
+    """Compact function for creation of an interaction.
+    Implicitly identifies system and creates/adds features as necessary.
 
     :param interaction_type: SBO type of interaction to be to be added
     :param participants: dictionary assigning features/components to roles for participations
@@ -191,11 +191,11 @@ def add_interaction(interaction_type: str,
 
 
 def in_role(interaction: sbol3.Interaction, role: str) -> sbol3.Feature:
-    """Find the (precisely one) feature with a given role in the interaction
+    """Find the (precisely one) feature with a given role in the interaction.
 
     :param interaction: interaction to search
     :param role: role to search for
-    :return Feature playing that role
+    :return: Feature playing that role
     """
     feature_participation = [p for p in interaction.participations if role in p.roles]
     if len(feature_participation) != 1:
@@ -204,11 +204,11 @@ def in_role(interaction: sbol3.Interaction, role: str) -> sbol3.Feature:
 
 
 def all_in_role(interaction: sbol3.Interaction, role: str) -> List[sbol3.Feature]:
-    """Find the features with a given role in the interaction
+    """Find the features with a given role in the interaction.
 
     :param interaction: interaction to search
     :param role: role to search for
-    :return sorted list of Features playing that role
+    :return: sorted list of Features playing that role
     """
     return id_sort([p.participant.lookup() for p in interaction.participations if role in p.roles])
 
@@ -411,7 +411,7 @@ def media(identity: str, recipe = None, **kwargs)-> sbol3.Component:
     :param **kwargs: Keyword arguments of any other Component attribute.
     :return: A Component object.
     """
-    media =  sbol3.Component(identity, sbol3.SBO_FUNCTIONAL_ENTITY, **kwargs)
+    media = functional_component(identity, **kwargs)
     media.roles.append(tyto.NCIT.Media)
     if recipe:
         for key, value in recipe.items():
@@ -428,14 +428,14 @@ def strain(identity: str, **kwargs)-> sbol3.Component:
     :param **kwargs: Keyword arguments of any other Component attribute.
     :return: A Component object.
     """
-    strain =  sbol3.Component(identity, sbol3.SBO_FUNCTIONAL_ENTITY, **kwargs)
+    strain = functional_component(identity, **kwargs)
     strain.roles.append(tyto.NCIT.Strain)
     return strain
 
 def ed_simple_chemical(definition: str, **kwargs)-> sbol3.Component:
     """Creates an ExternallyDefined Simple Chemical Component.
 
-    :param definition: The URI that links to a canonical definitino external to SBOL, recommended ChEBI.
+    :param definition: The URI that links to a canonical definition external to SBOL, recommended ChEBI and PubChem.
     :param **kwargs: Keyword arguments of any other ExternallyDefined attribute.
     :return: A Component object.
     """
