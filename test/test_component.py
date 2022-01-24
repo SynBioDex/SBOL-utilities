@@ -9,6 +9,8 @@ import tyto
 from sbol_utilities.component import contained_components, contains, add_feature, add_interaction, constitutive, \
     regulate, order, in_role, all_in_role, ensure_singleton_feature
 
+from sbol3 import component
+
 
 class TestComponent(unittest.TestCase):
 
@@ -47,6 +49,17 @@ class TestComponent(unittest.TestCase):
         comparison_file = os.path.join(test_dir, 'test_files', 'component_construction.nt')
         assert filecmp.cmp(tmp_out, comparison_file), f'Converted file {tmp_out} is not identical'
 
+        hlc_doc = sbol3.Document()
+        sbol3.set_namespace('http://sbolstandard.org/testfiles')
+
+        dna_comp, dna_seq = component.dna_component_with_sequence('J23101','tttacagctagctcagtcctaggtattatgctagc ', description='https://synbiohub.org/public/igem/BBa_J23101/1')
+        rna_comp, rna_seq = component.rna_component_with_sequence('J23101','uuuacagcuagcucaguccuagguauuaugcuagc ', description='https://synbiohub.org/public/igem/BBa_J23101/1')
+        pro_comp, pro_seq = component.protein_component_with_sequence('J23101','FTASSVLGIML', description='https://synbiohub.org/public/igem/BBa_J23101/1')
+        media = component.media('LB')
+        hlc_doc.add([dna_comp, dna_seq, rna_comp, rna_seq, pro_comp, pro_seq, media])
+
+        report_sbol3 = doc.validate()
+        assert len(report_sbol3) == 0
 
 if __name__ == '__main__':
     unittest.main()
