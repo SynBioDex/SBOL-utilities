@@ -51,14 +51,12 @@ class TestComponent(unittest.TestCase):
 
         hlc_doc = sbol3.Document()
         sbol3.set_namespace('http://sbolstandard.org/testfiles')
-
-        dna_comp, dna_seq = component.dna_component_with_sequence('J23101','tttacagctagctcagtcctaggtattatgctagc ', description='https://synbiohub.org/public/igem/BBa_J23101/1')
-        rna_comp, rna_seq = component.rna_component_with_sequence('J23101','uuuacagcuagcucaguccuagguauuaugcuagc ', description='https://synbiohub.org/public/igem/BBa_J23101/1')
-        pro_comp, pro_seq = component.protein_component_with_sequence('J23101','FTASSVLGIML', description='https://synbiohub.org/public/igem/BBa_J23101/1')
+        dna_comp, dna_seq = component.dna_component_with_sequence('J23101dna','tttacagctagctcagtcctaggtattatgctagc ', description='https://synbiohub.org/public/igem/BBa_J23101/1')
+        rna_comp, rna_seq = component.rna_component_with_sequence('J23101rna','uuuacagcuagcucaguccuagguauuaugcuagc ', description='https://synbiohub.org/public/igem/BBa_J23101/1')
+        pro_comp, pro_seq = component.protein_component_with_sequence('J23101pro','FTASSVLGIML', description='https://synbiohub.org/public/igem/BBa_J23101/1')
         media = component.media('LB')
         hlc_doc.add([dna_comp, dna_seq, rna_comp, rna_seq, pro_comp, pro_seq, media])
-
-        report_sbol3 = doc.validate()
+        report_sbol3 = hlc_doc.validate()
         assert len(report_sbol3) == 0
 
 if __name__ == '__main__':
