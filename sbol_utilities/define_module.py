@@ -3,10 +3,19 @@ import logging
 
 import sbol3
 
-import sbol_utilities.package # TODO: Suppress the output list
+import sbol_utilities.package
 from sbol_utilities.workarounds import type_to_standard_extension
 
 def define_module(doc: sbol3.Document):
+    """Function to take an sbol document, check if it is a module, and create
+    a new sbol document with the module definition included
+
+    Args:
+        doc (sbol3.Document): The document to be checked for a module
+
+    Return
+        doc (sbol3.Document): The document with the added module info
+    """
     # Call check_namespace
     logging.info('Checking namespaces')
     is_module, module_namespace = check_namespaces(doc)
@@ -38,28 +47,25 @@ def define_module(doc: sbol3.Document):
 def check_namespaces(doc: sbol3.Document):
     """ Check if the namespaces of all top level objects are the same
 
-    :param doc: Document containing top level objects
-    :return: boolean, true is all namespaces are the same
+    Args:
+        doc (sbol3.Document): Document containing top level objects
+
+    Returns:
+        is_module (boolean): True if all namespaces are the same
+        namespace (string): Namespace of the module
     """
 
-    # Make a placeholder for the namespace
-    namespace_holder = None
+    # Get a list of all namespaces
+    all_namespaces = [o.namespace for o in doc.objects]
 
-    # Loop through all TopLevel objects
-    for o in doc.objects:
+    # Check all namespaces are the same
+    is_module = all(x == all_namespaces[0] for x in all_namespaces)
 
-        # Save the first namespace
-        if namespace_holder is None:
-            namespace_holder = o.namespace
+    # Get the first namespace to pass the string
+    # Which position you pick won't matter if it is a module
+    namespace = all_namespaces[0]
 
-        # Compare every other namespace to the first
-        if o.namespace == namespace_holder:
-            continue
-        else:
-            return False
-
-    # If all namespaces are the same, return true
-    return True, namespace_holder
+    return is_module, namespace
 
 def main():
     """
