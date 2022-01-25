@@ -10,9 +10,6 @@ from sbol_utilities.component import contained_components, contains, add_feature
     regulate, order, in_role, all_in_role, ensure_singleton_feature, dna_component_with_sequence, rna_component_with_sequence, \
     protein_component_with_sequence, media
 
-from sbol3 import component
-
-
 class TestComponent(unittest.TestCase):
 
     def test_system_building(self):
