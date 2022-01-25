@@ -1,20 +1,11 @@
 import filecmp
 import unittest
 import os
+import tempfile
 
 import sbol3
 
-# FIXME: Need help with relative importing
-# I think it's supposed to be 
 import sbol_utilities.define_module
-# But this gives me an error, ModuleNotFoundError: No module named 'sbol_utilities.define_module'
-# Also tried
-# import define_module
-# from sbol_utilities import define_module
-# FIXME: How to get rid of adding to path
-# import sys
-# sys.path.append('/c/Users/hscott/Documents/SBOL/SBOL-utilities/')
-# import sbol_utilities.define_module
 
 class TestDefineModule(unittest.TestCase):
     def test_define_module(self):
@@ -28,13 +19,13 @@ class TestDefineModule(unittest.TestCase):
         # Run the function
         new_doc = sbol_utilities.define_module.define_module(doc)
 
-        # Read in the new file
-        new_doc = sbol3.Document()
-        new_doc.read(os.path.join(test_dir, 'test_files', 'out.nt')) # FIXME: Where does my file go by default?
+        # Write a temporary file
+        tmp_out = tempfile.mkstemp(suffix='.nt')[1]
+        new_doc.write(tmp_out, sbol3.SORTED_NTRIPLES)
 
         # Compare it to the saved results file, make sure they are the same
         comparison_file = os.path.join(test_dir, 'test_files', 'module_out.nt')
-        assert filecmp.cmp(new_doc, comparison_file), 'Files are not identical'
+        assert filecmp.cmp(tmp_out, comparison_file), 'Files are not identical'
 
         # Delete the file
         if os.path.exists('out.nt'):
