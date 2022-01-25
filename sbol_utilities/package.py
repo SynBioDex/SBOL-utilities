@@ -1,13 +1,13 @@
 import os
-import glob
-import warnings
+# import glob
+# import warnings
 from pathlib import Path
-from typing import List, Union
-from copy import copy
+# from typing import List, Union
+# from copy import copy
 
-import git
-import openpyxl
-import sbol3
+# import git
+# import openpyxl
+# import sbol3
 from sbol_factory import SBOLFactory
 
 # this makes a sub-package that will be used until these migrate into the SBOL3 namespace
