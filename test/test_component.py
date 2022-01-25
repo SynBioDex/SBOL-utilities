@@ -57,7 +57,7 @@ class TestComponent(unittest.TestCase):
         media = component.media('LB')
         hlc_doc.add([dna_comp, dna_seq, rna_comp, rna_seq, pro_comp, pro_seq, media])
         report_sbol3 = hlc_doc.validate()
-        assert len(report_sbol3) == 0
+        assert len(report_sbol3) == 0, 'high level component failed'
 
 if __name__ == '__main__':
     unittest.main()
