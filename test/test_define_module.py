@@ -6,14 +6,15 @@ import sbol3
 
 # FIXME: Need help with relative importing
 # I think it's supposed to be 
-# import sbol_utilities.define_module
+import sbol_utilities.define_module
 # But this gives me an error, ModuleNotFoundError: No module named 'sbol_utilities.define_module'
 # Also tried
 # import define_module
 # from sbol_utilities import define_module
-import sys
-sys.path.append('/c/Users/hscott/Documents/SBOL/SBOL-utilities/')
-import sbol_utilities.define_module
+# FIXME: How to get rid of adding to path
+# import sys
+# sys.path.append('/c/Users/hscott/Documents/SBOL/SBOL-utilities/')
+# import sbol_utilities.define_module
 
 class TestDefineModule(unittest.TestCase):
     def test_define_module(self):
@@ -25,7 +26,7 @@ class TestDefineModule(unittest.TestCase):
         doc.read(os.path.join(test_dir, 'test_files', 'module_in.nt'))
 
         # Run the function
-        sbol_utilities.define_module.define_module(doc)
+        new_doc = sbol_utilities.define_module.define_module(doc)
 
         # Read in the new file
         new_doc = sbol3.Document()

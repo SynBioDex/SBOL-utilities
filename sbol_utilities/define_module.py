@@ -26,8 +26,8 @@ def define_module(doc: sbol3.Document):
 
         # Define the module
         # Module is expecting only one positional argument, 'identity'
-        # TODO: Check what is an identity string, can I just call it 'module'? Do we want it to be user defined?
-        module = sbol_utilities.package.sep_054.Module('Module') # Identity becomes "'http://sbols.org/unspecified_namespace/Module'", do I need to set a namespace, the namespace of the Module?
+        # TODO: Check what is an identity string, can I just call it 'module'? Do we want it to be user defined? # FIXME: Use full url not the display id, or set namespaces
+        module = sbol_utilities.package.sep_054.Module('module') # Identity becomes "'http://sbols.org/unspecified_namespace/Module'", do I need to set a namespace, the namespace of the Module?
         # All top level objects are members
         module.members = all_names
         # The displayId should be module, unless it is also a package # TODO: Check if it is also a package
@@ -38,11 +38,9 @@ def define_module(doc: sbol3.Document):
         # Add the module to the document
         doc.add(module)
 
-        # TODO: Add the hasModule object too?
-
-        # Write out the file
-        doc.write(outfile_name, file_type)
-        logging.info('Module file written to '+ outfile_name)
+        # Return the doc
+        return(doc)
+        
 
 def check_namespaces(doc: sbol3.Document):
     """ Check if the namespaces of all top level objects are the same
@@ -105,7 +103,11 @@ def main():
     doc.read(sbol_file)
 
     # Call define_module
-    define_module(doc)
+    new_doc = define_module(doc)
+
+    # Write out the new file
+    new_doc.write(outfile_name, file_type)
+    logging.info('Module file written to '+ outfile_name)
     
 
 if __name__ == '__main__':
