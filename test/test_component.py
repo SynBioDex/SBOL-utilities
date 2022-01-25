@@ -52,8 +52,8 @@ class TestComponent(unittest.TestCase):
         dna_comp, dna_seq = dna_component_with_sequence('J23101dna','tttacagctagctcagtcctaggtattatgctagc ', description='https://synbiohub.org/public/igem/BBa_J23101/1')
         rna_comp, rna_seq = rna_component_with_sequence('J23101rna','uuuacagcuagcucaguccuagguauuaugcuagc ', description='https://synbiohub.org/public/igem/BBa_J23101/1')
         pro_comp, pro_seq = protein_component_with_sequence('J23101pro','FTASSVLGIML', description='https://synbiohub.org/public/igem/BBa_J23101/1')
-        media = media('LB')
-        hlc_doc.add([dna_comp, dna_seq, rna_comp, rna_seq, pro_comp, pro_seq, media])
+        lb_media = media('LB')
+        hlc_doc.add([dna_comp, dna_seq, rna_comp, rna_seq, pro_comp, pro_seq, lb_media])
         report_sbol3 = hlc_doc.validate()
         assert len(report_sbol3) == 0, 'high level component failed'
 
