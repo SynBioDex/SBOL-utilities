@@ -2,13 +2,9 @@ import argparse
 import logging
 
 import sbol3
-# FIXME: Make sure relative importing works with the intended  use case
-# These ones SHOULD work
+
 import sbol_utilities.package # TODO: Suppress the output list
 from sbol_utilities.workarounds import type_to_standard_extension
-# These ones SHOULDN'T WORK
-# import package # TODO: Suppress the output list
-# from workarounds import type_to_standard_extension
 
 def define_module(doc: sbol3.Document):
     # Call check_namespace
@@ -20,18 +16,15 @@ def define_module(doc: sbol3.Document):
     if is_module:
         # TODO: Check if the file already has a module defined, if so, abort
 
-        # Get list of all members 
-        # TODO: Check I want the names and not somthing else, sequences have no names, will modules have no sequences
-        all_names = [o.name for o in doc.objects]
+        # Get list of identities of all top level objects 
+        all_identities = [o.identity for o in doc.objects]
 
         # Define the module
-        # Module is expecting only one positional argument, 'identity'
-        # TODO: Check what is an identity string, can I just call it 'module'? Do we want it to be user defined? # FIXME: Use full url not the display id, or set namespaces
-        module = sbol_utilities.package.sep_054.Module('module') # Identity becomes "'http://sbols.org/unspecified_namespace/Module'", do I need to set a namespace, the namespace of the Module?
+        module = sbol_utilities.package.sep_054.Module(module_namespace + '/module')
+
         # All top level objects are members
-        module.members = all_names
-        # The displayId should be module, unless it is also a package # TODO: Check if it is also a package
-        # module.display_id = 'module' # Seems to be set automatically
+        module.members = all_identities
+
         # Namespace must match the hasNamespace value for all of its members
         module.namespace = module_namespace
 
@@ -79,7 +72,7 @@ def main():
                         help="Name of SBOL file to be written")
     parser.add_argument('-t', '--file-type', dest='file_type',
                         default=sbol3.SORTED_NTRIPLES,
-                        help="Name of SBOL file to output to (excluding type)") # TODO: Ask about this definition
+                        help="Name of SBOL file to output to (excluding type)")
     parser.add_argument('--verbose', '-v', dest='verbose', action='count', 
                         default=0,
                         help="Print running explanation of expansion process")

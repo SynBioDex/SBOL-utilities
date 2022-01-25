@@ -1,0 +1,32 @@
+
+<http://parts.igem.org/E0040> <http://sbols.org/v3#description> "Green FP (off patent)\nGFPmut3" .
+<http://parts.igem.org/E0040> <http://sbols.org/v3#displayId> "E0040" .
+<http://parts.igem.org/E0040> <http://sbols.org/v3#hasNamespace> <http://parts.igem.org> .
+<http://parts.igem.org/E0040> <http://sbols.org/v3#hasSequence> <http://parts.igem.org/E0040_sequence> .
+<http://parts.igem.org/E0040> <http://sbols.org/v3#name> "GFPmut3" .
+<http://parts.igem.org/E0040> <http://sbols.org/v3#role> <https://identifiers.org/SO:0000316> .
+<http://parts.igem.org/E0040> <http://sbols.org/v3#type> <https://identifiers.org/SBO:0000251> .
+<http://parts.igem.org/E0040> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://sbols.org/v3#Component> .
+<http://parts.igem.org/E1010> <http://sbols.org/v3#description> "Red FP (off patent)\nmRFP1" .
+<http://parts.igem.org/E1010> <http://sbols.org/v3#displayId> "E1010" .
+<http://parts.igem.org/E1010> <http://sbols.org/v3#hasNamespace> <http://parts.igem.org> .
+<http://parts.igem.org/E1010> <http://sbols.org/v3#hasSequence> <http://parts.igem.org/E1010_sequence> .
+<http://parts.igem.org/E1010> <http://sbols.org/v3#name> "mRFP1" .
+<http://parts.igem.org/E1010> <http://sbols.org/v3#role> <https://identifiers.org/SO:0000316> .
+<http://parts.igem.org/E1010> <http://sbols.org/v3#type> <https://identifiers.org/SBO:0000251> .
+<http://parts.igem.org/E1010> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://sbols.org/v3#Component> .
+<http://parts.igem.org/I20270> <http://sbols.org/v3#description> "positive control 2018 interlab" .
+<http://parts.igem.org/I20270> <http://sbols.org/v3#displayId> "I20270" .
+<http://parts.igem.org/I20270> <http://sbols.org/v3#hasNamespace> <http://parts.igem.org> .
+<http://parts.igem.org/I20270> <http://sbols.org/v3#hasSequence> <http://parts.igem.org/I20270_sequence> .
+<http://parts.igem.org/I20270> <http://sbols.org/v3#name> "I20270" .
+<http://parts.igem.org/I20270> <http://sbols.org/v3#role> <https://identifiers.org/SO:0000804> .
+<http://parts.igem.org/I20270> <http://sbols.org/v3#type> <https://identifiers.org/SBO:0000251> .
+<http://parts.igem.org/I20270> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://sbols.org/v3#Component> .
+<http://parts.igem.org/module> <http://sbols.org/v3#displayId> "module" .
+<http://parts.igem.org/module> <http://sbols.org/v3#hasNamespace> <http://parts.igem.org> .
+<http://parts.igem.org/module> <http://sbols.org/v3#member> <http://parts.igem.org/E0040> .
+<http://parts.igem.org/module> <http://sbols.org/v3#member> <http://parts.igem.org/E1010> .
+<http://parts.igem.org/module> <http://sbols.org/v3#member> <http://parts.igem.org/I20270> .
+<http://parts.igem.org/module> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://sbols.org/SEP054#Module> .
+<http://parts.igem.org/module> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://sbols.org/v3#TopLevel> .
