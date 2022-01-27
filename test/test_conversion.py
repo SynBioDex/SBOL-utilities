@@ -62,6 +62,10 @@ class Test2To3Conversion(unittest.TestCase):
         assert doc2.componentDefinitions[0].sequences[0] == 'https://synbiohub.org/public/igem/BBa_J23101_sequence'
         assert doc2.sequences[0].encoding == 'http://www.chem.qmul.ac.uk/iubmb/misc/naseq.html'
         assert doc2.sequences[0].elements == 'tttacagctagctcagtcctaggtattatgctagc'
+        for c in doc2.componentDefinitions:
+            for sa in c.sequenceAnnotations:
+                for loc in sa.locations:
+                    assert loc.orientation != 'http://sbols.org/v3#inline'
 
     def test_genbank_conversion(self):
         """Test ability to convert from SBOL3 to GenBank"""
