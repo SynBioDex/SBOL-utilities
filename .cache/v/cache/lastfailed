@@ -1,0 +1,11 @@
+{
+  "test/test_calculate_sequences.py": true, 
+  "test/test_component.py": true, 
+  "test/test_conversion.py": true, 
+  "test/test_define_module.py": true, 
+  "test/test_excel_to_sbol.py": true, 
+  "test/test_expand_combinatorial_derivations.py": true, 
+  "test/test_helpers.py": true, 
+  "test/test_sbol_diff.py": true, 
+  "test/test_sequence.py": true
+}

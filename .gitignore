@@ -1,6 +1,0 @@
-# Ignore cached files
-.cache/
-*/__pycache__
-
-# Ignore VSCode set up
-.vscode/
