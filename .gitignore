@@ -1,0 +1,6 @@
+# pytest cache
+.pytest_cache/
+
+# pycaches
+test/__pycache__/
+sbol_utilities/__pycache__/

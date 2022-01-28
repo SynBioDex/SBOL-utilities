@@ -17,6 +17,7 @@ class TestDocStringsCoverage(unittest.TestCase):
         covered_percent = round((results.covered * 100)/ results.total, 2)
         results.ret_code = covered_percent < interrogate_config.fail_under
         # covered % must satisfy min % set in .toml
+        print("\n")
         cov.print_results(results, None, interrogate_config.color["verbose"])
         self.assertGreaterEqual(covered_percent, interrogate_config.fail_under, 'Required minimum percent of code covered by docstrings not achieved.')
 
