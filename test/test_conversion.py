@@ -3,6 +3,7 @@ import tempfile
 import unittest
 import os
 import filecmp
+import collections
 from unittest.mock import patch
 
 import sbol2
@@ -62,10 +63,23 @@ class Test2To3Conversion(unittest.TestCase):
         assert doc2.componentDefinitions[0].sequences[0] == 'https://synbiohub.org/public/igem/BBa_J23101_sequence'
         assert doc2.sequences[0].encoding == 'http://www.chem.qmul.ac.uk/iubmb/misc/naseq.html'
         assert doc2.sequences[0].elements == 'tttacagctagctcagtcctaggtattatgctagc'
+        # ids of location block containing orientation before conversion
+        location_ids_sbol3 = []
+        def change_if_location(o):
+            if isinstance(o, sbol3.Location):
+                if hasattr(o, 'orientation') and o.orientation != None:
+                    location_ids_sbol3.append(o.identity)
+        doc3.traverse(change_if_location)
+        # ids of location block containing orientation after conversion
+        location_ids_sbol2 = []
         for c in doc2.componentDefinitions:
             for sa in c.sequenceAnnotations:
                 for loc in sa.locations:
-                    assert loc.orientation != 'http://sbols.org/v3#inline'
+                    if hasattr(loc, 'orientaiton') and loc.orientation != None:
+                        location_ids_sbol2.append(loc.identity)
+                        assert loc.orientation != 'http://sbols.org/v3#inline'
+        assert collections.Counter(location_ids_sbol2) == collections.Counter(location_ids_sbol3)
+
 
     def test_genbank_conversion(self):
         """Test ability to convert from SBOL3 to GenBank"""
