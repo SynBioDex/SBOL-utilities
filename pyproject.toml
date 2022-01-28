@@ -1,5 +1,6 @@
 [tool.interrogate]
 
+# custom docstring conventions
 ignore-init-method = true
 ignore-init-module = false
 ignore-magic = false
@@ -10,10 +11,11 @@ ignore-module = false
 ignore-nested-functions = false
 ignore-nested-classes = true
 ignore-setters = false
-fail-under = 95
+# final covered percent must not be below this to pass
+fail-under = 50
 exclude = ["setup.py", "docs", "build"]
 ignore-regex = ["^get$", "^mock_.*", ".*BaseClass.*"]
-# possible values: 0 (minimal output), 1 (-v), 2 (-vv)
+# options: 0 - only result %; 1 - results per file; 2 - results per method/class/function per file
 verbose = 1
 quiet = false
 whitelist-regex = []

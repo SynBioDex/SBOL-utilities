@@ -1,29 +1,24 @@
-"""
-    Tests each module, function, classes, methods for presence of docstrings
-"""
 import unittest
 from interrogate import coverage
 from interrogate import config
 
-"""
-    Setting up test config
-"""
-print("\nProject Root taken as:")
-print(config.find_project_root("."))
-print("\nProject Config taken as:")
-print(config.find_project_config("."))
-print("\nUsing Parsed Project config:   (To changemodify project config file)")
-interrogate_config = config.InterrogateConfig(config.parse_pyproject_toml(config.find_project_config(".")))
-print(interrogate_config)
-
-"""
-    Obtaining and printing results
-"""
-cov = coverage.InterrogateCoverage(paths=["."], conf=interrogate_config)
-results = cov.get_coverage()
-print("\nParsed Results:")
-cov.print_results(results, None, interrogate_config.color["verbose"])
-
+class TestDocStringsCoverage(unittest.TestCase):
+    def test_using_interrogate(self):
+        """Tests each module, function, classes, methods for presence of docstrings"""
+        # Parsing config (looks for pyproject.toml by default) 
+        project_root = "."
+        interrogate_config: config.InterrogateConfig = config.InterrogateConfig(config.parse_pyproject_toml(config.find_project_config(project_root)))
+        # Obtaining and printing results
+        cov: coverage.InterrogateCoverage = coverage.InterrogateCoverage(paths=[project_root], conf=interrogate_config)
+        results: coverage.InterrogateResults = cov.get_coverage()
+        # For some reason, fail_under prop occurs twice in `interrogate_config`, and editing it from .toml only updates the second occurence
+        interrogate_config.__setattr__("fail_under", interrogate_config.color["fail_under"])
+        # return code does not update on its own 
+        covered_percent = round((results.covered * 100)/ results.total, 2)
+        results.ret_code = covered_percent < interrogate_config.fail_under
+        # covered % must satisfy min % set in .toml
+        cov.print_results(results, None, interrogate_config.color["verbose"])
+        self.assertGreaterEqual(covered_percent, interrogate_config.fail_under, 'Required minimum percent of code covered by docstrings not achieved.')
 
 if __name__ == '__main__':
     unittest.main()

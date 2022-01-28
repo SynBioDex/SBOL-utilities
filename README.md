@@ -1,3 +1,4 @@
+![Interrogate](./interrogate_badge.svg)
 # SBOL-utilities
 SBOL-utilities is a collection of scripts and functions for manipulating SBOL 3 data that can be run from the command line or as functions in Python.
 
