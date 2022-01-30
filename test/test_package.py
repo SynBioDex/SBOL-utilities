@@ -5,10 +5,10 @@ import tempfile
 
 import sbol3
 
-import sbol_utilities.define_module
+import sbol_utilities.package
 
-class TestDefineModule(unittest.TestCase):
-    def test_define_module(self):
+class TestPackage(unittest.TestCase):
+    def test_define_package(self):
         """Test defining a package from an SBOL document"""
         
         # Read in the test file
@@ -17,7 +17,7 @@ class TestDefineModule(unittest.TestCase):
         doc.read(os.path.join(test_dir, 'test_files', 'package_in.nt'))
 
         # Run the function
-        new_doc = sbol_utilities.define_module.define_package(doc)
+        new_doc = sbol_utilities.package.define_package(doc)
 
         # Write a temporary file
         tmp_out = tempfile.mkstemp(suffix='.nt')[1]
