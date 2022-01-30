@@ -150,12 +150,11 @@ def convert2to3(sbol2_doc: Union[str, sbol2.Document], namespaces=None) -> sbol3
         sbol2.SBOL_ORIENTATION_INLINE: sbol3.SBOL_INLINE,
         sbol2.SBOL_ORIENTATION_REVERSE_COMPLEMENT: sbol3.SBOL_REVERSE_COMPLEMENT
     }
-    def change_if_location(o):
+    def change_orientation(o):
         if isinstance(o, sbol3.Location):
-            if o.orientation in orientation_remapping:
+            if hasattr(o, 'orientation') and o.orientation in orientation_remapping:
                 o.orientation = orientation_remapping[o.orientation]
-    doc.traverse(change_if_location)
-
+    doc.traverse(change_orientation)
 
     return doc
 
@@ -192,11 +191,11 @@ def convert3to2(doc3: sbol3.Document) -> sbol2.Document:
         sbol3.SBOL_INLINE: sbol2.SBOL_ORIENTATION_INLINE,
         sbol3.SBOL_REVERSE_COMPLEMENT: sbol2.SBOL_ORIENTATION_REVERSE_COMPLEMENT
     }
-    def change_location(o):
+    def change_orientation(o):
         if isinstance(o, sbol3.Location):
-            if o.orientation in orientation_remapping:
+            if hasattr(o, 'orientation') and o.orientation in orientation_remapping:
                 o.orientation = orientation_remapping[o.orientation]
-    doc3.traverse(change_location)
+    doc3.traverse(change_orientation)
 
     # Write to an RDF-XML temp file to run through the converter:
     sbol3_path = tempfile.mkstemp(suffix='.xml')[1]

@@ -63,23 +63,33 @@ class Test2To3Conversion(unittest.TestCase):
         assert doc2.componentDefinitions[0].sequences[0] == 'https://synbiohub.org/public/igem/BBa_J23101_sequence'
         assert doc2.sequences[0].encoding == 'http://www.chem.qmul.ac.uk/iubmb/misc/naseq.html'
         assert doc2.sequences[0].elements == 'tttacagctagctcagtcctaggtattatgctagc'
+
+    def test_3to2_orientation_conversion(self):
+        """Test ability to convert orientation from SBOL3to SBOL2"""
+        # Get the SBOL3 test document
+        tmp_sub = copy_to_tmp(package=['iGEM_SBOL2_imports.nt'])
+        doc3 = sbol3.Document()
+        doc3.read(os.path.join(tmp_sub, 'iGEM_SBOL2_imports.nt'))
+
+        # Convert to SBOL2 and check contents
+        doc2 = convert3to2(doc3)
         # ids of location block containing orientation before conversion
         location_ids_sbol3 = []
-        def change_if_location(o):
+        def append_locationid_with_orientation(o):
             if isinstance(o, sbol3.Location):
                 if hasattr(o, 'orientation') and o.orientation != None:
                     location_ids_sbol3.append(o.identity)
-        doc3.traverse(change_if_location)
+        doc3.traverse(append_locationid_with_orientation)
         # ids of location block containing orientation after conversion
         location_ids_sbol2 = []
         for c in doc2.componentDefinitions:
             for sa in c.sequenceAnnotations:
                 for loc in sa.locations:
-                    if hasattr(loc, 'orientaiton') and loc.orientation != None:
+                    if hasattr(loc, 'orientation') and loc.orientation != None:
                         location_ids_sbol2.append(loc.identity)
                         assert loc.orientation != 'http://sbols.org/v3#inline'
+        assert len(location_ids_sbol2) == 12
         assert collections.Counter(location_ids_sbol2) == collections.Counter(location_ids_sbol3)
-
 
     def test_genbank_conversion(self):
         """Test ability to convert from SBOL3 to GenBank"""
