@@ -63,5 +63,4 @@ The `sbol-diff` utility computes the difference between two SBOL3 documents
 and reports the differences.
 
 ### Add a package definition to an SBOL file
-The `define_module` utility checks if an SBOL file constitutes a module and adds
-the needed lines to a new 
+The `define_package` utility in `package` checks if an SBOL file constitutes a package and creates a new file with the package definition
