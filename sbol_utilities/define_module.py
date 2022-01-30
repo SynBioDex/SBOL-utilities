@@ -6,39 +6,39 @@ import sbol3
 import sbol_utilities.package
 from sbol_utilities.workarounds import type_to_standard_extension
 
-def define_module(doc: sbol3.Document):
-    """Function to take an sbol document, check if it is a module, and create
-    a new sbol document with the module definition included
+def define_package(doc: sbol3.Document):
+    """Function to take an sbol document, check if it is a package, and create
+    a new sbol document with the package definition included
 
     Args:
-        doc (sbol3.Document): The document to be checked for a module
+        doc (sbol3.Document): The document to be checked for a package
 
     Return
-        doc (sbol3.Document): The document with the added module info
+        doc (sbol3.Document): The document with the added package info
     """
     # Call check_namespace
     logging.info('Checking namespaces')
-    is_module, module_namespace = check_namespaces(doc)
-    logging.info(f'SBOL Document is a Module: {is_module}')
+    is_package, package_namespace = check_namespaces(doc)
+    logging.info(f'SBOL Document is a package: {is_package}')
 
-    # If all namespaces are the same, add module and save as new file
-    if is_module:
-        # TODO: Check if the file already has a module defined, if so, abort
+    # If all namespaces are the same, add package and save as new file
+    if is_package:
 
         # Get list of identities of all top level objects 
         all_identities = [o.identity for o in doc.objects]
 
-        # Define the module
-        module = sbol_utilities.package.sep_054.Module(module_namespace + '/module')
+        # Define the package
+        package = sbol_utilities.package.sep_054.Package(package_namespace +
+                                                            '/package')
 
         # All top level objects are members
-        module.members = all_identities
+        package.members = all_identities
 
         # Namespace must match the hasNamespace value for all of its members
-        module.namespace = module_namespace
+        package.namespace = package_namespace
 
-        # Add the module to the document
-        doc.add(module)
+        # Add the package to the document
+        doc.add(package)
 
         # Return the doc
         return(doc)
@@ -51,21 +51,21 @@ def check_namespaces(doc: sbol3.Document):
         doc (sbol3.Document): Document containing top level objects
 
     Returns:
-        is_module (boolean): True if all namespaces are the same
-        namespace (string): Namespace of the module
+        is_package (boolean): True if all namespaces are the same
+        namespace (string): Namespace of the package
     """
 
     # Get a list of all namespaces
     all_namespaces = [o.namespace for o in doc.objects]
 
     # Check all namespaces are the same
-    is_module = all(x == all_namespaces[0] for x in all_namespaces)
+    is_package = all(x == all_namespaces[0] for x in all_namespaces)
 
     # Get the first namespace to pass the string
-    # Which position you pick won't matter if it is a module
+    # Which position you pick won't matter if it is a package
     namespace = all_namespaces[0]
 
-    return is_module, namespace
+    return is_package, namespace
 
 def main():
     """
@@ -101,12 +101,12 @@ def main():
     doc = sbol3.Document()
     doc.read(sbol_file)
 
-    # Call define_module
-    new_doc = define_module(doc)
+    # Call define_package
+    new_doc = define_package(doc)
 
     # Write out the new file
     new_doc.write(outfile_name, file_type)
-    logging.info('Module file written to '+ outfile_name)
+    logging.info('Package file written to '+ outfile_name)
     
 
 if __name__ == '__main__':
