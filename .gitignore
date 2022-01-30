@@ -2,5 +2,5 @@
 .cache/
 */__pycache__
 
-# Ignore VSCode set up
-.vscode/
+# Ignore the gitignore
+.gitignore
