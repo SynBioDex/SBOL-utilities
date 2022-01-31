@@ -64,7 +64,8 @@ def regularize_package_directory(dir: str):
         raise ValueError(f'Package {dir}: {PACKAGE_DIRECTORY} subdirectory should not have any subdirectories of its '
                          f'own, but found {package_sub_dirs[0]}')
 
-def define_package(doc: sbol3.Document):
+def define_package(*args: sbol3.Document):
+    # FIXME: 
     """Function to take an sbol document, check if it is a package, and create
     a new sbol document with the package definition included
 
@@ -74,16 +75,17 @@ def define_package(doc: sbol3.Document):
     Return
         doc (sbol3.Document): The document with the added package info
     """
+
     # Call check_namespace
     logging.info('Checking namespaces')
-    is_package, package_namespace = check_namespaces(doc)
+    is_package, package_namespace = check_namespaces(*args)
     logging.info(f'SBOL Document is a package: {is_package}')
 
     # If all namespaces are the same, add package and save as new file
     if is_package:
 
-        # Get list of identities of all top level objects 
-        all_identities = [o.identity for o in doc.objects]
+        # Get list of identities of all top level objects from all files
+        all_identities = [o.identity for doc in args for o in doc.objects]
 
         # Define the package
         package = sep_054.Package(package_namespace + '/package')
@@ -94,6 +96,12 @@ def define_package(doc: sbol3.Document):
         # Namespace must match the hasNamespace value for all of its members
         package.namespace = package_namespace
 
+        # Combine all of the docs into one
+        doc = args[0]
+        for sbol_doc in args[1:]:
+            doc_objects = [o for o in sbol_doc.objects]
+            doc.add(doc_objects)
+        
         # Add the package to the document
         doc.add(package)
 
@@ -101,7 +109,8 @@ def define_package(doc: sbol3.Document):
         return(doc)
         
 
-def check_namespaces(doc: sbol3.Document):
+def check_namespaces(*args: sbol3.Document):
+    # FIXME: 
     """ Check if the namespaces of all top level objects are the same
 
     Args:
@@ -113,7 +122,7 @@ def check_namespaces(doc: sbol3.Document):
     """
 
     # Get a list of all namespaces
-    all_namespaces = [o.namespace for o in doc.objects]
+    all_namespaces = [o.namespace for doc in args for o in doc.objects]
 
     # Check all namespaces are the same
     is_package = all(x == all_namespaces[0] for x in all_namespaces)
