@@ -65,12 +65,11 @@ def regularize_package_directory(dir: str):
                          f'own, but found {package_sub_dirs[0]}')
 
 def define_package(*args: sbol3.Document):
-    # FIXME: 
-    """Function to take an sbol document, check if it is a package, and create
-    a new sbol document with the package definition included
+    """Function to take one or more sbol documents, check if they are a package,
+     and create a new sbol document with the package definition included
 
     Args:
-        doc (sbol3.Document): The document to be checked for a package
+        *args (sbol3.Document): The document(s) to be checked for a package
 
     Return
         doc (sbol3.Document): The document with the added package info
@@ -110,15 +109,15 @@ def define_package(*args: sbol3.Document):
         
 
 def check_namespaces(*args: sbol3.Document):
-    # FIXME: 
-    """ Check if the namespaces of all top level objects are the same
+    """ Check if the namespaces of all top level objects in one or more files
+    are the same
 
     Args:
-        doc (sbol3.Document): Document containing top level objects
+        *args (sbol3.Document): Document(s) containing top level objects
 
     Returns:
         is_package (boolean): True if all namespaces are the same
-        namespace (string): Namespace of the package
+        namespace (string): Namespace of the first object
     """
 
     # Get a list of all namespaces
