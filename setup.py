@@ -53,9 +53,11 @@ setup(name='sbol-utilities',
                                 'sbol2fasta=sbol_utilities.conversion:sbol2fasta',
                                 'genbank2sbol=sbol_utilities.conversion:genbank2sbol',
                                 'fasta2sbol=sbol_utilities.conversion:fasta2sbol',
-                                'sbol-diff=sbol_utilities.sbol_diff:main']
+                                'sbol-diff=sbol_utilities.sbol_diff:main',
+                                'sbol-define-module=sbol_utilities.define_module:main']
       },
       packages=['sbol_utilities'],
-      package_data={'sbol_utilities': ['sbolgraph-standalone.js']},
+      package_data={'sbol_utilities': ['sbolgraph-standalone.js',
+                                       'sep_054_extension.ttl']},
       include_package_data=True
       )

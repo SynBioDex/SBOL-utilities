@@ -61,3 +61,6 @@ The `sbol-calculate-sequences` utility attempts to calculate the sequence of any
 ### Compute the difference between two SBOL3 documents
 The `sbol-diff` utility computes the difference between two SBOL3 documents
 and reports the differences.
+
+### Add a package definition to an SBOL file
+The `define_package` utility in `package` checks if an SBOL file constitutes a package and creates a new file with the package definition
