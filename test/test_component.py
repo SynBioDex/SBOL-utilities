@@ -70,8 +70,6 @@ class TestComponent(unittest.TestCase):
         dna_comp = sbol3.Component(dna_identity, sbol3.SBO_DNA,
                                 sequences=[dna_seq],
                                 description=test_description)
-        if dna_comp.name == None:
-            dna_comp.name = dna_identity
         hlc_doc.add([hlc_dna_comp, hlc_dna_seq])
         doc.add([dna_comp, dna_seq])
         assert doc_diff(doc, hlc_doc) == 0, f'Constructor Error: {dna_identity}'
@@ -86,8 +84,6 @@ class TestComponent(unittest.TestCase):
         rna_comp = sbol3.Component(rna_identity, sbol3.SBO_RNA,
                                     sequences=[rna_seq],
                                     description=test_description)
-        if rna_comp.name == None:
-            rna_comp.name = rna_identity
         hlc_doc.add([hlc_rna_comp, hlc_rna_seq])
         doc.add([rna_comp, rna_seq])
         assert doc_diff(doc, hlc_doc) == 0, f'Constructor Error: {rna_identity}'
@@ -102,8 +98,6 @@ class TestComponent(unittest.TestCase):
         pro_comp = sbol3.Component(pro_identity, sbol3.SBO_PROTEIN,
                                     sequences =[pro_seq],
                                     description=test_description)
-        if pro_comp.name == None:
-            pro_comp.name = pro_identity
         hlc_doc.add([hlc_pro_comp, hlc_pro_seq])
         doc.add([pro_comp, pro_seq])
         assert doc_diff(doc, hlc_doc) == 0, f'Constructor Error: {pro_identity}'
@@ -111,8 +105,6 @@ class TestComponent(unittest.TestCase):
         fun_identity = 'fun_component_with_sequence'
         hlc_fun_comp = functional_component(fun_identity, description=test_description)
         fun_comp =  sbol3.Component(fun_identity, sbol3.SBO_FUNCTIONAL_ENTITY, description=test_description)
-        if fun_comp.name == None:
-            fun_comp.name = fun_identity
         hlc_doc.add(hlc_fun_comp)
         doc.add(fun_comp)
         assert doc_diff(doc, hlc_doc) == 0, f'Constructor Error: {fun_identity}'
@@ -186,8 +178,6 @@ class TestComponent(unittest.TestCase):
                 for i in range(len(enr_comp.features)-1):
                     enr_comp.constraints = [sbol3.Constraint(sbol3.SBOL_PRECEDES, enr_comp.features[i], enr_comp.features[i+1])]
         else: pass
-        if enr_comp.name == None:
-            enr_comp.name = enr_identity
         hlc_doc.add(hlc_enr_comp)
         doc.add(enr_comp)
         assert doc_diff(doc, hlc_doc) == 0, f'Constructor Error: {enr_identity}'
@@ -278,8 +268,6 @@ class TestComponent(unittest.TestCase):
         hlc_doc.add(hlc_media_comp)
         doc.add(media_comp)
         assert doc_diff(doc, hlc_doc) == 0, f'Constructor Error: {media_identity}'
-
-
 
 if __name__ == '__main__':
     unittest.main()

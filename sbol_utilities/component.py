@@ -227,8 +227,6 @@ def dna_component_with_sequence(identity: str, sequence: str, **kwargs)-> Tuple[
     dna_comp = sbol3.Component(identity, sbol3.SBO_DNA,
                                 sequences=[comp_seq],
                                 **kwargs)
-    if dna_comp.name == None:
-        dna_comp.name = identity
     return tuple([dna_comp, comp_seq])
 
 def rna_component_with_sequence(identity: str, sequence: str, **kwargs)-> Tuple[sbol3.Component, sbol3.Sequence]:
@@ -246,8 +244,6 @@ def rna_component_with_sequence(identity: str, sequence: str, **kwargs)-> Tuple[
     rna_comp = sbol3.Component(identity, sbol3.SBO_RNA,
                                 sequences =[comp_seq],
                                 **kwargs)
-    if rna_comp.name == None:
-        rna_comp.name = identity
     return tuple([rna_comp, comp_seq])
 
 def protein_component_with_sequence(identity: str, sequence: str, **kwargs)-> Tuple[sbol3.Component, sbol3.Sequence]:
@@ -265,8 +261,6 @@ def protein_component_with_sequence(identity: str, sequence: str, **kwargs)-> Tu
     pro_comp = sbol3.Component(identity, sbol3.SBO_PROTEIN,
                                 sequences =[comp_seq],
                                 **kwargs)
-    if pro_comp.name == None:
-        pro_comp.name = identity
     return tuple([pro_comp, comp_seq])
 
 def functional_component(identity: str, **kwargs)-> sbol3.Component:
@@ -277,8 +271,6 @@ def functional_component(identity: str, **kwargs)-> sbol3.Component:
     :return: A tuple of Component and Sequence.
     """
     fun_comp =  sbol3.Component(identity, sbol3.SBO_FUNCTIONAL_ENTITY, **kwargs)
-    if fun_comp.name == None:
-        fun_comp.name = identity
     return fun_comp
 
 def promoter(identity: str, sequence: str, **kwargs)-> Tuple[sbol3.Component, sbol3.Sequence]:
@@ -383,8 +375,6 @@ def engineered_region(identity: str, features: Union[List[sbol3.SubComponent],Li
             for i in range(len(engineered_region.features)-1):
                 engineered_region.constraints = [sbol3.Constraint(sbol3.SBOL_PRECEDES, engineered_region.features[i], engineered_region.features[i+1])]
     else: pass
-    if engineered_region.name == None:
-        engineered_region.name = identity
     return engineered_region
 
 def mrna(identity: str, sequence: str, **kwargs)-> Tuple[sbol3.Component, sbol3.Sequence]:
