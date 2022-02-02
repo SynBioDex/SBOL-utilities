@@ -291,8 +291,6 @@ def promoter(identity: str, sequence: str, **kwargs)-> Tuple[sbol3.Component, sb
     """
     promoter, promoter_seq = dna_component_with_sequence(identity, sequence, **kwargs)
     promoter.roles.append(sbol3.SO_PROMOTER)
-    if promoter.name == None:
-        promoter.name = identity
     return tuple([promoter, promoter_seq])
 
 def rbs(identity: str, sequence: str, **kwargs)-> Tuple[sbol3.Component, sbol3.Sequence]:
@@ -305,8 +303,6 @@ def rbs(identity: str, sequence: str, **kwargs)-> Tuple[sbol3.Component, sbol3.S
     """
     rbs, rbs_seq = dna_component_with_sequence(identity, sequence, **kwargs)
     rbs.roles. append(sbol3.SO_RBS)
-    if rbs.name == None:
-        rbs.name = identity
     return tuple([rbs, rbs_seq])
 
 def cds(identity: str, sequence: str, **kwargs)-> Tuple[sbol3.Component, sbol3.Sequence]:
@@ -319,8 +315,6 @@ def cds(identity: str, sequence: str, **kwargs)-> Tuple[sbol3.Component, sbol3.S
     """
     cds, cds_seq = dna_component_with_sequence(identity, sequence, **kwargs)
     cds.roles. append(sbol3.SO_CDS)
-    if cds.name == None:
-        cds.name = identity
     return tuple([cds, cds_seq])
 
 def terminator(identity: str, sequence: str, **kwargs)-> Tuple[sbol3.Component, sbol3.Sequence]:
@@ -332,9 +326,7 @@ def terminator(identity: str, sequence: str, **kwargs)-> Tuple[sbol3.Component, 
     :return: A tuple of Component and Sequence.
     """
     terminator, terminator_seq = dna_component_with_sequence(identity, sequence, **kwargs)
-    terminator.roles. append(sbol3.SO_CDS)
-    if terminator.name == None:
-        terminator.name = identity
+    terminator.roles. append(sbol3.SO_TERMINATOR)
     return tuple([terminator, terminator_seq])
 
 def protein_stability_element(identity: str, sequence: str, **kwargs)-> Tuple[sbol3.Component, sbol3.Sequence]:
@@ -347,8 +339,6 @@ def protein_stability_element(identity: str, sequence: str, **kwargs)-> Tuple[sb
     """
     protein_stability_element, protein_stability_element_seq = dna_component_with_sequence(identity, sequence, **kwargs)
     protein_stability_element.roles. append(tyto.SO.protein_stability_element)
-    if protein_stability_element.name == None:
-        protein_stability_element.name = identity
     return tuple([protein_stability_element, protein_stability_element_seq])
 
 def gene(identity: str, sequence: str, **kwargs)-> Tuple[sbol3.Component, sbol3.Sequence]:
@@ -361,8 +351,6 @@ def gene(identity: str, sequence: str, **kwargs)-> Tuple[sbol3.Component, sbol3.
     """
     gene, gene_seq = dna_component_with_sequence(identity, sequence, **kwargs)
     gene.roles. append(sbol3.SO_GENE)
-    if gene.name == None:
-        gene.name = identity
     return tuple([gene, gene_seq])
 
 def operator(identity: str, sequence: str, **kwargs)-> Tuple[sbol3.Component, sbol3.Sequence]:
@@ -375,8 +363,6 @@ def operator(identity: str, sequence: str, **kwargs)-> Tuple[sbol3.Component, sb
     """
     operator, operator_seq = dna_component_with_sequence(identity, sequence, **kwargs)
     operator.roles. append(sbol3.SO_OPERATOR)
-    if operator.name == None:
-        operator.name = identity
     return tuple([operator, operator_seq])
 
 def engineered_region(identity: str, features: Union[List[sbol3.SubComponent],List[sbol3.Component]], **kwargs)-> sbol3.Component:
@@ -411,8 +397,6 @@ def mrna(identity: str, sequence: str, **kwargs)-> Tuple[sbol3.Component, sbol3.
     """
     mrna, mrna_seq = rna_component_with_sequence(identity, sequence, **kwargs)
     mrna.roles. append(sbol3.SO_MRNA)
-    if mrna.name == None:
-        mrna.name = identity
     return tuple([mrna, mrna_seq])
 
 def transcription_factor(identity: str, sequence: str, **kwargs)-> Tuple[sbol3.Component, sbol3.Sequence]:
@@ -425,8 +409,6 @@ def transcription_factor(identity: str, sequence: str, **kwargs)-> Tuple[sbol3.C
     """
     transcription_factor, transcription_factor_seq = protein_component_with_sequence(identity, sequence, **kwargs)
     transcription_factor.roles. append(sbol3.SO_TRANSCRIPTION_FACTOR)
-    if transcription_factor.name == None:
-        transcription_factor.name = identity
     return tuple([transcription_factor, transcription_factor_seq])
 
 
@@ -445,8 +427,6 @@ def media(identity: str, recipe = None, **kwargs)-> sbol3.Component:
                 key = sbol3.SubComponent(key)
             key.measures.append(sbol3.Measure(value[0], value[1]))
             media.features.append(key)
-    if media.name == None:
-        media.name = identity
     return media
 
 def strain(identity: str, **kwargs)-> sbol3.Component:
@@ -458,8 +438,6 @@ def strain(identity: str, **kwargs)-> sbol3.Component:
     """
     strain = functional_component(identity, **kwargs)
     strain.roles.append(tyto.NCIT.Strain)
-    if strain.name == None:
-        strain.name = identity
     return strain
 
 def ed_simple_chemical(definition: str, **kwargs)-> sbol3.Component:
