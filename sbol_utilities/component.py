@@ -1,3 +1,4 @@
+from __future__ import annotations
 from typing import Dict, Iterable, List, Union, Set, Optional, Tuple
 
 import sbol3
