@@ -2,6 +2,10 @@
 SBOL-utilities is a collection of scripts and functions for manipulating SBOL 3 data that can be run from the command line or as functions in Python.
 
 [![Documentation Status](https://readthedocs.org/projects/sbol-utilities/badge/?version=latest)](http://sbol-utilities.readthedocs.io/?badge=latest)
+[![PyPI version fury.io](https://badge.fury.io/py/sbol-utilities.svg)](https://pypi.python.org/pypi/sbol-utilities/)
+[![PyPI license](https://img.shields.io/pypi/l/sbol-utilities.svg)](https://pypi.python.org/pypi/sbol-utilities/)
+[![PyPI pyversions](https://img.shields.io/pypi/pyversions/sbol-utilities.svg)](https://pypi.python.org/pypi/sbol-utilities/)
+
 
 ## Installation
 
