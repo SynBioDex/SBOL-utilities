@@ -33,13 +33,14 @@ setup(name='sbol-utilities',
       # What does your project relate to?
       keywords='synthetic biology',
       install_requires=[
-            'sbol3>=1.0b8,!=1.0b9',
+            'sbol3>=1.0b11',
             'sbol2>=1.3',
             'rdflib',
             'biopython',
             'graphviz',
-            'tyto>=1.0-beta',
-            'openpyxl'
+            'tyto>=1.0',
+            'openpyxl',
+            'sbol_factory>=1.0a11'
             ],
       extras_require={  # requirements for development
           'dev': ['pytest', 'interrogate']
