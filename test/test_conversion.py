@@ -75,17 +75,18 @@ class Test2To3Conversion(unittest.TestCase):
         doc2 = convert3to2(doc3)
         # ids of location block containing orientation before conversion
         location_ids_sbol3 = []
-        def append_locationid_with_orientation(o):
+
+        def append_location_id_with_orientation(o):
             if isinstance(o, sbol3.Location):
-                if hasattr(o, 'orientation') and o.orientation != None:
+                if hasattr(o, 'orientation') and o.orientation:
                     location_ids_sbol3.append(o.identity)
-        doc3.traverse(append_locationid_with_orientation)
+        doc3.traverse(append_location_id_with_orientation)
         # ids of location block containing orientation after conversion
         location_ids_sbol2 = []
         for c in doc2.componentDefinitions:
             for sa in c.sequenceAnnotations:
                 for loc in sa.locations:
-                    if hasattr(loc, 'orientation') and loc.orientation != None:
+                    if hasattr(loc, 'orientation') and loc.orientation:
                         location_ids_sbol2.append(loc.identity)
                         assert loc.orientation != 'http://sbols.org/v3#inline'
         assert len(location_ids_sbol2) == 12
@@ -208,7 +209,8 @@ class Test2To3Conversion(unittest.TestCase):
             fasta2sbol()
         assert filecmp.cmp(temp_name, test_file['from_fasta']), f'Converted file {temp_name} is not identical'
 
-        test_args = ['genbank2sbol', '-o', temp_name, '-n', 'https://synbiohub.org/public/igem', test_file['genbank'], '--allow-genbank-online']
+        test_args = ['genbank2sbol', '-o', temp_name, '-n', 'https://synbiohub.org/public/igem', test_file['genbank'],
+                     '--allow-genbank-online']
         with patch.object(sys, 'argv', test_args):
             genbank2sbol()
         assert filecmp.cmp(temp_name, test_file['from_genbank']), f'Converted file {temp_name} is not identical'
