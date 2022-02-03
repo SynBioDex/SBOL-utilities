@@ -46,7 +46,7 @@ def strip_sbol2_version(identity: str) -> str:
     """
     last_segment = identity.split('/')[-1]
     try:
-        sbol2_version = int(last_segment)  # if last segment is a number...
+        _ = int(last_segment)  # if last segment is a number...
         return identity.rsplit('/', 1)[0]  # ... then return everything else
     except ValueError:  # if last segment was not a number, there is no version to strip
         return identity
@@ -87,7 +87,8 @@ def strip_filetype_suffix(identity: str) -> str:
     :param identity: URL to sanitize
     :return: sanitized URL
     """
-    extensions = itertools.chain(*((itertools.chain(*v.values()) if isinstance(v, dict) else v) for v in GENETIC_DESIGN_FILE_TYPES.values()))
+    extensions = itertools.chain(*((itertools.chain(*v.values()) if isinstance(v, dict) else v)
+                                   for v in GENETIC_DESIGN_FILE_TYPES.values()))
     for x in extensions:
         if identity.endswith(x):
             return identity[:-(len(x))]  # TODO: change to removesuffix when python 3.9 is the minimum version

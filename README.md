@@ -1,11 +1,20 @@
 # SBOL-utilities
-SBOL-utilities is a collection of scripts and functions for manipulating SBOL 3 data that can be imported or run from the command line.
+SBOL-utilities is a collection of scripts and functions for manipulating SBOL 3 data that can be run from the command line or as functions in Python.
+
+[![Documentation Status](https://readthedocs.org/projects/sbol-utilities/badge/?version=latest)](http://sbol-utilities.readthedocs.io/?badge=latest)
 
 ## Installation
 
+SBOL utilities requires Python 3.7+. 
+
+To install the package and all dependences, run:
 ```
 pip3 install sbol-utilities
 ```
+
+Certain utilities also have non-Python dependencies, which must be installed separately:
+- `graph-sbol` requires [Graphviz](https://graphviz.org/) to be able to render diagrams.
+- `sbol-converter` requires [node.js](https://nodejs.org/en/) to be able to locally run Javascript.
 
 ## Utilities
 

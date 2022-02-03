@@ -7,7 +7,7 @@ setup(name='sbol-utilities',
       long_description_content_type='text/markdown',
       url='https://github.com/SynBioDex/SBOL-utilities',
       license='MIT License',
-      version='1.0a13',
+      version='1.0a14',
       # See https://pypi.python.org/pypi?%3Aaction=list_classifiers
       classifiers=[
             # How mature is this project? Common values are
@@ -40,8 +40,11 @@ setup(name='sbol-utilities',
             'tyto>=1.0-beta',
             'openpyxl'
             ],
+      extras_require={  # requirements for development
+          'dev': ['pytest', 'interrogate']
+      },
       scripts=['graph-sbol'],
-      entry_points = {
+      entry_points={
             'console_scripts': ['excel-to-sbol=sbol_utilities.excel_to_sbol:main',
                                 'sbol-expand-derivations=sbol_utilities.expand_combinatorial_derivations:main',
                                 'sbol-calculate-sequences=sbol_utilities.calculate_sequences:main',

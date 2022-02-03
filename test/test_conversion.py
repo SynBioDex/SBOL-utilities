@@ -3,6 +3,7 @@ import tempfile
 import unittest
 import os
 import filecmp
+import collections
 from unittest.mock import patch
 
 import sbol2
@@ -62,6 +63,34 @@ class Test2To3Conversion(unittest.TestCase):
         assert doc2.componentDefinitions[0].sequences[0] == 'https://synbiohub.org/public/igem/BBa_J23101_sequence'
         assert doc2.sequences[0].encoding == 'http://www.chem.qmul.ac.uk/iubmb/misc/naseq.html'
         assert doc2.sequences[0].elements == 'tttacagctagctcagtcctaggtattatgctagc'
+
+    def test_3to2_orientation_conversion(self):
+        """Test ability to convert orientation from SBOL3to SBOL2"""
+        # Get the SBOL3 test document
+        tmp_sub = copy_to_tmp(package=['iGEM_SBOL2_imports.nt'])
+        doc3 = sbol3.Document()
+        doc3.read(os.path.join(tmp_sub, 'iGEM_SBOL2_imports.nt'))
+
+        # Convert to SBOL2 and check contents
+        doc2 = convert3to2(doc3)
+        # ids of location block containing orientation before conversion
+        location_ids_sbol3 = []
+
+        def append_location_id_with_orientation(o):
+            if isinstance(o, sbol3.Location):
+                if hasattr(o, 'orientation') and o.orientation:
+                    location_ids_sbol3.append(o.identity)
+        doc3.traverse(append_location_id_with_orientation)
+        # ids of location block containing orientation after conversion
+        location_ids_sbol2 = []
+        for c in doc2.componentDefinitions:
+            for sa in c.sequenceAnnotations:
+                for loc in sa.locations:
+                    if hasattr(loc, 'orientation') and loc.orientation:
+                        location_ids_sbol2.append(loc.identity)
+                        assert loc.orientation != 'http://sbols.org/v3#inline'
+        assert len(location_ids_sbol2) == 12
+        assert collections.Counter(location_ids_sbol2) == collections.Counter(location_ids_sbol3)
 
     def test_genbank_conversion(self):
         """Test ability to convert from SBOL3 to GenBank"""
@@ -135,6 +164,21 @@ class Test2To3Conversion(unittest.TestCase):
         comparison_doc.read(comparison_file)
         assert not doc_diff(doc3, comparison_doc), f'Converted FASTA file not identical to {comparison_file}'
 
+    def test_id_map_conversion_from_fasta(self):
+        """Test ability to convert from SBOL3 to FASTA"""
+        """Test ability to convert from GenBank to SBOL3"""
+        # Get the SBOL3 test document
+        tmp_sub = copy_to_tmp(package=['BBa_J23101.fasta'])
+        doc3 = convert_from_fasta(os.path.join(tmp_sub, 'BBa_J23101.fasta'), 'https://synbiohub.org/public/igem',
+                                  identity_map={'BBa_J23101': 'https://somewhere_else.org/public/igem/BBa_J23101'})
+
+        # Note: cannot directly round-trip because converter is lossy
+        test_dir = os.path.dirname(os.path.realpath(__file__))
+        comparison_file = os.path.join(test_dir, 'test_files', 'BBa_J23101_from_fasta_altname.nt')
+        comparison_doc = sbol3.Document()
+        comparison_doc.read(comparison_file)
+        assert not doc_diff(doc3, comparison_doc), f'Converted FASTA file not identical to {comparison_file}'
+
     def test_commandline(self):
         test_files = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'test_files')
         temp_name = tempfile.mkstemp()[1]
@@ -165,7 +209,8 @@ class Test2To3Conversion(unittest.TestCase):
             fasta2sbol()
         assert filecmp.cmp(temp_name, test_file['from_fasta']), f'Converted file {temp_name} is not identical'
 
-        test_args = ['genbank2sbol', '-o', temp_name, '-n', 'https://synbiohub.org/public/igem', test_file['genbank'], '--allow-genbank-online']
+        test_args = ['genbank2sbol', '-o', temp_name, '-n', 'https://synbiohub.org/public/igem', test_file['genbank'],
+                     '--allow-genbank-online']
         with patch.object(sys, 'argv', test_args):
             genbank2sbol()
         assert filecmp.cmp(temp_name, test_file['from_genbank']), f'Converted file {temp_name} is not identical'
