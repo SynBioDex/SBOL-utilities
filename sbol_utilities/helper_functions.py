@@ -133,3 +133,25 @@ def is_plasmid(obj: Union[sbol3.Component, sbol3.Feature]) -> bool:
         return is_plasmid(obj.instance_of.lookup())
     else:
         return False
+
+def is_composite(obj: sbol3.Component) -> bool:
+    """Check if an SBOL Component is a composite.
+
+    :param obj: design to be checked
+    :return: true if composite
+    """
+    def has_dna_type(o):
+        for t in o.types:
+            try:
+                regularized = tyto.SBO.get_uri_by_term(tyto.SBO.get_term_by_uri(t))
+                if regularized == tyto.SBO.deoxyribonucleic_acid:
+                    return True
+            except LookupError:
+                pass
+        return False
+
+    if isinstance(obj, sbol3.Component):  # Composite is SBOL component
+        if has_dna_type(obj):  # Composite has type SBO:DNA
+            if hasattr(obj, "generated_by") and len(obj.generated_by) != 0: # Composite has attribute prov:generated_by linking to prov:activity
+                return True
+    return False
