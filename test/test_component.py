@@ -30,10 +30,10 @@ class TestComponent(unittest.TestCase):
         # make a functional unit
         expression = add_feature(system, sbol3.LocalSubComponent([sbol3.SBO_DNA], roles=[tyto.SO.engineered_region]))
         contains(expression, gfp_cds)
-        rbs = contains(expression, sbol3.LocalSubComponent([sbol3.SBO_DNA], roles=[tyto.SO.ribosome_entry_site]))
-        regulate(rbs, gfp_cds)
-        terminator = contains(expression, sbol3.LocalSubComponent([sbol3.SBO_DNA], roles=[tyto.SO.terminator]))
-        order(gfp_cds, terminator)
+        rbs_comp = contains(expression, sbol3.LocalSubComponent([sbol3.SBO_DNA], roles=[tyto.SO.ribosome_entry_site]))
+        regulate(rbs_comp, gfp_cds)
+        term_comp = contains(expression, sbol3.LocalSubComponent([sbol3.SBO_DNA], roles=[tyto.SO.terminator]))
+        order(gfp_cds, term_comp)
         constitutive(expression)
         # link it to a product
         gfp_mut3_ncbi = 'https://www.ncbi.nlm.nih.gov/protein/AAB18957.1'
@@ -52,9 +52,8 @@ class TestComponent(unittest.TestCase):
         comparison_file = os.path.join(test_dir, 'test_files', 'component_construction.nt')
         assert filecmp.cmp(tmp_out, comparison_file), f'Converted file {tmp_out} is not identical'
 
-
     def test_high_level_constructors(self):
-
+        """Test construction of components and features using helper functions: for each, build manually and compare."""
         hlc_doc = sbol3.Document()
         doc = sbol3.Document()
         sbol3.set_namespace('http://sbolstandard.org/testfiles')
@@ -62,59 +61,45 @@ class TestComponent(unittest.TestCase):
         dna_identity = 'dna_component_with_sequence'
         dna_sequence = 'ttt'
         test_description = 'test'
-        hlc_dna_comp, hlc_dna_seq = dna_component_with_sequence(dna_identity, dna_sequence, description=test_description)
-        dna_seq = sbol3.Sequence(f'{dna_identity}_seq',
-                                elements=dna_sequence,
-                                encoding=sbol3.IUPAC_DNA_ENCODING)
-
-        dna_comp = sbol3.Component(dna_identity, sbol3.SBO_DNA,
-                                sequences=[dna_seq],
-                                description=test_description)
-        hlc_doc.add([hlc_dna_comp, hlc_dna_seq])
+        hl_dna_comp, hl_dna_seq = dna_component_with_sequence(dna_identity, dna_sequence, description=test_description)
+        dna_seq = sbol3.Sequence(f'{dna_identity}_seq', elements=dna_sequence, encoding=sbol3.IUPAC_DNA_ENCODING)
+        dna_comp = sbol3.Component(dna_identity, sbol3.SBO_DNA, sequences=[dna_seq], description=test_description)
+        hlc_doc.add([hl_dna_comp, hl_dna_seq])
         doc.add([dna_comp, dna_seq])
         assert doc_diff(doc, hlc_doc) == 0, f'Constructor Error: {dna_identity}'
 
         rna_identity = 'rna_component_with_sequence'
         rna_sequence = 'uuu'
-        hlc_rna_comp, hlc_rna_seq = rna_component_with_sequence(rna_identity, rna_sequence, description=test_description)
-        rna_seq = sbol3.Sequence(f'{rna_identity}_seq',
-                                    elements=rna_sequence,
-                                    encoding=sbol3.IUPAC_RNA_ENCODING)
-
-        rna_comp = sbol3.Component(rna_identity, sbol3.SBO_RNA,
-                                    sequences=[rna_seq],
-                                    description=test_description)
-        hlc_doc.add([hlc_rna_comp, hlc_rna_seq])
+        hl_rna_comp, hl_rna_seq = rna_component_with_sequence(rna_identity, rna_sequence, description=test_description)
+        rna_seq = sbol3.Sequence(f'{rna_identity}_seq', elements=rna_sequence, encoding=sbol3.IUPAC_RNA_ENCODING)
+        rna_comp = sbol3.Component(rna_identity, sbol3.SBO_RNA, sequences=[rna_seq], description=test_description)
+        hlc_doc.add([hl_rna_comp, hl_rna_seq])
         doc.add([rna_comp, rna_seq])
         assert doc_diff(doc, hlc_doc) == 0, f'Constructor Error: {rna_identity}'
 
         pro_identity = 'pro_component_with_sequence'
         pro_sequence = 'F'
-        hlc_pro_comp, hlc_pro_seq = protein_component_with_sequence(pro_identity, pro_sequence, description=test_description)
-        pro_seq = sbol3.Sequence(f'{pro_identity}_seq',
-                                        elements=pro_sequence,
-                                        encoding=sbol3.IUPAC_PROTEIN_ENCODING)
-
-        pro_comp = sbol3.Component(pro_identity, sbol3.SBO_PROTEIN,
-                                    sequences =[pro_seq],
-                                    description=test_description)
-        hlc_doc.add([hlc_pro_comp, hlc_pro_seq])
+        hl_pro_comp, hl_pro_seq = \
+            protein_component_with_sequence(pro_identity, pro_sequence, description=test_description)
+        pro_seq = sbol3.Sequence(f'{pro_identity}_seq', elements=pro_sequence, encoding=sbol3.IUPAC_PROTEIN_ENCODING)
+        pro_comp = sbol3.Component(pro_identity, sbol3.SBO_PROTEIN, sequences=[pro_seq], description=test_description)
+        hlc_doc.add([hl_pro_comp, hl_pro_seq])
         doc.add([pro_comp, pro_seq])
         assert doc_diff(doc, hlc_doc) == 0, f'Constructor Error: {pro_identity}'
 
         fun_identity = 'fun_component_with_sequence'
         hlc_fun_comp = functional_component(fun_identity, description=test_description)
-        fun_comp =  sbol3.Component(fun_identity, sbol3.SBO_FUNCTIONAL_ENTITY, description=test_description)
+        fun_comp = sbol3.Component(fun_identity, sbol3.SBO_FUNCTIONAL_ENTITY, description=test_description)
         hlc_doc.add(hlc_fun_comp)
         doc.add(fun_comp)
         assert doc_diff(doc, hlc_doc) == 0, f'Constructor Error: {fun_identity}'
 
         pro_identity = 'promoter'
         hlc_pro_comp, hlc_pro_seq = promoter(pro_identity, dna_sequence, description=test_description)
-        promoter_comp, promoter_seq = dna_component_with_sequence(pro_identity, dna_sequence, description=test_description)
-        promoter_comp.roles.append(sbol3.SO_PROMOTER)
+        p_comp, p_seq = dna_component_with_sequence(pro_identity, dna_sequence, description=test_description)
+        p_comp.roles.append(sbol3.SO_PROMOTER)
         hlc_doc.add([hlc_pro_comp, hlc_pro_seq])
-        doc.add([promoter_comp, promoter_seq])
+        doc.add([p_comp, p_seq])
         assert doc_diff(doc, hlc_doc) == 0, f'Constructor Error: {pro_identity}'
 
         rbs_identity = 'rbs'
@@ -175,9 +160,11 @@ class TestComponent(unittest.TestCase):
                 to_add = sbol3.SubComponent(to_add)
             enr_comp.features.append(to_add)
         if len(enr_comp.features) > 1:
-                for i in range(len(enr_comp.features)-1):
-                    enr_comp.constraints = [sbol3.Constraint(sbol3.SBOL_PRECEDES, enr_comp.features[i], enr_comp.features[i+1])]
-        else: pass
+            for i in range(len(enr_comp.features)-1):
+                constraint = sbol3.Constraint(sbol3.SBOL_PRECEDES, enr_comp.features[i], enr_comp.features[i+1])
+                enr_comp.constraints = [constraint]
+        else:
+            pass
         hlc_doc.add(hlc_enr_comp)
         doc.add(enr_comp)
         assert doc_diff(doc, hlc_doc) == 0, f'Constructor Error: {enr_identity}'
@@ -206,58 +193,48 @@ class TestComponent(unittest.TestCase):
         doc.add(strain_comp)
         assert doc_diff(doc, hlc_doc) == 0, f'Constructor Error: {strain_identity}'
 
-
         cds_ed_sch_identity = 'cds_ed_sch_identity'
         hlc_cds_ed_sch_comp, _ = cds(cds_ed_sch_identity, dna_sequence, description=test_description)
-        cds_ed_sch_comp, _ = dna_component_with_sequence(cds_ed_sch_identity, dna_sequence, description=test_description)
-        cds_ed_sch_comp.roles. append(sbol3.SO_CDS)
-        ed_sch_identity = 'ed_simple_chemical'
+        cds_comp, _ = dna_component_with_sequence(cds_ed_sch_identity, dna_sequence, description=test_description)
+        cds_comp.roles. append(sbol3.SO_CDS)
         ed_sch_definition = 'http://www.ebi.ac.uk/chebi/searchId.do?chebiId=CHEBI:177976'
         hlc_ed_sch = ed_simple_chemical(ed_sch_definition, description=test_description)
         ed_sch = sbol3.ExternallyDefined([sbol3.SBO_SIMPLE_CHEMICAL], ed_sch_definition, description=test_description)
         hlc_cds_ed_sch_comp.features.append(hlc_ed_sch)
-        cds_ed_sch_comp.features.append(ed_sch)
+        cds_comp.features.append(ed_sch)
         hlc_doc.add(hlc_cds_ed_sch_comp)
-        doc.add(cds_ed_sch_comp)
-        assert doc_diff(doc, hlc_doc) == 0, f'Constructor Error: {ed_sch_identity}'
+        doc.add(cds_comp)
+        assert doc_diff(doc, hlc_doc) == 0, f'Constructor Error: {ed_sch_definition}'
 
         cds_ed_pro_identity = 'cds_ed_pro_identity'
         hlc_cds_ed_pro_comp, _ = cds(cds_ed_pro_identity, dna_sequence, description=test_description)
-        cds_ed_pro_comp, _ = dna_component_with_sequence(cds_ed_pro_identity, dna_sequence, description=test_description)
-        cds_ed_pro_comp.roles. append(sbol3.SO_CDS)
-        ed_pro_identity = 'ed_protein'
+        cds_comp, _ = dna_component_with_sequence(cds_ed_pro_identity, dna_sequence, description=test_description)
+        cds_comp.roles. append(sbol3.SO_CDS)
         ed_pro_definition = 'https://www.uniprot.org/uniprot/P12747'
-        hlc_ed_pro = ed_protein(ed_pro_identity, description=test_description)
-        ed_pro = sbol3.ExternallyDefined([sbol3.SBO_PROTEIN], ed_pro_identity, description=test_description)
+        hlc_ed_pro = ed_protein(ed_pro_definition, description=test_description)
+        ed_pro = sbol3.ExternallyDefined([sbol3.SBO_PROTEIN], ed_pro_definition, description=test_description)
         hlc_cds_ed_pro_comp.features.append(hlc_ed_pro)
-        cds_ed_pro_comp.features.append(ed_pro)
+        cds_comp.features.append(ed_pro)
         hlc_doc.add(hlc_cds_ed_pro_comp)
-        doc.add(cds_ed_pro_comp)
-        assert doc_diff(doc, hlc_doc) == 0, f'Constructor Error: {ed_pro_identity}'
+        doc.add(cds_comp)
+        assert doc_diff(doc, hlc_doc) == 0, f'Constructor Error: {ed_pro_definition}'
 
-        peptone = sbol3.Component('Bacto_Peptone', 
-                    tyto.SBO.functional_entity,
-                    name = 'Bacto_Peptone',
-                    derived_from = ['https://www.thermofisher.com/order/catalog/product/211820'])
-
-        nacl = sbol3.Component('NaCl', 
-                    tyto.SBO.functional_entity,
-                    name = 'NaCl',
-                    derived_from = ['https://www.sigmaaldrich.com/AU/en/product/sigald/s9888'])
-
-        yeast_extract = sbol3.Component('Yeast_Extract', 
-                    tyto.SBO.functional_entity,
-                    name = 'Yeast_Extract',
-                    derived_from = ['https://www.thermofisher.com/order/catalog/product/212720'])
+        peptone = sbol3.Component('Bacto_Peptone', tyto.SBO.functional_entity, name='Bacto_Peptone',
+                                  derived_from=['https://www.thermofisher.com/order/catalog/product/211820'])
+        nacl = sbol3.Component('NaCl', tyto.SBO.functional_entity, name='NaCl',
+                               derived_from=['https://www.sigmaaldrich.com/AU/en/product/sigald/s9888'])
+        yeast_extract = sbol3.Component('Yeast_Extract', tyto.SBO.functional_entity, name='Yeast_Extract',
+                                        derived_from=['https://www.thermofisher.com/order/catalog/product/212720'])
 
         recipe = {
-            peptone:[10,tyto.OM.gram],
-            nacl:[5,tyto.OM.gram],
-            yeast_extract:[5,tyto.OM.gram]}
+            peptone: [10, tyto.OM.gram],
+            nacl: [5, tyto.OM.gram],
+            yeast_extract: [5, tyto.OM.gram]
+        }
 
         media_identity = 'media'
-        hlc_media_comp = media(media_identity, recipe, description = test_description)
-        media_comp = functional_component(media_identity, description = test_description)
+        hlc_media_comp = media(media_identity, recipe, description=test_description)
+        media_comp = functional_component(media_identity, description=test_description)
         media_comp.roles.append(tyto.NCIT.Media)
         if recipe:
             for key, value in recipe.items():

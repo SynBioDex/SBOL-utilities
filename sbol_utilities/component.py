@@ -1,3 +1,4 @@
+from __future__ import annotations
 from typing import Dict, Iterable, List, Union, Set, Optional, Tuple
 
 import sbol3
@@ -19,7 +20,7 @@ def contained_components(roots: Union[sbol3.TopLevel, Iterable[sbol3.TopLevel]])
         roots = [roots]
     explored = set()  # set being built via traversal
 
-    # subfunction for walking containment tree
+    # sub-function for walking containment tree
     def walk_tree(obj: sbol3.TopLevel):
         if obj not in explored:
             explored.add(obj)
@@ -63,7 +64,7 @@ def ensure_singleton_system(system: Optional[sbol3.Component], *features: Union[
     :param features: features in the same system or components to be referenced from it
     :return: Component for the identified system
     """
-    systems = set(filter(None,(get_parent(f) for f in features if isinstance(f, sbol3.Feature))))
+    systems = set(filter(None, (get_parent(f) for f in features if isinstance(f, sbol3.Feature))))
     if system:
         systems |= {system}
     if len(systems) == 1:
@@ -155,17 +156,18 @@ def constitutive(target: Union[sbol3.Feature, sbol3.Component], system: Optional
     target = ensure_singleton_feature(system, target)
 
     # create a constitutive promoter and use it to regulate the target
-    promoter = add_feature(system, sbol3.LocalSubComponent([sbol3.SBO_DNA], roles=[tyto.SO.constitutive_promoter]))
-    regulate(promoter, target)
+    local = sbol3.LocalSubComponent([sbol3.SBO_DNA], roles=[tyto.SO.constitutive_promoter])
+    promoter_component = add_feature(system, local)
+    regulate(promoter_component, target)
 
     # also add the promoter into any containers that hold the target
     # TODO: add lookups for constraints like we have for interactions
     containers = [c.subject for c in system.constraints
                   if c.restriction == sbol3.SBOL_CONTAINS and c.object == target.identity]
     for c in containers:
-        contains(c.lookup(), promoter)
+        contains(c.lookup(), promoter_component)
 
-    return promoter
+    return promoter_component
 
 
 def add_interaction(interaction_type: str,
@@ -212,240 +214,251 @@ def all_in_role(interaction: sbol3.Interaction, role: str) -> List[sbol3.Feature
     """
     return id_sort([p.participant.lookup() for p in interaction.participations if role in p.roles])
 
-def dna_component_with_sequence(identity: str, sequence: str, **kwargs)-> Tuple[sbol3.Component, sbol3.Sequence]:
+
+def dna_component_with_sequence(identity: str, sequence: str, **kwargs) -> Tuple[sbol3.Component, sbol3.Sequence]:
     """Creates a DNA Component and its Sequence.
 
     :param identity: The identity of the Component. The identity of Sequence is also identity with the suffix '_seq'.
     :param sequence: The DNA sequence of the Component encoded in IUPAC.
-    :param **kwargs: Keyword arguments of any other Component attribute.
+    :param kwargs: Keyword arguments of any other Component attribute.
     :return: A tuple of Component and Sequence.
     """
-    comp_seq = sbol3.Sequence(f'{identity}_seq',
-                                elements=sequence,
-                                encoding=sbol3.IUPAC_DNA_ENCODING)
+    comp_seq = sbol3.Sequence(f'{identity}_seq', elements=sequence, encoding=sbol3.IUPAC_DNA_ENCODING)
+    dna_comp = sbol3.Component(identity, sbol3.SBO_DNA, sequences=[comp_seq], **kwargs)
+    return dna_comp, comp_seq
 
-    dna_comp = sbol3.Component(identity, sbol3.SBO_DNA,
-                                sequences=[comp_seq],
-                                **kwargs)
-    return tuple([dna_comp, comp_seq])
 
-def rna_component_with_sequence(identity: str, sequence: str, **kwargs)-> Tuple[sbol3.Component, sbol3.Sequence]:
+def rna_component_with_sequence(identity: str, sequence: str, **kwargs) -> Tuple[sbol3.Component, sbol3.Sequence]:
     """Creates a RNA Component and its Sequence.
 
     :param identity: The identity of the Component. The identity of Sequence is also identity with the suffix '_seq'.
     :param sequence: The RNA sequence of the Component encoded in IUPAC.
-    :param **kwargs: Keyword arguments of any other Component attribute.
+    :param kwargs: Keyword arguments of any other Component attribute.
     :return: A tuple of Component and Sequence.
     """
-    comp_seq = sbol3.Sequence(f'{identity}_seq',
-                                elements=sequence,
-                                encoding=sbol3.IUPAC_RNA_ENCODING)
+    comp_seq = sbol3.Sequence(f'{identity}_seq', elements=sequence, encoding=sbol3.IUPAC_RNA_ENCODING)
+    rna_comp = sbol3.Component(identity, sbol3.SBO_RNA, sequences=[comp_seq], **kwargs)
+    return rna_comp, comp_seq
 
-    rna_comp = sbol3.Component(identity, sbol3.SBO_RNA,
-                                sequences =[comp_seq],
-                                **kwargs)
-    return tuple([rna_comp, comp_seq])
 
-def protein_component_with_sequence(identity: str, sequence: str, **kwargs)-> Tuple[sbol3.Component, sbol3.Sequence]:
+def protein_component_with_sequence(identity: str, sequence: str, **kwargs) -> Tuple[sbol3.Component, sbol3.Sequence]:
     """Creates a Protein Component and its Sequence.
 
     :param identity: The identity of the Component. The identity of Sequence is also identity with the suffix '_seq'.
     :param sequence: The Protein sequence of the Component encoded in IUPAC.
-    :param **kwargs: Keyword arguments of any other Component attribute.
+    :param kwargs: Keyword arguments of any other Component attribute.
     :return: A tuple of Component and Sequence.
     """
-    comp_seq = sbol3.Sequence(f'{identity}_seq',
-                                elements=sequence,
-                                encoding=sbol3.IUPAC_PROTEIN_ENCODING)
+    comp_seq = sbol3.Sequence(f'{identity}_seq',  elements=sequence,  encoding=sbol3.IUPAC_PROTEIN_ENCODING)
+    pro_comp = sbol3.Component(identity, sbol3.SBO_PROTEIN, sequences=[comp_seq], **kwargs)
+    return pro_comp, comp_seq
 
-    pro_comp = sbol3.Component(identity, sbol3.SBO_PROTEIN,
-                                sequences =[comp_seq],
-                                **kwargs)
-    return tuple([pro_comp, comp_seq])
 
-def functional_component(identity: str, **kwargs)-> sbol3.Component:
+def functional_component(identity: str, **kwargs) -> sbol3.Component:
     """Creates a Component of type functional entity.
 
     :param identity: The identity of the Component.
-    :param **kwargs: Keyword arguments of any other Component attribute.
+    :param kwargs: Keyword arguments of any other Component attribute.
     :return: A tuple of Component and Sequence.
     """
-    fun_comp =  sbol3.Component(identity, sbol3.SBO_FUNCTIONAL_ENTITY, **kwargs)
+    fun_comp = sbol3.Component(identity, sbol3.SBO_FUNCTIONAL_ENTITY, **kwargs)
     return fun_comp
 
-def promoter(identity: str, sequence: str, **kwargs)-> Tuple[sbol3.Component, sbol3.Sequence]:
+
+def promoter(identity: str, sequence: str, **kwargs) -> Tuple[sbol3.Component, sbol3.Sequence]:
     """Creates a Promoter Component and its Sequence.
 
     :param identity: The identity of the Component. The identity of Sequence is also identity with the suffix '_seq'.
     :param sequence: The DNA sequence of the Component encoded in IUPAC.
-    :param **kwargs: Keyword arguments of any other Component attribute.
+    :param kwargs: Keyword arguments of any other Component attribute.
     :return: A tuple of Component and Sequence.
     """
-    promoter, promoter_seq = dna_component_with_sequence(identity, sequence, **kwargs)
-    promoter.roles.append(sbol3.SO_PROMOTER)
-    return tuple([promoter, promoter_seq])
+    promoter_component, promoter_seq = dna_component_with_sequence(identity, sequence, **kwargs)
+    promoter_component.roles.append(sbol3.SO_PROMOTER)
+    return promoter_component, promoter_seq
 
-def rbs(identity: str, sequence: str, **kwargs)-> Tuple[sbol3.Component, sbol3.Sequence]:
+
+def rbs(identity: str, sequence: str, **kwargs) -> Tuple[sbol3.Component, sbol3.Sequence]:
     """Creates a Ribosome Entry Site (RBS) Component and its Sequence.
 
     :param identity: The identity of the Component. The identity of Sequence is also identity with the suffix '_seq'.
     :param sequence: The DNA sequence of the Component encoded in IUPAC.
-    :param **kwargs: Keyword arguments of any other Component attribute.
+    :param kwargs: Keyword arguments of any other Component attribute.
     :return: A tuple of Component and Sequence.
     """
-    rbs, rbs_seq = dna_component_with_sequence(identity, sequence, **kwargs)
-    rbs.roles. append(sbol3.SO_RBS)
-    return tuple([rbs, rbs_seq])
+    rbs_component, rbs_seq = dna_component_with_sequence(identity, sequence, **kwargs)
+    rbs_component.roles. append(sbol3.SO_RBS)
+    return rbs_component, rbs_seq
 
-def cds(identity: str, sequence: str, **kwargs)-> Tuple[sbol3.Component, sbol3.Sequence]:
+
+def cds(identity: str, sequence: str, **kwargs) -> Tuple[sbol3.Component, sbol3.Sequence]:
     """Creates a Coding Sequence (CDS) Component and its Sequence.
 
     :param identity: The identity of the Component. The identity of Sequence is also identity with the suffix '_seq'.
     :param sequence: The DNA sequence of the Component encoded in IUPAC.
-    :param **kwargs: Keyword arguments of any other Component attribute.
+    :param kwargs: Keyword arguments of any other Component attribute.
     :return: A tuple of Component and Sequence.
     """
-    cds, cds_seq = dna_component_with_sequence(identity, sequence, **kwargs)
-    cds.roles. append(sbol3.SO_CDS)
-    return tuple([cds, cds_seq])
+    cds_component, cds_seq = dna_component_with_sequence(identity, sequence, **kwargs)
+    cds_component.roles. append(sbol3.SO_CDS)
+    return cds_component, cds_seq
 
-def terminator(identity: str, sequence: str, **kwargs)-> Tuple[sbol3.Component, sbol3.Sequence]:
+
+def terminator(identity: str, sequence: str, **kwargs) -> Tuple[sbol3.Component, sbol3.Sequence]:
     """Creates a Terminator Component and its Sequence.
 
     :param identity: The identity of the Component. The identity of Sequence is also identity with the suffix '_seq'.
     :param sequence: The DNA sequence of the Component encoded in IUPAC.
-    :param **kwargs: Keyword arguments of any other Component attribute.
+    :param kwargs: Keyword arguments of any other Component attribute.
     :return: A tuple of Component and Sequence.
     """
-    terminator, terminator_seq = dna_component_with_sequence(identity, sequence, **kwargs)
-    terminator.roles. append(sbol3.SO_TERMINATOR)
-    return tuple([terminator, terminator_seq])
+    terminator_component, terminator_seq = dna_component_with_sequence(identity, sequence, **kwargs)
+    terminator_component.roles. append(sbol3.SO_TERMINATOR)
+    return terminator_component, terminator_seq
 
-def protein_stability_element(identity: str, sequence: str, **kwargs)-> Tuple[sbol3.Component, sbol3.Sequence]:
+
+def protein_stability_element(identity: str, sequence: str, **kwargs) -> Tuple[sbol3.Component, sbol3.Sequence]:
     """Creates a protein stability element Component and its Sequence.
 
     :param identity: The identity of the Component. The identity of Sequence is also identity with the suffix '_seq'.
     :param sequence: The DNA sequence of the Component encoded in IUPAC.
-    :param **kwargs: Keyword arguments of any other Component attribute.
+    :param kwargs: Keyword arguments of any other Component attribute.
     :return: A tuple of Component and Sequence.
     """
-    protein_stability_element, protein_stability_element_seq = dna_component_with_sequence(identity, sequence, **kwargs)
-    protein_stability_element.roles. append(tyto.SO.protein_stability_element)
-    return tuple([protein_stability_element, protein_stability_element_seq])
+    pse_component, protein_stability_element_seq = dna_component_with_sequence(identity, sequence, **kwargs)
+    pse_component.roles. append(tyto.SO.protein_stability_element)
+    return pse_component, protein_stability_element_seq
 
-def gene(identity: str, sequence: str, **kwargs)-> Tuple[sbol3.Component, sbol3.Sequence]:
+
+def gene(identity: str, sequence: str, **kwargs) -> Tuple[sbol3.Component, sbol3.Sequence]:
     """Creates a Gene Component and its Sequence.
 
     :param identity: The identity of the Component. The identity of Sequence is also identity with the suffix '_seq'.
     :param sequence: The DNA sequence of the Component encoded in IUPAC.
-    :param **kwargs: Keyword arguments of any other Component attribute.
+    :param kwargs: Keyword arguments of any other Component attribute.
     :return: A tuple of Component and Sequence.
     """
-    gene, gene_seq = dna_component_with_sequence(identity, sequence, **kwargs)
-    gene.roles. append(sbol3.SO_GENE)
-    return tuple([gene, gene_seq])
+    gene_component, gene_seq = dna_component_with_sequence(identity, sequence, **kwargs)
+    gene_component.roles. append(sbol3.SO_GENE)
+    return gene_component, gene_seq
 
-def operator(identity: str, sequence: str, **kwargs)-> Tuple[sbol3.Component, sbol3.Sequence]:
+
+def operator(identity: str, sequence: str, **kwargs) -> Tuple[sbol3.Component, sbol3.Sequence]:
     """Creates an Operator Component and its Sequence.
 
     :param identity: The identity of the Component. The identity of Sequence is also identity with the suffix '_seq'.
     :param sequence: The DNA sequence of the Component encoded in IUPAC.
-    :param **kwargs: Keyword arguments of any other Component attribute.
+    :param kwargs: Keyword arguments of any other Component attribute.
     :return: A tuple of Component and Sequence.
     """
-    operator, operator_seq = dna_component_with_sequence(identity, sequence, **kwargs)
-    operator.roles. append(sbol3.SO_OPERATOR)
-    return tuple([operator, operator_seq])
+    operator_component, operator_seq = dna_component_with_sequence(identity, sequence, **kwargs)
+    operator_component.roles. append(sbol3.SO_OPERATOR)
+    return operator_component, operator_seq
 
-def engineered_region(identity: str, features: Union[List[sbol3.SubComponent],List[sbol3.Component]], **kwargs)-> sbol3.Component:
-    """Creates an Engineered Region Component.
+
+def engineered_region(identity: str, features: Union[List[sbol3.SubComponent], List[sbol3.Component]], **kwargs) \
+        -> sbol3.Component:
+    """Creates an Engineered Region Component, with features assumed to be in linear order
 
     :param identity: The identity of the Component.
-    :param sub components: SubComponents or Components to add as features.
-    :param **kwargs: Keyword arguments of any other Component attribute.
+    :param features: SubComponents or Components to add as features in linear order
+    :param kwargs: Keyword arguments of any other Component attribute.
     :return: A tuple of Component and Sequence.
     """
-    engineered_region = sbol3.Component(identity, sbol3.SBO_DNA, **kwargs)
-    engineered_region.roles.append(sbol3.SO_ENGINEERED_REGION)
+    er_component = sbol3.Component(identity, sbol3.SBO_DNA, **kwargs)
+    er_component.roles.append(sbol3.SO_ENGINEERED_REGION)
     for to_add in features:
         if isinstance(to_add, sbol3.Component):
             to_add = sbol3.SubComponent(to_add)
-        engineered_region.features.append(to_add)
-    if len(engineered_region.features) > 1:
-            for i in range(len(engineered_region.features)-1):
-                engineered_region.constraints = [sbol3.Constraint(sbol3.SBOL_PRECEDES, engineered_region.features[i], engineered_region.features[i+1])]
-    else: pass
-    return engineered_region
+        er_component.features.append(to_add)
+    if len(er_component.features) > 1:
+        for i in range(len(er_component.features)-1):
+            constraint = sbol3.Constraint(sbol3.SBOL_PRECEDES, er_component.features[i], er_component.features[i + 1])
+            er_component.constraints = [constraint]
+    else:
+        pass
+    return er_component
 
-def mrna(identity: str, sequence: str, **kwargs)-> Tuple[sbol3.Component, sbol3.Sequence]:
+
+def mrna(identity: str, sequence: str, **kwargs) -> Tuple[sbol3.Component, sbol3.Sequence]:
     """Creates an mRNA Component and its Sequence.
 
     :param identity: The identity of the Component. The identity of Sequence is also identity with the suffix '_seq'.
     :param sequence: The RNA sequence of the Component encoded in IUPAC.
-    :param **kwargs: Keyword arguments of any other Component attribute.
+    :param kwargs: Keyword arguments of any other Component attribute.
     :return: A tuple of Component and Sequence.
     """
-    mrna, mrna_seq = rna_component_with_sequence(identity, sequence, **kwargs)
-    mrna.roles. append(sbol3.SO_MRNA)
-    return tuple([mrna, mrna_seq])
+    mrna_component, mrna_seq = rna_component_with_sequence(identity, sequence, **kwargs)
+    mrna_component.roles. append(sbol3.SO_MRNA)
+    return mrna_component, mrna_seq
 
-def transcription_factor(identity: str, sequence: str, **kwargs)-> Tuple[sbol3.Component, sbol3.Sequence]:
-    """Creates a Trancription Factor Component and its Sequence.
+
+def transcription_factor(identity: str, sequence: str, **kwargs) -> Tuple[sbol3.Component, sbol3.Sequence]:
+    """Creates a Transcription Factor Component and its Sequence.
 
     :param identity: The identity of the Component. The identity of Sequence is also identity with the suffix '_seq'.
     :param sequence: The Protein amino acid sequence of the Component encoded in IUPAC.
-    :param **kwargs: Keyword arguments of any other Component attribute.
+    :param kwargs: Keyword arguments of any other Component attribute.
     :return: A tuple of Component and Sequence.
     """
-    transcription_factor, transcription_factor_seq = protein_component_with_sequence(identity, sequence, **kwargs)
-    transcription_factor.roles. append(sbol3.SO_TRANSCRIPTION_FACTOR)
-    return tuple([transcription_factor, transcription_factor_seq])
+    tf_component, transcription_factor_seq = protein_component_with_sequence(identity, sequence, **kwargs)
+    tf_component.roles. append(sbol3.SO_TRANSCRIPTION_FACTOR)
+    return tf_component, transcription_factor_seq
 
 
-def media(identity: str, recipe = None, **kwargs)-> sbol3.Component:
+def media(identity: str, recipe: dict[Union[sbol3.Component, sbol3.SubComponent], Union[sbol3.Measure, list]] = None,
+          **kwargs) -> sbol3.Component:
     """Creates a media Component of type functional entity.
 
     :param identity: The identity of the Component.
-    :param **kwargs: Keyword arguments of any other Component attribute.
-    :return: A Component object.
+    :param recipe: dictionary of mapping from Component/SubComponent to a quantity (either Measure or value/unit pairs)
+    :param kwargs: Keyword arguments of any other Component attribute.
+    :return: a new Component representing the specified media
+    :raises: ValueError if there are problems with the recipe elements
     """
-    media = functional_component(identity, **kwargs)
-    media.roles.append(tyto.NCIT.Media)
+    media_component = functional_component(identity, **kwargs)
+    media_component.roles.append(tyto.NCIT.Media)
+    # If there is a recipe, add all of the element, wrapping as needed
     if recipe:
         for key, value in recipe.items():
             if isinstance(key, sbol3.Component):
                 key = sbol3.SubComponent(key)
-            key.measures.append(sbol3.Measure(value[0], value[1]))
-            media.features.append(key)
-    return media
+            if not isinstance(value, sbol3.Measure):
+                value = sbol3.Measure(value[0], value[1])
+            if len(key.measures):
+                raise ValueError(f'Media recipe applied to a component that already has a quantity: {key.identity}')
+            key.measures.append(value)
+            media_component.features.append(key)
+    return media_component
 
-def strain(identity: str, **kwargs)-> sbol3.Component:
+
+def strain(identity: str, **kwargs) -> sbol3.Component:
     """Creates a strain Component of type functional entity.
 
     :param identity: The identity of the Component.
-    :param **kwargs: Keyword arguments of any other Component attribute.
+    :param kwargs: Keyword arguments of any other Component attribute.
     :return: A Component object.
     """
-    strain = functional_component(identity, **kwargs)
-    strain.roles.append(tyto.NCIT.Strain)
-    return strain
+    strain_component = functional_component(identity, **kwargs)
+    strain_component.roles.append(tyto.NCIT.Strain)
+    return strain_component
 
-def ed_simple_chemical(definition: str, **kwargs)-> sbol3.Component:
+
+def ed_simple_chemical(definition: str, **kwargs) -> sbol3.ExternallyDefined:
     """Creates an ExternallyDefined Simple Chemical Component.
 
     :param definition: The URI that links to a canonical definition external to SBOL, recommended ChEBI and PubChem.
-    :param **kwargs: Keyword arguments of any other ExternallyDefined attribute.
+    :param kwargs: Keyword arguments of any other ExternallyDefined attribute.
     :return: A Component object.
     """
-    ed_simple_chemical = sbol3.ExternallyDefined([sbol3.SBO_SIMPLE_CHEMICAL], definition, **kwargs)
-    return ed_simple_chemical
+    return sbol3.ExternallyDefined([sbol3.SBO_SIMPLE_CHEMICAL], definition, **kwargs)
 
-def ed_protein(definition: str, **kwargs)-> sbol3.Component:
+
+def ed_protein(definition: str, **kwargs) -> sbol3.ExternallyDefined:
     """Creates an ExternallyDefined Protein Component.
 
-    :param definition: The URI that links to a canonical definitino external to SBOL, recommended UniProt.
-    :param **kwargs: Keyword arguments of any other ExternallyDefined attribute.
+    :param definition: The URI that links to a canonical definition external to SBOL, recommended UniProt.
+    :param kwargs: Keyword arguments of any other ExternallyDefined attribute.
     :return: A Component object.
     """
-    ed_protein = sbol3.ExternallyDefined([sbol3.SBO_PROTEIN], definition, **kwargs)
-    return ed_protein
+    return sbol3.ExternallyDefined([sbol3.SBO_PROTEIN], definition, **kwargs)

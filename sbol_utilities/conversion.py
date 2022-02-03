@@ -107,7 +107,8 @@ def convert2to3(sbol2_doc: Union[str, sbol2.Document], namespaces=None) -> sbol3
 
     # TODO: remove workaround after conversion errors fixed in https://github.com/sboltools/sbolgraph/issues/14
     # add in the missing namespace fields where possible, defaulting otherwise
-    needs_namespace = {o for o in doc.objects if o.namespace is None}  # TODO: add check for non-TopLevel? See https://github.com/SynBioDex/pySBOL3/issues/295
+    # TODO: add check for non-TopLevel? See https://github.com/SynBioDex/pySBOL3/issues/295
+    needs_namespace = {o for o in doc.objects if o.namespace is None}
     for n in namespaces:
         assignable = {o for o in needs_namespace if o.identity.startswith(n)}
         for a in assignable:
@@ -125,6 +126,7 @@ def convert2to3(sbol2_doc: Union[str, sbol2.Document], namespaces=None) -> sbol3
         for f in (f for f in s.features if isinstance(f, sbol3.SequenceFeature) or isinstance(f, sbol3.SubComponent)):
             for loc in f.locations:
                 loc.sequence = s.sequences[0]
+    # TODO: remove remap workarounds after conversions error fixed in https://github.com/sboltools/sbolgraph/issues/17
     # remap sequence encodings:
     encoding_remapping = {
         sbol2.SBOL_ENCODING_IUPAC: sbol3.IUPAC_DNA_ENCODING,
@@ -150,6 +152,7 @@ def convert2to3(sbol2_doc: Union[str, sbol2.Document], namespaces=None) -> sbol3
         sbol2.SBOL_ORIENTATION_INLINE: sbol3.SBOL_INLINE,
         sbol2.SBOL_ORIENTATION_REVERSE_COMPLEMENT: sbol3.SBOL_REVERSE_COMPLEMENT
     }
+
     def change_orientation(o):
         if isinstance(o, sbol3.Location):
             if hasattr(o, 'orientation') and o.orientation in orientation_remapping:
@@ -191,6 +194,7 @@ def convert3to2(doc3: sbol3.Document) -> sbol2.Document:
         sbol3.SBOL_INLINE: sbol2.SBOL_ORIENTATION_INLINE,
         sbol3.SBOL_REVERSE_COMPLEMENT: sbol2.SBOL_ORIENTATION_REVERSE_COMPLEMENT
     }
+
     def change_orientation(o):
         if isinstance(o, sbol3.Location):
             if hasattr(o, 'orientation') and o.orientation in orientation_remapping:
@@ -273,7 +277,8 @@ def convert_from_fasta(path: str, namespace: str, identity_map: Dict[str, str] =
     return doc
 
 
-# TODO: Figure out how to support multiple namespaces like we do for FASTA: currently, importing from multiple namespaces will not work correctly
+# TODO: Figure out how to support multiple namespaces like we do for FASTA: currently, importing from multiple
+#  namespaces will not work correctly
 def convert_from_genbank(path: str, namespace: str, allow_genbank_online: bool = False) -> sbol3.Document:
     """Convert a GenBank document on disk into an SBOL3 document
     Specifically, the GenBank document is first imported to SBOL2, then converted from SBOL2 to SBOL3
@@ -293,7 +298,8 @@ def convert_from_genbank(path: str, namespace: str, allow_genbank_online: bool =
     return doc
 
 
-def convert_to_genbank(doc3: sbol3.Document, path: str, allow_genbank_online: bool = False) -> List[SeqRecord.SeqRecord]:
+def convert_to_genbank(doc3: sbol3.Document, path: str, allow_genbank_online: bool = False) \
+        -> List[SeqRecord.SeqRecord]:
     """Convert an SBOL3 document to a GenBank file, which is written to disk
     Note that for compatibility with version control software, if no prov:modified term is available on each Component,
     then a fixed bogus datestamp of January 1, 2000 is given
@@ -312,7 +318,7 @@ def convert_to_genbank(doc3: sbol3.Document, path: str, allow_genbank_online: bo
     # TODO: remove this kludge after resolution of https://github.com/SynBioDex/libSBOLj/issues/622
     keepers = {'http://sbols.org/v2', 'http://www.w3.org/ns/prov', 'http://purl.org/dc/terms/',
                'http://sboltools.org/backport'}
-    for c in doc2.componentDefinitions: # wipe out all annotation properties
+    for c in doc2.componentDefinitions:  # wipe out all annotation properties
         c.properties = {p: v for p, v in c.properties.items() if any(k for k in keepers if p.startswith(k))}
 
     gb_tmp = tempfile.mkstemp(suffix='.gb')[1]
@@ -407,7 +413,8 @@ def main():
     parser.add_argument('--verbose', '-v', dest='verbose', action='count', default=0,
                         help="Print running explanation of conversion process")
     parser.add_argument('--allow-genbank-online', dest='allow_genbank_online', action='store_true', default=False,
-                        help='Allow GenBank conversion to send material to online converter; currently required to be True')
+                        help='Allow GenBank conversion to send material to online converter; '
+                             'currently required to be True')
     args_dict = vars(parser.parse_args())
     # Call the shared command-line conversion routine
     command_line_converter(args_dict)
@@ -441,7 +448,8 @@ def genbank2sbol():
     parser.add_argument('--verbose', '-v', dest='verbose', action='count', default=0,
                         help='Print running explanation of conversion process')
     parser.add_argument('--allow-genbank-online', dest='allow_genbank_online', action='store_true', default=False,
-                        help='Allow GenBank conversion to send material to online converter; currently required to be True')
+                        help='Allow GenBank conversion to send material to online converter; '
+                             'currently required to be True')
     args_dict = vars(parser.parse_args())
     args_dict['input_file_type'] = 'GenBank'
     args_dict['output_file_type'] = 'SBOL3'
@@ -491,7 +499,8 @@ def sbol2genbank():
     parser.add_argument('--verbose', '-v', dest='verbose', action='count', default=0,
                         help="Print running explanation of conversion process")
     parser.add_argument('--allow-genbank-online', dest='allow_genbank_online', action='store_true', default=False,
-                        help='Allow GenBank conversion to send material to online converter; currently required to be True')
+                        help='Allow GenBank conversion to send material to online converter; '
+                             'currently required to be True')
     args_dict = vars(parser.parse_args())
     args_dict['input_file_type'] = 'SBOL3'
     args_dict['output_file_type'] = 'GenBank'

@@ -40,8 +40,11 @@ setup(name='sbol-utilities',
             'tyto>=1.0-beta',
             'openpyxl'
             ],
+      extras_require={  # requirements for development
+          'dev': ['pytest', 'interrogate']
+      },
       scripts=['graph-sbol'],
-      entry_points = {
+      entry_points={
             'console_scripts': ['excel-to-sbol=sbol_utilities.excel_to_sbol:main',
                                 'sbol-expand-derivations=sbol_utilities.expand_combinatorial_derivations:main',
                                 'sbol-calculate-sequences=sbol_utilities.calculate_sequences:main',
