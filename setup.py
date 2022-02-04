@@ -34,7 +34,7 @@ setup(name='sbol-utilities',
       keywords='synthetic biology',
       install_requires=[
             'sbol3>=1.0b11',
-            'sbol2>=1.3',
+            'sbol2>=1.4',
             'rdflib',
             'biopython',
             'graphviz',
