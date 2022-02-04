@@ -55,6 +55,7 @@ class Test2To3Conversion(unittest.TestCase):
 
         # Convert to SBOL2 and check contents
         doc2 = convert3to2(doc3)
+        self.assertEqual(doc2.validate(), 'Valid.')
         assert len(doc2.componentDefinitions) == 1, f'Expected 1 CD, but found {len(doc2.componentDefinitions)}'
         # TODO: bring this back after resolution of https://github.com/sboltools/sbolgraph/issues/15
         #assert len(doc2.activities) == 1, f'Expected 1 Activity, but found {len(doc2.activities)}'
@@ -67,12 +68,13 @@ class Test2To3Conversion(unittest.TestCase):
     def test_3to2_orientation_conversion(self):
         """Test ability to convert orientation from SBOL3to SBOL2"""
         # Get the SBOL3 test document
-        tmp_sub = copy_to_tmp(package=['iGEM_SBOL2_imports.nt'])
+        tmp_sub = copy_to_tmp(package=['iGEM_SBOL2_imports.nt', 'feature_orientation_conversion.nt'])
         doc3 = sbol3.Document()
         doc3.read(os.path.join(tmp_sub, 'iGEM_SBOL2_imports.nt'))
 
         # Convert to SBOL2 and check contents
         doc2 = convert3to2(doc3)
+        self.assertEqual(doc2.validate(), 'Valid.')
         # ids of location block containing orientation before conversion
         location_ids_sbol3 = []
 
@@ -88,9 +90,17 @@ class Test2To3Conversion(unittest.TestCase):
                 for loc in sa.locations:
                     if hasattr(loc, 'orientation') and loc.orientation:
                         location_ids_sbol2.append(loc.identity)
-                        assert loc.orientation != 'http://sbols.org/v3#inline'
+                        assert loc.orientation == 'http://sbols.org/v2#inline'
         assert len(location_ids_sbol2) == 12
         assert collections.Counter(location_ids_sbol2) == collections.Counter(location_ids_sbol3)
+
+        # also check the feeature orientations are getting converted
+        doc3 = sbol3.Document()
+        doc3.read('test/test_files/feature_orientation_conversion.nt')
+        # Convert to SBOL2 and check contents
+        doc2 = convert3to2(doc3)
+        self.assertEqual(doc2.validate(), 'Valid.')
+
 
     def test_genbank_conversion(self):
         """Test ability to convert from SBOL3 to GenBank"""

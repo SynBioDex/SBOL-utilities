@@ -196,8 +196,8 @@ def convert3to2(doc3: sbol3.Document) -> sbol2.Document:
     }
 
     def change_orientation(o):
-        if isinstance(o, sbol3.Location):
-            if hasattr(o, 'orientation') and o.orientation in orientation_remapping:
+        if isinstance(o, sbol3.Location) or isinstance(o, sbol3.Feature):
+            if o.orientation in orientation_remapping:
                 o.orientation = orientation_remapping[o.orientation]
     doc3.traverse(change_orientation)
 
@@ -305,7 +305,7 @@ def convert_to_genbank(doc3: sbol3.Document, path: str, allow_genbank_online: bo
     then a fixed bogus datestamp of January 1, 2000 is given
 
     :param doc3: SBOL3 document to convert
-    :param path: path to write FASTA file to
+    :param path: path to write GenBank file to
     :param allow_genbank_online: Allow use of the online converter (currently required)
     :return: BioPython SeqRecord of the GenBank that was written
     """
