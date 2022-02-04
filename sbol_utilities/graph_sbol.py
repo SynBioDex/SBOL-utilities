@@ -2,6 +2,7 @@ import sbol3
 import graphviz
 import rdflib
 import argparse
+import sys
 
 
 def graph_sbol(doc, outfile='out'):
@@ -142,4 +143,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
