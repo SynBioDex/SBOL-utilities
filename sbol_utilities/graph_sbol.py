@@ -122,7 +122,11 @@ composition_relationship = {
     } 
 
 
-if __name__ == "__main__":
+def main():
+    """Main wrapper: read from input file, to sbol3 document, then invoke graph_sbol
+
+    :return: None
+    """
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "-i",
@@ -135,3 +139,7 @@ if __name__ == "__main__":
     doc = sbol3.Document()
     doc.read(args_dict['in_file'])
     graph_sbol(doc, args_dict['in_file'].split('.')[0])
+
+
+if __name__ == "__main__":
+    main()
