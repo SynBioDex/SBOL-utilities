@@ -11,24 +11,6 @@ on:
     - cron: '0 0 * * *'  # every day at midnight
 
 jobs:
-  docstr_coverage:
-    runs-on: ubuntu-latest
-
-    steps:
-    - uses: actions/checkout@v2
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
-      with:
-        python-version: ${{ matrix.python-version }}
-    - name: Install Interrogate
-      run: |
-        python -m pip install --upgrade pip
-        python -m pip install pytest
-        pip install interrogate
-    - name: Test docstr_coverage with interrogate
-      run: |
-        pytest test/test_docstr_coverage.py -s
-
   build:
     runs-on: ubuntu-latest
     strategy:
