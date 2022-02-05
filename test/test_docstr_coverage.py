@@ -19,7 +19,8 @@ class TestDocStringsCoverage(unittest.TestCase):
     def test_using_interrogate(self):
         """Tests each module, function, classes, methods for presence of docstrings"""
         # Parsing config (looks for pyproject.toml by default) 
-        project_root = Path(__file__).parent.parent
+        # project_root = Path(__file__).parent.parent
+        project_root = "./test"
         toml = config.find_project_config('.')
         interrogate_config: config.InterrogateConfig = config.InterrogateConfig(config.parse_pyproject_toml(toml))
         # Obtaining and printing results
