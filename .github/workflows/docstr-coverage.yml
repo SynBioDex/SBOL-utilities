@@ -22,6 +22,7 @@ jobs:
         python -m pip install --upgrade pip
         python -m pip install pytest
         pip install interrogate
+        pip install anybadge
     - name: Test docstr_coverage with interrogate
       run: |
         pytest test/test_docstr_coverage.py -s
