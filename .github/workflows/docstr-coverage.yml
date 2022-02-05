@@ -7,6 +7,9 @@ on:
   schedule:
     - cron: '0 0 * * *'  # every day at midnight
 
+# for GITHUB_TOKEN
+permissions: write-all
+
 jobs:
   docstr_coverage:
     runs-on: ubuntu-latest
@@ -23,6 +26,10 @@ jobs:
         python -m pip install pytest
         pip install interrogate
         pip install anybadge
+      with: 
+        token: ${{ secrets.GITHUB_TOKEN }}
+        branch: interrogate
+        commit-message: Auto update docstring coverage badge
     - name: Test docstr_coverage with interrogate
       run: |
         pytest test/test_docstr_coverage.py -s
