@@ -29,11 +29,13 @@ jobs:
     - name: Test docstr_coverage with interrogate
       run: |
         pytest test/test_docstr_coverage.py -s
-    - uses: actions/upload-artifact@v2
+    - name: Upload badge as artifact
+      uses: actions/upload-artifact@v2
       with:
         name: DocstringCoverage
         path: docstr_badge.svg
-    - uses: actions/download-artifact@v2
+    - name: Download badge as artifact
+      uses: actions/download-artifact@v2
       with:
         name: DocstringCoverage
         path: docstr_badge.svg
