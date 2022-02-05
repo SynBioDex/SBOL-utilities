@@ -26,7 +26,7 @@ jobs:
         python -m pip install pytest
         pip install interrogate
         pip install anybadge
-      uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v2
       with:
         name: DocstringCoverage
         path: docstr_badge.svg
