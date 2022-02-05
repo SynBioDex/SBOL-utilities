@@ -2,8 +2,20 @@ from pathlib import Path
 import unittest
 from interrogate import coverage
 from interrogate import config
+import os
 
 class TestDocStringsCoverage(unittest.TestCase):
+    def update_status_badge(self, new_value: int, min_value: int, max_value: int):
+        # --label and --value are text on left and right side of docstr_badge
+        # --file specifies .svg file to write to, -o is required for overwriting
+        # Color of badge for values under "min_value" are red, and above it are green
+        os.system(f"anybadge \
+            --label=DocstringCoverage \
+            --value={new_value} \
+            --file=docstr_badge.svg -o \
+            {min_value}=red \
+            {max_value}=green")
+
     def test_using_interrogate(self):
         """Tests each module, function, classes, methods for presence of docstrings"""
         # Parsing config (looks for pyproject.toml by default) 
@@ -21,6 +33,7 @@ class TestDocStringsCoverage(unittest.TestCase):
         # covered % must satisfy min % set in .toml
         print("\n")
         cov.print_results(results, None, interrogate_config.color["verbose"])
+        self.update_status_badge(int(covered_percent), int(interrogate_config.fail_under), 100)
         self.assertGreaterEqual(covered_percent, interrogate_config.fail_under, 'Required minimum percent of code covered by docstrings not achieved.')
 
 if __name__ == '__main__':
