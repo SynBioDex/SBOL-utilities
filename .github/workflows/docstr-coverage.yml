@@ -30,11 +30,13 @@ jobs:
       run: |
         pytest test/test_docstr_coverage.py -s
     - name: Upload badge as artifact
+      if: always()
       uses: actions/upload-artifact@v2
       with:
         name: DocstringCoverage
         path: docstr_badge.svg
     - name: Download badge as artifact
+      if: always()
       uses: actions/download-artifact@v2
       with:
         name: DocstringCoverage
