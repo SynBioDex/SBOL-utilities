@@ -21,15 +21,15 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install Interrogate
+      with: 
+        token: ${{ secrets.GITHUB_TOKEN }}
+        branch: interrogate
+        commit-message: Auto update docstring coverage badge
       run: |
         python -m pip install --upgrade pip
         python -m pip install pytest
         pip install interrogate
         pip install anybadge
-      with: 
-        token: ${{ secrets.GITHUB_TOKEN }}
-        branch: interrogate
-        commit-message: Auto update docstring coverage badge
     - name: Test docstr_coverage with interrogate
       run: |
         pytest test/test_docstr_coverage.py -s
