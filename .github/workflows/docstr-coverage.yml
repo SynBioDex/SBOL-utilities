@@ -36,6 +36,7 @@ jobs:
         name: DocstringCoverage
         path: docstr_badge.svg
     - name: Delete old badge
+      if: always()
       run: | 
         rm docstr_badge.svg
     - name: Download badge as artifact
