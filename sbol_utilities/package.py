@@ -64,22 +64,35 @@ def regularize_package_directory(dir: str):
         raise ValueError(f'Package {dir}: {PACKAGE_DIRECTORY} subdirectory should not have any subdirectories of its '
                          f'own, but found {package_sub_dirs[0]}')
 
-def define_package(*docs: sbol3.Document):
+def define_package(root_package_file: sbol3.Document, *sub_package_files: sbol3.Document):
     """Function to take one or more sbol documents, check if they are a package,
      and create a new sbol document with the package definition included
 
     Args:
-        *docs (sbol3.Document): The document(s) to be checked for a package
+        package_file (sbol3.Document): First document, for the package # TODO: Ask Jake for clarification
+        *subpackage_files (sbol3.Document): The document(s) for subpackages
 
     Return
-        doc (sbol3.Document): The document with the added package info
+        package: The package definition
     """
 
+    # Steps from SEP 054 markdown
+    # Convert each SBOL document to a Package
+    # Aggregates the Package objects into another package that contains them all
+    # Check all package objects' namespaces share a prefix (identity  = [prefix]/package)
+    # Conversion = false
+    # Dissociated not set
+    # Package will have no member values
+    # hadDependency values will be a union of the hasDependency values of its subpackages
+    # Explicitly provide the name the and the description of the package?
+
+    # Create a package for the root package
     # Get a namespace to use for the package
-    package_namespace = -9999
+    # Picking the namespace from the first object in the package file
+    package_namespace = root_package_file.objects[0].namespace
 
     # Get list of identities of all top level objects from all files
-    all_identities = [o.identity for doc in docs for o in doc.objects]
+    all_identities = [o.identity for o in root_package_file.objects]
 
     # Define the package
     package = sep_054.Package(package_namespace + '/package')
@@ -90,14 +103,32 @@ def define_package(*docs: sbol3.Document):
     # Namespace must match the hasNamespace value for all of its members
     package.namespace = package_namespace
 
+    # Set "Conversion" to false
+    package.conversion = False
+
+    # For each subpackage
+    for sub_package_file in sub_package_files:
+        # Define a package for the subpackage # TODO: Make this a function to re-use
+        sub_package_namespace = sub_package_file.objects[0].namespace
+        all_identities = [o.identity for o in sub_package_file.objects]
+        sub_package = sep_054.Package(sub_package_namespace + '/package') # TODO: Should this be called a package or a subpackage?
+        sub_package.members = all_identities
+        sub_package.namespace = sub_package_namespace
+
+        # TODO: Check the namespace of the subpackage?
+
+        # Add to the root-package's sub-package list
+        package.subPackage.append = sub_package.identity
+
     # Call check_namespace
     logging.info('Checking namespaces')
     is_package = check_namespaces(package)
     logging.info(f'SBOL Document is a package: {is_package}')
 
-    # Return the doc
+    # Return the package
     if is_package:
         return(package)
+        # TODO: Store the package in sorted N-triples format? File named .sip/package.nt
     # TODO: Should I throw an error if something is not a package?
 
 def check_namespaces(package):
