@@ -40,4 +40,4 @@ jobs:
     - name: Test with pytest
       run: |
         pip install .
-        pytest -s
+        pytest --ignore=test/test_docstr_coverage.py -s

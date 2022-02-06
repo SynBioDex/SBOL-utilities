@@ -79,14 +79,12 @@ def convert2to3(sbol2_doc: Union[str, sbol2.Document], namespaces=None) -> sbol3
         namespaces = []
     if isinstance(sbol2_doc, sbol2.Document):
         sbol2_path = tempfile.mkstemp(suffix='.xml')[1]
-        # Turn off automatic validation on write to avoid requiring transmitting data to the validator webservice
-        # If you want validation, you should validate the document explicitly beforehand
-        was_using_validator = sbol2.Config.getOption(sbol2.ConfigOptions.VALIDATE)
+        validate_online = sbol2.Config.getOption(sbol2.ConfigOptions.VALIDATE_ONLINE)
         try:
-            sbol2.Config.setOption(sbol2.ConfigOptions.VALIDATE, False)
+            sbol2.Config.setOption(sbol2.ConfigOptions.VALIDATE_ONLINE, False)
             sbol2_doc.write(sbol2_path)
         finally:
-            sbol2.Config.setOption(sbol2.ConfigOptions.VALIDATE, was_using_validator)
+            sbol2.Config.setOption(sbol2.ConfigOptions.VALIDATE_ONLINE, validate_online)
     else:
         sbol2_path = sbol2_doc
 
@@ -159,6 +157,11 @@ def convert2to3(sbol2_doc: Union[str, sbol2.Document], namespaces=None) -> sbol3
                 o.orientation = orientation_remapping[o.orientation]
     doc.traverse(change_orientation)
 
+    report = doc.validate()
+    if len(report):
+        report_string = "\n".join(str(e) for e in doc.validate())
+        raise ValueError(f'Conversion from SBOL2 to SBOL3 produced an invalid document: {report_string}')
+
     return doc
 
 
@@ -196,8 +199,8 @@ def convert3to2(doc3: sbol3.Document) -> sbol2.Document:
     }
 
     def change_orientation(o):
-        if isinstance(o, sbol3.Location):
-            if hasattr(o, 'orientation') and o.orientation in orientation_remapping:
+        if isinstance(o, sbol3.Location) or isinstance(o, sbol3.Feature):
+            if o.orientation in orientation_remapping:
                 o.orientation = orientation_remapping[o.orientation]
     doc3.traverse(change_orientation)
 
@@ -215,7 +218,7 @@ def convert3to2(doc3: sbol3.Document) -> sbol2.Document:
         # Extract the rdf_xml output from the sbol converter
         rdf_xml = proc.stdout.decode('utf-8')
     except subprocess.CalledProcessError:
-        raise ValueError('Embedded SBOL 3-to-2 converter failed opaquely, indicating a likely invalid SBOL file.')
+        raise ValueError('Embedded SBOL 3-to-2 converter failed opaquely, possibly indicating an invalid SBOL file.')
 
     doc2 = sbol2.Document()
     doc2.readString(rdf_xml)
@@ -224,8 +227,17 @@ def convert3to2(doc3: sbol3.Document) -> sbol2.Document:
         for sa in c.sequenceAnnotations:
             for loc in sa.locations:
                 loc.sequence = None  # remove optional sequences, per https://github.com/SynBioDex/libSBOLj/issues/621
-    # We explicitly do NOT validate here in order to avoid requiring transmitting data to the validator webservice
-    # If you want validation, you should run it on the document that is returned
+
+    # Validate document offline
+    validate_online = sbol2.Config.getOption(sbol2.ConfigOptions.VALIDATE_ONLINE)
+    try:
+        sbol2.Config.setOption(sbol2.ConfigOptions.VALIDATE_ONLINE, False)
+        result = doc2.validate()
+        if not result == "Valid.":
+            raise ValueError(f'Conversion from SBOL3 to SBOL2 produced an invalid document: {result}')
+    finally:
+        sbol2.Config.setOption(sbol2.ConfigOptions.VALIDATE_ONLINE, validate_online)
+
     return doc2
 
 
@@ -285,15 +297,19 @@ def convert_from_genbank(path: str, namespace: str, allow_genbank_online: bool =
 
     :param path: path to read GenBank file from
     :param namespace: URIs of Components will be set to {namespace}/{genbank_id}
-    :param allow_genbank_online: Allow use of the online converter (currently required)
+    :param allow_genbank_online: Use the online converter, rather than the local converter
     :return: SBOL3 document containing converted materials
     """
-    if not allow_genbank_online:
-        raise NotImplementedError('GenBank conversion currently requires use of the online SBOL validator/converter')
-
     doc2 = sbol2.Document()
     sbol2.setHomespace(namespace)
-    doc2.importFromFormat(path)
+    # Convert document offline
+    validate_online = sbol2.Config.getOption(sbol2.ConfigOptions.VALIDATE_ONLINE)
+    try:
+        sbol2.Config.setOption(sbol2.ConfigOptions.VALIDATE_ONLINE, allow_genbank_online)
+        doc2.importFromFormat(path)
+    finally:
+        sbol2.Config.setOption(sbol2.ConfigOptions.VALIDATE_ONLINE, validate_online)
+
     doc = convert2to3(doc2, [namespace])
     return doc
 
@@ -305,13 +321,10 @@ def convert_to_genbank(doc3: sbol3.Document, path: str, allow_genbank_online: bo
     then a fixed bogus datestamp of January 1, 2000 is given
 
     :param doc3: SBOL3 document to convert
-    :param path: path to write FASTA file to
-    :param allow_genbank_online: Allow use of the online converter (currently required)
+    :param path: path to write GenBank file to
+    :param allow_genbank_online: use the online converter rather than the local converter
     :return: BioPython SeqRecord of the GenBank that was written
     """
-    if not allow_genbank_online:
-        raise NotImplementedError('GenBank conversion currently requires use of the online SBOL validator/converter')
-
     # first convert to SBOL2, then export to a temp GenBank file
     doc2 = convert3to2(doc3)
 
@@ -322,7 +335,13 @@ def convert_to_genbank(doc3: sbol3.Document, path: str, allow_genbank_online: bo
         c.properties = {p: v for p, v in c.properties.items() if any(k for k in keepers if p.startswith(k))}
 
     gb_tmp = tempfile.mkstemp(suffix='.gb')[1]
-    doc2.exportToFormat('GenBank', gb_tmp)
+    # Convert document offline
+    validate_online = sbol2.Config.getOption(sbol2.ConfigOptions.VALIDATE_ONLINE)
+    try:
+        sbol2.Config.setOption(sbol2.ConfigOptions.VALIDATE_ONLINE, allow_genbank_online)
+        doc2.exportToFormat('GenBank', gb_tmp)
+    finally:
+        sbol2.Config.setOption(sbol2.ConfigOptions.VALIDATE_ONLINE, validate_online)
 
     # Read and re-write in order to sort and to purge invalid date information and standardize GenBank formatting
     with open(gb_tmp, 'r') as tmp:
@@ -393,7 +412,12 @@ def command_line_converter(args_dict: Dict[str, Any]):
         convert_to_genbank(doc3, output_file, args_dict['allow_genbank_online'])
     elif output_file_type == 'SBOL2':
         doc2 = convert3to2(doc3)
-        doc2.write(output_file)
+        validate_online = sbol2.Config.getOption(sbol2.ConfigOptions.VALIDATE_ONLINE)
+        try:
+            sbol2.Config.setOption(sbol2.ConfigOptions.VALIDATE_ONLINE, False)
+            doc2.write(output_file)
+        finally:
+            sbol2.Config.setOption(sbol2.ConfigOptions.VALIDATE_ONLINE, validate_online)
     elif output_file_type == 'SBOL3':
         doc3.write(output_file, sbol3.SORTED_NTRIPLES)
     else:
@@ -413,8 +437,7 @@ def main():
     parser.add_argument('--verbose', '-v', dest='verbose', action='count', default=0,
                         help="Print running explanation of conversion process")
     parser.add_argument('--allow-genbank-online', dest='allow_genbank_online', action='store_true', default=False,
-                        help='Allow GenBank conversion to send material to online converter; '
-                             'currently required to be True')
+                        help='Perform GenBank conversion using online converter')
     args_dict = vars(parser.parse_args())
     # Call the shared command-line conversion routine
     command_line_converter(args_dict)
@@ -448,8 +471,7 @@ def genbank2sbol():
     parser.add_argument('--verbose', '-v', dest='verbose', action='count', default=0,
                         help='Print running explanation of conversion process')
     parser.add_argument('--allow-genbank-online', dest='allow_genbank_online', action='store_true', default=False,
-                        help='Allow GenBank conversion to send material to online converter; '
-                             'currently required to be True')
+                        help='Perform GenBank conversion using online converter')
     args_dict = vars(parser.parse_args())
     args_dict['input_file_type'] = 'GenBank'
     args_dict['output_file_type'] = 'SBOL3'
@@ -499,8 +521,7 @@ def sbol2genbank():
     parser.add_argument('--verbose', '-v', dest='verbose', action='count', default=0,
                         help="Print running explanation of conversion process")
     parser.add_argument('--allow-genbank-online', dest='allow_genbank_online', action='store_true', default=False,
-                        help='Allow GenBank conversion to send material to online converter; '
-                             'currently required to be True')
+                        help='Perform GenBank conversion using online converter')
     args_dict = vars(parser.parse_args())
     args_dict['input_file_type'] = 'SBOL3'
     args_dict['output_file_type'] = 'GenBank'
