@@ -75,62 +75,49 @@ def define_package(*docs: sbol3.Document):
         doc (sbol3.Document): The document with the added package info
     """
 
+    # Get a namespace to use for the package
+    package_namespace = -9999
+
+    # Get list of identities of all top level objects from all files
+    all_identities = [o.identity for doc in docs for o in doc.objects]
+
+    # Define the package
+    package = sep_054.Package(package_namespace + '/package')
+
+    # All top level objects are members
+    package.members = all_identities
+
+    # Namespace must match the hasNamespace value for all of its members
+    package.namespace = package_namespace
+
     # Call check_namespace
     logging.info('Checking namespaces')
-    is_package, package_namespace = check_namespaces(*docs)
+    is_package = check_namespaces(package)
     logging.info(f'SBOL Document is a package: {is_package}')
 
-    # If all namespaces are the same, add package and save as new file
+    # Return the doc
     if is_package:
+        return(package)
+    # TODO: Should I throw an error if something is not a package?
 
-        # Get list of identities of all top level objects from all files
-        all_identities = [o.identity for doc in docs for o in doc.objects]
-
-        # Define the package
-        package = sep_054.Package(package_namespace + '/package')
-
-        # All top level objects are members
-        package.members = all_identities
-
-        # Namespace must match the hasNamespace value for all of its members
-        package.namespace = package_namespace
-
-        # Combine all of the docs into one
-        doc = docs[0]
-        for sbol_doc in docs[1:]:
-            doc_objects = [o for o in sbol_doc.objects]
-            doc.add(doc_objects)
-        
-        # Add the package to the document
-        doc.add(package)
-
-        # Return the doc
-        return(doc)
-        
-
-def check_namespaces(*docs: sbol3.Document):
-    """ Check if the namespaces of all top level objects in one or more files
+def check_namespaces(package):
+    """ Check if the namespaces of all top level objects in a defined package
     are the same
 
     Args:
-        *docs (sbol3.Document): Document(s) containing top level objects
+        package (sbol3.Document): Document(s) containing top level objects
 
     Returns:
         is_package (boolean): True if all namespaces are the same
-        namespace (string): Namespace of the first object
     """
 
     # Get a list of all namespaces
-    all_namespaces = [o.namespace for doc in docs for o in doc.objects]
+    all_namespaces = [o.namespace for o in package.objects]
 
     # Check all namespaces are the same
     is_package = all(x == all_namespaces[0] for x in all_namespaces)
 
-    # Get the first namespace to pass the string
-    # Which position you pick won't matter if it is a package
-    namespace = all_namespaces[0]
-
-    return is_package, namespace
+    return is_package
 
 def main():
     """
