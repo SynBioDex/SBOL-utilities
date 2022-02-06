@@ -1,0 +1,64 @@
+digraph {
+	graph [bb="0,0,373,303"];
+	node [label="\N"];
+	subgraph cluster_toplevels {
+		graph [bb="8,8,365,295",
+			style=invis
+		];
+		Document	[height=0.5,
+			pos="261,269",
+			width=1.6068];
+		"synbiohub.org/public/igem/BBa_J23101"	[height=0.5,
+			label=BBa_J23101,
+			pos="175,196",
+			width=1.8596];
+		Document -> "synbiohub.org/public/igem/BBa_J23101"	[pos="e,194.74,213.29 241.49,251.89 230.02,242.42 215.34,230.31 202.7,219.87"];
+		"synbiohub.org/public/igem/BBa_J23101_sequence"	[height=0.5,
+			label=BBa_J23101_sequence,
+			pos="223,115",
+			width=3.1775];
+		Document -> "synbiohub.org/public/igem/BBa_J23101_sequence"	[pos="e,239.14,132.96 262.31,250.65 263.43,227.18 263.17,184.41 250,151 248.69,147.69 246.97,144.42 245.03,141.3"];
+		"synbiohub.org/public/igem/igem2sbol"	[height=0.5,
+			label=igem2sbol,
+			pos="299,34",
+			width=1.6249];
+		Document -> "synbiohub.org/public/igem/igem2sbol"	[pos="e,316.2,51.366 276.06,251.23 296.58,227.13 332.33,180.37 346,133 350.44,117.63 351.1,112.17 346,97 341.3,83.023 332.06,69.691 323.01,\
+58.997"];
+		"synbiohub.org/public/igem/BBa_J23101" -> "synbiohub.org/public/igem/BBa_J23101_sequence"	[arrowhead=vee,
+			arrowtail=odiamond,
+			dir=both,
+			fontname="Bitstream Vera Sans",
+			fontsize=8,
+			label=sequences,
+			lp="223,155.5",
+			pos="s,185.42,177.86 e,212.61,133.11 191.71,167.49 196.76,159.18 202.28,150.1 207.26,141.9",
+			weight=0];
+		"synbiohub.org/public/igem/BBa_J23101" -> "synbiohub.org/public/igem/igem2sbol"	[arrowhead=vee,
+			arrowtail=odiamond,
+			dir=both,
+			fontname="Bitstream Vera Sans",
+			fontsize=8,
+			label=generated_by,
+			lp="71.5,115",
+			pos="s,130.59,182.31 e,244.31,40.418 119.08,178.34 71.583,161.29 15.202,132.33 43,97 66.364,67.302 166.25,50.109 234.12,41.652",
+			weight=0];
+		"synbiohub.org/public/igem/BBa_J23101_sequence" -> "synbiohub.org/public/igem/igem2sbol"	[arrowhead=vee,
+			arrowtail=odiamond,
+			dir=both,
+			fontname="Bitstream Vera Sans",
+			fontsize=8,
+			label=generated_by,
+			lp="291.5,74.5",
+			pos="s,239.49,96.858 e,283.06,51.567 247.89,88.124 256.93,78.728 267.1,68.161 275.97,58.94",
+			weight=0];
+	}
+	subgraph "cluster_synbiohub.org/public/igem/BBa_J23101" {
+		graph [style=invis];
+	}
+	subgraph "cluster_synbiohub.org/public/igem/BBa_J23101_sequence" {
+		graph [style=invis];
+	}
+	subgraph "cluster_synbiohub.org/public/igem/igem2sbol" {
+		graph [style=invis];
+	}
+}
