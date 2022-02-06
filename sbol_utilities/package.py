@@ -111,14 +111,20 @@ def define_package(root_package_file: sbol3.Document, *sub_package_files: sbol3.
         # Define a package for the subpackage # TODO: Make this a function to re-use
         sub_package_namespace = sub_package_file.objects[0].namespace
         all_identities = [o.identity for o in sub_package_file.objects]
-        sub_package = sep_054.Package(sub_package_namespace + '/package') # TODO: Should this be called a package or a subpackage? Should it be user definable?
+        sub_package = sep_054.Package(sub_package_namespace + '/package') # CHECK: Should this be called a package or a subpackage? Should it be user definable?
         sub_package.members = all_identities
         sub_package.namespace = sub_package_namespace
 
-        # TODO: Check the namespace of the subpackage?
+        # Check the namespace of the subpackage?
+        is_package = check_namespaces(package)
 
         # Add to the root-package's sub-package list
-        package.dependencies.append(sub_package) #FIXME: Is dependencies correct? subPackage doesn't exist. This fails.
+        if is_package:
+            package.dependencies.append(sub_package) #FIXME: Is dependencies correct? subPackage doesn't exist. This fails. Says:
+        # ValueError: Package already has identity https://example.org/MyPackage/promoters/package and cannot be re-parented.
+        else:
+            pass
+            # TODO: Should I throw an error if something is not a package?
 
     # Call check_namespace
     logging.info('Checking namespaces')
@@ -129,21 +135,24 @@ def define_package(root_package_file: sbol3.Document, *sub_package_files: sbol3.
     if is_package:
         return(package)
         # TODO: Store the package in sorted N-triples format? File named .sip/package.nt
-    # TODO: Should I throw an error if something is not a package?
+    else:
+        pass
+        # TODO: Should I throw an error if something is not a package?
 
 def check_namespaces(package):
     """ Check if the namespaces of all top level objects in a defined package
     are the same
 
     Args:
-        package (sbol3.Document): Document(s) containing top level objects
+        package (sep054.Package): Package to check
 
     Returns:
         is_package (boolean): True if all namespaces are the same
     """
 
     # Get a list of all namespaces
-    all_namespaces = [o.namespace for o in package.objects]
+    # To get a namespace, remove the object name from the URI for each member object
+    all_namespaces = ["/".join(URI.split('/')) for URI in package.members]
 
     # Check all namespaces are the same
     is_package = all(x == all_namespaces[0] for x in all_namespaces)
