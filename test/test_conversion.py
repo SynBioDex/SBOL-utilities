@@ -55,6 +55,12 @@ class Test2To3Conversion(unittest.TestCase):
 
         # Convert to SBOL2 and check contents
         doc2 = convert3to2(doc3)
+        validate_online = sbol2.Config.getOption(sbol2.ConfigOptions.VALIDATE_ONLINE)
+        try:
+            sbol2.Config.setOption(sbol2.ConfigOptions.VALIDATE_ONLINE, False)
+            self.assertEqual(doc2.validate(), 'Valid.')
+        finally:
+            sbol2.Config.setOption(sbol2.ConfigOptions.VALIDATE_ONLINE, validate_online)
         assert len(doc2.componentDefinitions) == 1, f'Expected 1 CD, but found {len(doc2.componentDefinitions)}'
         # TODO: bring this back after resolution of https://github.com/sboltools/sbolgraph/issues/15
         #assert len(doc2.activities) == 1, f'Expected 1 Activity, but found {len(doc2.activities)}'
@@ -67,12 +73,18 @@ class Test2To3Conversion(unittest.TestCase):
     def test_3to2_orientation_conversion(self):
         """Test ability to convert orientation from SBOL3to SBOL2"""
         # Get the SBOL3 test document
-        tmp_sub = copy_to_tmp(package=['iGEM_SBOL2_imports.nt'])
+        tmp_sub = copy_to_tmp(package=['iGEM_SBOL2_imports.nt', 'feature_orientation_conversion.nt'])
         doc3 = sbol3.Document()
         doc3.read(os.path.join(tmp_sub, 'iGEM_SBOL2_imports.nt'))
 
         # Convert to SBOL2 and check contents
         doc2 = convert3to2(doc3)
+        validate_online = sbol2.Config.getOption(sbol2.ConfigOptions.VALIDATE_ONLINE)
+        try:
+            sbol2.Config.setOption(sbol2.ConfigOptions.VALIDATE_ONLINE, False)
+            self.assertEqual(doc2.validate(), 'Valid.')
+        finally:
+            sbol2.Config.setOption(sbol2.ConfigOptions.VALIDATE_ONLINE, validate_online)
         # ids of location block containing orientation before conversion
         location_ids_sbol3 = []
 
@@ -88,9 +100,21 @@ class Test2To3Conversion(unittest.TestCase):
                 for loc in sa.locations:
                     if hasattr(loc, 'orientation') and loc.orientation:
                         location_ids_sbol2.append(loc.identity)
-                        assert loc.orientation != 'http://sbols.org/v3#inline'
+                        assert loc.orientation == 'http://sbols.org/v2#inline'
         assert len(location_ids_sbol2) == 12
         assert collections.Counter(location_ids_sbol2) == collections.Counter(location_ids_sbol3)
+
+        # also check the feeature orientations are getting converted
+        doc3 = sbol3.Document()
+        doc3.read('test/test_files/feature_orientation_conversion.nt')
+        # Convert to SBOL2 and check contents
+        doc2 = convert3to2(doc3)
+        try:
+            sbol2.Config.setOption(sbol2.ConfigOptions.VALIDATE_ONLINE, False)
+            self.assertEqual(doc2.validate(), 'Valid.')
+        finally:
+            sbol2.Config.setOption(sbol2.ConfigOptions.VALIDATE_ONLINE, validate_online)
+
 
     def test_genbank_conversion(self):
         """Test ability to convert from SBOL3 to GenBank"""
@@ -101,7 +125,7 @@ class Test2To3Conversion(unittest.TestCase):
 
         # Convert to GenBank and check contents
         outfile = os.path.join(tmp_sub, 'BBa_J23101.gb')
-        convert_to_genbank(doc3, outfile, True)
+        convert_to_genbank(doc3, outfile)
 
         test_dir = os.path.dirname(os.path.realpath(__file__))
         comparison_file = os.path.join(test_dir, 'test_files', 'BBa_J23101.gb')
@@ -111,7 +135,7 @@ class Test2To3Conversion(unittest.TestCase):
         """Test ability to convert from GenBank to SBOL3"""
         # Get the GenBank test document and convert
         tmp_sub = copy_to_tmp(package=['BBa_J23101.gb'])
-        doc3 = convert_from_genbank(os.path.join(tmp_sub, 'BBa_J23101.gb'), 'https://synbiohub.org/public/igem', True)
+        doc3 = convert_from_genbank(os.path.join(tmp_sub, 'BBa_J23101.gb'), 'https://synbiohub.org/public/igem')
 
         # Note: cannot directly round-trip because converter is a) lossy, and b) inserts extra materials
         test_dir = os.path.dirname(os.path.realpath(__file__))
@@ -129,7 +153,7 @@ class Test2To3Conversion(unittest.TestCase):
 
         # Convert to GenBank and check contents
         outfile = os.path.join(tmp_sub, 'iGEM_SBOL2_imports.gb')
-        convert_to_genbank(doc3, outfile, True)
+        convert_to_genbank(doc3, outfile)
 
         test_dir = os.path.dirname(os.path.realpath(__file__))
         comparison_file = os.path.join(test_dir, 'test_files', 'iGEM_SBOL2_imports.gb')
@@ -209,23 +233,18 @@ class Test2To3Conversion(unittest.TestCase):
             fasta2sbol()
         assert filecmp.cmp(temp_name, test_file['from_fasta']), f'Converted file {temp_name} is not identical'
 
-        test_args = ['genbank2sbol', '-o', temp_name, '-n', 'https://synbiohub.org/public/igem', test_file['genbank'],
-                     '--allow-genbank-online']
+        # genbank conversion should succeed the same way when not online if not given an online argument
+        test_args = ['genbank2sbol', '-o', temp_name, '-n', 'https://synbiohub.org/public/igem', test_file['genbank']]
         with patch.object(sys, 'argv', test_args):
             genbank2sbol()
         assert filecmp.cmp(temp_name, test_file['from_genbank']), f'Converted file {temp_name} is not identical'
-
-        # genbank conversion should fail if not given an online argument
-        test_args = ['genbank2sbol', '-o', temp_name, '-n', 'https://synbiohub.org/public/igem', test_file['genbank']]
-        with patch.object(sys, 'argv', test_args):
-            self.assertRaises(NotImplementedError, genbank2sbol)
 
         test_args = ['sbol2fasta', '-o', temp_name, test_file['sbol3']]
         with patch.object(sys, 'argv', test_args):
             sbol2fasta()
         assert filecmp.cmp(temp_name, test_file['fasta']), f'Converted file {temp_name} is not identical'
 
-        test_args = ['sbol2genbank', '-o', temp_name, test_file['sbol3'], '--allow-genbank-online']
+        test_args = ['sbol2genbank', '-o', temp_name, test_file['sbol3']]
         with patch.object(sys, 'argv', test_args):
             sbol2genbank()
         assert filecmp.cmp(temp_name, test_file['genbank']), f'Converted file {temp_name} is not identical'
@@ -239,6 +258,21 @@ class Test2To3Conversion(unittest.TestCase):
         with patch.object(sys, 'argv', test_args):
             sbol2to3()
         assert filecmp.cmp(temp_name_2, test_file['sbol323']), f'Converted file {temp_name} is not identical'
+
+    def test_online_conversion(self):
+        """Test whether we are able to use the online converter"""
+        test_files = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'test_files')
+        temp_name = tempfile.mkstemp()[1]
+        test_file = {
+            'genbank': os.path.join(test_files, 'BBa_J23101.gb'),
+            'from_genbank': os.path.join(test_files, 'BBa_J23101_from_genbank.nt'),
+        }
+
+        test_args = ['genbank2sbol', '-o', temp_name, '-n', 'https://synbiohub.org/public/igem', test_file['genbank'],
+                     '--allow-genbank-online']
+        with patch.object(sys, 'argv', test_args):
+            genbank2sbol()
+        assert filecmp.cmp(temp_name, test_file['from_genbank']), f'Converted file {temp_name} is not identical'
 
 
 if __name__ == '__main__':
