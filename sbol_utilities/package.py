@@ -111,14 +111,14 @@ def define_package(root_package_file: sbol3.Document, *sub_package_files: sbol3.
         # Define a package for the subpackage # TODO: Make this a function to re-use
         sub_package_namespace = sub_package_file.objects[0].namespace
         all_identities = [o.identity for o in sub_package_file.objects]
-        sub_package = sep_054.Package(sub_package_namespace + '/package') # TODO: Should this be called a package or a subpackage?
+        sub_package = sep_054.Package(sub_package_namespace + '/package') # TODO: Should this be called a package or a subpackage? Should it be user definable?
         sub_package.members = all_identities
         sub_package.namespace = sub_package_namespace
 
         # TODO: Check the namespace of the subpackage?
 
         # Add to the root-package's sub-package list
-        package.subPackage.append = sub_package.identity
+        package.dependencies.append(sub_package) #FIXME: Is dependencies correct? subPackage doesn't exist. This fails.
 
     # Call check_namespace
     logging.info('Checking namespaces')
