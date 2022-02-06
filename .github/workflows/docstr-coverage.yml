@@ -7,9 +7,6 @@ on:
   schedule:
     - cron: '0 0 * * *'  # every day at midnight
 
-# for GITHUB_TOKEN
-permissions: write-all
-
 jobs:
   docstr_coverage:
     runs-on: ubuntu-latest
@@ -25,23 +22,6 @@ jobs:
         python -m pip install --upgrade pip
         python -m pip install pytest
         pip install interrogate
-        pip install anybadge
     - name: Test docstr_coverage with interrogate
       run: |
         pytest test/test_docstr_coverage.py -s
-    - name: Upload badge as artifact
-      if: always()
-      uses: actions/upload-artifact@v2
-      with:
-        name: DocstringCoverage
-        path: docstr_badge.svg
-    - name: Delete old badge
-      if: always()
-      run: | 
-        rm docstr_badge.svg
-    - name: Download badge as artifact
-      if: always()
-      uses: actions/download-artifact@v2
-      with:
-        name: DocstringCoverage
-        path: docstr_badge.svg
