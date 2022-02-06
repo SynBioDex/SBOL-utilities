@@ -46,24 +46,24 @@ graph-sbol -i my_file.ttl
 
 ### Convert an Excel template file to SBOL
 
-The `excel-to-sbol` utility reads an Excel file specifying a library of basic and composite parts, formatted following `sbol_library_template.xlsx`.
+The `sbol-excelToSbol` utility reads an Excel file specifying a library of basic and composite parts, formatted following `sbol_library_template.xlsx`.
 
 ### Convert beween SBOL3 and other genetic design formats
 
 The `sbol-converter` utility converts between any of the SBOL3, SBOL2, GenBank, and FASTA formats.
 
 Additional "macro" utilities convert specifically between SBOL3 and one of the other formats: 
-- `sbol2fasta` and `fasta2sbol` convert from SBOL3 to FASTA and vice versa
-- `sbol2genbank` and `genbank2sbol` convert from SBOL3 to GenBank and vice versa
-- `sbol3to2` and `sbol2to3` convert to and from SBOL2
+- `sbol-sbolToFasta` and `sbol-fastaToSbol` convert from SBOL3 to FASTA and vice versa
+- `sbol-sbolToGenbank` and `sbol-genbankToSbol` convert from SBOL3 to GenBank and vice versa
+- `sbol-3To2` and `sbol-2To3` convert to and from SBOL2
 
 ### Expand the combinatorial derivations in an SBOL file
 
-The `sbol-expand-derivations` utility searches through an SBOL file for CombinatorialDerivation objects and expands them to create a library of all of the specific constructs.
+The `sbol-expandDerivations` utility searches through an SBOL file for CombinatorialDerivation objects and expands them to create a library of all of the specific constructs.
 
 ### Calculate sequences of DNA components in an SBOL file
 
-The `sbol-calculate-sequences` utility attempts to calculate the sequence of any DNA Component that can be fully specified from the sequences of its sub-components.
+The `sbol-calculateSequences` utility attempts to calculate the sequence of any DNA Component that can be fully specified from the sequences of its sub-components.
 
 ### Compute the difference between two SBOL3 documents
 The `sbol-diff` utility computes the difference between two SBOL3 documents
