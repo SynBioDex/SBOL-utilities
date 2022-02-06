@@ -25,9 +25,7 @@ class Test2To3Conversion(unittest.TestCase):
         doc = convert2to3(input_path)
         # check for issues in converted document
         report = doc.validate()
-        for issue in report:
-            print(issue)
-        assert len(report) == 0
+        assert len(report) == 0, "\n".join(str(issue) for issue in report)
         # Expecting 9 top level objects, 4 Components, 4 Sequences, and 1 prov:Activity
         self.assertEqual(9, len(doc.objects))
 
@@ -40,9 +38,7 @@ class Test2To3Conversion(unittest.TestCase):
         doc = convert2to3(doc2)
         # check for issues in converted document
         report = doc.validate()
-        for issue in report:
-            print(issue)
-        assert len(report) == 0
+        assert len(report) == 0, "\n".join(str(issue) for issue in report)
         # Expecting 9 top level objects, 4 Components, 4 Sequences, and 1 prov:Activity
         self.assertEqual(9, len(doc.objects))
 
@@ -69,6 +65,33 @@ class Test2To3Conversion(unittest.TestCase):
         assert doc2.componentDefinitions[0].sequences[0] == 'https://synbiohub.org/public/igem/BBa_J23101_sequence'
         assert doc2.sequences[0].encoding == 'http://www.chem.qmul.ac.uk/iubmb/misc/naseq.html'
         assert doc2.sequences[0].elements == 'tttacagctagctcagtcctaggtattatgctagc'
+
+    @unittest.expectedFailure
+    def test_combinatorial_derivation_3_2_conversion(self):
+        """Test ability to convert combinatorial derivations between SBOL3 and SBOL2"""
+        # Get the SBOL3 test document
+        tmp_sub = copy_to_tmp(package=['constraints_library.nt'])
+        doc3 = sbol3.Document()
+        doc3.read(os.path.join(tmp_sub, 'constraints_library.nt'))
+
+        # Convert to SBOL2 and check contents
+        doc2 = convert3to2(doc3)
+        validate_online = sbol2.Config.getOption(sbol2.ConfigOptions.VALIDATE_ONLINE)
+        try:
+            sbol2.Config.setOption(sbol2.ConfigOptions.VALIDATE_ONLINE, False)
+            self.assertEqual(doc2.validate(), 'Valid.')
+        finally:
+            sbol2.Config.setOption(sbol2.ConfigOptions.VALIDATE_ONLINE, validate_online)
+        doc3 = convert2to3(doc2)
+        report = doc3.validate()
+        assert len(report) == 0, "\n".join(str(issue) for issue in report)
+        outfile = os.path.join(tmp_sub, 'round_tripped.nt')
+        doc3.write(outfile)
+
+        # check round trip
+        test_dir = os.path.dirname(os.path.realpath(__file__))
+        comparison_file = os.path.join(test_dir, 'test_files', 'constraints_library.nt')
+        assert filecmp.cmp(outfile, comparison_file), f'Round-tripped file {outfile} is not identical'
 
     def test_3to2_orientation_conversion(self):
         """Test ability to convert orientation from SBOL3to SBOL2"""
@@ -114,7 +137,6 @@ class Test2To3Conversion(unittest.TestCase):
             self.assertEqual(doc2.validate(), 'Valid.')
         finally:
             sbol2.Config.setOption(sbol2.ConfigOptions.VALIDATE_ONLINE, validate_online)
-
 
     def test_genbank_conversion(self):
         """Test ability to convert from SBOL3 to GenBank"""
