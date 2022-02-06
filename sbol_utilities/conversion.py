@@ -305,7 +305,7 @@ def convert_from_genbank(path: str, namespace: str, allow_genbank_online: bool =
     # Convert document offline
     validate_online = sbol2.Config.getOption(sbol2.ConfigOptions.VALIDATE_ONLINE)
     try:
-        sbol2.Config.setOption(sbol2.ConfigOptions.VALIDATE_ONLINE, False)
+        sbol2.Config.setOption(sbol2.ConfigOptions.VALIDATE_ONLINE, allow_genbank_online)
         doc2.importFromFormat(path)
     finally:
         sbol2.Config.setOption(sbol2.ConfigOptions.VALIDATE_ONLINE, validate_online)
