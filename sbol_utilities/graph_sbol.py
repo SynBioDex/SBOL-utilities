@@ -4,7 +4,7 @@ import rdflib
 import argparse
 
 
-def graph_sbol(doc: sbol3.Document, file_format: str, view_now: bool, outfile: str ='out'):
+def graph_sbol(doc: sbol3.Document, file_format: str = "pdf", view_now: bool = False, outfile: str = "out"):
     g = doc.graph()
     dot_master = graphviz.Digraph()
 
