@@ -105,6 +105,46 @@ def url_to_identity(url: str) -> str:
     return f'{split[0]}/{sbol3.string_to_display_id(split[1])}'
 
 
+def is_dna_part(obj: sbol3.Document) -> bool:
+    """Check if an SBOL Component is a DNA Part, i.e., having type 'SBO:DNA', and exactly 1 sequence property
+
+    :param obj: Sbol3 Document to be checked
+    :return: true if dna part
+    """
+    # must have only 1 type - of dna
+    def has_dna_type(x: sbol3.Document) -> bool:
+        if len(x.type) == 1:
+            return x.type.is_a(tyto.SBO.DNA)
+        return False
+
+    # all other roles, if present, must be terms of Sequence Ontology
+    def check_roles(x: sbol3.Document) -> bool:
+        if len(x.role) == 0:
+            return True
+        for role in x.role:
+            try:
+                tyto.SO.get_term_by_uri(role)
+                return True
+            except LookupError:
+                pass
+        return False
+
+    # must have exactly 1 sequence property
+    def has_a_sequence_prop(x: sbol3.Document) -> bool:
+        if x.hasSequence:
+            return len(x.hasSequence) == 1
+        return False
+
+    # check all conditions if obj is an sbol3 document
+    if(isinstance(obj, sbol3.Document)):
+        if has_dna_type(obj):
+            if has_a_sequence_prop(obj):
+                if check_roles(obj):
+                    return True
+
+    return False
+
+
 def is_plasmid(obj: Union[sbol3.Component, sbol3.Feature]) -> bool:
     """Check if an SBOL Component or Feature is a plasmid-like structure, i.e., either circular or having a plasmid role
 
