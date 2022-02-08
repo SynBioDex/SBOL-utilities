@@ -129,11 +129,10 @@ sep054:dissociated rdf:type owl:DatatypeProperty ;
               rdfs:range xsd:string ;
               rdfs:label "dissociated" .
 
-sep054:hasModule rdf:type owl:DatatypeProperty ;
-        rdfs:comment '''URI: Indicates the set of `Module` objects aggregated in the `Package`. These may be either
-        plain `Module` objects or sub-`Package` objects.''' ;
+sep054:subPackage rdf:type owl:DatatypeProperty ;
+        rdfs:comment '''URI: Indicates the set of sub-`Package` objects aggregated in the `Package`.''' ;
               rdfs:domain sep054:Package ;
-              rdfs:range sep054:Module ;
-              rdfs:label "modules" .
+              rdfs:range sep054:Package ;
+              rdfs:label "subpackages" .
 
 
