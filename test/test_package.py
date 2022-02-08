@@ -40,7 +40,7 @@ class TestPackage(unittest.TestCase):
         doc_03.read(os.path.join(test_dir, 'test_files', 'package_in_03.nt'))
 
         # Run the function
-        out_02 = sbol_utilities.package.define_package(doc_01, doc_02, doc_03)
+        out_02 = sbol_utilities.package.aggregate_subpackages(doc_01, doc_02, doc_03)
 
         # Write a temporary file
         tmp_out = tempfile.mkstemp(suffix='.nt')[1]

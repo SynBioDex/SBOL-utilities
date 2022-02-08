@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 import argparse
 import logging
+from attr import define
 
 from sbol_factory import SBOLFactory
 import sbol3
@@ -64,80 +65,122 @@ def regularize_package_directory(dir: str):
         raise ValueError(f'Package {dir}: {PACKAGE_DIRECTORY} subdirectory should not have any subdirectories of its '
                          f'own, but found {package_sub_dirs[0]}')
 
-def define_package(root_package_file: sbol3.Document, *sub_package_files: sbol3.Document):
+def aggregate_subpackages(root_package_file: sbol3.Document, *sub_package_files: sbol3.Document):
     """Function to take one or more sbol documents, check if they are a package,
      and create a new sbol document with the package definition included
 
     Args:
-        package_file (sbol3.Document): First document, for the package # TODO: Ask Jake for clarification
+        root_package_file (sbol3.Document): First document, for the package
         *subpackage_files (sbol3.Document): The document(s) for subpackages
 
     Return
         package: The package definition
     """
+    # Put all the input files in one list
+    # Means I am treating the root and subpackage files exactly the same
+    # CHECK: How should I be treating the root and the sub packages differently?
+    docs = [root_package_file, *sub_package_files]
 
-    # Steps from SEP 054 markdown
-    # Convert each SBOL document to a Package
-    # Aggregates the Package objects into another package that contains them all
-    # Check all package objects' namespaces share a prefix (identity  = [prefix]/package)
-    # Conversion = false
-    # Dissociated not set
-    # Package will have no member values
-    # hadDependency values will be a union of the hasDependency values of its subpackages
-    # Explicitly provide the name the and the description of the package?
+    # Make a list to hold the package objects for each of the subpacakges
+    sub_packages = []
 
-    # Create a package for the root package
-    # Get a namespace to use for the package
-    # Picking the namespace from the first object in the package file
-    package_namespace = root_package_file.objects[0].namespace
+    # Convert each SBOL document into a Package object and add it to the list
+    for doc in docs:
+        sub_packages.append(define_package(doc))
 
-    # Get list of identities of all top level objects from all files
-    all_identities = [o.identity for o in root_package_file.objects]
+    # Get the shared prefix for all of the files
+    # TODO: Write a separate function for all of this
+    package_namespace = get_prefix(sub_packages)
 
-    # Define the package
+    # Create the package that will hold all of the subpackages
+    # Per SEP054, the package will wave conversion=false and dissociated not set
+    # It is suggested to name the package '/package', but not required
+    # The package will have no member values
     package = sep_054.Package(package_namespace + '/package')
-
-    # All top level objects are members
-    package.members = all_identities
-
-    # Namespace must match the hasNamespace value for all of its members
     package.namespace = package_namespace
-
-    # Set "Conversion" to false
     package.conversion = False
+    # TODO: The package's hasDependency values will be a union of the hasDependency values of its subpackages
 
-    # For each subpackage
-    for sub_package_file in sub_package_files:
-        # Define a package for the subpackage # TODO: Make this a function to re-use
-        sub_package_namespace = sub_package_file.objects[0].namespace
-        all_identities = [o.identity for o in sub_package_file.objects]
-        sub_package = sep_054.Package(sub_package_namespace + '/package') # CHECK: Should this be called a package or a subpackage? Should it be user definable?
-        sub_package.members = all_identities
-        sub_package.namespace = sub_package_namespace
-
-        # Check the namespace of the subpackage?
-        is_package = check_namespaces(package)
-
-        # Add to the root-package's sub-package list
-        if is_package:
-            package.dependencies.append(sub_package) #FIXME: Is dependencies correct? subPackage doesn't exist. This fails. Says:
-        # ValueError: Package already has identity https://example.org/MyPackage/promoters/package and cannot be re-parented.
-        else:
-            pass
-            # TODO: Should I throw an error if something is not a package?
-
-    # Call check_namespace
-    logging.info('Checking namespaces')
+    # Check that all the namespaces are the same
     is_package = check_namespaces(package)
-    logging.info(f'SBOL Document is a package: {is_package}')
 
-    # Return the package
+    # If the package is valid, return it, if not, throw an error
     if is_package:
         return(package)
-        # TODO: Store the package in sorted N-triples format? File named .sip/package.nt
     else:
+        # How to throw error
         pass
-        # TODO: Should I throw an error if something is not a package?
+
+def define_package(package_file: sbol3.Document):
+    """Function to take one sbol document and define a package from it
+
+    Args:
+        package_file (sbol3.Document): SBOL document containing a package
+
+    Return
+        package: The package definition
+    """
+    # Get the namespace for the first object, if the file is a package, all 
+    # namespaces should be the same, so which one you pick does not matter
+    package_namespace = package_file.objects[0].namespace
+
+    # Get list of all top level objects in the package
+    all_identities = [o.identity for o in package_file.objects]
+
+    # Define the package
+    # It is suggested to name all packages '/package', but not required
+    package = sep_054.Package(package_namespace + '/package')
+    package.members = all_identities
+    package.namespace = package_namespace
+    # TODO: Call a separate function to get the dependencies
+
+    return(package)
+
+def get_prefix(subpackage_list):
+    """ Find the shared prefix in the namespaces of a list of Package objects
+
+    Args:
+        subpackage_list (list of sep_054.Package objects): List of all the 
+            sub-package package object
+
+    Return
+        prefix: The part of the namespace that all sub-packages have in common,
+            will become the namespace of the package object. Example:
+            sub-packages with namespaces 
+            "https://example.org/MyPackage/promoters" and 
+            "https://example.org/MyPackage/regulatory/repressors" would return 
+            a prefix "https://example.org/MyPackage/"
+    """
+    # Get a list of all of the namepsaces
+    namespaces = [package.namespace for package in subpackage_list]
+    arr = [subpackage.namespace for subpackage in subpackage_list]
+
+    # Determine size of the array
+    n = len(arr)
+
+    # Take first word from array as reference
+    s = arr[0]
+    l = len(s)
+
+    res = ""
+
+    for i in range(l):
+        for j in range(i + 1, l + 1):
+
+            # Generating all possible substrings of our reference string arr[0] i.e s
+            stem = s[i:j]
+            k = 1
+            for k in range(1, n):
+
+                # Check if the generated stem is common to all words
+                if stem not in arr[k]:
+                    break
+
+            # If current substring is present in all strings and its length is greater than current result
+            if (k + 1 == n and len(res) < len(stem)):
+                prefix = stem
+
+    return(prefix)
 
 def check_namespaces(package):
     """ Check if the namespaces of all top level objects in a defined package
