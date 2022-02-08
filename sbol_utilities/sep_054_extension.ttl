@@ -130,7 +130,7 @@ sep054:hasDependency rdf:type owl:ObjectProperty ;
               rdfs:range sep054:Dependency ;
               rdfs:label "dependencies" .
 
-sep054:subPackage rdf:type owl:DatatypeProperty ;
+sep054:subPackage rdf:type owl:ObjectProperty ;
         rdfs:comment '''URI: Indicates the set of sub-`Package` objects aggregated in the `Package`.''' ;
               rdfs:domain sep054:Package ;
               rdfs:range sep054:Package ;
