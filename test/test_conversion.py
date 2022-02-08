@@ -181,6 +181,17 @@ class Test2To3Conversion(unittest.TestCase):
         comparison_file = os.path.join(test_dir, 'test_files', 'iGEM_SBOL2_imports.gb')
         assert filecmp.cmp(outfile, comparison_file), f'Converted GenBank file {comparison_file} is not identical'
 
+    def test_genbank_bad_accession(self):
+        """Test if from a GenBank file uses the expected convention for remapping forbidden display_id characters"""
+        # Get the GenBank test document and convert
+        tmp_sub = copy_to_tmp(package=['bad_locus.gb'])
+        doc3 = convert_from_genbank(os.path.join(tmp_sub, 'bad_locus.gb'), 'https://example.org/')
+        components = [o for o in doc3.objects if isinstance(o, sbol3.Component)]
+        self.assertEqual(len(components), 1)
+        expected_display_id = sbol3.string_to_display_id('12 (bad chars #$%^@)')
+        self.assertEqual(components[0].display_id, expected_display_id)
+        self.assertEqual(components[0].identity, f'https://example.org/{expected_display_id}')
+
     def test_fasta_conversion(self):
         """Test ability to convert from SBOL3 to FASTA"""
         # Get the SBOL3 test document

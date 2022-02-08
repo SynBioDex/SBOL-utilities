@@ -1,0 +1,10 @@
+LOCUS       12 (bad chars #$%^@)         35 bp    DNA     linear   UNK 01-JAN-1980
+DEFINITION  constitutive promoter family member.
+KEYWORDS    .
+SOURCE      .
+  ORGANISM  .
+            .
+FEATURES             Location/Qualifiers
+ORIGIN
+        1 tttacagcta gctcagtcct aggtattatg ctagc
+//
