@@ -44,13 +44,13 @@ def is_dna_part(obj: sbol3.Component) -> bool:
     """
     # must have a type of dna
     def has_dna_type(component: sbol3.Component) -> bool:
-        for type in component.type:
+        for type in component.types:
             if(type.is_a(tyto.SBO.DNA)): return True
         return False
 
     # there must be atleast 1 SO role, among others
     def check_roles(component: sbol3.Component) -> bool:
-        for role in component.role:
+        for role in component.roles:
             try:
                 # if tyto doesn't throw Lookup Error, role is an SO one
                 tyto.SO.get_term_by_uri(role)
@@ -61,13 +61,13 @@ def is_dna_part(obj: sbol3.Component) -> bool:
 
     # must have exactly 1 sequence property
     def has_a_sequence_prop(component: sbol3.Component) -> bool:
-        if component.hasSequence:
-            return len(component.hasSequence) == 1
+        if component.sequences:
+            return len(component.sequences) == 1
         return False
 
     # check all conditions if obj is an sbol3 document
     if(isinstance(obj, sbol3.Component)):
-        if has_dna_type(obj) and has_a_sequence_prop(obj) and check_roles(obj):
+        if check_roles(obj) and has_a_sequence_prop(obj) and has_dna_type(obj):
             return True
 
     return False
