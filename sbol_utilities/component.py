@@ -36,6 +36,43 @@ def contained_components(roots: Union[sbol3.TopLevel, Iterable[sbol3.TopLevel]])
     return {c for c in explored if isinstance(c, sbol3.Component)}
 
 
+def is_dna_part(obj: sbol3.Component) -> bool:
+    """Check if an SBOL Component is a DNA Part, i.e., having type 'SBO:DNA', and exactly 1 sequence property
+
+    :param obj: Sbol3 Document to be checked
+    :return: true if dna part
+    """
+    # must have a type of dna
+    def has_dna_type(component: sbol3.Component) -> bool:
+        for type in component.type:
+            if(type.is_a(tyto.SBO.DNA)): return True
+        return False
+
+    # there must be atleast 1 SO role, among others
+    def check_roles(component: sbol3.Component) -> bool:
+        for role in component.role:
+            try:
+                # if tyto doesn't throw Lookup Error, role is an SO one
+                tyto.SO.get_term_by_uri(role)
+                return True
+            except LookupError:
+                pass
+        return False
+
+    # must have exactly 1 sequence property
+    def has_a_sequence_prop(component: sbol3.Component) -> bool:
+        if component.hasSequence:
+            return len(component.hasSequence) == 1
+        return False
+
+    # check all conditions if obj is an sbol3 document
+    if(isinstance(obj, sbol3.Component)):
+        if has_dna_type(obj) and has_a_sequence_prop(obj) and check_roles(obj):
+            return True
+
+    return False
+
+
 def ensure_singleton_feature(system: sbol3.Component, target: Union[sbol3.Feature, sbol3.Component]):
     """Return a feature associated with the target, i.e., the target itself if a feature, or a SubComponent.
     If the target is not already in the system, add it.
