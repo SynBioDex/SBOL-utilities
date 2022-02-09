@@ -24,6 +24,7 @@ class TestComponent(unittest.TestCase):
         dna_sequence = 'Test_dna_sequence'
         dna_description = 'Test_dna_description'
         sbol3.set_namespace('http://sbolstandard.org/testfiles')
+        # we don't need dna_sequence object
         test_dna_component, _ = dna_component_with_sequence(dna_identity, dna_sequence, description=dna_description)
         # adding atleast 1 SO role
         test_dna_component.roles.append(sbol3.SO_GENE)
