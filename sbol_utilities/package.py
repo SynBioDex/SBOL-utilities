@@ -152,33 +152,29 @@ def get_prefix(subpackage_list):
             a prefix "https://example.org/MyPackage/"
     """
     # Get a list of all of the namepsaces
-    namespaces = [package.namespace for package in subpackage_list]
-
-    # Determine size of the array
-    n_namespaces = len(namespaces)
+    all_namespaces = [package.namespace for package in subpackage_list]
 
     # Take first word from array as reference
-    ref_string = namespaces[0]
+    ref_string = all_namespaces[0]
     ref_string_length = len(ref_string)
 
     # Make a holder for the prefix
     prefix = ""
 
-    for i in range(ref_string_length):
-        for j in range(i + 1, ref_string_length + 1):
+    # Start with the first letter of the reference substring and add one every loop
+    for i in range(1, ref_string_length+1):
+        # Generating the substring
+        stem = ref_string[0:i]
 
-            # Generating all possible substrings of our reference string
-            stem = ref_string[i:j]
-            k = 1
-            for k in range(1, n_namespaces):
+        # Check all the namespaces have the substring
+        is_present = all(stem in namespace for namespace in all_namespaces)
+        
+        if not is_present:
+            break
 
-                # Check if the generated stem is common to all words
-                if stem not in namespaces[k]:
-                    break
-
-            # If current substring is present in all strings and its length is greater than current result
-            if (k + 1 == n_namespaces and len(prefix) < len(stem)):
-                prefix = stem
+        # If current substring is present in all strings and its length is greater than current result
+        if (is_present and len(prefix) < len(stem)):
+            prefix = stem
 
     return(prefix)
 
