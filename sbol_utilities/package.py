@@ -65,7 +65,8 @@ def regularize_package_directory(dir: str):
         raise ValueError(f'Package {dir}: {PACKAGE_DIRECTORY} subdirectory should not have any subdirectories of its '
                          f'own, but found {package_sub_dirs[0]}')
 
-def aggregate_subpackages(root_package_file: sbol3.Document, *sub_package_files: sbol3.Document):
+def aggregate_subpackages(root_package_file: sbol3.Document,
+                         *sub_package_files: sbol3.Document):
     """Function to take one or more sbol documents, check if they are a package,
      and create a new sbol document with the package definition included
 
@@ -95,7 +96,8 @@ def aggregate_subpackages(root_package_file: sbol3.Document, *sub_package_files:
     # Per SEP054, the package will wave conversion=false and dissociated not set
     # It is suggested to name the package '/package', but not required
     # The package will have no member values
-    # The package's hasDependency values will be a union of the hasDependency values of its subpackages
+    # The package's hasDependency values will be a union of the hasDependency 
+    # values of its subpackages
     package = sep_054.Package(package_namespace + '/package')
     package.namespace = package_namespace
     package.conversion = False
@@ -158,7 +160,8 @@ def get_prefix(subpackage_list):
     # Make a holder for the prefix
     prefix = ""
 
-    # Start with the first letter of the reference substring and add one every loop
+    # Start with the first letter of the reference sub-string and add one letter
+    # each loop
     for i in range(1, ref_string_length+1):
         # Generating the substring
         stem = ref_string[0:i]
@@ -169,7 +172,8 @@ def get_prefix(subpackage_list):
         if not is_present:
             break
 
-        # If current substring is present in all strings and its length is greater than current result
+        # If current substring is present in all strings and its length is 
+        # greater than current result, save it as the stem
         if (is_present and len(prefix) < len(stem)):
             prefix = stem
 
@@ -177,7 +181,8 @@ def get_prefix(subpackage_list):
 
 def check_namespaces(package, sub_package_list=None):
     """ Check if the namespaces of all top level objects in a defined package
-    are the same
+    are the same, and if all of its subpackages have the pacakge namespace as a
+    stem and are valid packages on their own
 
     Args:
         package (sep054.Package): Package to check
@@ -189,7 +194,7 @@ def check_namespaces(package, sub_package_list=None):
     """
     # Check all members of the root package have the same namespace
     # Get a list of all namespaces
-    # To get a namespace, remove the object name from the URI for each member object
+    # To get a namespace, remove the object name from the URI for each member
     all_namespaces = ["/".join(URI.split('/')[0:-1]) for URI in package.members]
 
     # Check all namespaces are the same
@@ -221,8 +226,9 @@ def get_package_obj(sub_package_list, URI):
     """ Find a package within a list with a given namespace
 
     Args:
-        sub_package_list (list of sep054.Package): List of package objects to search
-        URI (string): 
+        sub_package_list (list of sep054.Package): List of package objects to 
+            search
+        URI (string): URI of package object of interest
 
     Returns:
         package (sep054.Package): Package object with the correct namespace
