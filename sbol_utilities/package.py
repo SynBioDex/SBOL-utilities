@@ -101,7 +101,7 @@ def aggregate_subpackages(root_package_file: sbol3.Document,
     package = sep_054.Package(package_namespace + '/package')
     package.namespace = package_namespace
     package.conversion = False
-    # package.dependencies = [sub_package.dependencies for sub_package in sub_package_list] # FIXME: Throws error about incorrect type
+    # package.dependencies = [package.dependencies for package in sub_package_list] # FIXME: Throws error about incorrect type
     package.subpackages = sub_package_list
 
     # Check that all the packages are valid
