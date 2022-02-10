@@ -19,8 +19,10 @@ class TestPackage(unittest.TestCase):
         out_01 = sbol_utilities.package.define_package(doc_01)
 
         # Write a temporary file
+        doc = sbol3.Document()
+        doc.add(out_01)
         tmp_out = tempfile.mkstemp(suffix='.nt')[1]
-        out_01.write(tmp_out, sbol3.SORTED_NTRIPLES)
+        doc.write(tmp_out, sbol3.SORTED_NTRIPLES)
 
         # Compare it to the saved results file, make sure they are the same
         comparison_file = os.path.join(test_dir, 'test_files', 'package_out_01.nt')
@@ -43,8 +45,10 @@ class TestPackage(unittest.TestCase):
         out_02 = sbol_utilities.package.aggregate_subpackages(doc_01, doc_02, doc_03)
 
         # Write a temporary file
+        doc = sbol3.Document()
+        doc.add(out_02)
         tmp_out = tempfile.mkstemp(suffix='.nt')[1]
-        out_02.write(tmp_out, sbol3.SORTED_NTRIPLES)
+        doc.write(tmp_out, sbol3.SORTED_NTRIPLES)
 
         # Compare it to the saved results file, make sure they are the same
         comparison_file = os.path.join(test_dir, 'test_files', 'package_out_02.nt')
