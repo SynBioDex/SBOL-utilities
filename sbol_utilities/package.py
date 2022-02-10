@@ -82,34 +82,31 @@ def aggregate_subpackages(root_package_file: sbol3.Document, *sub_package_files:
     docs = [root_package_file, *sub_package_files]
 
     # Make a list to hold the package objects for each of the subpacakges
-    sub_packages = []
+    sub_package_list = []
 
     # Convert each SBOL document into a Package object and add it to the list
     for doc in docs:
-        sub_packages.append(define_package(doc))
+        sub_package_list.append(define_package(doc))
 
     # Get the shared prefix for all of the files
-    # TODO: Write a separate function for all of this
-    package_namespace = get_prefix(sub_packages)
+    package_namespace = get_prefix(sub_package_list)
 
     # Create the package that will hold all of the subpackages
     # Per SEP054, the package will wave conversion=false and dissociated not set
     # It is suggested to name the package '/package', but not required
     # The package will have no member values
+    # The package's hasDependency values will be a union of the hasDependency values of its subpackages
     package = sep_054.Package(package_namespace + '/package')
     package.namespace = package_namespace
     package.conversion = False
-    # TODO: The package's hasDependency values will be a union of the hasDependency values of its subpackages
+    # package.dependencies = [sub_package.dependencies for sub_package in sub_package_list] # FIXME: Throws error about incorrect type
+    package.subpackages = sub_package_list
 
-    # Check that all the namespaces are the same
-    is_package = check_namespaces(package)
+    # Check that all the packages are valid
+    check_namespaces(package, sub_package_list)
 
-    # If the package is valid, return it, if not, throw an error
-    if is_package:
-        return(package)
-    else:
-        # How to throw error
-        pass
+    # If the package is valid, return it
+    return(package)
 
 def define_package(package_file: sbol3.Document):
     """Function to take one sbol document and define a package from it
@@ -178,25 +175,67 @@ def get_prefix(subpackage_list):
 
     return(prefix)
 
-def check_namespaces(package):
+def check_namespaces(package, sub_package_list=None):
     """ Check if the namespaces of all top level objects in a defined package
     are the same
 
     Args:
         package (sep054.Package): Package to check
+        sub_package_list (list of sep054.Package): The list of package objects 
+            correlating to the URIs listed in package.subpackages
 
     Returns:
         is_package (boolean): True if all namespaces are the same
     """
-
+    # Check all members of the root package have the same namespace
     # Get a list of all namespaces
     # To get a namespace, remove the object name from the URI for each member object
-    all_namespaces = ["/".join(URI.split('/')) for URI in package.members]
+    all_namespaces = ["/".join(URI.split('/')[0:-1]) for URI in package.members]
 
     # Check all namespaces are the same
-    is_package = all(x == all_namespaces[0] for x in all_namespaces)
+    if all(x == all_namespaces[0] for x in all_namespaces):
+        pass
+    else:
+        raise ValueError(f'Not all members in package {package} have the same '
+                         f'namespaces. The namespaces found are '
+                         f'{all_namespaces}.')
 
-    return is_package
+    # Check all sub-packages have the same stem as the root package
+    namespace_stem = package.namespace
+
+    for sub_package_uri in package.subpackages:
+        if namespace_stem in sub_package_uri:
+            pass
+        else:
+            raise ValueError(f'Not all subpackages in package {package} share '
+                         f'a common stem. {sub_package_uri} does not contain '
+                         f'{namespace_stem}.')
+
+        # Check each subpackage is a good package in of itself
+        # Get the actual subpackage object
+        sub_package_obj = get_package_obj(sub_package_list, sub_package_uri)
+        # Check it
+        check_namespaces(sub_package_obj)
+
+def get_package_obj(sub_package_list, URI):
+    """ Find a package within a list with a given namespace
+
+    Args:
+        sub_package_list (list of sep054.Package): List of package objects to search
+        URI (string): 
+
+    Returns:
+        package (sep054.Package): Package object with the correct namespace
+    """
+    all_namespaces = [package.namespace for package in sub_package_list]
+
+    target_namespace = "/".join(URI.split('/')[0:-1])
+
+    package_index = all_namespaces.index(target_namespace)
+
+    package = sub_package_list[package_index]
+
+    return package
 
 def main():
     """

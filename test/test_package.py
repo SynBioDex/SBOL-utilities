@@ -27,7 +27,7 @@ class TestPackage(unittest.TestCase):
         assert filecmp.cmp(tmp_out, comparison_file), 'Output from package creation function with one file is not as expected'
 
     def test_define_package_multi_file(self):
-        """Test defining a package from an SBOL document"""
+        """Test defining a package from multiple SBOL documents"""
         # Read in the test files
         test_dir = os.path.dirname(os.path.realpath(__file__))
         doc_01 = sbol3.Document()
