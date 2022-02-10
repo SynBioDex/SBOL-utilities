@@ -44,7 +44,7 @@ def is_dna_part(obj: sbol3.Component) -> bool:
     """
     # must have a type of dna
     def has_dna_type(component: sbol3.Component) -> bool:
-        any(type.is_a(tyto.SBO.DNA) for type in component.types)
+        return any(type == tyto.SBO.deoxyribonucleic_acid for type in component.types)
 
     # there must be atleast 1 SO role, among others
     def check_roles(component: sbol3.Component) -> bool:
