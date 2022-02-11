@@ -248,6 +248,3 @@ def get_package_obj(sub_package_list, URI):
 
     return package
 
-
-if __name__ == '__main__':
-    main()
