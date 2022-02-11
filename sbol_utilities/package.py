@@ -177,7 +177,12 @@ def get_prefix(subpackage_list):
         if (is_present and len(prefix) < len(stem)):
             prefix = stem
 
-    return(prefix)
+    # Check if the namespace contains a .com or .org
+    if any(s in prefix for s in ('.com', '.org', '.edu')):
+        return(prefix)
+    else:
+        raise ValueError(f'The longest prefix found was {prefix}, which does '
+                         f'include a .com. .org, or .edu')
 
 def check_namespaces(package, sub_package_list=None):
     """ Check if the namespaces of all top level objects in a defined package
@@ -213,8 +218,8 @@ def check_namespaces(package, sub_package_list=None):
             pass
         else:
             raise ValueError(f'Not all subpackages in package {package} share '
-                         f'a common stem. {sub_package_uri} does not contain '
-                         f'{namespace_stem}.')
+                             f'a common stem. {sub_package_uri} does not '
+                             f'contain {namespace_stem}.')
 
         # Check each subpackage is a good package in of itself
         # Get the actual subpackage object
