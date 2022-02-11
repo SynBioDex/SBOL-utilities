@@ -108,7 +108,7 @@ def aggregate_subpackages(root_package_file: sbol3.Document,
     check_namespaces(package, sub_package_list)
 
     # If the package is valid, return it
-    return(package)
+    return package, sub_package_list
 
 def define_package(package_file: sbol3.Document):
     """Function to take one sbol document and define a package from it
@@ -133,7 +133,7 @@ def define_package(package_file: sbol3.Document):
     package.namespace = package_namespace
     # TODO: Call a separate function to get the dependencies
 
-    return(package)
+    return package
 
 def get_prefix(subpackage_list):
     """ Find the shared prefix in the namespaces of a list of Package objects
