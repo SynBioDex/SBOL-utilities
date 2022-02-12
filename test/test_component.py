@@ -7,7 +7,7 @@ import sbol3
 import tyto
 
 from sbol_utilities.component import contained_components, contains, add_feature, add_interaction, constitutive, \
-    regulate, order, in_role, all_in_role, ensure_singleton_feature, filter_by_roles
+    regulate, order, in_role, all_in_role, ensure_singleton_feature, filter_by_roles, is_dna_part
 from sbol_utilities.component import dna_component_with_sequence, rna_component_with_sequence, \
     protein_component_with_sequence, media, functional_component, promoter, rbs, cds, terminator, \
     protein_stability_element, gene, operator, engineered_region, mrna, transcription_factor, \
@@ -31,6 +31,19 @@ class TestComponent(unittest.TestCase):
         # only comp_1 and comp_3 must be returned by the function
         matched = filter_by_roles(doc, tyto.SBO.deoxyribonucleic_acid)
         assert(comp_1 in matched and comp_3 in matched and len(matched) == 2)
+
+    def test_dna_part(self):
+        """Test the correctness of is_dna_part check"""
+        # create a test dna component
+        dna_identity = 'Test_dna_identity'
+        dna_sequence = 'Test_dna_sequence'
+        dna_description = 'Test_dna_description'
+        sbol3.set_namespace('http://sbolstandard.org/testfiles')
+        # we don't need dna_sequence object
+        test_dna_component, _ = dna_component_with_sequence(dna_identity, dna_sequence, description=dna_description)
+        # adding atleast 1 SO role
+        test_dna_component.roles.append(sbol3.SO_GENE)
+        assert is_dna_part(test_dna_component) 
 
     def test_system_building(self):
         doc = sbol3.Document()

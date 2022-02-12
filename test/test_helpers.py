@@ -36,6 +36,7 @@ class TestHelpers(unittest.TestCase):
         assert design_file_type('something.xlsx') == None
         assert design_file_type('something.xml') == 'SBOL2'
         assert design_file_type('something.nt') == 'SBOL3'
+        assert design_file_type('full path/full/path/something.genbank') == 'GenBank'
         assert strip_filetype_suffix('http://foo/bar/baz.gb') == 'http://foo/bar/baz'
         assert strip_filetype_suffix('http://foo/bar/baz.qux') == 'http://foo/bar/baz.qux'
 
