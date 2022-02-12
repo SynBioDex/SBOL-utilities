@@ -36,6 +36,21 @@ def contained_components(roots: Union[sbol3.TopLevel, Iterable[sbol3.TopLevel]])
     return {c for c in explored if isinstance(c, sbol3.Component)}
 
 
+def filter_by_roles(doc: sbol3.Document, required_role: str) -> List[sbol3.Identified]:
+    """Search the entire provided document, and return components which have specified role as one of its roles.
+
+    :param doc: sbol3 document to search in
+    :param required_role: the role which must be present in components
+    :return: list of matched components
+    """
+    # callable to be provided as an arg to find_all() of Document class
+    def has_role(obj: sbol3.Identified) -> bool:
+        return isinstance(obj, sbol3.Component) and required_role in obj.roles
+
+    # search through all Identified objects
+    return doc.find_all(has_role)
+
+
 def ensure_singleton_feature(system: sbol3.Component, target: Union[sbol3.Feature, sbol3.Component]):
     """Return a feature associated with the target, i.e., the target itself if a feature, or a SubComponent.
     If the target is not already in the system, add it.

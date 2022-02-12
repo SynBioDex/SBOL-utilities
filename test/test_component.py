@@ -7,7 +7,7 @@ import sbol3
 import tyto
 
 from sbol_utilities.component import contained_components, contains, add_feature, add_interaction, constitutive, \
-    regulate, order, in_role, all_in_role, ensure_singleton_feature
+    regulate, order, in_role, all_in_role, ensure_singleton_feature, filter_by_roles
 from sbol_utilities.component import dna_component_with_sequence, rna_component_with_sequence, \
     protein_component_with_sequence, media, functional_component, promoter, rbs, cds, terminator, \
     protein_stability_element, gene, operator, engineered_region, mrna, transcription_factor, \
@@ -16,6 +16,21 @@ from sbol_utilities.sbol_diff import doc_diff
 
 
 class TestComponent(unittest.TestCase):
+
+    def test_filter_by_roles(self):
+        """Test the filter by roles utility"""
+        doc = sbol3.Document()
+        sbol3.set_namespace('http://sbolstandard.org/testfiles')
+        # create and add 3 components, with 2 having common role of dna
+        comp_1 = sbol3.Component('component_1', sbol3.SBO_DNA, roles=[tyto.SBO.deoxyribonucleic_acid])
+        comp_2 = sbol3.Component('component_2', sbol3.SBO_DNA, roles=[tyto.SO.engineered_region])
+        comp_3 = sbol3.Component('component_3', sbol3.SBO_DNA, roles=[tyto.SO.engineered_region, tyto.SBO.deoxyribonucleic_acid])
+        doc.add(comp_1)
+        doc.add(comp_2)
+        doc.add(comp_3)
+        # only comp_1 and comp_3 must be returned by the function
+        matched = filter_by_roles(doc, tyto.SBO.deoxyribonucleic_acid)
+        assert(comp_1 in matched and comp_3 in matched and len(matched) == 2)
 
     def test_system_building(self):
         doc = sbol3.Document()
