@@ -51,9 +51,7 @@ def is_dna_part(obj: sbol3.Component) -> bool:
         return any(tyto.SO.get_term_by_uri(role) for role in component.roles)
 
     # check all conditions
-    if check_roles(obj) and has_dna_type(obj) and len(obj.sequences) == 1:
-        return True
-    return False
+    return check_roles(obj) and has_dna_type(obj) and len(obj.sequences) == 1
 
 
 def ensure_singleton_feature(system: sbol3.Component, target: Union[sbol3.Feature, sbol3.Component]):
