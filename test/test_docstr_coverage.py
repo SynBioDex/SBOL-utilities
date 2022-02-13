@@ -1,3 +1,4 @@
+from pathlib import Path
 import unittest
 from interrogate import coverage
 from interrogate import config
@@ -6,8 +7,9 @@ class TestDocStringsCoverage(unittest.TestCase):
     def test_using_interrogate(self):
         """Tests each module, function, classes, methods for presence of docstrings"""
         # Parsing config (looks for pyproject.toml by default) 
-        project_root = "."
-        interrogate_config: config.InterrogateConfig = config.InterrogateConfig(config.parse_pyproject_toml(config.find_project_config(project_root)))
+        project_root = Path(__file__).parent.parent
+        toml = config.find_project_config('.')
+        interrogate_config: config.InterrogateConfig = config.InterrogateConfig(config.parse_pyproject_toml(toml))
         # Obtaining and printing results
         cov: coverage.InterrogateCoverage = coverage.InterrogateCoverage(paths=[project_root], conf=interrogate_config)
         results: coverage.InterrogateResults = cov.get_coverage()
