@@ -80,6 +80,7 @@ def aggregate_subpackages(root_package_file: sbol3.Document,
     # Define  the root package
     # It should have conversion=false and dissociated not set
     package = define_package(root_package_file)
+    package.conversion = False
 
     # Make lists to hold package objects and dependencies for each subpackage
     sub_package_list = []
