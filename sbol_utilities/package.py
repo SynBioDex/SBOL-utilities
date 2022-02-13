@@ -77,32 +77,22 @@ def aggregate_subpackages(root_package_file: sbol3.Document,
     Return
         package: The package definition
     """
-    # Put all the input files in one list
-    # Means I am treating the root and subpackage files exactly the same
-    # CHECK: How should I be treating the root and the sub packages differently?
-    docs = [root_package_file, *sub_package_files]
+    # Define  the root package
+    # It should have conversion=false and dissociated not set
+    package = define_package(root_package_file)
 
-    # Make a list to hold the package objects for each of the subpacakges
+    # Make lists to hold package objects and dependencies for each subpackage
     sub_package_list = []
+    sub_package_dependencies = []
 
-    # Convert each SBOL document into a Package object and add it to the list
-    for doc in docs:
+    # Convert each sub-package file into a Package object and add it to the list
+    for doc in sub_package_files:
         sub_package_list.append(define_package(doc))
+        # TODO: Get the dependencies for each subpackage
 
-    # Get the shared prefix for all of the files
-    package_namespace = get_prefix(sub_package_list)
-
-    # Create the package that will hold all of the subpackages
-    # Per SEP054, the package will wave conversion=false and dissociated not set
-    # It is suggested to name the package '/package', but not required
-    # The package will have no member values
-    # The package's hasDependency values will be a union of the hasDependency 
-    # values of its subpackages
-    package = sep_054.Package(package_namespace + '/package')
-    package.namespace = package_namespace
-    package.conversion = False
-    # package.dependencies = [package.dependencies for package in sub_package_list] # FIXME: Throws error about incorrect type
+    # Add the sub-package information to the package defintion
     package.subpackages = sub_package_list
+    package.dependencies = sub_package_dependencies
 
     # Check that all the packages are valid
     check_namespaces(package, sub_package_list)
@@ -186,7 +176,7 @@ def get_prefix(subpackage_list):
 
 def check_namespaces(package, sub_package_list=None):
     """ Check if the namespaces of all top level objects in a defined package
-    are the same, and if all of its subpackages have the pacakge namespace as a
+    are the same, and if all of its subpackages have the package namespace as a
     stem and are valid packages on their own
 
     Args:
@@ -200,10 +190,10 @@ def check_namespaces(package, sub_package_list=None):
     # Check all members of the root package have the same namespace
     # Get a list of all namespaces
     # To get a namespace, remove the object name from the URI for each member
-    all_namespaces = ["/".join(URI.split('/')[0:-1]) for URI in package.members]
+    all_namespaces = set("/".join(URI.split('/')[0:-1]) for URI in package.members)
 
     # Check all namespaces are the same
-    if all(x == all_namespaces[0] for x in all_namespaces):
+    if len(all_namespaces) == 1:
         pass
     else:
         raise ValueError(f'Not all members in package {package} have the same '

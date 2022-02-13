@@ -87,14 +87,14 @@ sep054:Package rdf:type owl:Class ;
                 * `dissociated` [0,1], string: If not set, this is an atomic package. If set, indicates this package is
                   a dissociated package of the type identified by the string (see practices below).
                 * `hasDependency` [0,n], URI: `Dependency` child objects
-                # `subPackage` [0,n], URI: Indicates the set of `Package` objects aggregated in the `Package`.
+                * `subPackage` [0,n], URI: Indicates the set of `Package` objects aggregated in the `Package`.
                 The `displayId` of a `Module` SHOULD be `module`, unless it is also a `package`.
                 Every `member` of a `Package` MUST have the same value for `hasNamespace` as the module itself.
                 A package SHOULD have `dissociated` set only if `conversion` is also true.
                 A package SHOULD only have values for `subPackage` if it is a native package (i.e., `conversion` is false).
                 A Package is a systematic aggregation of sub-packages intended to be distributed and used as a
-                coherent whole. When stored in a hierarchical structure (e.g., files in directories), the relationship between
-                module namespaces MUST be identical to the relationship between module locations in the structure.
+                coherent whole. When stored in a hierarchical structure (e.g., files in directories), the relationship
+                between module namespaces MUST be identical to the relationship between module locations in the structure.
                 Note that packages can have sub-packages.''' ;
         rdfs:subClassOf sbol:Collection ,
     [ rdf:type owl:Restriction ; owl:allValuesFrom xsd:string ; owl:onProperty sep054:version ;
