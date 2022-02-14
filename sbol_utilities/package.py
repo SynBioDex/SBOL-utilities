@@ -198,7 +198,7 @@ def check_namespaces(package, sub_package_list=None):
     # Get a list of all namespaces
     # To get a namespace, remove the object name from the URI for each member
     # all_namespaces = set(o.namespace for member in package.members for o in member.parent.document.objects)
-    all_namespaces = ["/".join(URI.split('/')[0:-1]) for URI in package.members]
+    all_namespaces = set("/".join(URI.split('/')[0:-1]) for URI in package.members)
 
     # Check all namespaces are the same
     if len(all_namespaces) == 1:
