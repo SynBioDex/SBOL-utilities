@@ -141,7 +141,7 @@ def get_prefix(subpackage_list):
             "https://example.org/MyPackage/regulatory/repressors" would return 
             a prefix "https://example.org/MyPackage/"
     """
-    # Get a list of all of the namepsaces
+    # Get a list of all of the namespaces
     all_namespaces = [package.namespace for package in subpackage_list]
 
     # Take first word from array as reference
@@ -188,10 +188,17 @@ def check_namespaces(package, sub_package_list=None):
     Returns:
         is_package (boolean): True if all namespaces are the same
     """
+    # Add the package to a document
+    # CHECK: Do I have to do this? When I don't lookup doesn't work (no document object)
+    # FIXME: Doesn't actually work- is always getting the namespace of the package
+    # temp_doc = sbol3.Document()
+    # temp_doc.add(package)
+
     # Check all members of the root package have the same namespace
     # Get a list of all namespaces
     # To get a namespace, remove the object name from the URI for each member
-    all_namespaces = set("/".join(URI.split('/')[0:-1]) for URI in package.members)
+    # all_namespaces = set(o.namespace for member in package.members for o in member.parent.document.objects)
+    all_namespaces = ["/".join(URI.split('/')[0:-1]) for URI in package.members]
 
     # Check all namespaces are the same
     if len(all_namespaces) == 1:
