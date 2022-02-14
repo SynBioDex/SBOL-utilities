@@ -66,7 +66,7 @@ def regularize_package_directory(dir: str):
                          f'own, but found {package_sub_dirs[0]}')
 
 def aggregate_subpackages(root_package_file: sbol3.Document,
-                         *sub_package_files: sbol3.Document):
+                         *sub_package_files: sbol3.Document): # TODO: Take pre-built package objects instead
     """Function to take one or more sbol documents, check if they are a package,
      and create a new sbol document with the package definition included
 
@@ -110,9 +110,20 @@ def define_package(package_file: sbol3.Document):
     Return
         package: The package definition
     """
-    # Get the namespace for the first object, if the file is a package, all 
-    # namespaces should be the same, so which one you pick does not matter
-    package_namespace = package_file.objects[0].namespace
+    # Check that all of the objects have the same namespace, if they do, save
+    # that as the package namespace
+    candidate_namespaces = set(o.namespace for o in package_file.objects)
+
+    if len(candidate_namespaces) == 0:
+        raise ValueError(f'Document {package_file} does not contain any top-'
+                         f'level objects, and so does not represent a package.')
+    elif len(candidate_namespaces) == 1:
+        package_namespace = candidate_namespaces
+    else:
+        raise ValueError(f'Document {package_file} does not represent a well-'
+                         f'defined package. Not all members in the file have the'
+                         f'same namespace. The namespaces found are '
+                         f'{candidate_namespaces}.')
 
     # Get list of all top level objects in the package
     all_identities = [o.identity for o in package_file.objects]

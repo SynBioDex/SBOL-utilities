@@ -16,7 +16,7 @@ class TestPackage(unittest.TestCase):
         doc_01.read(os.path.join(test_dir, 'test_files', 'package_in_01.nt'))
 
         # Run the function
-        out_01 = sbol_utilities.package.define_package(doc_01)
+        out_01 = sbol_utilities.package.define_package(doc_01) # FIXME: Don't use define_package- it doesn't check the namespaces
 
         # Write a temporary file
         doc = sbol3.Document()
