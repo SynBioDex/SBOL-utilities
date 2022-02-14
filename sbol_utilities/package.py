@@ -126,54 +126,6 @@ def define_package(package_file: sbol3.Document):
 
     return package
 
-def get_prefix(subpackage_list):
-    """ Find the shared prefix in the namespaces of a list of Package objects
-
-    Args:
-        subpackage_list (list of sep_054.Package objects): List of all the 
-            sub-package package object
-
-    Return
-        prefix: The part of the namespace that all sub-packages have in common,
-            will become the namespace of the package object. Example:
-            sub-packages with namespaces 
-            "https://example.org/MyPackage/promoters" and 
-            "https://example.org/MyPackage/regulatory/repressors" would return 
-            a prefix "https://example.org/MyPackage/"
-    """
-    # Get a list of all of the namespaces
-    all_namespaces = [package.namespace for package in subpackage_list]
-
-    # Take first word from array as reference
-    ref_string = all_namespaces[0]
-    ref_string_length = len(ref_string)
-
-    # Make a holder for the prefix
-    prefix = ""
-
-    # Start with the first letter of the reference sub-string and add one letter
-    # each loop
-    for i in range(1, ref_string_length+1):
-        # Generating the substring
-        stem = ref_string[0:i]
-
-        # Check all the namespaces have the substring
-        is_present = all(stem in namespace for namespace in all_namespaces)
-        
-        if not is_present:
-            break
-
-        # If current substring is present in all strings and its length is 
-        # greater than current result, save it as the stem
-        if (is_present and len(prefix) < len(stem)):
-            prefix = stem
-
-    # Check if the namespace contains a .com or .org
-    if any(s in prefix for s in ('.com', '.org', '.edu')):
-        return(prefix)
-    else:
-        raise ValueError(f'The longest prefix found was {prefix}, which does '
-                         f'include a .com. .org, or .edu')
 
 def check_namespaces(package, sub_package_list=None):
     """ Check if the namespaces of all top level objects in a defined package
