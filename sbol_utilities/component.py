@@ -8,6 +8,14 @@ from sbol_utilities.helper_functions import id_sort
 from sbol_utilities.workarounds import get_parent
 
 
+def get_subcomponents(c: sbol3.Component) -> List[sbol3.SubComponent]:
+    return [f for f in c.features if isinstance(f, sbol3.SubComponent)]
+
+
+def get_subcomponents_by_identity(c: sbol3.Component, ids: List[str]) -> List[sbol3.SubComponent]:
+    return [sc for sc in get_subcomponents(c) if sc.identity in ids]
+
+
 # TODO: consider allowing return of LocalSubComponent and ExternallyDefined
 def contained_components(roots: Union[sbol3.TopLevel, Iterable[sbol3.TopLevel]]) -> Set[sbol3.Component]:
     """Find the set of all SBOL Components contained within the roots or their children.
