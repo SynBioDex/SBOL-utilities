@@ -3,6 +3,7 @@ from pathlib import Path
 import argparse
 import logging
 from attr import define
+from urllib.parse import urlparse
 
 from sbol_factory import SBOLFactory
 import sbol3
@@ -65,41 +66,39 @@ def regularize_package_directory(dir: str):
         raise ValueError(f'Package {dir}: {PACKAGE_DIRECTORY} subdirectory should not have any subdirectories of its '
                          f'own, but found {package_sub_dirs[0]}')
 
-def aggregate_subpackages(root_package_file: sbol3.Document,
-                         *sub_package_files: sbol3.Document): # TODO: Take pre-built package objects instead
-    """Function to take one or more sbol documents, check if they are a package,
-     and create a new sbol document with the package definition included
+def directory_to_package(dir):
+    pass
 
+def aggregate_subpackages(root_package: sep_054.Package,
+                         *sub_packages: sep_054.Package):
+    """ Take a package object representing a root package and one or more 
+        additional sbol package objects for the subpackages. Add the subpackages
+        to the package definition, if their name spaces indicate that they are
+        a proper subpackage for the rootpackage. Return the package object with
+        the added subpackage information.
     Args:
-        root_package_file (sbol3.Document): First document, for the package
-        *subpackage_files (sbol3.Document): The document(s) for subpackages
+        root_package (sep_054.Package): First document, for the package
+        *sub_packages (sep_054.Package): The document(s) for subpackages
 
     Return
-        package: The package definition
+        root_package: The root package with the added sub-packages
     """
-    # Define  the root package
-    # It should have conversion=false and dissociated not set
-    package = define_package(root_package_file)
-    package.conversion = False
+    # The root package should have conversion=false and dissociated not set
+    root_package.conversion = False
 
-    # Make lists to hold package objects and dependencies for each subpackage
-    sub_package_list = []
-    sub_package_dependencies = []
+    # For each of the sub-packages, check if it's namespace contains the root
+    # package namespace and add it to the root package
+    for package in sub_packages:
+        if check_prefix(root_package, package):
+            root_package.subpackages.append(package)
+        else:
+            raise ValueError(f'Package object {package} is not a well-defined '
+                         f'subpackage of the root package {root_package}. The '
+                         f'sub-package namespace is {package.namespace}, which '
+                         f'does not share a prefix with the root package '
+                         f'namespace {root_package.namespace}.')
 
-    # Convert each sub-package file into a Package object and add it to the list
-    for doc in sub_package_files:
-        sub_package_list.append(define_package(doc))
-        # TODO: Get the dependencies for each subpackage
-
-    # Add the sub-package information to the package defintion
-    package.subpackages = sub_package_list
-    package.dependencies = sub_package_dependencies
-
-    # Check that all the packages are valid
-    check_namespaces(package, sub_package_list)
-
-    # If the package is valid, return it
-    return package, sub_package_list
+    return root_package
 
 def define_package(package_file: sbol3.Document):
     """Function to take one sbol document and define a package from it
@@ -138,55 +137,62 @@ def define_package(package_file: sbol3.Document):
     return package
 
 
-def check_namespaces(package, sub_package_list=None):
-    """ Check if the namespaces of all top level objects in a defined package
-    are the same, and if all of its subpackages have the package namespace as a
-    stem and are valid packages on their own
-
+def check_prefix(root_package, sub_package):
+    """ Check that the namespace of the sub-package is a path extension of the
+    namespace of the root package
+    
     Args:
-        package (sep054.Package): Package to check
-        sub_package_list (list of sep054.Package): The list of package objects 
-            correlating to the URIs listed in package.subpackages
-
+        root_package (sep_054:Package): Root package object
+        sub_package (sep_054:Package) Package object of the sub-package to check
+    
     Returns:
-        is_package (boolean): True if all namespaces are the same
+        is_sub (boolean): True if the namespace of the sub-package is a valid
+            namespace extension of the root package
     """
-    # Add the package to a document
-    # CHECK: Do I have to do this? When I don't lookup doesn't work (no document object)
-    # FIXME: Doesn't actually work- is always getting the namespace of the package
-    # temp_doc = sbol3.Document()
-    # temp_doc.add(package)
+    # Get the namespaces
+    root_namespace = root_package.namespace
+    sub_namespace = sub_package.namespace
 
-    # Check all members of the root package have the same namespace
-    # Get a list of all namespaces
-    # To get a namespace, remove the object name from the URI for each member
-    # all_namespaces = set(o.namespace for member in package.members for o in member.parent.document.objects)
-    all_namespaces = set("/".join(URI.split('/')[0:-1]) for URI in package.members)
+    # Parse the namespaces as URIs
+    root_URI = urlparse(root_namespace)
+    sub_URI = urlparse(sub_namespace)
 
-    # Check all namespaces are the same
-    if len(all_namespaces) == 1:
+    # Check scheme and netloc are the same
+    schemes = set(url.scheme for url in [root_URI, sub_URI])
+    netlocs = set(url.netloc for url in [o1, o2])
+
+    if len(schemes) == 1 & len(netlocs) == 1:
         pass
     else:
-        raise ValueError(f'Not all members in package {package} have the same '
-                         f'namespaces. The namespaces found are '
-                         f'{all_namespaces}.')
+        raise ValueError(f'The packages {root_package} and {sub_package} '
+                         f'namespace URIs do not share the same sme URL scheme '
+                         f'specifier or network location, and so do not '
+                         f'represent a root and sub package.')
 
-    # Check all sub-packages have the same stem as the root package
-    namespace_stem = package.namespace
+    # Break the paths down into chunks separated by "/"
+    split1 = root_URI.path.split('/')
+    split2 = sub_URI.path.split('/')
 
-    for sub_package_uri in package.subpackages:
-        if namespace_stem in sub_package_uri:
-            pass
-        else:
-            raise ValueError(f'Not all subpackages in package {package} share '
-                             f'a common stem. {sub_package_uri} does not '
-                             f'contain {namespace_stem}.')
+    # Get all of the paths into one list
+    all = [split1, split2]
 
-        # Check each subpackage is a good package in of itself
-        # Get the actual subpackage object
-        sub_package_obj = get_package_obj(sub_package_list, sub_package_uri)
-        # Check it
-        check_namespaces(sub_package_obj)
+    # Get common elements
+    zipped = list(zip(*all))
+    common_elements = [list(set(zipped[i]))[0] for i in range(len(zipped)) if len(set(zipped[i])) == 1]
+
+    # Combine the elements in the list with '/'
+    common_path = '/'.join(common_elements)
+
+    # Check that the common path is the path to the root package # FIXME:I think it has to be split1 minus the last part... 
+    if common_path == split1:
+        is_sub = True
+    else:
+        raise ValueError(f'The packages {root_package} and {sub_package} '
+                         f'namespace URIs do not share the same sme URL scheme '
+                         f'specifier or network location, and so do not '
+                         f'represent a root and sub package.')
+
+
 
 def get_package_obj(sub_package_list, URI):
     """ Find a package within a list with a given namespace
