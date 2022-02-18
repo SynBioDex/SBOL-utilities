@@ -140,8 +140,8 @@ def define_package(package_file: sbol3.Document):
         package_namespace = ''.join(candidate_namespaces)
     else:
         raise ValueError(f'Document {package_file} does not represent a well-'
-                         f'defined package. Not all members in the file have the'
-                         f'same namespace. The namespaces found are '
+                         f'defined package. Not all members in the file have '
+                         f'the same namespace. The namespaces found are '
                          f'{candidate_namespaces}.')
 
     # Get list of all top level objects in the package
