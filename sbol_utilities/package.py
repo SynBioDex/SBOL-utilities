@@ -88,9 +88,9 @@ def docs_to_package(root_package_doc: sbol3.Document, *sub_package_docs: sbol3.D
 
     return(package)
 
-
+# Throwing errors from specifying list[sep_054.Package] on Python 3.7
 def aggregate_subpackages(root_package: sep_054.Package,
-                         sub_package_list: list[sep_054.Package]):
+                         sub_package_list):
     """ Take a package object representing a root package and one or more 
         additional sbol package objects for the subpackages. Add the subpackages
         to the package definition, if their name spaces indicate that they are
@@ -157,7 +157,7 @@ def define_package(package_file: sbol3.Document):
     return package
 
 
-def check_prefix(root_package, sub_package):
+def check_prefix(root_package: sep_054.Package, sub_package: sep_054.Package):
     """ Check that the namespace of the sub-package is a path extension of the
     namespace of the root package
     
@@ -211,27 +211,4 @@ def check_prefix(root_package, sub_package):
                          f'of {root_package}')
 
     return(is_sub)
-
-
-
-def get_package_obj(sub_package_list, URI):
-    """ Find a package within a list with a given namespace
-
-    Args:
-        sub_package_list (list of sep054.Package): List of package objects to 
-            search
-        URI (string): URI of package object of interest
-
-    Returns:
-        package (sep054.Package): Package object with the correct namespace
-    """
-    all_namespaces = [package.namespace for package in sub_package_list]
-
-    target_namespace = "/".join(URI.split('/')[0:-1])
-
-    package_index = all_namespaces.index(target_namespace)
-
-    package = sub_package_list[package_index]
-
-    return package
 
