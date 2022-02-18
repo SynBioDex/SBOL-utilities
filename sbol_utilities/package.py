@@ -66,11 +66,31 @@ def regularize_package_directory(dir: str):
         raise ValueError(f'Package {dir}: {PACKAGE_DIRECTORY} subdirectory should not have any subdirectories of its '
                          f'own, but found {package_sub_dirs[0]}')
 
-def directory_to_package(dir):
+def directory_to_package(dir: str):
     pass
 
+def docs_to_package(root_package_doc: sbol3.Document, *sub_package_docs: sbol3.Document):
+    """ Take files for a root packages and 0 or more sub-packages. For each
+    file, a package object will be generated, then the sub-packages will be
+    added to the root package.
+
+    Args:
+        root_package_file: First document, for the package
+        *sub_package_files: The document(s) for subpackages
+
+    Return
+        package: The root package with the added sub-packages
+    """
+    root_package = define_package(root_package_doc)
+    sub_package_list = [define_package(sub_package) for sub_package in sub_package_docs]
+
+    package = aggregate_subpackages(root_package, sub_package_list)
+
+    return(package)
+
+
 def aggregate_subpackages(root_package: sep_054.Package,
-                         *sub_packages: sep_054.Package):
+                         sub_package_list: list[sep_054.Package]):
     """ Take a package object representing a root package and one or more 
         additional sbol package objects for the subpackages. Add the subpackages
         to the package definition, if their name spaces indicate that they are
@@ -88,7 +108,7 @@ def aggregate_subpackages(root_package: sep_054.Package,
 
     # For each of the sub-packages, check if it's namespace contains the root
     # package namespace and add it to the root package
-    for package in sub_packages:
+    for package in sub_package_list:
         if check_prefix(root_package, package):
             root_package.subpackages.append(package)
         else:
@@ -117,7 +137,7 @@ def define_package(package_file: sbol3.Document):
         raise ValueError(f'Document {package_file} does not contain any top-'
                          f'level objects, and so does not represent a package.')
     elif len(candidate_namespaces) == 1:
-        package_namespace = candidate_namespaces
+        package_namespace = ''.join(candidate_namespaces)
     else:
         raise ValueError(f'Document {package_file} does not represent a well-'
                          f'defined package. Not all members in the file have the'
@@ -159,38 +179,38 @@ def check_prefix(root_package, sub_package):
 
     # Check scheme and netloc are the same
     schemes = set(url.scheme for url in [root_URI, sub_URI])
-    netlocs = set(url.netloc for url in [o1, o2])
+    netlocs = set(url.netloc for url in [root_URI, sub_URI])
 
     if len(schemes) == 1 & len(netlocs) == 1:
         pass
     else:
         raise ValueError(f'The packages {root_package} and {sub_package} '
-                         f'namespace URIs do not share the same sme URL scheme '
+                         f'namespace URIs do not share the same URL scheme '
                          f'specifier or network location, and so do not '
                          f'represent a root and sub package.')
 
     # Break the paths down into chunks separated by "/"
-    split1 = root_URI.path.split('/')
-    split2 = sub_URI.path.split('/')
+    root_URI_split = root_URI.path.split('/')
+    sub_URI_split = sub_URI.path.split('/')
 
     # Get all of the paths into one list
-    all = [split1, split2]
+    all = [root_URI_split, sub_URI_split]
 
     # Get common elements
     zipped = list(zip(*all))
     common_elements = [list(set(zipped[i]))[0] for i in range(len(zipped)) if len(set(zipped[i])) == 1]
 
-    # Combine the elements in the list with '/'
-    common_path = '/'.join(common_elements)
-
-    # Check that the common path is the path to the root package # FIXME:I think it has to be split1 minus the last part... 
-    if common_path == split1:
+    # Check that the common elements are the same as the entire root package
+    if common_elements == root_URI_split:
         is_sub = True
     else:
-        raise ValueError(f'The packages {root_package} and {sub_package} '
-                         f'namespace URIs do not share the same sme URL scheme '
-                         f'specifier or network location, and so do not '
-                         f'represent a root and sub package.')
+        raise ValueError(f'The namespace of package object {sub_package} '
+                         f'({sub_URI}) does not contain the namesace of the '
+                         f'root package object {root_packag} ({root_URI}) as a '
+                         f'prefix. So {sub_package} is not a valid sub-package '
+                         f'of {root_package}')
+
+    return(is_sub)
 
 
 

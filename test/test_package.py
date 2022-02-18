@@ -44,7 +44,7 @@ class TestPackage(unittest.TestCase):
 
         # Run the function
         # Here, I only want the package object, not any of the subpackages
-        out_02 = sbol_utilities.package.aggregate_subpackages(doc_01, doc_02, doc_03)[0]
+        out_02 = sbol_utilities.package.docs_to_package(doc_01, doc_02, doc_03)
 
         # Write a temporary file
         doc = sbol3.Document()
