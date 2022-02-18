@@ -16,7 +16,7 @@ class TestPackage(unittest.TestCase):
         doc_01.read(os.path.join(test_dir, 'test_files', 'package_in_01.nt'))
 
         # Run the function
-        out_01 = sbol_utilities.package.define_package(doc_01) # FIXME: Don't use define_package- it doesn't check the namespaces
+        out_01 = sbol_utilities.package.docs_to_package(doc_01)
 
         # Write a temporary file
         doc = sbol3.Document()
@@ -58,8 +58,15 @@ class TestPackage(unittest.TestCase):
 
 
     def test_prefix_too_short(self):
-        """ Test that files with multiple namespaces fail, raises value that the
-        longest prefix doesn't include a .com, .org, or .edu"""
+        """ Test that having a sub-package with a different namespace than the 
+        root package fails. All members of "package_in_01_error.nt" has the
+        namespace "https://bad-example.org/MyPackage", where as the subpackges
+        are "https://example.org/MyPackage/promoters" and
+        "https://example.org/MyPackage/repressors". Will raise a value error
+        in check_prefix that "'The packages {root_package} and {sub_package}
+        namespace URIs do not share the same URL scheme specifier or network
+        location, and so do not represent a root and sub package.'
+        """
         # Read in the test files
         test_dir = os.path.dirname(os.path.realpath(__file__))
         doc_01 = sbol3.Document()
@@ -73,13 +80,15 @@ class TestPackage(unittest.TestCase):
 
         # Run the function
         with self.assertRaises(ValueError):
-            sbol_utilities.package.aggregate_subpackages(doc_01, doc_02, doc_03)
+            sbol_utilities.package.docs_to_package(doc_01, doc_02, doc_03)
 
 
     def test_subpackage_fails(self):
-        """ Test that having one subpackage file with multiple namespaces fails,
-        raises value that not all members in the package have the same 
-        namespace """
+        """ Test that having one subpackage file with multiple namespaces fails.
+        Raises value in define_package that not all members in the package have 
+        the same namespace. "package_in_02_error.nt" has members with two 
+        different namespaces, https://example.org/MyPackage/promoters and 
+        https://example.org/MyPackage/inhibitors."""
         # Read in the test files
         test_dir = os.path.dirname(os.path.realpath(__file__))
         doc_01 = sbol3.Document()
@@ -93,7 +102,7 @@ class TestPackage(unittest.TestCase):
 
         # Run the function
         with self.assertRaises(ValueError):
-            sbol_utilities.package.aggregate_subpackages(doc_01, doc_02, doc_03)
+            sbol_utilities.package.docs_to_package(doc_01, doc_02, doc_03)
 
 
 if __name__ == '__main__':

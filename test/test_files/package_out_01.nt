@@ -1,4 +1,5 @@
 
+<https://example.org/MyPackage/package> <http://sbols.org/SEP054#conversion> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
 <https://example.org/MyPackage/package> <http://sbols.org/v3#displayId> "package" .
 <https://example.org/MyPackage/package> <http://sbols.org/v3#hasNamespace> <https://example.org/MyPackage> .
 <https://example.org/MyPackage/package> <http://sbols.org/v3#member> <https://example.org/MyPackage/E0040> .
