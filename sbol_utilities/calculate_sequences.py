@@ -4,7 +4,7 @@ from typing import List, Tuple, Union, Iterable
 
 import sbol3
 
-from sbol_utilities.helper_functions import is_plasmid, id_sort
+from sbol_utilities.helper_functions import is_plasmid, id_sort, find_top_level, find_child
 from sbol_utilities.workarounds import type_to_standard_extension
 
 
@@ -46,18 +46,18 @@ def order_subcomponents(component: sbol3.Component) -> Union[Tuple[List[sbol3.Fe
     unordered = list(component.features)
     while meetings:
         # Meetings that can go next are any that are a subject and not an object
-        unblocked = {m.subject.lookup() for m in meetings}-{m.object.lookup() for m in meetings}
+        unblocked = {find_child(m.subject) for m in meetings}-{find_child(m.object) for m in meetings}
         if len(unblocked) != 1: # if it's not an unambiguous single, we're sunk
             return None
         # add to the order
         subject = unblocked.pop()
-        subject_meetings = {m for m in meetings if m.subject.lookup() is subject}
+        subject_meetings = {m for m in meetings if find_child(m.subject) is subject}
         assert len(subject_meetings) == 1 # should be precisely one with the subject
         order.append(subject)
         unordered.remove(subject)
         meetings -= subject_meetings
         if len(meetings) == 0: # if we just did the final meeting, add the object on the end
-            object = subject_meetings.pop().object.lookup()
+            object = find_child(subject_meetings.pop().object)
             order.append(object) # add the last one
             unordered.remove(object)
 
@@ -81,9 +81,9 @@ def compute_sequence(component: sbol3.Component) -> sbol3.Sequence:
     sequence.elements = '' # Should be in keywords, except pySBOL3 #208
     # for each component in turn, add it and set its location
     for i in range(len(sorted)):
-        subc = sorted[i].instance_of.lookup()
+        subc = find_top_level(sorted[i].instance_of)
         assert len(subc.sequences) == 1
-        subseq = subc.sequences[0].lookup()
+        subseq = find_top_level(subc.sequences[0])
         assert sequence.encoding==subseq.encoding
         sorted[i].locations.append(sbol3.Range(sequence, len(sequence.elements)+1, len(sequence.elements)+len(subseq.elements)))
         sequence.elements += subseq.elements
