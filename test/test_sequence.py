@@ -2,7 +2,8 @@ import unittest
 
 import sbol3
 
-from sbol_utilities.sequence import unambiguous_dna_sequence, unambiguous_rna_sequence, unambiguous_protein_sequence
+from sbol_utilities.sequence import unambiguous_dna_sequence, unambiguous_rna_sequence, \
+    unambiguous_protein_sequence
 
 
 class TestSequence(unittest.TestCase):
