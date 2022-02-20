@@ -45,13 +45,14 @@ def expand_configuration(values: dict) -> dict:
         'composite_parts_description': 'A11',
         'composite_first_row': 24,
         'composite_name_col': 0,
-        'composite_notes_col': 1,
-        'composite_description_col': 2,
-        'composite_final_col': 3,
-        'composite_strain_col': 4,
-        'composite_context_col': 5,
-        'composite_constraints_col': 6,
-        'composite_first_part_col': 7,
+        'composite_displayid_col': 1,
+        'composite_notes_col': 2,
+        'composite_description_col': 3,
+        'composite_final_col': 4,
+        'composite_strain_col': 5,
+        'composite_context_col': 6,
+        'composite_constraints_col': 7,
+        'composite_first_part_col': 8,
 
         'sources_sheet': 'data_source',
         'sources_first_row': 2,
@@ -330,7 +331,8 @@ def make_composite_part(document, row, composite_parts, linear_products, final_p
         return  # skip lines without names
     else:
         name = name.strip()  # make sure we're discarding whitespace
-    display_id = sbol3.string_to_display_id(name)
+    display_id_from_fow = row[config['composite_displayid_col']].value
+    display_id = sbol3.string_to_display_id(display_id_from_fow)
     design_notes = (row[config['composite_notes_col']].value if row[config['composite_notes_col']].value else "")
     description = \
         (row[config['composite_description_col']].value if row[config['composite_description_col']].value else "")
