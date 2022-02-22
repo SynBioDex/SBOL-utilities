@@ -66,10 +66,35 @@ def regularize_package_directory(dir: str):
         raise ValueError(f'Package {dir}: {PACKAGE_DIRECTORY} subdirectory should not have any subdirectories of its '
                          f'own, but found {package_sub_dirs[0]}')
 
-def directory_to_package(dir: str):
-    pass
 
-def docs_to_package(root_package_doc: sbol3.Document, *sub_package_docs: sbol3.Document):
+def dir_to_package(dir: str):
+    # Collect the files
+    root_package_doc, sub_package_doc_list = collect_files_from_dir(dir)
+
+    # Define the package
+    package = docs_to_package(root_package_doc, sub_package_doc_list)
+
+    # Add the package to a document?
+    # Return the document or automatically save the doc to the dir?
+
+def collect_files_from_dir(dir_name: str):
+    # Make the holder for all of the subpackage list
+    sub_package_docs = []
+
+    for root, dirs, files in os.walk(dir_name, topdown=True):
+        # Check that there is only one file in the directory
+        if len(files) != 1:
+            print("BAD!") # FIXME: Add a real error statement
+        file_name = files[0]
+
+        if root == dir_name:
+            root_package_doc = os.path.join(root, file_name)
+        else:
+            sub_package_docs.append(os.path.join(root, file_name))
+
+    return root_package_doc, sub_package_docs
+
+def docs_to_package(root_package_doc: sbol3.Document, sub_package_docs: sbol3.Document):
     """ Take files for a root packages and 0 or more sub-packages. For each
     file, a package object will be generated, then the sub-packages will be
     added to the root package.

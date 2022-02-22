@@ -66,7 +66,7 @@ class TestPackage(unittest.TestCase):
 
         # Run the function
         # Here, I only want the package object, not any of the subpackages
-        out_02 = sbol_utilities.package.docs_to_package(doc_01, doc_02, doc_03)
+        out_02 = sbol_utilities.package.docs_to_package(doc_01, [doc_02, doc_03])
 
         # Write a temporary file
         doc = sbol3.Document()
@@ -102,7 +102,7 @@ class TestPackage(unittest.TestCase):
 
         # Run the function
         with self.assertRaises(ValueError):
-            sbol_utilities.package.docs_to_package(doc_01, doc_02, doc_03)
+            sbol_utilities.package.docs_to_package(doc_01, [doc_02, doc_03])
 
 
     def test_subpackage_fails(self):
@@ -124,7 +124,27 @@ class TestPackage(unittest.TestCase):
 
         # Run the function
         with self.assertRaises(ValueError):
-            sbol_utilities.package.docs_to_package(doc_01, doc_02, doc_03)
+            sbol_utilities.package.docs_to_package(doc_01, [doc_02, doc_03])
+
+
+    def test_make_package_from_directory(self):
+        """ """
+        # Set the package directory
+        test_dir = os.path.dirname(os.path.realpath(__file__))
+        dir_name = os.path.join(test_dir, 'test_files', 'package_dir')
+
+        # Pass to the function
+        out = sbol_utilities.package.directory_to_package(dir_name)
+
+        # Write a temporary file
+        doc = sbol3.Document()
+        doc.add(out)
+        tmp_out = tempfile.mkstemp(suffix='.nt')[1]
+        doc.write(tmp_out, sbol3.SORTED_NTRIPLES)
+
+        # Compare it to the saved results file, make sure they are the same
+        comparison_file = os.path.join(test_dir, 'test_files', 'package_out_02.nt')
+        assert filecmp.cmp(tmp_out, comparison_file), 'Output from package creation function with three files is not as expected'
 
 
 if __name__ == '__main__':
