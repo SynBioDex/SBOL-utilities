@@ -1,3 +1,4 @@
+from __future__ import annotations
 import logging
 import itertools
 from typing import Iterable, Union, Optional, Callable, List
@@ -37,26 +38,52 @@ def id_sort(i: iter):
     return sorted(i, key=lambda x: x.identity if isinstance(x, sbol3.Identified) else x)
 
 
-def find_child(ref: ReferencedURI):
+def build_reference_cache(doc: sbol3.Document) -> dict[str, sbol3.Identified]:
+    """Build a cache of identities from the given document to support
+    faster lookups of referenced objects.
+
+    :param doc: an sbol3 Document
+    :returns: a cache of identities
+    """
+    cache = {}
+    def cache_identity(object: sbol3.Identified):
+        cache[object.identity] = object
+    doc.traverse(cache_identity)
+    return cache
+
+
+def find_child(ref: ReferencedURI, cache: Optional[dict[str, sbol3.Identified]] = None):
     """Look up a child object; if it is not found, raise an exception
 
     :param ref: reference to look up
     :returns: object pointed to by reference
     :raises ChildNotFound: if object cannot be retrieved
     """
+    try:
+        return cache[str(ref)]
+    except KeyError:
+        pass
+    except TypeError:
+        pass
     child = ref.lookup()
     if not child:
         raise ChildNotFound(f'Could not find child object in document: {ref}')
     return child
 
 
-def find_top_level(ref: ReferencedURI):
+def find_top_level(ref: ReferencedURI, cache: Optional[dict[str, sbol3.Identified]] = None):
     """Look up a top-level object; if it is not found, raise an exception
 
     :param ref: reference to look up
     :returns: object pointed to by reference
     :raises TopLevelNotFound: if object cannot be retrieved
     """
+    try:
+        return cache[str(ref)]
+    except KeyError:
+        pass
+    except TypeError:
+        pass
     top_level = ref.lookup()
     if not top_level:
         raise TopLevelNotFound(f'Could not find top-level object in document: {ref}')
