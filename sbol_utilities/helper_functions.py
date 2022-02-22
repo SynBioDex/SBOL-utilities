@@ -1,6 +1,6 @@
 import logging
 import itertools
-from typing import Iterable, Union, Optional
+from typing import Iterable, Union, Optional, Callable, List
 
 import sbol3
 from sbol3.refobj_property import ReferencedURI
@@ -78,6 +78,17 @@ def toplevel_named(doc: sbol3.Document, name: str) -> Optional[sbol3.Identified]
         return found[0]
     else:
         raise ValueError(f'Name is not unique: {name}')
+
+
+def filter_top_level(doc: sbol3.Document, filter: Callable[[sbol3.TopLevel], bool]) -> Iterable[sbol3.TopLevel]:
+    """Filters and returns iterable of TopLevel Objects in a document,
+    which match a criteria set by a callable argument.
+
+    :param doc: SBOL Document to search
+    :param filter: Callable acting as filter on List of TopLevel objects
+    :return: TopLevel iterator satisfying given filter
+    """
+    return (obj for obj in doc.objects if filter(obj))
 
 
 def strip_sbol2_version(identity: str) -> str:
