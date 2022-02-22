@@ -88,8 +88,7 @@ def filter_top_level(doc: sbol3.Document, filter: Callable[[sbol3.TopLevel], boo
     :param filter: Callable acting as filter on List of TopLevel objects
     :return: TopLevel iterator satisfying given filter
     """
-    result: List[sbol3.TopLevel] = [obj for obj in doc.objects if filter(obj)]
-    return iter(result)
+    return (obj for obj in doc.objects if filter(obj))
 
 
 def strip_sbol2_version(identity: str) -> str:
