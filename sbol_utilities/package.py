@@ -212,3 +212,6 @@ def check_prefix(root_package: sep_054.Package, sub_package: sep_054.Package):
 
     return(is_sub)
 
+
+def validate_package(package:  sep_054.Package):
+    pass

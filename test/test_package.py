@@ -21,7 +21,7 @@ class TestPackage(unittest.TestCase):
 
         # Write a temporary file
         doc = sbol3.Document()
-        doc.add(package))
+        doc.add(package)
         tmp_out = tempfile.mkstemp(suffix='.nt')[1]
         doc.write(tmp_out, sbol3.SORTED_NTRIPLES)
 
