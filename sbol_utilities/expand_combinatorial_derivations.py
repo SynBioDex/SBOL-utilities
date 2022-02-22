@@ -4,7 +4,7 @@ import itertools
 from typing import List, Set
 
 import sbol3
-from .helper_functions import id_sort
+from .helper_functions import id_sort, find_top_level, find_child
 from .workarounds import copy_toplevel_and_dependencies, replace_feature, sort_owned_objects, \
     type_to_standard_extension
 
@@ -25,7 +25,7 @@ def is_library(cd: sbol3.CombinatorialDerivation) -> bool:
     :param cd: CombinatorialDerivation being checked
     :return: true if it can be reduced to a Collection
     """
-    c = cd.template.lookup()
+    c = find_top_level(cd.template)
     one_var = len(cd.variable_features) == 1 and len(c.features) == 1
     simple = not c.sequences and not c.interactions and not c.constraints and not c.interface and not c.models
     return one_var and simple
@@ -42,9 +42,9 @@ class CombinatorialDerivationExpander:
         :param c: Collection for extraction
         :return: list of Component values found
         """
-        assert all(isinstance(x.lookup(), sbol3.Collection) or isinstance(x.lookup(), sbol3.Component) for x in c.members)
-        values = [x.lookup() for x in id_sort(c.members) if isinstance(x.lookup(), sbol3.Component)] + \
-            id_sort(itertools.chain(*([self.collection_values(x) for x in c.members if isinstance(x.lookup(), sbol3.Collection)])))
+        assert all(isinstance(find_top_level(x), sbol3.Collection) or isinstance(find_top_level(x), sbol3.Component) for x in c.members)
+        values = [find_top_level(x) for x in id_sort(c.members) if isinstance(find_top_level(x), sbol3.Component)] + \
+            id_sort(itertools.chain(*([self.collection_values(x) for x in c.members if isinstance(find_top_level(x), sbol3.Collection)])))
         logging.debug("Found "+str(len(values))+" values in collection "+c.display_id)
         return values
 
@@ -54,12 +54,12 @@ class CombinatorialDerivationExpander:
         :param v: Variable to be flattened
         :return: list of Component values found
         """
-        logging.debug("Finding values for " + v.variable.lookup().name)
-        sub_cd_collections = [self.derivation_to_collection(d.lookup()) for d in id_sort(v.variant_derivations)]
-        values = [x.lookup() for x in id_sort(v.variants)] + \
+        logging.debug("Finding values for " + find_child(v.variable).name)
+        sub_cd_collections = [self.derivation_to_collection(find_top_level(d)) for d in id_sort(v.variant_derivations)]
+        values = [find_top_level(x) for x in id_sort(v.variants)] + \
                  id_sort(itertools.chain(*[self.collection_values(c) for c in id_sort(v.variant_collections)])) + \
                  id_sort(itertools.chain(*(self.collection_values(c) for c in id_sort(sub_cd_collections))))
-        logging.debug("Found " + str(len(values)) + " total values for " + v.variable.lookup().name)
+        logging.debug("Found " + str(len(values)) + " total values for " + find_child(v.variable).name)
         return values
 
     def derivation_to_collection(self, cd: sbol3.CombinatorialDerivation) -> sbol3.Collection:
@@ -73,7 +73,7 @@ class CombinatorialDerivationExpander:
         """
         doc = cd.document
         sbol3.set_namespace(cd.namespace) # use the namespace of the CD for all of its products
-        sort_owned_objects(cd.template.lookup()) # TODO: https://github.com/SynBioDex/pySBOL3/issues/231
+        sort_owned_objects(find_top_level(cd.template)) # TODO: https://github.com/SynBioDex/pySBOL3/issues/231
         # we've already converted this CombinatorialDerivation to a Collection, just return the conversion
         if cd in self.expanded_derivations.keys():
             logging.debug('Found previous expansion of ' + cd.display_id)
@@ -95,13 +95,13 @@ class CombinatorialDerivationExpander:
             assignments = itertools.product(*values)
             for a in assignments:
                 # scratch_doc = sbol3.Document()
-                derived = cd.template.lookup().clone(cd_assigment_to_display_id(cd, a))
+                derived = find_top_level(cd.template).clone(cd_assigment_to_display_id(cd, a))
                 logging.debug("Considering derived combination " + derived.display_id)
                 # scratch_doc.add(derived) # add to the scratch document to enable manipulation of children
                 doc.add(derived)  # add to the scratch document to enable manipulation of children
                 # Replace variables with values
                 newsubs = {
-                    derived.features[cd.template.lookup().features.index(f.variable.lookup())]: sbol3.SubComponent(v)
+                    derived.features[find_top_level(cd.template).features.index(find_child(f.variable))]: sbol3.SubComponent(v)
                     for f, v in zip(id_sort(cd.variable_features), a)}
                 for f in id_sort(newsubs.keys()):
                     replace_feature(derived, f, newsubs[f])
@@ -156,7 +156,7 @@ def root_combinatorial_derivations(doc: sbol3.Document) -> Set[sbol3.Combinatori
     :return: set of root CDs
     """
     cds = {o for o in doc.objects if isinstance(o, sbol3.CombinatorialDerivation)}
-    children = set(itertools.chain(*([[d.lookup() for d in v.variant_derivations] for cd in cds for v in cd.variable_features])))
+    children = set(itertools.chain(*([[find_top_level(d) for d in v.variant_derivations] for cd in cds for v in cd.variable_features])))
     return cds - children  # Roots are those CDs that are not a child of any other CD
 
 

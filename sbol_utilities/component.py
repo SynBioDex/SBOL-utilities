@@ -1,17 +1,22 @@
 from __future__ import annotations
+
+from itertools import chain
 from typing import Dict, Iterable, List, Union, Set, Optional, Tuple
 
 import sbol3
 import tyto
+from rdflib import URIRef
 
-from sbol_utilities.helper_functions import id_sort
+from sbol_utilities.helper_functions import id_sort, find_child
 from sbol_utilities.workarounds import get_parent
 
 
 # TODO: consider allowing return of LocalSubComponent and ExternallyDefined
 def contained_components(roots: Union[sbol3.TopLevel, Iterable[sbol3.TopLevel]]) -> Set[sbol3.Component]:
     """Find the set of all SBOL Components contained within the roots or their children.
-    This will explore via Collection.member relations and Component.feature relations.
+    This will explore via all of the direct relations that can include a Component:
+    Collection.member, CombinatorialDerivation.template, Component.feature:SubComponent, Implmentation.built,
+    VariableFeature.variant, variant_derivation, variant_collection
 
     :param roots: single TopLevel or iterable collection of TopLevel objects to explore
     :return: set of Components found, including roots
@@ -51,7 +56,8 @@ def is_dna_part(obj: sbol3.Component) -> bool:
         return any(tyto.SO.get_term_by_uri(role) for role in component.roles)
 
     # check all conditions
-    return check_roles(obj) and has_dna_type(obj) and len(obj.sequences) == 1
+    return isinstance(obj, sbol3.Component) and check_roles(obj) \
+        and has_dna_type(obj) and len(obj.sequences) == 1
 
 
 def filter_by_roles(doc: sbol3.Document, required_role: str) -> List[sbol3.Identified]:
@@ -198,7 +204,7 @@ def constitutive(target: Union[sbol3.Feature, sbol3.Component], system: Optional
     containers = [c.subject for c in system.constraints
                   if c.restriction == sbol3.SBOL_CONTAINS and c.object == target.identity]
     for c in containers:
-        contains(c.lookup(), promoter_component)
+        contains(find_child(c), promoter_component)
 
     return promoter_component
 
@@ -235,7 +241,7 @@ def in_role(interaction: sbol3.Interaction, role: str) -> sbol3.Feature:
     feature_participation = [p for p in interaction.participations if role in p.roles]
     if len(feature_participation) != 1:
         raise ValueError(f'Role can be in 1 participant: found {len(feature_participation)} in {interaction.identity}')
-    return feature_participation[0].participant.lookup()
+    return find_child(feature_participation[0].participant)
 
 
 def all_in_role(interaction: sbol3.Interaction, role: str) -> List[sbol3.Feature]:
@@ -245,7 +251,7 @@ def all_in_role(interaction: sbol3.Interaction, role: str) -> List[sbol3.Feature
     :param role: role to search for
     :return: sorted list of Features playing that role
     """
-    return id_sort([p.participant.lookup() for p in interaction.participations if role in p.roles])
+    return id_sort([find_child(p.participant) for p in interaction.participations if role in p.roles])
 
 
 def dna_component_with_sequence(identity: str, sequence: str, **kwargs) -> Tuple[sbol3.Component, sbol3.Sequence]:

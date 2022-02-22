@@ -1,13 +1,29 @@
 import logging
 import itertools
-from typing import Iterable, Union, Optional
+from typing import Iterable, Union, Optional, Callable, List
 
 import sbol3
+from sbol3.refobj_property import ReferencedURI
 import tyto
 
 #########################
 # Collection of miscellaneous helper functions for utilities package
 # These should be considered experimental and may be removed at any time
+
+
+class SBOLObjectNotFound(Exception):
+    """Base Exception to be raised when an SBOL object lookup fails"""
+    pass
+
+
+class TopLevelNotFound(SBOLObjectNotFound):
+    """A missing TopLevel object may be resolved be retrieving the object"""
+    pass
+
+
+class ChildNotFound(SBOLObjectNotFound):
+    """A child object should always be in the document, so if it is missing that is an error"""
+    pass
 
 
 def flatten(collection: Iterable[list]) -> list:
@@ -19,6 +35,32 @@ def flatten(collection: Iterable[list]) -> list:
 def id_sort(i: iter):
     """Sort a collection of SBOL objects and/or URIs by identity URI"""
     return sorted(i, key=lambda x: x.identity if isinstance(x, sbol3.Identified) else x)
+
+
+def find_child(ref: ReferencedURI):
+    """Look up a child object; if it is not found, raise an exception
+
+    :param ref: reference to look up
+    :returns: object pointed to by reference
+    :raises ChildNotFound: if object cannot be retrieved
+    """
+    child = ref.lookup()
+    if not child:
+        raise ChildNotFound(f'Could not find child object in document: {ref}')
+    return child
+
+
+def find_top_level(ref: ReferencedURI):
+    """Look up a top-level object; if it is not found, raise an exception
+
+    :param ref: reference to look up
+    :returns: object pointed to by reference
+    :raises TopLevelNotFound: if object cannot be retrieved
+    """
+    top_level = ref.lookup()
+    if not top_level:
+        raise TopLevelNotFound(f'Could not find top-level object in document: {ref}')
+    return top_level
 
 
 def toplevel_named(doc: sbol3.Document, name: str) -> Optional[sbol3.Identified]:
@@ -38,8 +80,20 @@ def toplevel_named(doc: sbol3.Document, name: str) -> Optional[sbol3.Identified]
         raise ValueError(f'Name is not unique: {name}')
 
 
+def filter_top_level(doc: sbol3.Document, filter: Callable[[sbol3.TopLevel], bool]) -> Iterable[sbol3.TopLevel]:
+    """Filters and returns iterable of TopLevel Objects in a document,
+    which match a criteria set by a callable argument.
+
+    :param doc: SBOL Document to search
+    :param filter: Callable acting as filter on List of TopLevel objects
+    :return: TopLevel iterator satisfying given filter
+    """
+    return (obj for obj in doc.objects if filter(obj))
+
+
 def strip_sbol2_version(identity: str) -> str:
-    """Ensure that an SBOL2 or SBOL3 URI is an SBOL3 URI by stripping any SBOL2 version identifier from the end
+    """Ensure that an SBOL2 or SBOL3 URI is an SBOL3 URI by stripping any SBOL2 version identifier
+    from the end to the URI
 
     :param identity: URI to be sanitized
     :return: URI without terminal version, if any
@@ -131,6 +185,7 @@ def is_plasmid(obj: Union[sbol3.Component, sbol3.Feature]) -> bool:
             isinstance(obj, sbol3.ExternallyDefined):  # if there's a type, check for circularity
         return sbol3.SO_CIRCULAR in obj.types
     elif isinstance(obj, sbol3.SubComponent):  # if it's a subcomponent, check its definition
-        return is_plasmid(obj.instance_of.lookup())
+        return is_plasmid(find_top_level(obj.instance_of))
+        #return is_plasmid(obj.instance_of.lookup())
     else:
         return False
