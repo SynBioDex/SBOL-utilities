@@ -10,17 +10,34 @@ from sbol_utilities.build_planning import validate_composite_part_assemblies, SB
 class TestBuildPlanning(unittest.TestCase):
 
 	def test_validate_composite_part_assemblies(self):
+		"""Test function for validating composite part assemblies"""
 		test_doc = sbol3.Document()
 
 		sbol3.set_namespace('http://testBuildPlanning.org')
 
+		# Should work since composite part BBa_K093005 has an assembly Activity that uses an assembly Component
+		# that has SubComponents for BBa_K093005 and its assembled parts BBa_B0034 and BBa_E1010 and their parts in
+		# backbones. The assembly Component also has a contains Constraint with each part in backbone as a subject
+		# and the part insert as an object.
 		assert validate_composite_part_assemblies(assemble_BBa_K093005(test_doc))
 
+		# Should not work since the assembly Component is missing a SubComponent for the assembled part BBa_E1010 
 		assert not validate_composite_part_assemblies(assemble_BBa_K093005(test_doc, 'BBa_E1010_UNASSEMBLED'))
+
+		# Should not work since the assembly Component is missing a SubComponent for the composite part BBa_K093005
 		assert not validate_composite_part_assemblies(assemble_BBa_K093005(test_doc, 'BBa_K093005_UNASSEMBLED'))
+
+		# Should not work since the assembly Component has no Constraint with BBa_E1010 as its object and its part in
+		# backbone as its subject
 		assert not validate_composite_part_assemblies(assemble_BBa_K093005(test_doc, 'BBa_E1010_UNCONTAINED'))
+
+		# Should not work since the part in backbone Component for BBa_E1010 is missing its insert SubComponent
 		assert not validate_composite_part_assemblies(assemble_BBa_K093005(test_doc, 'BBa_E1010_NOT_INSERT'))
+
+		# Should not work since the part in backbone Component for BBa_E1010 is missing its backbone SubComponent
 		assert not validate_composite_part_assemblies(assemble_BBa_K093005(test_doc, 'pSB1C3_NOT_BACKBONE'))
+
+		# Should not work since the assembly Activity uses more than one assembly Component
 		assert not validate_composite_part_assemblies(assemble_BBa_K093005(test_doc, 'EXTRA_ASSEMBLY_COMPONENT'))
 
 def assemble_BBa_K093005(doc: sbol3.Document, failure_mode: Optional[str] = ''):
