@@ -4,7 +4,7 @@ from typing import List, Tuple, Union, Iterable
 
 import sbol3
 
-from sbol_utilities.helper_functions import is_plasmid, id_sort, find_top_level, find_child
+from sbol_utilities.helper_functions import is_plasmid, id_sort, find_top_level, find_child, build_reference_cache
 from sbol_utilities.workarounds import type_to_standard_extension
 
 
@@ -44,20 +44,21 @@ def order_subcomponents(component: sbol3.Component) -> Union[Tuple[List[sbol3.Fe
         meetings -= {m for m in meetings if m.subject == circular_components[0].identity}
 
     unordered = list(component.features)
+    find_cache = build_reference_cache(component.document)
     while meetings:
         # Meetings that can go next are any that are a subject and not an object
-        unblocked = {find_child(m.subject) for m in meetings}-{find_child(m.object) for m in meetings}
+        unblocked = {find_child(m.subject, find_cache) for m in meetings}-{find_child(m.object, find_cache) for m in meetings}
         if len(unblocked) != 1: # if it's not an unambiguous single, we're sunk
             return None
         # add to the order
         subject = unblocked.pop()
-        subject_meetings = {m for m in meetings if find_child(m.subject) is subject}
+        subject_meetings = {m for m in meetings if find_child(m.subject, find_cache) is subject}
         assert len(subject_meetings) == 1 # should be precisely one with the subject
         order.append(subject)
         unordered.remove(subject)
         meetings -= subject_meetings
         if len(meetings) == 0: # if we just did the final meeting, add the object on the end
-            object = find_child(subject_meetings.pop().object)
+            object = find_child(subject_meetings.pop().object, find_cache)
             order.append(object) # add the last one
             unordered.remove(object)
 
@@ -80,10 +81,11 @@ def compute_sequence(component: sbol3.Component) -> sbol3.Sequence:
     sequence = sbol3.Sequence(component.display_id+"_sequence", encoding='https://identifiers.org/edam:format_1207') #   ### BUG: pySBOL #185
     sequence.elements = '' # Should be in keywords, except pySBOL3 #208
     # for each component in turn, add it and set its location
+    find_cache = build_reference_cache(component.document)
     for i in range(len(sorted)):
-        subc = find_top_level(sorted[i].instance_of)
+        subc = find_top_level(sorted[i].instance_of, find_cache)
         assert len(subc.sequences) == 1
-        subseq = find_top_level(subc.sequences[0])
+        subseq = find_top_level(subc.sequences[0], find_cache)
         assert sequence.encoding==subseq.encoding
         sorted[i].locations.append(sbol3.Range(sequence, len(sequence.elements)+1, len(sequence.elements)+len(subseq.elements)))
         sequence.elements += subseq.elements
