@@ -68,14 +68,23 @@ def regularize_package_directory(dir: str):
 
 
 def dir_to_package(dir: str):
+    # Make the package directory
+    regularize_package_directory(dir)
+
     # Collect the files
     root_package_doc, sub_package_doc_list = collect_files_from_dir(dir)
 
     # Define the package
     package = docs_to_package(root_package_doc, sub_package_doc_list)
 
-    # Add the package to a document?
-    # Return the document or automatically save the doc to the dir?
+    # Add the package to a document
+    doc = sbol3.Document()
+    doc.add(package)
+
+    # Save the document to the package directory
+    out_path = os.path.join(dir, PACKAGE_DIRECTORY, 'package.nt')
+    doc.write(out_path, sbol3.SORTED_NTRIPLES)
+
 
 def collect_files_from_dir(dir_name: str):
     # Make the holder for all of the subpackage list
