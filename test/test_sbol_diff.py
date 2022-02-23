@@ -16,6 +16,7 @@ ESL_SBOL_PATH = os.path.join(TEST_FILES_DIR, 'expanded_simple_library.nt')
 class TestSbolDiff(unittest.TestCase):
 
     def test_command_line(self):
+        """Test command line invocation of sbol_diff utility"""
         test_args = ['sbol_diff', ESL_SBOL_PATH, ESL_SBOL_PATH]
         # Diff the same file, expecting no differences
         with patch.object(sys, 'argv', test_args):
@@ -29,30 +30,24 @@ class TestSbolDiff(unittest.TestCase):
         self.assertEqual(1, status)
 
     def test_file_diff(self):
-        # Invoke sbol_utilities.sbol_diff.file_diff directly
-        actual = sbol_utilities.sbol_diff.file_diff(ESL_SBOL_PATH,
-                                                    ESL_SBOL_PATH,
-                                                    silent=True)
+        """Invoke sbol_utilities.sbol_diff.file_diff directly"""
+        actual = sbol_utilities.sbol_diff.file_diff(ESL_SBOL_PATH, ESL_SBOL_PATH, silent=True)
         expected = 0
         self.assertEqual(expected, actual)
-        actual = sbol_utilities.sbol_diff.file_diff(ESL_SBOL_PATH,
-                                                    SL_SBOL_PATH,
-                                                    silent=True)
+        actual = sbol_utilities.sbol_diff.file_diff(ESL_SBOL_PATH, SL_SBOL_PATH, silent=True)
         expected = 1
         self.assertEqual(expected, actual)
 
     def test_doc_diff(self):
-        # Invoke sbol_utilities.sbol_diff.doc_diff directly
+        """Invoke sbol_utilities.sbol_diff.doc_diff directly"""
         esl_doc = sbol3.Document()
         esl_doc.read(ESL_SBOL_PATH)
         sl_doc = sbol3.Document()
         sl_doc.read(SL_SBOL_PATH)
-        actual = sbol_utilities.sbol_diff.doc_diff(esl_doc, esl_doc,
-                                                   silent=True)
+        actual = sbol_utilities.sbol_diff.doc_diff(esl_doc, esl_doc, silent=True)
         expected = 0
         self.assertEqual(expected, actual)
-        actual = sbol_utilities.sbol_diff.doc_diff(esl_doc, sl_doc,
-                                                   silent=True)
+        actual = sbol_utilities.sbol_diff.doc_diff(esl_doc, sl_doc, silent=True)
         expected = 1
         self.assertEqual(expected, actual)
 

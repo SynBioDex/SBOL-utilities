@@ -6,7 +6,7 @@ SBOL-utilities is a collection of scripts and functions for manipulating SBOL 3 
 [![PyPI version fury.io](https://badge.fury.io/py/sbol-utilities.svg)](https://pypi.python.org/pypi/sbol-utilities/)
 [![PyPI license](https://img.shields.io/pypi/l/sbol-utilities.svg)](https://pypi.python.org/pypi/sbol-utilities/)
 [![PyPI pyversions](https://img.shields.io/pypi/pyversions/sbol-utilities.svg)](https://pypi.python.org/pypi/sbol-utilities/)
-[![gh-action badge](https://github.com/SynBioDex/tyto/workflows/CI/badge.svg)](https://github.com/SynBioDex/SBOL-utilities/actions)
+[![gh-action badge](https://github.com/SynBioDex/SBOL-utilities/actions/workflows/python-app.yml/badge.svg)](https://github.com/SynBioDex/SBOL-utilities/actions)
 
 
 ## Installation
