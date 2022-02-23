@@ -1,7 +1,5 @@
 import os
 from pathlib import Path
-import argparse
-import logging
 from attr import define
 from urllib.parse import urlparse
 
@@ -68,8 +66,9 @@ def regularize_package_directory(dir: str):
 
 
 def dir_to_package(dir: str):
-    # Make the package directory
-    regularize_package_directory(dir)
+    # Check it is a package directory
+    # Check that there is NOT a package directory
+    # TODO:
 
     # Collect the files
     root_package_doc, sub_package_doc_list = collect_files_from_dir(dir)
@@ -81,6 +80,9 @@ def dir_to_package(dir: str):
     doc = sbol3.Document()
     doc.add(package)
 
+    # Make the package directory
+    regularize_package_directory(dir)
+
     # Save the document to the package directory
     out_path = os.path.join(dir, PACKAGE_DIRECTORY, 'package.nt')
     doc.write(out_path, sbol3.SORTED_NTRIPLES)
@@ -88,18 +90,28 @@ def dir_to_package(dir: str):
 
 def collect_files_from_dir(dir_name: str):
     # Make the holder for all of the subpackage list
-    sub_package_docs = []
+    sub_package_paths = []
 
     for root, dirs, files in os.walk(dir_name, topdown=True):
         # Check that there is only one file in the directory
         if len(files) != 1:
-            print("BAD!") # FIXME: Add a real error statement
+            raise ValueError(f'There is more than one file in the the directory'
+                             f'{dir_name}- function expects there to be only '
+                             f'one file in each package and sub-package '
+                             f'directory.')
         file_name = files[0]
 
         if root == dir_name:
-            root_package_doc = os.path.join(root, file_name)
+            root_package_path = os.path.join(root, file_name)
+            root_package_doc = sbol3.Document()
+            root_package_doc.read(root_package_path)
         else:
-            sub_package_docs.append(os.path.join(root, file_name))
+            sub_package_paths.append(os.path.join(root, file_name))
+            sub_package_docs = []
+            for path in sub_package_paths:
+                package_doc = sbol3.Document()
+                package_doc.read(path)
+                sub_package_docs.append(package_doc)
 
     return root_package_doc, sub_package_docs
 

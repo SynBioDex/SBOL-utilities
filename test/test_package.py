@@ -2,6 +2,7 @@ import filecmp
 import unittest
 import os
 import tempfile
+import shutil
 
 import sbol3
 
@@ -144,11 +145,8 @@ class TestPackage(unittest.TestCase):
         comparison_file = os.path.join(test_dir, 'test_files', 'package_out_02.nt')
         assert filecmp.cmp(out_file, comparison_file), 'Output from package creation function with directory is not as expected'
 
-        # Remove the output
-        try:
-            os.rmdir(out_path)
-        except OSError as e:
-            print("Error: %s : %s" % (out_path, e.strerror))
+        # Remove the output and the package directory
+        shutil.rmtree(out_path, ignore_errors=True)
 
 
 if __name__ == '__main__':
