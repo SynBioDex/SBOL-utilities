@@ -128,23 +128,27 @@ class TestPackage(unittest.TestCase):
 
 
     def test_make_package_from_directory(self):
-        """ """
+        """ Create a package based on the files in a directory (test/test_files/
+        package_dir). The function automatically saves the package file in the 
+        .sip package directory. """
         # Set the package directory
         test_dir = os.path.dirname(os.path.realpath(__file__))
         dir_name = os.path.join(test_dir, 'test_files', 'package_dir')
 
         # Pass to the function
-        out = sbol_utilities.package.directory_to_package(dir_name)
-
-        # Write a temporary file
-        doc = sbol3.Document()
-        doc.add(out)
-        tmp_out = tempfile.mkstemp(suffix='.nt')[1]
-        doc.write(tmp_out, sbol3.SORTED_NTRIPLES)
+        sbol_utilities.package.dir_to_package(dir_name)
 
         # Compare it to the saved results file, make sure they are the same
+        out_path = os.path.join(test_dir, 'test_files/package_dir/.sip')
+        out_file = os.path.join(out_path, 'package.nt')
         comparison_file = os.path.join(test_dir, 'test_files', 'package_out_02.nt')
-        assert filecmp.cmp(tmp_out, comparison_file), 'Output from package creation function with three files is not as expected'
+        assert filecmp.cmp(out_file, comparison_file), 'Output from package creation function with directory is not as expected'
+
+        # Remove the output
+        try:
+            os.rmdir(out_path)
+        except OSError as e:
+            print("Error: %s : %s" % (out_path, e.strerror))
 
 
 if __name__ == '__main__':

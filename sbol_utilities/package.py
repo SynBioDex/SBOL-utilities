@@ -103,6 +103,7 @@ def collect_files_from_dir(dir_name: str):
 
     return root_package_doc, sub_package_docs
 
+
 def docs_to_package(root_package_doc: sbol3.Document, sub_package_docs: sbol3.Document):
     """ Take files for a root packages and 0 or more sub-packages. For each
     file, a package object will be generated, then the sub-packages will be
@@ -121,6 +122,7 @@ def docs_to_package(root_package_doc: sbol3.Document, sub_package_docs: sbol3.Do
     package = aggregate_subpackages(root_package, sub_package_list)
 
     return(package)
+
 
 # Throwing errors from specifying list[sep_054.Package] on Python 3.7
 def aggregate_subpackages(root_package: sep_054.Package,
@@ -153,6 +155,7 @@ def aggregate_subpackages(root_package: sep_054.Package,
                          f'namespace {root_package.namespace}.')
 
     return root_package
+
 
 def define_package(package_file: sbol3.Document):
     """Function to take one sbol document and define a package from it
