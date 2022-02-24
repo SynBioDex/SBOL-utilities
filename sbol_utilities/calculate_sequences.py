@@ -4,8 +4,7 @@ from typing import List, Tuple, Union, Iterable
 
 import sbol3
 
-from sbol_utilities.helper_functions import is_plasmid, id_sort, find_top_level, find_child, build_reference_cache, \
-    cached_references
+from sbol_utilities.helper_functions import is_plasmid, id_sort, find_top_level, find_child, cached_references
 from sbol_utilities.workarounds import type_to_standard_extension
 
 
@@ -45,31 +44,33 @@ def order_subcomponents(component: sbol3.Component) -> Union[Tuple[List[sbol3.Fe
         meetings -= {m for m in meetings if m.subject == circular_components[0].identity}
 
     unordered = list(component.features)
-    find_cache = build_reference_cache(component.document)
-    while meetings:
-        # Meetings that can go next are any that are a subject and not an object
-        unblocked = {find_child(m.subject, find_cache) for m in meetings}-{find_child(m.object, find_cache) for m in meetings}
-        if len(unblocked) != 1: # if it's not an unambiguous single, we're sunk
-            return None
-        # add to the order
-        subject = unblocked.pop()
-        subject_meetings = {m for m in meetings if find_child(m.subject, find_cache) is subject}
-        assert len(subject_meetings) == 1 # should be precisely one with the subject
-        order.append(subject)
-        unordered.remove(subject)
-        meetings -= subject_meetings
-        if len(meetings) == 0: # if we just did the final meeting, add the object on the end
-            object = find_child(subject_meetings.pop().object, find_cache)
-            order.append(object) # add the last one
-            unordered.remove(object)
+    with cached_references(component.document):
+        while meetings:
+            # Meetings that can go next are any that are a subject and not an object
+            unblocked = {find_child(m.subject) for m in meetings}-{find_child(m.object) for m in meetings}
+            if len(unblocked) != 1:  # if it's not an unambiguous single, we're sunk
+                return None
+            # add to the order
+            subject = unblocked.pop()
+            subject_meetings = {m for m in meetings if find_child(m.subject) is subject}
+            assert len(subject_meetings) == 1  # should be precisely one with the subject
+            order.append(subject)
+            unordered.remove(subject)
+            meetings -= subject_meetings
+            if len(meetings) == 0:  # if we just did the final meeting, add the object on the end
+                obj = find_child(subject_meetings.pop().object)
+                order.append(obj)  # add the last one
+                unordered.remove(obj)
 
     # if all components have been ordered, then return the order
     assert unordered or (len(order) == len(component.features))
     return (order if not unordered else None), circular
 
+
 # assumes already ordered
 def ready_to_resolve(component: sbol3.Component, resolved: Iterable[str]):
-    return all(isinstance(f,sbol3.SubComponent) and str(f.instance_of) in resolved for f in component.features)
+    return all(isinstance(f, sbol3.SubComponent) and str(f.instance_of) in resolved for f in component.features)
+
 
 def compute_sequence(component: sbol3.Component) -> sbol3.Sequence:
     """Compute the sequence of a component and add this information into the Component in place
@@ -77,20 +78,20 @@ def compute_sequence(component: sbol3.Component) -> sbol3.Sequence:
     :param component: Component whose sequence is to be computed
     :return: Sequence that has been computed
     """
-    sorted, circular = order_subcomponents(component)
+    sorted_subcomponents, circular = order_subcomponents(component)
     # make the blank sequence
     sequence = sbol3.Sequence(component.display_id+"_sequence",
                               elements='',
                               encoding=sbol3.IUPAC_DNA_ENCODING)
     # for each component in turn, add it and set its location
     with cached_references(component.document):
-        for i in range(len(sorted)):
-            subc = find_top_level(sorted[i].instance_of)
+        for subcomponent in sorted_subcomponents:
+            subc = find_top_level(subcomponent.instance_of)
             assert len(subc.sequences) == 1
             subseq = find_top_level(subc.sequences[0])
             assert sequence.encoding == subseq.encoding
-            sorted[i].locations.append(sbol3.Range(sequence, len(sequence.elements)+1,
-                                                   len(sequence.elements)+len(subseq.elements)))
+            subcomponent.locations.append(sbol3.Range(sequence, len(sequence.elements) + 1,
+                                          len(sequence.elements) + len(subseq.elements)))
             sequence.elements += subseq.elements
     # when all have been handled, the sequence is fully realized
     component.document.add(sequence)
@@ -113,7 +114,8 @@ def calculate_sequences(doc: sbol3.Document) -> List[sbol3.Sequence]:
     # figure out which components are potential targets for expansion
     dna_components = {obj for obj in doc.objects if isinstance(obj, sbol3.Component) and sbol3.SBO_DNA in obj.types}
     resolved = {c for c in dna_components if resolved_dna_component(c)}
-    pending_resolution = {c for c in (dna_components-resolved) if order_subcomponents(c) and not resolved_dna_component(c)}
+    pending_resolution = {c for c in (dna_components-resolved)
+                          if order_subcomponents(c) and not resolved_dna_component(c)}
     logging.info(f'Found {len(dna_components)} DNA components, {len(pending_resolution)} needing sequences computed')
 
     # loop through sequences, attempting to resolve each in turn
