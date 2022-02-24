@@ -7,8 +7,8 @@ import tyto
 from rdflib import URIRef
 from sbol3.refobj_property import ReferencedURI, ReferencedObjectSingleton, ReferencedObjectList
 
-from sbol_utilities.helper_functions import id_sort, find_child, build_reference_cache, flatten, \
-    find_top_level, TopLevelNotFound, SBOL3PassiveVisitor
+from sbol_utilities.helper_functions import id_sort, find_child, find_top_level, TopLevelNotFound, \
+    SBOL3PassiveVisitor, cached_references
 from sbol_utilities.workarounds import get_parent
 
 
@@ -23,6 +23,7 @@ def contained_components(roots: Union[sbol3.TopLevel, Iterable[sbol3.TopLevel]])
 
     :param roots: single TopLevel or iterable collection of TopLevel objects to explore
     :return: set of Components found, including roots
+    :raises TopLevelNotFound: if some referenced Components are not in the document
     """
     if isinstance(roots, sbol3.TopLevel):
         roots = [roots]
@@ -31,12 +32,8 @@ def contained_components(roots: Union[sbol3.TopLevel, Iterable[sbol3.TopLevel]])
         def __init__(self):
             self.contained = set()  # set being built via traversal
             self.visited = set()
-            self.cache = None
 
         def already_visited(self, obj: sbol3.Identified) -> bool:
-            # ensure cache is built
-            if not self.cache:
-                self.cache = build_reference_cache(obj.document)
             prior = obj in self.visited
             self.visited.add(obj)
             return prior
@@ -44,37 +41,40 @@ def contained_components(roots: Union[sbol3.TopLevel, Iterable[sbol3.TopLevel]])
         def visit_collection(self, c: sbol3.Collection):
             if not self.already_visited(c):
                 for m in c.members:
-                    find_top_level(m, self.cache).accept(self)
+                    find_top_level(m).accept(self)
 
         def visit_combinatorial_derivation(self, c: sbol3.CombinatorialDerivation):
             if not self.already_visited(c):
-                find_top_level(c.template, self.cache).accept(self)
+                find_top_level(c.template).accept(self)
                 for v in c.variable_features:
                     v.accept(self)
 
         def visit_variable_feature(self, v: sbol3.VariableFeature):
             if not self.already_visited(v):
                 for c in v.variants:
-                    find_top_level(c, self.cache).accept(self)
+                    find_top_level(c).accept(self)
                 for c in v.variant_collections:
-                    find_top_level(c, self.cache).accept(self)
+                    find_top_level(c).accept(self)
                 for cd in v.variant_derivations:
-                    find_top_level(cd, self.cache).accept(self)
+                    find_top_level(cd).accept(self)
 
         def visit_component(self, c: sbol3.Component):
             if not self.already_visited(c):
                 self.contained.add(c)
                 for sc in (f for f in c.features if isinstance(f, sbol3.SubComponent)):
-                    find_top_level(sc.instance_of, self.cache).accept(self)
+                    find_top_level(sc.instance_of).accept(self)
 
         def visit_implementation(self, i: sbol3.Implementation):
             if not self.already_visited(i):
                 if i.built:
-                    find_top_level(i.built, self.cache).accept(self)
+                    find_top_level(i.built).accept(self)
 
     visitor = ContainmentVisitor()
-    for r in roots:
-        r.accept(visitor)
+    root_list = list(roots)
+    if root_list:  # can't build the cache unless there's at least component to walk
+        with cached_references(root_list[0].document):
+            for r in roots:
+                r.accept(visitor)
     return visitor.contained
 
 
@@ -85,9 +85,6 @@ def outgoing_links(doc: sbol3.Document) -> set[URIRef]:
     :return: set of URIs for objects not contained in the document
     """
     # build a cache and look for all references that cannot be resolved
-    cache = build_reference_cache(doc)
-    outgoing = set()
-
     def collector(obj: sbol3.Identified):
         # Collect all ReferencedURI values in properties:
         references = []
@@ -100,13 +97,15 @@ def outgoing_links(doc: sbol3.Document) -> set[URIRef]:
         # Check whether or not the references resolve
         for r in references:
             try:
-                _ = find_top_level(r, cache)
+                _ = find_top_level(r)
             except TopLevelNotFound:
                 outgoing.add(str(r))
             except ValueError:
                 pass  # ignore references to child objects
 
-    doc.traverse(collector)
+    outgoing = set()
+    with cached_references(doc):
+        doc.traverse(collector)
     return outgoing
 
 

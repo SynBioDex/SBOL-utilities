@@ -14,7 +14,7 @@ from sbol_utilities.component import dna_component_with_sequence, rna_component_
     protein_component_with_sequence, media, functional_component, promoter, rbs, cds, terminator, \
     protein_stability_element, gene, operator, engineered_region, mrna, transcription_factor, \
     strain, ed_simple_chemical, ed_protein
-from sbol_utilities.helper_functions import find_top_level, toplevel_named
+from sbol_utilities.helper_functions import find_top_level, toplevel_named, TopLevelNotFound
 from sbol_utilities.sbol_diff import doc_diff    
 
 
@@ -88,6 +88,12 @@ class TestComponent(unittest.TestCase):
         self.assertEqual(len(contained_components(c)), 10)
         # 1 template, 1 backbone, 1 insert, 10 in 1st slot, 4 in 2nd (-1 shared), 5 in 3rd, 2 others
         self.assertEqual(len(contained_components(toplevel_named(doc, 'Two color - operon'))), 23)
+
+        # Test again with an incomplete file. Should fail when missing elements are requested, but not when untouched
+        doc.read(str(test_dir / 'test_files' / 'incomplete_constraints_library.nt'))
+        self.assertRaises(TopLevelNotFound, lambda: contained_components(doc.objects))
+        self.assertEqual(len(contained_components(toplevel_named(doc, 'BB-B0032-BB'))), 4)
+        self.assertRaises(TopLevelNotFound, lambda: contained_components(toplevel_named(doc, 'Multicolor expression')))
 
     def test_outgoing(self):
         """Test the outgoing_links function"""
