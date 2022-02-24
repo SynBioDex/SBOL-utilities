@@ -1,6 +1,8 @@
 from __future__ import annotations
 import logging
 import itertools
+from collections.abc import Generator
+from contextlib import contextmanager
 from typing import Iterable, Union, Optional, Callable
 
 import sbol3
@@ -53,6 +55,39 @@ def build_reference_cache(doc: sbol3.Document) -> dict[str, sbol3.Identified]:
     return cache
 
 
+@contextmanager
+def cached_references(doc: sbol3.Document) -> Generator[dict[str, sbol3.Identified]]:
+    """Context manager for a document reference cache for use with
+    find_child and find_top_level.
+
+    ```python
+    with cached_references(doc) as cache:
+        find_top_level(component1.sequences[0], cache)
+    ```
+
+    Can also be used implicitly, without passing the cache as an argument:
+    ```python
+    with cached_references(doc):
+        find_top_level(component1.sequences[0])
+    ```
+
+    :param doc: an sbol3 Document
+    :returns: a generator of a reference cache
+    """
+    # An existing cache is tucked away so that it can be restored when
+    # this context is exited.
+    try:
+        old_cache = doc._sbol_utilities_reference_cache
+    except AttributeError:
+        # AttributeError means the document does not already have a
+        # reference cache. Tuck away None as the preceding cache.
+        old_cache = None
+    doc._sbol_utilities_reference_cache = build_reference_cache(doc)
+    yield doc._sbol_utilities_reference_cache
+    # Restore the cache to what it was before
+    doc._sbol_utilities_reference_cache = old_cache
+
+
 def find_child(ref: ReferencedURI, cache: Optional[dict[str, sbol3.Identified]] = None):
     """Look up a child object; if it is not found, raise an exception
 
@@ -61,6 +96,15 @@ def find_child(ref: ReferencedURI, cache: Optional[dict[str, sbol3.Identified]] 
     :returns: object pointed to by reference
     :raises ChildNotFound: if object cannot be retrieved
     """
+    if cache is None:
+        try:
+            doc = ref.parent.document
+            cache = doc._sbol_utilities_reference_cache
+        except AttributeError:
+            # AttributeError means that either the `ref` does not have
+            # a parent or the document does not have the cache
+            # attribute. In either case, proceed without a cache
+            pass
     try:
         return cache[str(ref)]
     except KeyError:
@@ -85,6 +129,15 @@ def find_top_level(ref: ReferencedURI, cache: Optional[dict[str, sbol3.Identifie
     :returns: object pointed to by reference
     :raises TopLevelNotFound: if object cannot be retrieved
     """
+    if cache is None:
+        try:
+            doc = ref.parent.document
+            cache = doc._sbol_utilities_reference_cache
+        except AttributeError:
+            # AttributeError means that either the `ref` does not have
+            # a parent or the document does not have the cache
+            # attribute. In either case, proceed without a cache
+            pass
     try:
         return cache[str(ref)]
     except KeyError:

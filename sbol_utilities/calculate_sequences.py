@@ -4,7 +4,8 @@ from typing import List, Tuple, Union, Iterable
 
 import sbol3
 
-from sbol_utilities.helper_functions import is_plasmid, id_sort, find_top_level, find_child, build_reference_cache
+from sbol_utilities.helper_functions import is_plasmid, id_sort, find_top_level, find_child, build_reference_cache, \
+    cached_references
 from sbol_utilities.workarounds import type_to_standard_extension
 
 
@@ -78,17 +79,19 @@ def compute_sequence(component: sbol3.Component) -> sbol3.Sequence:
     """
     sorted, circular = order_subcomponents(component)
     # make the blank sequence
-    sequence = sbol3.Sequence(component.display_id+"_sequence", encoding='https://identifiers.org/edam:format_1207') #   ### BUG: pySBOL #185
-    sequence.elements = '' # Should be in keywords, except pySBOL3 #208
+    sequence = sbol3.Sequence(component.display_id+"_sequence",
+                              elements='',
+                              encoding=sbol3.IUPAC_DNA_ENCODING)
     # for each component in turn, add it and set its location
-    find_cache = build_reference_cache(component.document)
-    for i in range(len(sorted)):
-        subc = find_top_level(sorted[i].instance_of, find_cache)
-        assert len(subc.sequences) == 1
-        subseq = find_top_level(subc.sequences[0], find_cache)
-        assert sequence.encoding==subseq.encoding
-        sorted[i].locations.append(sbol3.Range(sequence, len(sequence.elements)+1, len(sequence.elements)+len(subseq.elements)))
-        sequence.elements += subseq.elements
+    with cached_references(component.document):
+        for i in range(len(sorted)):
+            subc = find_top_level(sorted[i].instance_of)
+            assert len(subc.sequences) == 1
+            subseq = find_top_level(subc.sequences[0])
+            assert sequence.encoding == subseq.encoding
+            sorted[i].locations.append(sbol3.Range(sequence, len(sequence.elements)+1,
+                                                   len(sequence.elements)+len(subseq.elements)))
+            sequence.elements += subseq.elements
     # when all have been handled, the sequence is fully realized
     component.document.add(sequence)
     component.sequences.append(sequence)
