@@ -80,7 +80,7 @@ def toplevel_named(doc: sbol3.Document, name: str) -> Optional[sbol3.Identified]
         raise ValueError(f'Name is not unique: {name}')
 
 
-def filter_top_level(doc: sbol3.Document, filter: Callable[[sbol3.TopLevel], bool]) -> Iterable[sbol3.TopLevel]:
+def filter_top_level(doc: sbol3.Document, filter: Callable[[sbol3.TopLevel], bool], **kwargs) -> Iterable[sbol3.TopLevel]:
     """Filters and returns iterable of TopLevel Objects in a document,
     which match a criteria set by a callable argument.
 
@@ -88,7 +88,10 @@ def filter_top_level(doc: sbol3.Document, filter: Callable[[sbol3.TopLevel], boo
     :param filter: Callable acting as filter on List of TopLevel objects
     :return: TopLevel iterator satisfying given filter
     """
-    return (obj for obj in doc.objects if filter(obj))
+    if kwargs:
+        return (obj for obj in doc.objects if filter(obj, **kwargs))
+    else:
+        return (obj for obj in doc.objects if filter(obj))
 
 
 def strip_sbol2_version(identity: str) -> str:

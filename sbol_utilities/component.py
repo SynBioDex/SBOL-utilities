@@ -60,19 +60,24 @@ def is_dna_part(obj: sbol3.Component) -> bool:
         and has_dna_type(obj) and len(obj.sequences) == 1
 
 
-def filter_by_roles(doc: sbol3.Document, required_role: str) -> List[sbol3.Identified]:
+def by_roles(obj: sbol3.TopLevel, required_role: str) -> bool:
     """Search the entire provided document, and return components which have specified role as one of its roles.
 
     :param doc: sbol3 document to search in
     :param required_role: the role which must be present in components
     :return: list of matched components
     """
-    # callable to be provided as an arg to find_all() of Document class
-    def has_role(obj: sbol3.Identified) -> bool:
-        return isinstance(obj, sbol3.Component) and required_role in obj.roles
+    return isinstance(obj, sbol3.Component) and required_role in obj.roles
 
-    # search through all Identified objects
-    return doc.find_all(has_role)
+
+def by_types(obj: sbol3.TopLevel, required_type: str) -> bool:
+    """Search the entire provided document, and return components which have specified type as one of its types.
+
+    :param doc: sbol3 document to search in
+    :param required_type: the type which must be present in components
+    :return: list of matched components
+    """
+    return isinstance(obj, sbol3.Component) and required_type in obj.types
 
 
 def ensure_singleton_feature(system: sbol3.Component, target: Union[sbol3.Feature, sbol3.Component]):
