@@ -4,11 +4,8 @@ from typing import Dict, Iterable, List, Union, Optional, Tuple
 
 import sbol3
 import tyto
-from rdflib import URIRef
-from sbol3.refobj_property import ReferencedURI, ReferencedObjectSingleton, ReferencedObjectList
 
-from sbol_utilities.helper_functions import id_sort, find_child, find_top_level, TopLevelNotFound, \
-    SBOL3PassiveVisitor, cached_references
+from sbol_utilities.helper_functions import id_sort, find_child, find_top_level, SBOL3PassiveVisitor, cached_references
 from sbol_utilities.workarounds import get_parent
 
 
@@ -76,37 +73,6 @@ def contained_components(roots: Union[sbol3.TopLevel, Iterable[sbol3.TopLevel]])
             for r in roots:
                 r.accept(visitor)
     return visitor.contained
-
-
-def outgoing_links(doc: sbol3.Document) -> set[URIRef]:
-    """Given a document, determine the set of links to objects not in the document
-
-    :param doc: an SBOL document
-    :return: set of URIs for objects not contained in the document
-    """
-    # build a cache and look for all references that cannot be resolved
-    def collector(obj: sbol3.Identified):
-        # Collect all ReferencedURI values in properties:
-        references = []
-        for pv in obj.__dict__.values():
-            if isinstance(pv, ReferencedObjectList):
-                references.extend([v for v in pv if isinstance(v, ReferencedURI)])
-            elif isinstance(pv, ReferencedObjectSingleton):
-                references.append(pv.get())
-
-        # Check whether or not the references resolve
-        for r in references:
-            try:
-                _ = find_top_level(r)
-            except TopLevelNotFound:
-                outgoing.add(str(r))
-            except ValueError:
-                pass  # ignore references to child objects
-
-    outgoing = set()
-    with cached_references(doc):
-        doc.traverse(collector)
-    return outgoing
 
 
 def is_dna_part(obj: sbol3.Component) -> bool:

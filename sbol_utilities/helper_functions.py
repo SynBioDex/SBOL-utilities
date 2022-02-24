@@ -6,7 +6,8 @@ from contextlib import contextmanager
 from typing import Iterable, Union, Optional, Callable
 
 import sbol3
-from sbol3.refobj_property import ReferencedURI
+from rdflib import URIRef
+from sbol3.refobj_property import ReferencedURI, ReferencedObjectList, ReferencedObjectSingleton
 import tyto
 
 #########################
@@ -325,3 +326,34 @@ class SBOL3PassiveVisitor:
     def visit_unit_multiplication(self, _): pass
     def visit_usage(self, _): pass
     def visit_variable_feature(self, _): pass
+
+
+def outgoing_links(doc: sbol3.Document) -> set[URIRef]:
+    """Given a document, determine the set of links to objects not in the document
+
+    :param doc: an SBOL document
+    :return: set of URIs for objects not contained in the document
+    """
+    # build a cache and look for all references that cannot be resolved
+    def collector(obj: sbol3.Identified):
+        # Collect all ReferencedURI values in properties:
+        references = []
+        for pv in obj.__dict__.values():
+            if isinstance(pv, ReferencedObjectList):
+                references.extend([v for v in pv if isinstance(v, ReferencedURI)])
+            elif isinstance(pv, ReferencedObjectSingleton):
+                references.append(pv.get())
+
+        # Check whether or not the references resolve
+        for r in references:
+            try:
+                _ = find_top_level(r)
+            except TopLevelNotFound:
+                outgoing.add(str(r))
+            except ValueError:
+                pass  # ignore references to child objects
+
+    outgoing = set()
+    with cached_references(doc):
+        doc.traverse(collector)
+    return outgoing

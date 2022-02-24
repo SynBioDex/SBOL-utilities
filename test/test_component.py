@@ -9,12 +9,12 @@ import tyto
 
 from sbol_utilities.component import contained_components, contains, add_feature, add_interaction, \
     constitutive, \
-    regulate, order, in_role, all_in_role, ensure_singleton_feature, is_dna_part, outgoing_links
+    regulate, order, in_role, all_in_role, ensure_singleton_feature, is_dna_part
 from sbol_utilities.component import dna_component_with_sequence, rna_component_with_sequence, \
     protein_component_with_sequence, media, functional_component, promoter, rbs, cds, terminator, \
     protein_stability_element, gene, operator, engineered_region, mrna, transcription_factor, \
     strain, ed_simple_chemical, ed_protein
-from sbol_utilities.helper_functions import find_top_level, toplevel_named, TopLevelNotFound
+from sbol_utilities.helper_functions import find_top_level, toplevel_named, TopLevelNotFound, outgoing_links
 from sbol_utilities.sbol_diff import doc_diff    
 
 
@@ -94,24 +94,6 @@ class TestComponent(unittest.TestCase):
         self.assertRaises(TopLevelNotFound, lambda: contained_components(doc.objects))
         self.assertEqual(len(contained_components(toplevel_named(doc, 'BB-B0032-BB'))), 4)
         self.assertRaises(TopLevelNotFound, lambda: contained_components(toplevel_named(doc, 'Multicolor expression')))
-
-    def test_outgoing(self):
-        """Test the outgoing_links function"""
-        doc = sbol3.Document()
-        test_dir = Path(__file__).parent
-        doc.read(str(test_dir / 'test_files' / 'incomplete_constraints_library.nt'))
-
-        expected = {'http://parts.igem.org/E0040',
-                    'http://parts.igem.org/J23105_sequence',
-                    'http://parts.igem.org/J23109',
-                    'http://sbolstandard.org/testfiles/B0030_sequence',
-                    'http://sbolstandard.org/testfiles/B0031',
-                    'http://sbolstandard.org/testfiles/Multicolor_expression_template',
-                    'http://sbolstandard.org/testfiles/Multicolor_expression_template/LocalSubComponent1',
-                    'http://sbolstandard.org/testfiles/UNSX_UP',
-                    'http://sbolstandard.org/testfiles/UNSX_sequence',
-                    'http://sbolstandard.org/testfiles/_4_FPs'}
-        self.assertEqual(outgoing_links(doc), expected)
 
     def test_high_level_constructors(self):
         """Test construction of components and features using helper functions: for each, build manually and compare."""
