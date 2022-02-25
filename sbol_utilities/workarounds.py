@@ -41,35 +41,6 @@ def sort_owned_objects(self):
         self._owned_objects[k] = id_sort(self._owned_objects[k])
 
 
-# Kludges for copying certain types of TopLevel objects
-# TODO: delete after resolution of https://github.com/SynBioDex/pySBOL3/issues/235, along with following functions
-def copy_toplevel_and_dependencies(target, t):
-    if not target.find(t.identity):
-        if isinstance(t, sbol3.Collection):
-            copy_collection_and_dependencies(target, t)
-        elif isinstance(t, sbol3.Component):
-            copy_component_and_dependencies(target, t)
-        elif isinstance(t, sbol3.Sequence):
-            t.copy(target)  # no dependencies for Sequence
-        else:
-            raise ValueError("Not set up to copy dependencies of "+str(t))
-
-
-def copy_collection_and_dependencies(target, c):
-    c.copy(target)
-    for m in id_sort(c.members):
-        copy_toplevel_and_dependencies(target, m.lookup())
-
-
-def copy_component_and_dependencies(target, c):
-    c.copy(target)
-    for f in id_sort(c.features):
-        if isinstance(f, sbol3.SubComponent):
-            copy_toplevel_and_dependencies(target, f.instance_of.lookup())
-    for s in id_sort(c.sequences):
-        copy_toplevel_and_dependencies(target, s.lookup())
-
-
 # Kludge for replacing a feature in a Component
 # TODO: delete after resolution of https://github.com/SynBioDex/pySBOL3/issues/207
 def replace_feature(component, old, new):

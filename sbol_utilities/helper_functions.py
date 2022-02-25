@@ -361,7 +361,7 @@ def outgoing_links(doc: sbol3.Document) -> set[URIRef]:
 
 
 # TODO: add an optional exclusion function
-def references_in_document(roots: Union[sbol3.TopLevel, Iterable[sbol3.TopLevel]]) -> set[sbol3.TopLevel]:
+def objects_referenced_from(roots: Union[sbol3.TopLevel, Iterable[sbol3.TopLevel]]) -> set[sbol3.TopLevel]:
     """Find the set of all SBOL TopLevel objects that are both in the document and path of the reference network
     from this set of roots.
 

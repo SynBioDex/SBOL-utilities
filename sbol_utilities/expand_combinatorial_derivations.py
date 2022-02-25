@@ -4,9 +4,8 @@ import itertools
 from typing import List, Set
 
 import sbol3
-from .helper_functions import id_sort, find_top_level, find_child
-from .workarounds import copy_toplevel_and_dependencies, replace_feature, sort_owned_objects, \
-    type_to_standard_extension
+from .helper_functions import id_sort, find_top_level, find_child, objects_referenced_from
+from .workarounds import replace_feature, sort_owned_objects, type_to_standard_extension
 
 
 def cd_assigment_to_display_id(cd: sbol3.CombinatorialDerivation, assignment: tuple) -> str:
@@ -201,8 +200,8 @@ def main():
     derivative_collections = expand_derivations(targets)
     # Write a document containing only the expansions
     output_doc = sbol3.Document()
-    for c in derivative_collections:
-        copy_toplevel_and_dependencies(output_doc, c)  # TODO: adjust after resolution of https://github.com/SynBioDex/pySBOL3/issues/235
+    sbol3.copy(objects_referenced_from(derivative_collections), into_document=output_doc)
+    # Validate and write
     report = output_doc.validate()
     logging.info('Document validation found '+str(len(report.errors))+' errors, '+str(len(report.warnings))+' warnings')
     output_doc.write(outfile_name, file_type)

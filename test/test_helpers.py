@@ -143,19 +143,19 @@ class TestHelpers(unittest.TestCase):
         doc.read(str(test_dir / 'test_files' / 'incomplete_constraints_library.nt'))
 
         # Total of 91 top-level objects
-        self.assertEqual(len(references_in_document([])), 0)
-        self.assertEqual(len(references_in_document(doc.objects)), 91)
+        self.assertEqual(len(objects_referenced_from([])), 0)
+        self.assertEqual(len(objects_referenced_from(doc.objects)), 91)
         bb_b0032_bb = toplevel_named(doc, 'BB-B0032-BB')  # 1 composite, 3 components + sequences
-        self.assertEqual(len(references_in_document(bb_b0032_bb)), 7)
+        self.assertEqual(len(objects_referenced_from(bb_b0032_bb)), 7)
         four_fps = toplevel_named(doc, '4 promoters')  # 1 collection, 3 promoters + sequences (1 missing)
-        self.assertEqual(len(references_in_document(four_fps)), 7)
-        self.assertEqual(len(references_in_document([bb_b0032_bb, four_fps, bb_b0032_bb])), 14)
+        self.assertEqual(len(objects_referenced_from(four_fps)), 7)
+        self.assertEqual(len(objects_referenced_from([bb_b0032_bb, four_fps, bb_b0032_bb])), 14)
         # 1 CD, missing template, 1st slot fixed (template); 2nd slot missing
         multicolor = toplevel_named(doc, 'Multicolor expression')
-        self.assertEqual(len(references_in_document(multicolor)), 1)
+        self.assertEqual(len(objects_referenced_from(multicolor)), 1)
         # 1 CD + template, 1st slot 2 + seq (1 missing), 2nd slot 4 promoters
         multicolor = toplevel_named(doc, 'Multicolor regulatory')
-        self.assertEqual(len(references_in_document(multicolor)), 11)
+        self.assertEqual(len(objects_referenced_from(multicolor)), 11)
 
 
 if __name__ == '__main__':

@@ -9,8 +9,8 @@ import sys
 from unittest.mock import patch
 from pathlib import Path
 
+from sbol_utilities.helper_functions import objects_referenced_from
 from sbol_utilities.sbol_diff import file_diff
-from sbol_utilities.workarounds import copy_toplevel_and_dependencies
 from sbol_utilities.expand_combinatorial_derivations import root_combinatorial_derivations, \
     expand_derivations
 
@@ -33,8 +33,7 @@ class TestCDExpansion(unittest.TestCase):
         assert len(doc.find('Round_1_order_collection').members) == 24
 
         output_doc = sbol3.Document()
-        for c in derivative_collections:
-            copy_toplevel_and_dependencies(output_doc, c)
+        sbol3.copy(objects_referenced_from(derivative_collections), into_document=output_doc)
         assert not len(output_doc.validate())
 
         temp_name = tempfile.mkstemp(suffix='.nt')[1]
