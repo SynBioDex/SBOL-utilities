@@ -7,6 +7,7 @@ from typing import Iterable, Union, Optional, Callable
 
 import sbol3
 from rdflib import URIRef
+from sbol3.ownedobject import OwnedObjectListProperty, OwnedObjectSingletonProperty
 from sbol3.refobj_property import ReferencedURI, ReferencedObjectList, ReferencedObjectSingleton
 import tyto
 
@@ -357,3 +358,66 @@ def outgoing_links(doc: sbol3.Document) -> set[URIRef]:
     with cached_references(doc):
         doc.traverse(collector)
     return outgoing
+
+
+# TODO: add an optional exclusion function
+def references_in_document(roots: Union[sbol3.TopLevel, Iterable[sbol3.TopLevel]]) -> set[sbol3.TopLevel]:
+    """Find the set of all SBOL TopLevel objects that are both in the document and path of the reference network
+    from this set of roots.
+
+    :param roots: the TopLevel or collection of TopLevels to build a reference network from
+    :returns: set of TopLevel objects in the reference network
+    """
+    # Turn singleton iterable
+    if isinstance(roots, sbol3.TopLevel):
+        roots = {roots}
+    else:
+        roots = set(roots)
+    # Set document or return
+    docs = {r.document for r in roots}
+    if len(docs) == 1:
+        doc = docs.pop()
+    elif len(docs) == 0:
+        return set()
+    else:
+        raise ValueError(f'Reference network must before objects in same document, found: {docs}')
+
+    # build a graph of all references that can be tracked
+    links = {}
+
+    def collector(obj: sbol3.Identified):
+        # Collect all ReferencedURI and OwnedObject values in properties:
+        linked_objects = set()
+        references = []
+        for pv in obj.__dict__.values():
+            if isinstance(pv, ReferencedObjectList):
+                references.extend(v for v in pv if isinstance(v, ReferencedURI))
+            elif isinstance(pv, ReferencedObjectSingleton):
+                references.append(pv.get())
+            elif isinstance(pv, OwnedObjectListProperty):
+                linked_objects.update(pv)
+            elif isinstance(pv, OwnedObjectSingletonProperty):
+                if pv.get():
+                    linked_objects.add(pv.get())
+
+        # Add all the TopLevel references that resolve
+        for r in references:
+            try:
+                linked_objects.add(find_top_level(r))
+            except TopLevelNotFound or ValueError:
+                pass  # ignore links to child objects, as they will be accounted elsewhere, and to external refs
+
+        links[obj] = linked_objects
+
+    # Collect all of the links
+    with cached_references(doc):
+        doc.traverse(collector)
+    # use links to build set of linked objects
+    network = set()
+    pending = roots
+    while pending:
+        obj = pending.pop()
+        network.add(obj)
+        pending.update(links[obj] - network)
+    # return just the TopLevel objects
+    return {o for o in network if isinstance(o, sbol3.TopLevel)}
