@@ -70,8 +70,33 @@ def dir_to_package(dir: str):
     # Check that there is NOT a package directory
     # TODO:
 
+    # Walk the tree from the bottom up
+    for root, dirs, files in os.walk(dir, topdown=False):
+        # List all of the nt files to add to the package
+        file_list = [f for f in files if f.endswith(".nt")]
+        path_list = [root + '/' + file for file in file_list]
+        # doc_list = [sbol3.Document().read(file) for file in path_list]
+        doc_list = []
+        for file in path_list:
+            doc = sbol3.Document()
+            doc.read(file)
+            doc_list.append(doc)
+
+        # Make a list of the package objects for each of the subpackages
+        sub_package_list = [define_package(doc) for doc in doc_list]
+
+        # Get the namespace
+        package_namespace = get_prefix(sub_package_list)
+
+        # Make an empty document to hold the package
+        doc = sbol3.Document(package_namespace + '/package')
+        package.namespace = package_namespace
+        package.conversion = False
+        package.subpackages = sub_package_list
+
+
     # Collect the files
-    root_package_doc, sub_package_doc_list = collect_files_from_dir(dir)
+    # root_package_doc, sub_package_doc_list = collect_files_from_dir(dir)
 
     # Define the package
     package = docs_to_package(root_package_doc, sub_package_doc_list)
@@ -91,16 +116,8 @@ def dir_to_package(dir: str):
 def collect_files_from_dir(dir_name: str):
     # Make the holder for all of the subpackage list
     sub_package_paths = []
-
-    for root, dirs, files in os.walk(dir_name, topdown=True):
-        # Check that there is only one file in the directory
-        if len(files) != 1:
-            raise ValueError(f'There is more than one file in the the directory'
-                             f'{dir_name}- function expects there to be only '
-                             f'one file in each package and sub-package '
-                             f'directory.')
-        file_name = files[0]
-
+    # Walk from the 
+    for root, dirs, files in os.walk(dir_name, topdown=False):
         if root == dir_name:
             root_package_path = os.path.join(root, file_name)
             root_package_doc = sbol3.Document()
@@ -260,6 +277,48 @@ def check_prefix(root_package: sep_054.Package, sub_package: sep_054.Package):
                          f'of {root_package}')
 
     return(is_sub)
+
+
+def get_prefix(package_list):
+    """ Check that the namespace of the sub-package is a path extension of the
+    namespace of the root package
+    
+    Args:
+        package_list (list of sep_054.Package):
+    
+    Returns:
+        prefix (string): 
+    """
+    # Get the namespaces
+    namespace_list = [package.namespace for package in package_list]
+
+    # Parse the namespaces as URIs
+    URI_list = [urlparse(namespace) for namespace in namespace_list]
+
+    # Check scheme and netloc are the same
+    schemes = set(url.scheme for url in URI_list)
+    netlocs = set(url.netloc for url in URI_list)
+
+    if len(schemes) == 1 & len(netlocs) == 1:
+        pass
+    else:
+        raise ValueError(f'The packages {root_package} and {sub_package} '
+                         f'namespace URIs do not share the same URL scheme '
+                         f'specifier or network location, and so do not '
+                         f'represent a root and sub package.')
+
+    # Break the paths down into chunks separated by "/"
+    split_URIs = [URI.path.split('/') for URI in URI_list]
+
+    # Get common elements
+    zipped = list(zip(*split_URIs))
+    common_elements = [list(set(zipped[i]))[0] for i in range(len(zipped)) if len(set(zipped[i])) == 1]
+
+    # Rejoin the common elements to get the common path
+    common_path = '/'.join(common_elements)
+    prefix = schemes.pop() + netlocs.pop() + common_path
+
+    return(prefix)
 
 
 def validate_package(package:  sep_054.Package):

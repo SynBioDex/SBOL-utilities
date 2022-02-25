@@ -15,7 +15,8 @@ class TestPackage(unittest.TestCase):
         # Read in the test file
         test_dir = os.path.dirname(os.path.realpath(__file__))
 
-        # Set the directory to search...
+        # Set the directory to search
+        dir = os.path.join(test_dir, 'test_files', 'MyPackage_w_multiple_files')
 
         # Pass the directory to the function, get a package object back
         package = sbol_utilities.package.directory_to_package(dir)
