@@ -1,5 +1,7 @@
 import unittest
 import os
+from pathlib import Path
+
 from sbol_utilities import component
 
 from sbol_utilities.helper_functions import *
@@ -115,6 +117,24 @@ class TestHelpers(unittest.TestCase):
             self.assertEqual(sequence, found_object)
             found_object = find_top_level(c1.sequences[0])
             self.assertEqual(sequence, found_object)
+
+    def test_outgoing(self):
+        """Test the outgoing_links function"""
+        doc = sbol3.Document()
+        test_dir = Path(__file__).parent
+        doc.read(str(test_dir / 'test_files' / 'incomplete_constraints_library.nt'))
+
+        expected = {'http://parts.igem.org/E0040',
+                    'http://parts.igem.org/J23105_sequence',
+                    'http://parts.igem.org/J23109',
+                    'http://sbolstandard.org/testfiles/B0030_sequence',
+                    'http://sbolstandard.org/testfiles/B0031',
+                    'http://sbolstandard.org/testfiles/Multicolor_expression_template',
+                    'http://sbolstandard.org/testfiles/Multicolor_expression_template/LocalSubComponent1',
+                    'http://sbolstandard.org/testfiles/UNSX_UP',
+                    'http://sbolstandard.org/testfiles/UNSX_sequence',
+                    'http://sbolstandard.org/testfiles/_4_FPs'}
+        self.assertEqual(outgoing_links(doc), expected)
 
 
 if __name__ == '__main__':

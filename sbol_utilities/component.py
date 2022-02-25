@@ -1,44 +1,77 @@
 from __future__ import annotations
 
-from itertools import chain
-from typing import Dict, Iterable, List, Union, Set, Optional, Tuple
+from typing import Dict, Iterable, List, Union, Optional, Tuple
 
 import sbol3
 import tyto
-from rdflib import URIRef
 
-from sbol_utilities.helper_functions import id_sort, find_child
+from sbol_utilities.helper_functions import id_sort, find_child, find_top_level, SBOL3PassiveVisitor, cached_references
 from sbol_utilities.workarounds import get_parent
 
 
 # TODO: consider allowing return of LocalSubComponent and ExternallyDefined
-def contained_components(roots: Union[sbol3.TopLevel, Iterable[sbol3.TopLevel]]) -> Set[sbol3.Component]:
+def contained_components(roots: Union[sbol3.TopLevel, Iterable[sbol3.TopLevel]]) -> set[sbol3.Component]:
     """Find the set of all SBOL Components contained within the roots or their children.
     This will explore via all of the direct relations that can include a Component:
-    Collection.member, CombinatorialDerivation.template, Component.feature:SubComponent, Implmentation.built,
+    Collection.member, CombinatorialDerivation.template, variable_features
+    Component.feature:SubComponent, Implementation.built,
     VariableFeature.variant, variant_derivation, variant_collection
 
     :param roots: single TopLevel or iterable collection of TopLevel objects to explore
     :return: set of Components found, including roots
+    :raises TopLevelNotFound: if some referenced Components are not in the document
     """
     if isinstance(roots, sbol3.TopLevel):
         roots = [roots]
-    explored = set()  # set being built via traversal
 
-    # sub-function for walking containment tree
-    def walk_tree(obj: sbol3.TopLevel):
-        if obj not in explored:
-            explored.add(obj)
-            if isinstance(obj, sbol3.Component):
-                for f in (f.instance_of.lookup() for f in obj.features if isinstance(f, sbol3.SubComponent)):
-                    walk_tree(f)
-            elif isinstance(obj, sbol3.Collection):
-                for m in obj.members:
-                    walk_tree(m.lookup())
-    for r in roots:
-        walk_tree(r)
-    # filter result for containers:
-    return {c for c in explored if isinstance(c, sbol3.Component)}
+    class ContainmentVisitor(SBOL3PassiveVisitor):
+        def __init__(self):
+            self.contained = set()  # set being built via traversal
+            self.visited = set()
+
+        def already_visited(self, obj: sbol3.Identified) -> bool:
+            prior = obj in self.visited
+            self.visited.add(obj)
+            return prior
+
+        def visit_collection(self, c: sbol3.Collection):
+            if not self.already_visited(c):
+                for m in c.members:
+                    find_top_level(m).accept(self)
+
+        def visit_combinatorial_derivation(self, c: sbol3.CombinatorialDerivation):
+            if not self.already_visited(c):
+                find_top_level(c.template).accept(self)
+                for v in c.variable_features:
+                    v.accept(self)
+
+        def visit_variable_feature(self, v: sbol3.VariableFeature):
+            if not self.already_visited(v):
+                for c in v.variants:
+                    find_top_level(c).accept(self)
+                for c in v.variant_collections:
+                    find_top_level(c).accept(self)
+                for cd in v.variant_derivations:
+                    find_top_level(cd).accept(self)
+
+        def visit_component(self, c: sbol3.Component):
+            if not self.already_visited(c):
+                self.contained.add(c)
+                for sc in (f for f in c.features if isinstance(f, sbol3.SubComponent)):
+                    find_top_level(sc.instance_of).accept(self)
+
+        def visit_implementation(self, i: sbol3.Implementation):
+            if not self.already_visited(i):
+                if i.built:
+                    find_top_level(i.built).accept(self)
+
+    visitor = ContainmentVisitor()
+    root_list = list(roots)
+    if root_list:  # can't build the cache unless there's at least one component to walk
+        with cached_references(root_list[0].document):
+            for r in roots:
+                r.accept(visitor)
+    return visitor.contained
 
 
 def is_dna_part(obj: sbol3.Component) -> bool:
