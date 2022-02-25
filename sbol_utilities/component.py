@@ -68,7 +68,7 @@ def contained_components(roots: Union[sbol3.TopLevel, Iterable[sbol3.TopLevel]])
 
     visitor = ContainmentVisitor()
     root_list = list(roots)
-    if root_list:  # can't build the cache unless there's at least component to walk
+    if root_list:  # can't build the cache unless there's at least one component to walk
         with cached_references(root_list[0].document):
             for r in roots:
                 r.accept(visitor)
