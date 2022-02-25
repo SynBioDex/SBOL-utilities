@@ -1,6 +1,9 @@
+from __future__ import annotations
 import logging
 import itertools
-from typing import Iterable, Union, Optional, Callable, List
+from collections.abc import Generator
+from contextlib import contextmanager
+from typing import Iterable, Union, Optional, Callable
 
 import sbol3
 from sbol3.refobj_property import ReferencedURI
@@ -37,26 +40,114 @@ def id_sort(i: iter):
     return sorted(i, key=lambda x: x.identity if isinstance(x, sbol3.Identified) else x)
 
 
-def find_child(ref: ReferencedURI):
+def build_reference_cache(doc: sbol3.Document) -> dict[str, sbol3.Identified]:
+    """Build a cache of identities from the given document to support
+    faster lookups of referenced objects.
+
+    :param doc: an sbol3 Document
+    :returns: a cache of identities
+    """
+    cache = {}
+
+    def cache_identity(obj: sbol3.Identified):
+        cache[obj.identity] = obj
+    doc.traverse(cache_identity)
+    return cache
+
+
+@contextmanager
+def cached_references(doc: sbol3.Document) -> Generator[dict[str, sbol3.Identified]]:
+    """Context manager for a document reference cache for use with
+    find_child and find_top_level.
+
+    ```python
+    with cached_references(doc) as cache:
+        find_top_level(component1.sequences[0], cache)
+    ```
+
+    Can also be used implicitly, without passing the cache as an argument:
+    ```python
+    with cached_references(doc):
+        find_top_level(component1.sequences[0])
+    ```
+
+    :param doc: an sbol3 Document
+    :returns: a generator of a reference cache
+    """
+    # An existing cache is tucked away so that it can be restored when
+    # this context is exited.
+    try:
+        old_cache = doc._sbol_utilities_reference_cache
+    except AttributeError:
+        # AttributeError means the document does not already have a
+        # reference cache. Tuck away None as the preceding cache.
+        old_cache = None
+    doc._sbol_utilities_reference_cache = build_reference_cache(doc)
+    yield doc._sbol_utilities_reference_cache
+    # Restore the cache to what it was before
+    doc._sbol_utilities_reference_cache = old_cache
+
+
+def find_child(ref: ReferencedURI, cache: Optional[dict[str, sbol3.Identified]] = None):
     """Look up a child object; if it is not found, raise an exception
 
     :param ref: reference to look up
+    :param cache: optional cache of identities to speed lookup
     :returns: object pointed to by reference
     :raises ChildNotFound: if object cannot be retrieved
     """
+    if cache is None:
+        try:
+            doc = ref.parent.document
+            cache = doc._sbol_utilities_reference_cache
+        except AttributeError:
+            # AttributeError means that either the `ref` does not have
+            # a parent or the document does not have the cache
+            # attribute. In either case, proceed without a cache
+            pass
+    try:
+        return cache[str(ref)]
+    except KeyError:
+        # KeyError means the item was not found in the cache. Ignore
+        # the error and fall through to a lookup below.
+        pass
+    except TypeError:
+        # TypeError probably means the cache object is not subscriptable.
+        # Ignore the error and fall through to a lookup below.
+        pass
     child = ref.lookup()
     if not child:
         raise ChildNotFound(f'Could not find child object in document: {ref}')
     return child
 
 
-def find_top_level(ref: ReferencedURI):
+def find_top_level(ref: ReferencedURI, cache: Optional[dict[str, sbol3.Identified]] = None):
     """Look up a top-level object; if it is not found, raise an exception
 
     :param ref: reference to look up
+    :param cache: optional cache of identities to speed lookup
     :returns: object pointed to by reference
     :raises TopLevelNotFound: if object cannot be retrieved
     """
+    if cache is None:
+        try:
+            doc = ref.parent.document
+            cache = doc._sbol_utilities_reference_cache
+        except AttributeError:
+            # AttributeError means that either the `ref` does not have
+            # a parent or the document does not have the cache
+            # attribute. In either case, proceed without a cache
+            pass
+    try:
+        return cache[str(ref)]
+    except KeyError:
+        # KeyError means the item was not found in the cache. Ignore
+        # the error and fall through to a lookup below.
+        pass
+    except TypeError:
+        # TypeError probably means the cache object is not subscriptable.
+        # Ignore the error and fall through to a lookup below.
+        pass
     top_level = ref.lookup()
     if not top_level:
         raise TopLevelNotFound(f'Could not find top-level object in document: {ref}')

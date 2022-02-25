@@ -44,5 +44,78 @@ class TestHelpers(unittest.TestCase):
         total_filtered = sum(1 for _ in itr)
         self.assertEqual(total_filtered, 24, f'Expected 24 Objects to satisfy filter, found {total_filtered}')
 
+    def test_build_reference_cache(self):
+        test_dir = os.path.dirname(os.path.realpath(__file__))
+        test_file = os.path.join(test_dir, 'test_files', 'expanded_with_sequences.nt')
+        doc = sbol3.Document()
+        doc.read(test_file)
+        cache = build_reference_cache(doc)
+        # There are 529 occurrences of '22-rdf-syntax-ns#type' in expanded_with_sequences.nt,
+        # which in this particular case means there are 529 separate sbol objects. That's not
+        # always the case, but is the case here.
+        self.assertEqual(529, len(cache))
+        # plant a fake item in the cache and make sure the relevant functions
+        # find it. This tests that they are actually using the cache.
+        sbol3.set_namespace('https://github.com/synbiodex/sbol-utilities')
+        sequence = sbol3.Sequence('seq1')
+        c1 = sbol3.Component('c1', types=[sbol3.SBO_DNA], sequences=[sequence])
+        doc.add(c1)
+        cache[sequence.identity] = sequence
+        # The sequence is not found without the cache because it is not in the document
+        with self.assertRaises(ChildNotFound):
+            found_object = find_child(c1.sequences[0])
+        with self.assertRaises(TopLevelNotFound):
+            found_object = find_top_level(c1.sequences[0])
+        # Using the cache finds the sequence because we manually added
+        # the sequence to the cache to test that the functions are
+        # actually using the cache. This is not the expected usage
+        # pattern, this is only for unit testing.
+        found_object = find_child(c1.sequences[0], cache)
+        self.assertEqual(sequence, found_object)
+        found_object = find_top_level(c1.sequences[0], cache)
+        self.assertEqual(sequence, found_object)
+
+    def test_with_cached_references(self):
+        test_dir = os.path.dirname(os.path.realpath(__file__))
+        test_file = os.path.join(test_dir, 'test_files', 'expanded_with_sequences.nt')
+        doc = sbol3.Document()
+        doc.read(test_file)
+        target_uri = 'http://sbolstandard.org/testfiles/mmilCFP'
+        # The document should not have the secret reference cache attribute
+        self.assertFalse(hasattr(doc, '_sbol_utilities_reference_cache'))
+        with cached_references(doc):
+            # Now the document should have the secret reference cache attribute
+            self.assertTrue(hasattr(doc, '_sbol_utilities_reference_cache'))
+            # We know there are 529 objects in the document. Use that to verify the cache length.
+            self.assertEqual(529, len(doc._sbol_utilities_reference_cache))
+            # The target uri should be in the cache
+            self.assertIn(target_uri, doc._sbol_utilities_reference_cache)
+            obj = doc.find(target_uri)
+            self.assertEqual(target_uri, obj.identity)
+        # Make sure find_child and find_top_level are using the hidden cache
+        with cached_references(doc) as reference_cache:
+            # plant a fake item in the cache and make sure the relevant functions
+            # find it. This tests that they are actually using the cache.
+            sbol3.set_namespace('https://github.com/synbiodex/sbol-utilities')
+            sequence = sbol3.Sequence('seq1')
+            c1 = sbol3.Component('c1', types=[sbol3.SBO_DNA], sequences=[sequence])
+            doc.add(c1)
+            with self.assertRaises(ChildNotFound):
+                find_child(c1.sequences[0])
+            with self.assertRaises(TopLevelNotFound):
+                find_top_level(c1.sequences[0])
+            reference_cache[sequence.identity] = sequence
+            # Pass the cache explicitly to find the objects
+            found_object = find_child(c1.sequences[0], reference_cache)
+            self.assertEqual(sequence, found_object)
+            found_object = find_top_level(c1.sequences[0], reference_cache)
+            self.assertEqual(sequence, found_object)
+            # Use the implicit/hidden/secret cache to find objects
+            found_object = find_child(c1.sequences[0])
+            self.assertEqual(sequence, found_object)
+            found_object = find_top_level(c1.sequences[0])
+            self.assertEqual(sequence, found_object)
+
+
 if __name__ == '__main__':
     unittest.main()
