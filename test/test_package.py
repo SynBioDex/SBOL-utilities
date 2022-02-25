@@ -135,7 +135,7 @@ class TestPackage(unittest.TestCase):
         .sip package directory. """
         # Set the package directory
         test_dir = os.path.dirname(os.path.realpath(__file__))
-        dir_name = os.path.join(test_dir, 'test_files', 'package_dir')
+        dir_name = os.path.join(test_dir, 'test_files', 'MyPackage')
 
         # Pass to the function
         sbol_utilities.package.dir_to_package(dir_name)

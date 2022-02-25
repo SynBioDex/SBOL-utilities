@@ -72,10 +72,9 @@ def dir_to_package(dir: str):
 
     # Walk the tree from the bottom up
     for root, dirs, files in os.walk(dir, topdown=False):
-        # List all of the nt files to add to the package
+        # List all of the nt files, read them in as sbol docs
         file_list = [f for f in files if f.endswith(".nt")]
         path_list = [root + '/' + file for file in file_list]
-        # doc_list = [sbol3.Document().read(file) for file in path_list]
         doc_list = []
         for file in path_list:
             doc = sbol3.Document()
@@ -83,34 +82,41 @@ def dir_to_package(dir: str):
             doc_list.append(doc)
 
         # Make a list of the package objects for each of the subpackages
+        # Define packages for the files saved in the directory
         sub_package_list = [define_package(doc) for doc in doc_list]
+        # Collect packages from sub-directories
+        for dir in dirs:
+            path = os.path.join(root, dirs[0], PACKAGE_DIRECTORY, 'package.nt')
+            doc = sbol3.Document()
+            doc.read(path)
+            # TODO: Check there is only one object- a package, if no throw an error
+            package = doc.objects[0]
+            sub_package_list.append(package)
 
-        # Get the namespace
+
+        # Get the namespace (longest common path of all the namespaces)
+        # FIXME: Does the package namespace HAVE to match the path in the dir, or is that nice but not required?
+        # If there is just one sub package is the package namespace the same as the subpackage namespace?
         package_namespace = get_prefix(sub_package_list)
 
-        # Make an empty document to hold the package
-        doc = sbol3.Document(package_namespace + '/package')
+        # Define the package
+        # It is suggested to name all packages '/package', but not required
+        # The package will have no members, only subpackages
+        package = sep_054.Package(package_namespace + '/package')
         package.namespace = package_namespace
         package.conversion = False
         package.subpackages = sub_package_list
 
+        # Add the package to a document
+        doc = sbol3.Document()
+        doc.add(package)
 
-    # Collect the files
-    # root_package_doc, sub_package_doc_list = collect_files_from_dir(dir)
+        # Make the package directory
+        regularize_package_directory(root)
 
-    # Define the package
-    package = docs_to_package(root_package_doc, sub_package_doc_list)
-
-    # Add the package to a document
-    doc = sbol3.Document()
-    doc.add(package)
-
-    # Make the package directory
-    regularize_package_directory(dir)
-
-    # Save the document to the package directory
-    out_path = os.path.join(dir, PACKAGE_DIRECTORY, 'package.nt')
-    doc.write(out_path, sbol3.SORTED_NTRIPLES)
+        # Save the document to the package directory
+        out_path = os.path.join(root, PACKAGE_DIRECTORY, 'package.nt')
+        doc.write(out_path, sbol3.SORTED_NTRIPLES)
 
 
 def collect_files_from_dir(dir_name: str):
@@ -302,8 +308,8 @@ def get_prefix(package_list):
     if len(schemes) == 1 & len(netlocs) == 1:
         pass
     else:
-        raise ValueError(f'The packages {root_package} and {sub_package} '
-                         f'namespace URIs do not share the same URL scheme '
+        raise ValueError(f'The package namespace URIs {namespace_list}'
+                         f'do not share the same URL scheme '
                          f'specifier or network location, and so do not '
                          f'represent a root and sub package.')
 
@@ -316,7 +322,7 @@ def get_prefix(package_list):
 
     # Rejoin the common elements to get the common path
     common_path = '/'.join(common_elements)
-    prefix = schemes.pop() + netlocs.pop() + common_path
+    prefix = schemes.pop() + '://' + netlocs.pop() + common_path
 
     return(prefix)
 
