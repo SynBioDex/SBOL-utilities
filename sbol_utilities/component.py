@@ -10,8 +10,7 @@ from sbol_utilities.workarounds import get_parent
 
 
 # TODO: consider allowing return of LocalSubComponent and ExternallyDefined
-def contained_components(roots: Union[sbol3.TopLevel, Iterable[sbol3.TopLevel]]) \
-        -> set[sbol3.Component]:
+def contained_components(roots: Union[sbol3.TopLevel, Iterable[sbol3.TopLevel]]) -> set[sbol3.Component]:
     """Find the set of all SBOL Components contained within the roots or their children.
     This will explore via all of the direct relations that can include a Component:
     Collection.member, CombinatorialDerivation.template, variable_features
