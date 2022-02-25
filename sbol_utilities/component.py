@@ -53,7 +53,10 @@ def is_dna_part(obj: sbol3.Component) -> bool:
 
     # there must be atleast 1 SO role, among others
     def check_roles(component: sbol3.Component) -> bool:
-        return any(tyto.SO.get_term_by_uri(role) for role in component.roles)
+        try:
+            return any(tyto.SO.get_term_by_uri(role) for role in component.roles)
+        except LookupError:
+            return False
 
     # check all conditions
     return isinstance(obj, sbol3.Component) and check_roles(obj) \
@@ -61,21 +64,21 @@ def is_dna_part(obj: sbol3.Component) -> bool:
 
 
 def by_roles(obj: sbol3.TopLevel, required_role: str) -> bool:
-    """Search the entire provided document, and return components which have specified role as one of its roles.
+    """Given an object and a role, check if it is one of the roles of the object.
 
-    :param doc: sbol3 document to search in
-    :param required_role: the role which must be present in components
-    :return: list of matched components
+    :param obj: object to check
+    :param required_role: the role which must be present in given object
+    :return: boolean of the result
     """
     return isinstance(obj, sbol3.Component) and required_role in obj.roles
 
 
 def by_types(obj: sbol3.TopLevel, required_type: str) -> bool:
-    """Search the entire provided document, and return components which have specified type as one of its types.
+    """Given an object and a type, check if it is one of the types of the object.
 
-    :param doc: sbol3 document to search in
-    :param required_type: the type which must be present in components
-    :return: list of matched components
+    :param obj: object to check
+    :param required_type: the type which must be present in given object
+    :return: boolean of the result
     """
     return isinstance(obj, sbol3.Component) and required_type in obj.types
 
