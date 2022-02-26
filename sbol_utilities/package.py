@@ -85,8 +85,8 @@ def dir_to_package(dir: str):
         # Define packages for the files saved in the directory
         sub_package_list = [define_package(doc) for doc in doc_list]
         # Collect packages from sub-directories
-        for dir in dirs:
-            path = os.path.join(root, dirs[0], PACKAGE_DIRECTORY, 'package.nt')
+        for sub_dir in dirs:
+            path = os.path.join(root, sub_dir, PACKAGE_DIRECTORY, 'package.nt')
             doc = sbol3.Document()
             doc.read(path)
             # TODO: Check there is only one object- a package, if no throw an error
