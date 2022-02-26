@@ -140,14 +140,27 @@ class TestPackage(unittest.TestCase):
         # Pass to the function
         sbol_utilities.package.dir_to_package(dir_name)
 
-        # Compare it to the saved results file, make sure they are the same
-        out_path = os.path.join(test_dir, 'test_files/package_dir/.sip')
-        out_file = os.path.join(out_path, 'package.nt')
-        comparison_file = os.path.join(test_dir, 'test_files', 'package_out_02.nt')
-        assert filecmp.cmp(out_file, comparison_file), 'Output from package creation function with directory is not as expected'
+        # Compare all of the package files to the saved results file, make sure 
+        # they are the same, then delete the package directory
+        for root, _, _ in os.walk(dir_name):
+            # Collect the output from the actual function
+            # Want to get the path separate from the file for easy deleting
+            out_path = os.path.join(root, '.sip')
+            out_file = os.path.join(out_path, 'package.nt')
 
-        # Remove the output and the package directory
-        shutil.rmtree(out_path, ignore_errors=True)
+            # I have saved all of the results to compare against in one 
+            # directory with the names corresponding to the sub-directory name
+            # from the original directory
+            file_name = root.split('/')[-1] + '.nt'
+            comparison_file = os.path.join(test_dir,
+                                           'test_files',
+                                           'MyPackage-results',
+                                           file_name)
+
+            assert filecmp.cmp(out_file, comparison_file), 'Output from package creation function with directory is not as expected'
+            
+            # Delete the package directory
+            shutil.rmtree(out_path, ignore_errors=True)
 
 
 if __name__ == '__main__':
