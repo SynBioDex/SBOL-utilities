@@ -129,10 +129,10 @@ class TestPackage(unittest.TestCase):
             sbol_utilities.package.docs_to_package(doc_01, [doc_02, doc_03])
 
 
-    def test_make_package_from_directory(self):
+    def test_make_package_from_MyPackage(self):
         """ Create a package based on the files in a directory (test/test_files/
-        package_dir). The function automatically saves the package file in the 
-        .sip package directory. """
+        MyPackage). The function automatically saves the package files in the 
+        .sip package directories of each sub-directory. """
         # Set the package directory
         test_dir = os.path.dirname(os.path.realpath(__file__))
         dir_name = os.path.join(test_dir, 'test_files', 'MyPackage')
@@ -155,6 +155,78 @@ class TestPackage(unittest.TestCase):
             comparison_file = os.path.join(test_dir,
                                            'test_files',
                                            'MyPackage-results',
+                                           file_name)
+
+            assert filecmp.cmp(out_file, comparison_file), 'Output from package creation function with directory is not as expected'
+            
+            # Delete the package directory
+            shutil.rmtree(out_path, ignore_errors=True)
+
+
+    def test_make_package_from_MyPackage_w_multiple_files(self):
+        """ Create a package based on the files in a directory (test/test_files/
+        MyPackage_w_multiple_files). The function automatically saves the 
+        package file in the .sip package directories of each sub-directory. """
+        # Set the package directory
+        test_dir = os.path.dirname(os.path.realpath(__file__))
+        dir_name = os.path.join(test_dir,
+                                'test_files',
+                                'MyPackage_w_multiple_files')
+
+        # Pass to the function
+        sbol_utilities.package.dir_to_package(dir_name)
+
+        # Compare all of the package files to the saved results file, make sure 
+        # they are the same, then delete the package directory
+        for root, _, _ in os.walk(dir_name):
+            # Collect the output from the actual function
+            # Want to get the path separate from the file for easy deleting
+            out_path = os.path.join(root, '.sip')
+            out_file = os.path.join(out_path, 'package.nt')
+
+            # I have saved all of the results to compare against in one 
+            # directory with the names corresponding to the sub-directory name
+            # from the original directory
+            file_name = root.split('/')[-1] + '.nt'
+            comparison_file = os.path.join(test_dir,
+                                           'test_files',
+                                           'MyPackage_w_multiple_files-results',
+                                           file_name)
+
+            assert filecmp.cmp(out_file, comparison_file), 'Output from package creation function with directory is not as expected'
+            
+            # Delete the package directory
+            shutil.rmtree(out_path, ignore_errors=True)
+
+
+    def test_make_package_from_MyPackage_w_sub_sub_packages(self):
+        """ Create a package based on the files in a directory (test/test_files/
+        MyPackage_w_sub_sub_packages). The function automatically saves the 
+        package file in the .sip package directories of each sub-directory. """
+        # Set the package directory
+        test_dir = os.path.dirname(os.path.realpath(__file__))
+        dir_name = os.path.join(test_dir,
+                                'test_files',
+                                'MyPackage_w_sub_sub_packages')
+
+        # Pass to the function
+        sbol_utilities.package.dir_to_package(dir_name)
+
+        # Compare all of the package files to the saved results file, make sure 
+        # they are the same, then delete the package directory
+        for root, _, _ in os.walk(dir_name):
+            # Collect the output from the actual function
+            # Want to get the path separate from the file for easy deleting
+            out_path = os.path.join(root, '.sip')
+            out_file = os.path.join(out_path, 'package.nt')
+
+            # I have saved all of the results to compare against in one 
+            # directory with the names corresponding to the sub-directory name
+            # from the original directory
+            file_name = root.split('/')[-1] + '.nt'
+            comparison_file = os.path.join(test_dir,
+                                           'test_files',
+                                           'MyPackage_w_sub_sub_packages-results',
                                            file_name)
 
             assert filecmp.cmp(out_file, comparison_file), 'Output from package creation function with directory is not as expected'
