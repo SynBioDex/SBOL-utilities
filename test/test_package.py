@@ -9,29 +9,6 @@ import sbol3
 import sbol_utilities.package
 
 class TestPackage(unittest.TestCase):
-    def test_define_package_dir(self):
-        """ Define a package with its subpackages based on a directory structure
-        """
-        # Read in the test file
-        test_dir = os.path.dirname(os.path.realpath(__file__))
-
-        # Set the directory to search
-        dir = os.path.join(test_dir, 'test_files', 'MyPackage_w_multiple_files')
-
-        # Pass the directory to the function, get a package object back
-        package = sbol_utilities.package.directory_to_package(dir)
-
-        # Write a temporary file
-        doc = sbol3.Document()
-        doc.add(package)
-        tmp_out = tempfile.mkstemp(suffix='.nt')[1]
-        doc.write(tmp_out, sbol3.SORTED_NTRIPLES)
-
-        # Compare it to the saved results file, make sure they are the same
-        comparison_file = os.path.join(test_dir, 'test_files', 'package_out_03.nt')
-        assert filecmp.cmp(tmp_out, comparison_file), 'Output from package creation function with one file is not as expected'
-
-
     def test_define_package_single_file(self):
         """Test defining a package from an SBOL document"""
         # Read in the test file
