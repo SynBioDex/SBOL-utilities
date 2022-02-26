@@ -1,0 +1,8 @@
+
+<https://example.org/MyPackage/promoters/package> <http://sbols.org/SEP054#conversion> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<https://example.org/MyPackage/promoters/package> <http://sbols.org/SEP054#subPackage> <https://example.org/MyPackage/promoters/inhibitors/package> .
+<https://example.org/MyPackage/promoters/package> <http://sbols.org/SEP054#subPackage> <https://example.org/MyPackage/promoters/package> .
+<https://example.org/MyPackage/promoters/package> <http://sbols.org/v3#displayId> "package" .
+<https://example.org/MyPackage/promoters/package> <http://sbols.org/v3#hasNamespace> <https://example.org/MyPackage/promoters> .
+<https://example.org/MyPackage/promoters/package> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://sbols.org/SEP054#Package> .
+<https://example.org/MyPackage/promoters/package> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://sbols.org/v3#TopLevel> .
