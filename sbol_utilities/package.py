@@ -119,26 +119,6 @@ def dir_to_package(dir: str):
         doc.write(out_path, sbol3.SORTED_NTRIPLES)
 
 
-def collect_files_from_dir(dir_name: str):
-    # Make the holder for all of the subpackage list
-    sub_package_paths = []
-    # Walk from the 
-    for root, dirs, files in os.walk(dir_name, topdown=False):
-        if root == dir_name:
-            root_package_path = os.path.join(root, file_name)
-            root_package_doc = sbol3.Document()
-            root_package_doc.read(root_package_path)
-        else:
-            sub_package_paths.append(os.path.join(root, file_name))
-            sub_package_docs = []
-            for path in sub_package_paths:
-                package_doc = sbol3.Document()
-                package_doc.read(path)
-                sub_package_docs.append(package_doc)
-
-    return root_package_doc, sub_package_docs
-
-
 def docs_to_package(root_package_doc: sbol3.Document, sub_package_docs: sbol3.Document):
     """ Take files for a root packages and 0 or more sub-packages. For each
     file, a package object will be generated, then the sub-packages will be
