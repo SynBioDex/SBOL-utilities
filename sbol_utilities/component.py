@@ -99,9 +99,8 @@ def is_dna_part(obj: sbol3.Component) -> bool:
 def by_roles(required_role: str) -> Callable[[sbol3.TopLevel], bool]:
     """Given an object and a role, check if it is one of the roles of the object.
 
-    :param obj: object to check
     :param required_role: the role which must be present in given object
-    :return: boolean of the result
+    :return: lambda function taking an obj to check roles in, returns bool
     """
     return lambda obj: isinstance(obj, sbol3.Component) and required_role in obj.roles
 
@@ -109,9 +108,8 @@ def by_roles(required_role: str) -> Callable[[sbol3.TopLevel], bool]:
 def by_types(required_type: str) -> Callable[[sbol3.TopLevel], bool]:
     """Given an object and a type, check if it is one of the types of the object.
 
-    :param obj: object to check
     :param required_type: the type which must be present in given object
-    :return: boolean of the result
+    :return: lambda function taking an obj to check types in, returns bool
     """
     return lambda obj: isinstance(obj, sbol3.Component) and required_type in obj.types
 
