@@ -6,7 +6,8 @@ from contextlib import contextmanager
 from typing import Iterable, Union, Optional, Callable
 
 import sbol3
-from sbol3.refobj_property import ReferencedURI
+from rdflib import URIRef
+from sbol3.refobj_property import ReferencedURI, ReferencedObjectList, ReferencedObjectSingleton
 import tyto
 
 #########################
@@ -118,6 +119,8 @@ def find_child(ref: ReferencedURI, cache: Optional[dict[str, sbol3.Identified]] 
     child = ref.lookup()
     if not child:
         raise ChildNotFound(f'Could not find child object in document: {ref}')
+    elif isinstance(child, sbol3.TopLevel):
+        raise ValueError(f'Referenced object is not a child object: {ref}')
     return child
 
 
@@ -151,10 +154,12 @@ def find_top_level(ref: ReferencedURI, cache: Optional[dict[str, sbol3.Identifie
     top_level = ref.lookup()
     if not top_level:
         raise TopLevelNotFound(f'Could not find top-level object in document: {ref}')
+    elif not isinstance(top_level, sbol3.TopLevel):
+        raise ValueError(f'Referenced object is not a TopLevel: {ref}')
     return top_level
 
 
-def toplevel_named(doc: sbol3.Document, name: str) -> Optional[sbol3.Identified]:
+def toplevel_named(doc: sbol3.Document, name: str) -> Optional[sbol3.TopLevel]:
     """Find the unique TopLevel document object with the given name (rather than displayID or URI)
 
     :param doc: SBOL document to search
@@ -277,6 +282,78 @@ def is_plasmid(obj: Union[sbol3.Component, sbol3.Feature]) -> bool:
         return sbol3.SO_CIRCULAR in obj.types
     elif isinstance(obj, sbol3.SubComponent):  # if it's a subcomponent, check its definition
         return is_plasmid(find_top_level(obj.instance_of))
-        #return is_plasmid(obj.instance_of.lookup())
     else:
         return False
+
+
+class SBOL3PassiveVisitor:
+    """This base class provides a do-nothing method for every SBOL3 visit type.
+    This allows subclasses to override for only the parts they want to act on"""
+
+    def visit_activity(self, _): pass
+    def visit_agent(self, _): pass
+    def visit_association(self, _): pass
+    def visit_attachment(self, _): pass
+    def visit_binary_prefix(self, _): pass
+    def visit_collection(self, _): pass
+    def visit_combinatorial_derivation(self, _): pass
+    def visit_component(self, _): pass
+    def visit_component_reference(self, _): pass
+    def visit_constraint(self, _): pass
+    def visit_cut(self, _): pass
+    def visit_document(self): pass
+    def visit_entire_sequence(self, _): pass
+    def visit_experiment(self, _): pass
+    def visit_experimental_data(self, _): pass
+    def visit_externally_defined(self, _): pass
+    def visit_implementation(self, _): pass
+    def visit_interaction(self, _): pass
+    def visit_interface(self, _): pass
+    def visit_local_sub_component(self, _): pass
+    def visit_measure(self, _): pass
+    def visit_model(self, _): pass
+    def visit_participation(self, _): pass
+    def visit_plan(self, _): pass
+    def visit_prefixed_unit(self, _): pass
+    def visit_range(self, _): pass
+    def visit_si_prefix(self, _): pass
+    def visit_sequence(self, _): pass
+    def visit_sequence_feature(self, _): pass
+    def visit_singular_unit(self, _): pass
+    def visit_sub_component(self, _): pass
+    def visit_unit_division(self, _): pass
+    def visit_unit_exponentiation(self, _): pass
+    def visit_unit_multiplication(self, _): pass
+    def visit_usage(self, _): pass
+    def visit_variable_feature(self, _): pass
+
+
+def outgoing_links(doc: sbol3.Document) -> set[URIRef]:
+    """Given a document, determine the set of links to objects not in the document
+
+    :param doc: an SBOL document
+    :return: set of URIs for objects not contained in the document
+    """
+    # build a cache and look for all references that cannot be resolved
+    def collector(obj: sbol3.Identified):
+        # Collect all ReferencedURI values in properties:
+        references = []
+        for pv in obj.__dict__.values():
+            if isinstance(pv, ReferencedObjectList):
+                references.extend([v for v in pv if isinstance(v, ReferencedURI)])
+            elif isinstance(pv, ReferencedObjectSingleton):
+                references.append(pv.get())
+
+        # Check whether or not the references resolve
+        for r in references:
+            try:
+                _ = find_top_level(r)
+            except TopLevelNotFound:
+                outgoing.add(str(r))
+            except ValueError:
+                pass  # ignore references to child objects
+
+    outgoing = set()
+    with cached_references(doc):
+        doc.traverse(collector)
+    return outgoing
