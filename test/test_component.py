@@ -30,7 +30,7 @@ class TestComponent(unittest.TestCase):
         doc.add(comp_2)
         doc.add(comp_3)
         # only comp_1 and comp_3 must be returned by the function
-        matched = list(filter_top_level(doc, by_roles, required_role=tyto.SBO.deoxyribonucleic_acid))
+        matched = list(filter_top_level(doc, by_roles(tyto.SBO.deoxyribonucleic_acid)))
         assert(comp_1 in matched and comp_3 in matched and len(matched) == 2)
 
     def test_filter_by_types(self):
@@ -45,7 +45,7 @@ class TestComponent(unittest.TestCase):
         doc.add(comp_2)
         doc.add(comp_3)
         # only comp_1 and comp_3 must be returned by the function
-        matched = list(filter_top_level(doc, by_types, required_type=sbol3.SBO_DNA))
+        matched = list(filter_top_level(doc, by_types(sbol3.SBO_DNA)))
         assert(comp_1 in matched and comp_2 in matched and len(matched) == 2)
 
     def test_dna_part(self):
