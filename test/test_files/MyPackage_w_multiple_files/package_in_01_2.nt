@@ -1,0 +1,13 @@
+<https://example.org/MyPackage/inhibitors/J364009> <http://sbols.org/v3#description> "J23116 2018 interlab" .
+<https://example.org/MyPackage/inhibitors/J364009> <http://sbols.org/v3#displayId> "J364009" .
+<https://example.org/MyPackage/inhibitors/J364009> <http://sbols.org/v3#hasNamespace> <https://example.org/MyPackage/inhibitors> .
+<https://example.org/MyPackage/inhibitors/J364009> <http://sbols.org/v3#hasSequence> <https://example.org/MyPackage/inhibitors/J364009_sequence> .
+<https://example.org/MyPackage/inhibitors/J364009> <http://sbols.org/v3#name> "J364009" .
+<https://example.org/MyPackage/inhibitors/J364009> <http://sbols.org/v3#role> <https://identifiers.org/SO:0000804> .
+<https://example.org/MyPackage/inhibitors/J364009> <http://sbols.org/v3#type> <https://identifiers.org/SBO:0000251> .
+<https://example.org/MyPackage/inhibitors/J364009> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://sbols.org/v3#Component> .
+<https://example.org/MyPackage/inhibitors/J364009_sequence> <http://sbols.org/v3#displayId> "J364009_sequence" .
+<https://example.org/MyPackage/inhibitors/J364009_sequence> <http://sbols.org/v3#elements> "TTGACAGCTAGCTCAGTCCTAGGGACTATGCTAGCTACTAGAGAAAGAGGAGAAATACTAGATGCGTAAAGGAGAAGAACTTTTCACTGGAGTTGTCCCAATTCTTGTTGAATTAGATGGTGATGTTAATGGGCACAAATTTTCTGTCAGTGGAGAGGGTGAAGGTGATGCAACATACGGAAAACTTACCCTTAAATTTATTTGCACTACTGGAAAACTACCTGTTCCATGGCCAACACTTGTCACTACTTTCGGTTATGGTGTTCAATGCTTTGCGAGATACCCAGATCATATGAAACAGCATGACTTTTTCAAGAGTGCCATGCCCGAAGGTTATGTACAGGAAAGAACTATATTTTTCAAAGATGACGGGAACTACAAGACACGTGCTGAAGTCAAGTTTGAAGGTGATACCCTTGTTAATAGAATCGAGTTAAAAGGTATTGATTTTAAAGAAGATGGAAACATTCTTGGACACAAATTGGAATACAACTATAACTCACACAATGTATACATCATGGCAGACAAACAAAAGAATGGAATCAAAGTTAACTTCAAAATTAGACACAACATTGAAGATGGAAGCGTTCAACTAGCAGACCATTATCAACAAAATACTCCAATTGGCGATGGCCCTGTCCTTTTACCAGACAACCATTACCTGTCCACACAATCTGCCCTTTCGAAAGATCCCAACGAAAAGAGAGACCACATGGTCCTTCTTGAGTTTGTAACAGCTGCTGGGATTACACATGGCATGGATGAACTATACAAATAATAATACTAGAGCCAGGCATCAAATAAAACGAAAGGCTCAGTCGAAAGACTGGGCCTTTCGTTTTATCTGTTGTTTGTCGGTGAACGCTCTCTACTAGAGTCACACTGGCTCACCTTCGGGTGGGCCTTTCTGCGTTTATA" .
+<https://example.org/MyPackage/inhibitors/J364009_sequence> <http://sbols.org/v3#encoding> <https://identifiers.org/edam:format_1207> .
+<https://example.org/MyPackage/inhibitors/J364009_sequence> <http://sbols.org/v3#hasNamespace> <https://example.org/MyPackage/inhibitors> .
+<https://example.org/MyPackage/inhibitors/J364009_sequence> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://sbols.org/v3#Sequence> .
