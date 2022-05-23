@@ -519,3 +519,46 @@ def ed_protein(definition: str, **kwargs) -> sbol3.ExternallyDefined:
     :return: A Component object.
     """
     return sbol3.ExternallyDefined([sbol3.SBO_PROTEIN], definition, **kwargs)
+
+def digestion(part_in_backbone:str, restriction_enzymes:None, linear=False, circular=False, **kwargs)-> Tuple[sbol3.Component, sbol3.Interaction]:
+    """Creates a Part Extract Component and a digestion interaction.
+
+    :param part_in_backbone: Part in backbone to be digested. 
+    :param restriction_enzymes: Restriction enzyme with correct DisplayID from Bio.Restriction as Externally Defined.
+    :param linear: Boolean to inform if the reactant is linear.
+    :param circular: Boolean to inform if the reactant is circular.
+    :param **kwargs: Keyword arguments of any other Component attribute.
+    :return: A tuple of Component and Interaction.
+    """
+    #could use Component or SubComponent
+    #for modifier we have a list, this os not key for my proyecto but would help the use of BioBricks
+    # modifier_displayid = get modifier DisplayID
+    participations= []
+         #for re in restriction_enzymes
+    exec(f'from Bio.Restriction import {restriction_enzymes}') # e.i. SapI, your display ids needs to be informative for this, there is another part of the component to store this info?
+    # make Externally defined from restriccion enzyme, make a hashmap https://github.com/biopython/biopython/pull/3938/files#diff-c53c465520e7d6b96776061043660af269307458d5f9a9009e56ad49c63646b8
+    ed_restriction_enzyme = component.ed_protein(definition=f'http://rebase.neb.com/rebase/enz/{restriction_enzymes}.html', )
+    modifier_participation = sbol3.Participation(roles=[sbol3.SBO_MODIFIER], participant=ed_restriction_enzyme)
+    participations.append(modifier_participation)
+    
+    # part_in_backbone_seq = get reactant sequence
+    ds_reactant = Dseqrecord(part_in_backbone, linear=linear, circular=circular)
+
+    prefix, part, suffix = ds_reactant.cut(restriction_enzymes) #how do you extract the part if there are too many cuts?
+
+    part_sequence = part.seq
+    # product_component # How to define the product component? Do we want to use it afterwards?
+    part_comp, part_seq = component.dna_component_with_sequence(identity='part', sequence=str(part_sequence), **kwargs)
+    # product_subcomponent
+    part_subcomp = sbol3.SubComponent(part_comp)
+    
+    part_in_backbone_comp, part_in_backbone_seq = component.dna_component_with_sequence(identity='part_in_backbone', sequence=str(part_in_backbone))
+    part_in_backbone_subcomp = sbol3.SubComponent(part_in_backbone)
+    reactant_participation = sbol3.Participation(roles=[sbol3.SBO_REACTANT], participant=part_in_backbone_subcomp)
+    participations.append(reactant_participation)
+    product_participation = sbol3.Participation(roles=[sbol3.SBO_PRODUCT], participant=part_subcomp)
+    participations.append(product_participation)
+    
+    interaction = sbol3.Interaction(types=[sbol3.SBO_INHIBITION], participations=participations)
+                    
+    return tuple([part_comp,interaction])
