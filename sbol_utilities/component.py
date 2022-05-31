@@ -520,7 +520,17 @@ def ed_protein(definition: str, **kwargs) -> sbol3.ExternallyDefined:
     """
     return sbol3.ExternallyDefined([sbol3.SBO_PROTEIN], definition, **kwargs)
 
-def digestion(part_in_backbone:str, restriction_enzymes:None, linear=False, circular=False, **kwargs)-> Tuple[sbol3.Component, sbol3.Interaction]:
+def ed_restriction_enzyme(definition: str, name:str, **kwargs) -> sbol3.ExternallyDefined:
+    """Creates an ExternallyDefined Restriction Enzyme Component.
+
+    :param definition: The URI that links to a canonical definition external to SBOL, recommended UniProt.
+    :param name: Name of the SBOL ExternallyDefined, used by PyDNA. Follow standard restriction enzyme nomenclature, i.e. 'BsaI'
+    :param kwargs: Keyword arguments of any other ExternallyDefined attribute.
+    :return: A Component object.
+    """
+    return sbol3.ExternallyDefined([sbol3.SBO_PROTEIN], definition, name=name **kwargs)
+
+def digestion(parts_in_backbone:str, restriction_enzymes:None, linear=False, circular=False, **kwargs)-> Tuple[sbol3.Component, sbol3.Interaction]:
     """Creates a Part Extract Component and a digestion interaction.
 
     :param part_in_backbone: Part in backbone to be digested. 
@@ -562,3 +572,88 @@ def digestion(part_in_backbone:str, restriction_enzymes:None, linear=False, circ
     interaction = sbol3.Interaction(types=[sbol3.SBO_INHIBITION], participations=participations)
                     
     return tuple([part_comp,interaction])
+
+
+def ligation(reactants:List[sbol3.Component])-> Tuple[sbol3.Component, sbol3.Interaction]:
+    """Creates a Part Extract Component and a digestion interaction.
+
+    :param part_in_backbone: Part in backbone to be digested. 
+    :param restriction_enzymes: Restriction enzyme with correct DisplayID from Bio.Restriction as Externally Defined.
+    :param linear: Boolean to inform if the reactant is linear.
+    :param circular: Boolean to inform if the reactant is circular.
+    :param **kwargs: Keyword arguments of any other Component attribute.
+    :return: A tuple of Component and Interaction.
+    """
+    #search overhangs
+    #compare overhangs sequence
+    #2 matching overhangs creates a meets constrain
+    #create preceed constrain
+    #create composite part or part in backbone
+
+    return tuple([part_comp,interaction])
+
+    return 1
+
+class Assembly_plan_single_enzyme():
+    """Creates a Part Extract Component and a digestion interaction.
+
+    :param part_in_backbone: Part in backbone to be digested. 
+    :param restriction_enzymes: Restriction enzyme with correct DisplayID from Bio.Restriction as Externally Defined.
+    :param linear: Boolean to inform if the reactant is linear.
+    :param circular: Boolean to inform if the reactant is circular.
+    :param **kwargs: Keyword arguments of any other Component attribute.
+    :return: A tuple of Component and Interaction.
+    """
+
+    def __init__(self, parts_in_backbone: List(sbol3.Component), acceptor_backbone: sbol3.Component, restriction_enzyme: str):
+        self.parts_in_backbone = parts_in_backbone
+        self.acceptor_backbone = acceptor_backbone
+        self.restriction_enzyme = restriction_enzyme_externally_defined
+        self.unitary_parts = None
+        self.product = None
+        self.extracted_parts = []
+        self.interactions = []
+        self.assembly_plan = None
+
+
+        #extract info if backbone is linear or circular
+        backbone_type = 'search type' 
+        if backbone_type=='SO:circular':
+            circular=True
+            linear=False
+        elif backbone_type=='SO:linear':
+            circular=False
+            linear=True
+        else:
+            circular=False
+            linear=False
+        
+        #extract parts
+        for part_in_backbone in parts_in_backbone:
+            part_comp, interaction = digestion(part_in_backbone=parts_in_backbone,restriction_enzymes=restriction_enzyme, linear=linear, circular=circular )
+            self.extracted_parts.append(part_comp)
+            self.interactions.append(interaction)
+
+        #extract backbone (should be the same?)
+        backbone_comp, interaction = digestion(part_in_backbone=acceptor_backbone,restriction_enzymes=restriction_enzyme, linear=linear, circular=circular )
+        self.interactions.append(interaction)
+        
+        #create composite part from extracted parts
+        composite_part_comp, interaction = ligation(reactants=self.extracted_parts)
+        self.interactions.append(interaction)
+
+        #create part in backbone from 
+        product_part_in_backbone, interaction = ligation(reactants=[composite_part_comp, backbone_comp])
+        self.interactions.append(interaction)
+        self.product = product_part_in_backbone
+
+        #create assembly plan prov:Activity
+        self.assembly_plan = None
+
+        #generate all the relationships in SEP055
+
+
+        
+        
+
+        
