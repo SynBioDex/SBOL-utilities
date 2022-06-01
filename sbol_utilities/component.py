@@ -520,17 +520,17 @@ def ed_protein(definition: str, **kwargs) -> sbol3.ExternallyDefined:
     """
     return sbol3.ExternallyDefined([sbol3.SBO_PROTEIN], definition, **kwargs)
 
-def ed_restriction_enzyme(definition: str, name:str, **kwargs) -> sbol3.ExternallyDefined:
-    """Creates an ExternallyDefined Restriction Enzyme Component.
+def ed_restriction_enzyme(name:str, **kwargs) -> sbol3.ExternallyDefined:
+    """Creates an ExternallyDefined Restriction Enzyme Component from rebase.
 
-    :param definition: The URI that links to a canonical definition external to SBOL, recommended UniProt.
-    :param name: Name of the SBOL ExternallyDefined, used by PyDNA. Follow standard restriction enzyme nomenclature, i.e. 'BsaI'
+    :param name: Name of the SBOL ExternallyDefined, used by PyDNA. Case sensitive, follow standard restriction enzyme nomenclature, i.e. 'BsaI'
     :param kwargs: Keyword arguments of any other ExternallyDefined attribute.
     :return: A Component object.
     """
-    return sbol3.ExternallyDefined([sbol3.SBO_PROTEIN], definition, name=name **kwargs)
+    definition=f'http://rebase.neb.com/rebase/enz/{name}.html'
+    return sbol3.ExternallyDefined([sbol3.SBO_PROTEIN], definition=definition, name=name **kwargs)
 
-def digestion(parts_in_backbone:str, restriction_enzymes:None, linear=False, circular=False, **kwargs)-> Tuple[sbol3.Component, sbol3.Interaction]:
+def digestion(reactants:List[sbol3.Component], restriction_enzyme:sbol3.ExternallyDefined, linear=False, circular=False, **kwargs)-> Tuple[sbol3.Component, sbol3.Interaction]:
     """Creates a Part Extract Component and a digestion interaction.
 
     :param part_in_backbone: Part in backbone to be digested. 
@@ -546,8 +546,7 @@ def digestion(parts_in_backbone:str, restriction_enzymes:None, linear=False, cir
     participations= []
          #for re in restriction_enzymes
     exec(f'from Bio.Restriction import {restriction_enzymes}') # e.i. SapI, your display ids needs to be informative for this, there is another part of the component to store this info?
-    # make Externally defined from restriccion enzyme, make a hashmap https://github.com/biopython/biopython/pull/3938/files#diff-c53c465520e7d6b96776061043660af269307458d5f9a9009e56ad49c63646b8
-    ed_restriction_enzyme = component.ed_protein(definition=f'http://rebase.neb.com/rebase/enz/{restriction_enzymes}.html', )
+    
     modifier_participation = sbol3.Participation(roles=[sbol3.SBO_MODIFIER], participant=ed_restriction_enzyme)
     participations.append(modifier_participation)
     
@@ -595,14 +594,14 @@ def ligation(reactants:List[sbol3.Component])-> Tuple[sbol3.Component, sbol3.Int
     return 1
 
 class Assembly_plan_single_enzyme():
-    """Creates a Part Extract Component and a digestion interaction.
-
-    :param part_in_backbone: Part in backbone to be digested. 
-    :param restriction_enzymes: Restriction enzyme with correct DisplayID from Bio.Restriction as Externally Defined.
+    """Creates a Assembly Plan.
+    #classes uses param here?
+    :param parts_in_backbone: Parts in backbone to be assembled. 
+    :param acceptor_backbone:  Backbone in which parts are inserted on the assembly. 
+    :param restriction_enzymes: Restriction enzyme with correct name from Bio.Restriction as Externally Defined.
     :param linear: Boolean to inform if the reactant is linear.
     :param circular: Boolean to inform if the reactant is circular.
     :param **kwargs: Keyword arguments of any other Component attribute.
-    :return: A tuple of Component and Interaction.
     """
 
     def __init__(self, parts_in_backbone: List(sbol3.Component), acceptor_backbone: sbol3.Component, restriction_enzyme: str):
