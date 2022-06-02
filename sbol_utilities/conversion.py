@@ -89,7 +89,7 @@ def convert2to3(sbol2_doc: Union[str, sbol2.Document], namespaces=None) -> sbol3
     else:
         sbol2_path = sbol2_doc
 
-    cmd = [SBOLGRAPH, '-output', 'sbol3',
+    cmd = ['node', SBOLGRAPH, '-output', 'sbol3',
            'import', sbol2_path,
            'convert', '--target-sbol-version', '3']
     # This will raise an exception if the command fails
@@ -210,7 +210,7 @@ def convert3to2(doc3: sbol3.Document) -> sbol2.Document:
     doc3.write(sbol3_path, sbol3.RDF_XML)
 
     # Run the actual conversion and return the resulting document
-    cmd = [SBOLGRAPH, '-output', 'sbol2',
+    cmd = ['node', SBOLGRAPH, '-output', 'sbol2',
            'import', sbol3_path,
            'convert', '--target-sbol-version', '2']
     # This will raise an exception if the command fails
