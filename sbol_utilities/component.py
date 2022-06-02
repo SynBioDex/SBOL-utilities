@@ -4,6 +4,7 @@ from typing import Dict, Iterable, List, Union, Optional, Tuple
 
 import sbol3
 import tyto
+import validators
 
 from pydna.dseqrecord import Dseqrecord
 from sbol_utilities.helper_functions import id_sort, find_child, find_top_level, SBOL3PassiveVisitor, cached_references
@@ -526,9 +527,11 @@ def ed_restriction_enzyme(name:str, **kwargs) -> sbol3.ExternallyDefined:
 
     :param name: Name of the SBOL ExternallyDefined, used by PyDNA. Case sensitive, follow standard restriction enzyme nomenclature, i.e. 'BsaI'
     :param kwargs: Keyword arguments of any other ExternallyDefined attribute.
-    :return: A Component object.
+    :return: An ExternallyDefined object.
     """
     definition=f'http://rebase.neb.com/rebase/enz/{name}.html'
+    if not validators.url(definition): 
+        raise ValueError
     return sbol3.ExternallyDefined([sbol3.SBO_PROTEIN], definition=definition, name=name **kwargs)
 
 def digestion(reactant:sbol3.Component, restriction_enzymes:List[sbol3.ExternallyDefined], **kwargs)-> Tuple[sbol3.Component, sbol3.Interaction]:
@@ -574,10 +577,12 @@ def digestion(reactant:sbol3.Component, restriction_enzymes:List[sbol3.Externall
         product_sequence = part.seq
         prod_comp, prod_seq = dna_component_with_sequence(identity='part_extract', sequence=str(product_sequence))
         # add sticky ends features
+        # add recognition site features
     elif reactant == 'backbone':
         product_sequence = backbone.seq
         prod_comp, prod_seq = dna_component_with_sequence(identity='backbone', sequence=str(product_sequence))
         # add sticky ends features
+        # add recognition site features
     else: raise NotImplementedError
 
     prod_subcomp = sbol3.SubComponent(prod_comp)
@@ -607,6 +612,8 @@ def ligation(reactants:List[sbol3.Component])-> Tuple[sbol3.Component, sbol3.Int
     #create preceed constrain
     #create composite part or part in backbone
 
+    prod_comp = 'to do'
+    interaction = 'to do'
     return tuple([prod_comp,interaction])
 
     return 1
