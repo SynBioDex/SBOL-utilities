@@ -36,7 +36,6 @@ jobs:
         python -m pip install --upgrade pip
         python -m pip install pytest
         python -m pip install interrogate
-        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
     - name: Setup Graphviz
       uses: ts-graphviz/setup-graphviz@v1
     - name: Test with pytest
