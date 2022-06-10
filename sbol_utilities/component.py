@@ -536,28 +536,33 @@ def ed_restriction_enzyme(name:str, **kwargs) -> sbol3.ExternallyDefined:
         raise ValueError
     return sbol3.ExternallyDefined([sbol3.SBO_PROTEIN], definition=definition, name=name **kwargs)
 
-def backbone(identity: str, sequence: str, dropout_location: List[int], linear:Boolean, **kwargs) -> Tuple[sbol3.Component, sbol3.Sequence]:
+def backbone(identity: str, sequence: str, dropout_location: List[int], linear:bool=False, **kwargs) -> Tuple[sbol3.Component, sbol3.Sequence]:
     """Creates a Backbone Component and its Sequence.
 
     :param identity: The identity of the Component. The identity of Sequence is also identity with the suffix '_seq'.
     :param sequence: The DNA sequence of the Component encoded in IUPAC.
+    :param dropout_location: List of 2 integers that indicates the start and the end of the dropout sequence. Note that the index of the first location is 1, as is typical practice in biology, rather than 0, as is typical practice in computer science.
+    :param linear: Boolean than indicates if the backbone is linear, by default it is seted to circular.
     :param kwargs: Keyword arguments of any other Component attribute.
     :return: A tuple of Component and Sequence.
     """
     # check if the len is not 2
     if len(dropout_location) != 2:
-        print('the dropout_location only accepts 2 int values in a list')
-        raise ValueError
+        raise ValueError('The dropout_location only accepts 2 int values in a list.')
     backbone_component, backbone_seq = dna_component_with_sequence(identity, sequence, **kwargs)
     backbone_component.roles.append(tyto.SO.plasmid_vector)
     if linear:
-        backbone_component.identity.append(sbol3.SO_LINEAR)
-    else: backbone_component.identity.append(sbol3.SO_CIRCULAR)
+        backbone_component.types.append(sbol3.SO_LINEAR)
+    else: backbone_component.types.append(sbol3.SO_CIRCULAR)
     #make location, how to setup a default orientation?
-    dropout_location_comp = sbol3.Location.range(sequence=backbone_seq, start=dropout_location[0],end=dropout_location[1])
+    dropout_location_comp = sbol3.Range(sequence=backbone_seq, start=dropout_location[0], end=dropout_location[1])
+    insertion_site_location1 = sbol3.Range(sequence=backbone_seq, start=dropout_location[0], end=dropout_location[0]+4)
+    insertion_site_location2 = sbol3.Range(sequence=backbone_seq, start=dropout_location[1]-4, end=dropout_location[1])
     #make feature
     dropout_sequence_feature = sbol3.SequenceFeature(locations=[dropout_location_comp], roles=[tyto.SO.deletion])
+    insertion_sites_feature = sbol3.SequenceFeature(locations=[insertion_site_location1, insertion_site_location2], roles=[tyto.SO.insertion_site])
     backbone_component.features.append(dropout_sequence_feature)
+    backbone_component.features.append(insertion_sites_feature)
     return backbone_component, backbone_seq
 
 def digestion(reactant:sbol3.Component, restriction_enzymes:List[sbol3.ExternallyDefined])-> Tuple[sbol3.Component, sbol3.Interaction]:
@@ -576,11 +581,11 @@ def digestion(reactant:sbol3.Component, restriction_enzymes:List[sbol3.Externall
         participations.append(modifier_participation)
         restriction_enzyme_names.append(restriction_enzyme.name)
     
-    reactant_topology = 'get reactant topology' 
-    if reactant_topology=='SO:circular':
+    reactant_topology = 'get reactant topology from types' 
+    if reactant_topology==sbol3.SO_CIRCULAR:
         circular=True
         linear=False
-    elif reactant_topology=='SO:linear':
+    elif reactant_topology==sbol3.SO_LINEAR:
         circular=False
         linear=True
     else:
@@ -590,11 +595,11 @@ def digestion(reactant:sbol3.Component, restriction_enzymes:List[sbol3.Externall
     reactant_seq = 'get reactant sequence from sbol Component'
     ds_reactant = Dseqrecord(reactant_seq, linear=linear, circular=circular)
 
-    if reactant_topology=='SO:circular':
+    if reactant_topology==sbol3.SO_CIRCULAR:
         digested_reactant = ds_reactant.cut(restriction_enzyme_names) #how do you extract the part if there are too many cuts?
         # check digested_reactant
         part, backbone = digested_reactant
-    elif reactant_topology=='SO:linear':
+    elif reactant_topology==sbol3.SO_LINEAR:
         digested_reactant = ds_reactant.cut(restriction_enzyme_names) #how do you extract the part if there are too many cuts?
         # check digested_reactant
         prefix, part, suffix = digested_reactant
@@ -642,8 +647,6 @@ def ligation(reactants:List[sbol3.Component])-> Tuple[sbol3.Component, sbol3.Int
     prod_comp = 'to do'
     interaction = 'to do'
     return tuple([prod_comp,interaction])
-
-    return 1
 
 class Assembly_plan_single_enzyme():
     """Creates a Assembly Plan.
