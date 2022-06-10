@@ -1,6 +1,8 @@
 from __future__ import annotations
+from ast import Raise
 
 from typing import Dict, Iterable, List, Union, Optional, Tuple
+from xmlrpc.client import Boolean
 
 import sbol3
 import tyto
@@ -534,7 +536,31 @@ def ed_restriction_enzyme(name:str, **kwargs) -> sbol3.ExternallyDefined:
         raise ValueError
     return sbol3.ExternallyDefined([sbol3.SBO_PROTEIN], definition=definition, name=name **kwargs)
 
-def digestion(reactant:sbol3.Component, restriction_enzymes:List[sbol3.ExternallyDefined], **kwargs)-> Tuple[sbol3.Component, sbol3.Interaction]:
+def backbone(identity: str, sequence: str, dropout_location: List[int], linear:Boolean, **kwargs) -> Tuple[sbol3.Component, sbol3.Sequence]:
+    """Creates a Backbone Component and its Sequence.
+
+    :param identity: The identity of the Component. The identity of Sequence is also identity with the suffix '_seq'.
+    :param sequence: The DNA sequence of the Component encoded in IUPAC.
+    :param kwargs: Keyword arguments of any other Component attribute.
+    :return: A tuple of Component and Sequence.
+    """
+    # check if the len is not 2
+    if len(dropout_location) != 2:
+        print('the dropout_location only accepts 2 int values in a list')
+        raise ValueError
+    backbone_component, backbone_seq = dna_component_with_sequence(identity, sequence, **kwargs)
+    backbone_component.roles.append(tyto.SO.plasmid_vector)
+    if linear:
+        backbone_component.identity.append(sbol3.SO_LINEAR)
+    else: backbone_component.identity.append(sbol3.SO_CIRCULAR)
+    #make location, how to setup a default orientation?
+    dropout_location_comp = sbol3.Location.range(sequence=backbone_seq, start=dropout_location[0],end=dropout_location[1])
+    #make feature
+    dropout_sequence_feature = sbol3.SequenceFeature(locations=[dropout_location_comp], roles=[tyto.SO.deletion])
+    backbone_component.features.append(dropout_sequence_feature)
+    return backbone_component, backbone_seq
+
+def digestion(reactant:sbol3.Component, restriction_enzymes:List[sbol3.ExternallyDefined])-> Tuple[sbol3.Component, sbol3.Interaction]:
     """Digests a Component using the provided restriction enzymes and creates a product Component and a digestion Interaction.
 
     :param reactant: DNA to be digested as SBOL Component. 
@@ -542,6 +568,7 @@ def digestion(reactant:sbol3.Component, restriction_enzymes:List[sbol3.Externall
     :param **kwargs: Keyword arguments of any other Component attribute.
     :return: A tuple of Component and Interaction.
     """
+    # This lists start empty but we will be filled as the algorithm proceeds
     participations=[]
     restriction_enzyme_names=[]
     for restriction_enzyme in restriction_enzymes:
