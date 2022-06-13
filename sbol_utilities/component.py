@@ -6,9 +6,9 @@ from xmlrpc.client import Boolean
 
 import sbol3
 import tyto
-import validators
 
 from pydna.dseqrecord import Dseqrecord
+
 from sbol_utilities.helper_functions import id_sort, find_child, find_top_level, SBOL3PassiveVisitor, cached_references
 from sbol_utilities.workarounds import get_parent
 
@@ -531,9 +531,8 @@ def ed_restriction_enzyme(name:str, **kwargs) -> sbol3.ExternallyDefined:
     :param kwargs: Keyword arguments of any other ExternallyDefined attribute.
     :return: An ExternallyDefined object.
     """
+    from Bio.Restriction import name
     definition=f'http://rebase.neb.com/rebase/enz/{name}.html'
-    if not validators.url(definition): 
-        raise ValueError
     return sbol3.ExternallyDefined([sbol3.SBO_PROTEIN], definition=definition, name=name **kwargs)
 
 def backbone(identity: str, sequence: str, dropout_location: List[int], linear:bool=False, **kwargs) -> Tuple[sbol3.Component, sbol3.Sequence]:
@@ -542,11 +541,10 @@ def backbone(identity: str, sequence: str, dropout_location: List[int], linear:b
     :param identity: The identity of the Component. The identity of Sequence is also identity with the suffix '_seq'.
     :param sequence: The DNA sequence of the Component encoded in IUPAC.
     :param dropout_location: List of 2 integers that indicates the start and the end of the dropout sequence. Note that the index of the first location is 1, as is typical practice in biology, rather than 0, as is typical practice in computer science.
-    :param linear: Boolean than indicates if the backbone is linear, by default it is seted to circular.
+    :param linear: Boolean than indicates if the backbone is linear, by default it is seted to Flase which means that it has a circular topology.
     :param kwargs: Keyword arguments of any other Component attribute.
     :return: A tuple of Component and Sequence.
     """
-    # check if the len is not 2
     if len(dropout_location) != 2:
         raise ValueError('The dropout_location only accepts 2 int values in a list.')
     backbone_component, backbone_seq = dna_component_with_sequence(identity, sequence, **kwargs)
@@ -570,41 +568,47 @@ def digestion(reactant:sbol3.Component, restriction_enzymes:List[sbol3.Externall
 
     :param reactant: DNA to be digested as SBOL Component. 
     :param restriction_enzymes: Restriction enzymes used  Externally Defined.
-    :param **kwargs: Keyword arguments of any other Component attribute.
     :return: A tuple of Component and Interaction.
     """
     # This lists start empty but we will be filled as the algorithm proceeds
     participations=[]
     restriction_enzyme_names=[]
+    # Loop through reastriction_enzymes to make Participations.
     for restriction_enzyme in restriction_enzymes:
         modifier_participation = sbol3.Participation(roles=[sbol3.SBO_MODIFIER], participant=restriction_enzyme)
         participations.append(modifier_participation)
         restriction_enzyme_names.append(restriction_enzyme.name)
-    
-    reactant_topology = 'get reactant topology from types' 
-    if reactant_topology==sbol3.SO_CIRCULAR:
+    # Create reactant Participation.
+    react_subcomp = sbol3.SubComponent(reactant)
+    reactant_participation = sbol3.Participation(roles=[sbol3.SBO_REACTANT], participant=react_subcomp)
+    participations.append(reactant_participation)
+    # Inform topology to PyDNA
+    if any(reactant.types)==sbol3.SO_CIRCULAR:
         circular=True
         linear=False
-    elif reactant_topology==sbol3.SO_LINEAR:
+    elif any(reactant.types)==sbol3.SO_LINEAR:
         circular=False
         linear=True
     else:
         circular=False
         linear=False
 
+    # look for the Component Sequence
+    # extract Sequence elements
     reactant_seq = 'get reactant sequence from sbol Component'
+    # Dseqrecord is from PyDNA package
     ds_reactant = Dseqrecord(reactant_seq, linear=linear, circular=circular)
 
-    if reactant_topology==sbol3.SO_CIRCULAR:
+    if any(reactant.types)==sbol3.SO_CIRCULAR:
         digested_reactant = ds_reactant.cut(restriction_enzyme_names) #how do you extract the part if there are too many cuts?
         # check digested_reactant
         part, backbone = digested_reactant
-    elif reactant_topology==sbol3.SO_LINEAR:
+    elif any(reactant.types)==sbol3.SO_LINEAR:
         digested_reactant = ds_reactant.cut(restriction_enzyme_names) #how do you extract the part if there are too many cuts?
         # check digested_reactant
         prefix, part, suffix = digested_reactant
-    else: raise NotImplementedError
-
+    else: raise NotImplementedError('The reactant has no valid topology type')
+    # Build product Component and Participation
     if reactant == 'part':
         product_sequence = part.seq
         prod_comp, prod_seq = dna_component_with_sequence(identity='part_extract', sequence=str(product_sequence))
@@ -615,27 +619,20 @@ def digestion(reactant:sbol3.Component, restriction_enzymes:List[sbol3.Externall
         prod_comp, prod_seq = dna_component_with_sequence(identity='backbone', sequence=str(product_sequence))
         # add sticky ends features
         # add recognition site features
-    else: raise NotImplementedError
-
+    else: raise NotImplementedError('The reactant has no valid topology type')
     prod_subcomp = sbol3.SubComponent(prod_comp)
-    react_subcomp = sbol3.SubComponent(reactant)
-    reactant_participation = sbol3.Participation(roles=[sbol3.SBO_REACTANT], participant=react_subcomp)
-    participations.append(reactant_participation)
     product_participation = sbol3.Participation(roles=[sbol3.SBO_PRODUCT], participant=prod_subcomp)
     participations.append(product_participation)
+    # Make Interaction
     interaction = sbol3.Interaction(types=[sbol3.SBO_INHIBITION], participations=participations)
                     
-    return tuple([prod_comp,interaction])
+    return prod_comp, interaction
 
 
 def ligation(reactants:List[sbol3.Component])-> Tuple[sbol3.Component, sbol3.Interaction]:
     """Ligates Components using base complementarity and creates a product Component and a ligation Interaction.
 
-    :param reactant: DNA to be digested as SBOL Component. 
-    :param restriction_enzymes: Restriction enzyme with correct DisplayID from Bio.Restriction as Externally Defined.
-    :param linear: Boolean to inform if the reactant is linear.
-    :param circular: Boolean to inform if the reactant is circular.
-    :param **kwargs: Keyword arguments of any other Component attribute.
+    :param reactant: DNA to be ligated as SBOL Component. 
     :return: A tuple of Component and Interaction.
     """
     #search overhangs
@@ -656,7 +653,7 @@ class Assembly_plan_single_enzyme():
     :param restriction_enzymes: Restriction enzyme with correct name from Bio.Restriction as Externally Defined.
     :param linear: Boolean to inform if the reactant is linear.
     :param circular: Boolean to inform if the reactant is circular.
-    :param **kwargs: Keyword arguments of any other Component attribute.
+    :param **kwargs: Keyword arguments of any other Component attribute for the assembled part.
     """
 
     def __init__(self, parts_in_backbone: List(sbol3.Component), acceptor_backbone: sbol3.Component, restriction_enzyme: sbol3.ExternallyDefined):
