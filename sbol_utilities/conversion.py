@@ -13,7 +13,8 @@ import sbol3
 from Bio import SeqIO, SeqRecord
 from Bio.Seq import Seq
 
-from sbol_utilities.helper_functions import strip_sbol2_version, GENETIC_DESIGN_FILE_TYPES
+from sbol_utilities.helper_functions import strip_sbol2_version, GENETIC_DESIGN_FILE_TYPES, \
+    find_top_level
 from sbol_utilities.workarounds import id_sort
 
 # sbol javascript executable based on https://github.com/sboltools/sbolgraph
@@ -88,7 +89,7 @@ def convert2to3(sbol2_doc: Union[str, sbol2.Document], namespaces=None) -> sbol3
     else:
         sbol2_path = sbol2_doc
 
-    cmd = [SBOLGRAPH, '-output', 'sbol3',
+    cmd = ['node', SBOLGRAPH, '-output', 'sbol3',
            'import', sbol2_path,
            'convert', '--target-sbol-version', '3']
     # This will raise an exception if the command fails
@@ -209,7 +210,7 @@ def convert3to2(doc3: sbol3.Document) -> sbol2.Document:
     doc3.write(sbol3_path, sbol3.RDF_XML)
 
     # Run the actual conversion and return the resulting document
-    cmd = [SBOLGRAPH, '-output', 'sbol2',
+    cmd = ['node', SBOLGRAPH, '-output', 'sbol2',
            'import', sbol3_path,
            'convert', '--target-sbol-version', '2']
     # This will raise an exception if the command fails
@@ -252,7 +253,8 @@ def convert_to_fasta(doc3: sbol3.Document, path: str) -> None:
     with open(path, 'w') as out:
         for c in id_sort([c for c in doc3.objects if isinstance(c, sbol3.Component)]):
             # Find all sequences of nucleic acid type
-            na_seqs = [s.lookup() for s in c.sequences if s.lookup().encoding == sbol3.IUPAC_DNA_ENCODING]
+            na_seqs = [s for s in (find_top_level(s) for s in c.sequences)
+                       if s.encoding == sbol3.IUPAC_DNA_ENCODING]
             if len(na_seqs) == 0:  # ignore components with no sequence to serialize
                 continue
             elif len(na_seqs) == 1:  # if there is precisely one sequence, write it to the FASTA

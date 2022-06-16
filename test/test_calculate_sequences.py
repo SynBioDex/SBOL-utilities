@@ -39,21 +39,27 @@ class TestCalculateSequences(unittest.TestCase):
         # run it again: no additional sequences should get computed
         new_seqs = sbol_utilities.calculate_sequences.calculate_sequences(doc)
         second_sequence_count = len([o for o in doc.objects if isinstance(o, sbol3.Sequence)])
-        assert not new_seqs and sequence_count == second_sequence_count, f'Unexpected new sequences {new_seqs}'
+        self.assertTrue(not new_seqs and sequence_count == second_sequence_count,
+                        f'Unexpected new sequences {new_seqs}')
 
         # make sure that what came out is exactly what was expected
         comparison_file = os.path.join(test_dir, 'test_files', 'expanded_with_sequences.nt')
         assert filecmp.cmp(tmp_out, comparison_file), f'Converted file {tmp_out} is not identical'
 
     def test_circular_calculation(self):
-        """Test sequence inference on two different types of circular builds plasmids; one fully marked, one partly"""
+        """Test sequence inference on two different types of circular builds plasmids;
+        one fully marked, one partly"""
         test_dir = os.path.dirname(os.path.realpath(__file__))
         # prep the document
         wb_name = os.path.join(test_dir, 'test_files', 'circular_inference_test.xlsx')
         wb = openpyxl.load_workbook(wb_name, data_only=True)
         sbol3.set_namespace('http://sbolstandard.org/testfiles')
         doc = excel_to_sbol(wb)
-        expansions = expand_derivations([doc.find('PairedTest')])
+        cd = doc.find('PairedTest')
+        if isinstance(cd, sbol3.CombinatorialDerivation):
+            expansions = expand_derivations([cd])
+        else:
+            raise ValueError('Could not find expected CombinatorialDerivation to expand')
         assert len(expansions) == 1, f'Expected 1 collection of expansions, but found {len(expansions)}'
         assert len(expansions[0].members) == 8, f'Expected 8 expansions, but found {len(expansions[0].members)}'
 

@@ -1,39 +1,96 @@
 from __future__ import annotations
-from typing import Dict, Iterable, List, Union, Set, Optional, Tuple
+
+from typing import Dict, Iterable, List, Union, Optional, Tuple
 
 import sbol3
 import tyto
 
-from sbol_utilities.helper_functions import id_sort
+from sbol_utilities.helper_functions import id_sort, find_child, find_top_level, SBOL3PassiveVisitor, cached_references
 from sbol_utilities.workarounds import get_parent
 
 
 # TODO: consider allowing return of LocalSubComponent and ExternallyDefined
-def contained_components(roots: Union[sbol3.TopLevel, Iterable[sbol3.TopLevel]]) -> Set[sbol3.Component]:
+def contained_components(roots: Union[sbol3.TopLevel, Iterable[sbol3.TopLevel]]) -> set[sbol3.Component]:
     """Find the set of all SBOL Components contained within the roots or their children.
-    This will explore via Collection.member relations and Component.feature relations.
+    This will explore via all of the direct relations that can include a Component:
+    Collection.member, CombinatorialDerivation.template, variable_features
+    Component.feature:SubComponent, Implementation.built,
+    VariableFeature.variant, variant_derivation, variant_collection
 
     :param roots: single TopLevel or iterable collection of TopLevel objects to explore
     :return: set of Components found, including roots
+    :raises TopLevelNotFound: if some referenced Components are not in the document
     """
     if isinstance(roots, sbol3.TopLevel):
         roots = [roots]
-    explored = set()  # set being built via traversal
 
-    # sub-function for walking containment tree
-    def walk_tree(obj: sbol3.TopLevel):
-        if obj not in explored:
-            explored.add(obj)
-            if isinstance(obj, sbol3.Component):
-                for f in (f.instance_of.lookup() for f in obj.features if isinstance(f, sbol3.SubComponent)):
-                    walk_tree(f)
-            elif isinstance(obj, sbol3.Collection):
-                for m in obj.members:
-                    walk_tree(m.lookup())
-    for r in roots:
-        walk_tree(r)
-    # filter result for containers:
-    return {c for c in explored if isinstance(c, sbol3.Component)}
+    class ContainmentVisitor(SBOL3PassiveVisitor):
+        def __init__(self):
+            self.contained = set()  # set being built via traversal
+            self.visited = set()
+
+        def already_visited(self, obj: sbol3.Identified) -> bool:
+            prior = obj in self.visited
+            self.visited.add(obj)
+            return prior
+
+        def visit_collection(self, c: sbol3.Collection):
+            if not self.already_visited(c):
+                for m in c.members:
+                    find_top_level(m).accept(self)
+
+        def visit_combinatorial_derivation(self, c: sbol3.CombinatorialDerivation):
+            if not self.already_visited(c):
+                find_top_level(c.template).accept(self)
+                for v in c.variable_features:
+                    v.accept(self)
+
+        def visit_variable_feature(self, v: sbol3.VariableFeature):
+            if not self.already_visited(v):
+                for c in v.variants:
+                    find_top_level(c).accept(self)
+                for c in v.variant_collections:
+                    find_top_level(c).accept(self)
+                for cd in v.variant_derivations:
+                    find_top_level(cd).accept(self)
+
+        def visit_component(self, c: sbol3.Component):
+            if not self.already_visited(c):
+                self.contained.add(c)
+                for sc in (f for f in c.features if isinstance(f, sbol3.SubComponent)):
+                    find_top_level(sc.instance_of).accept(self)
+
+        def visit_implementation(self, i: sbol3.Implementation):
+            if not self.already_visited(i):
+                if i.built:
+                    find_top_level(i.built).accept(self)
+
+    visitor = ContainmentVisitor()
+    root_list = list(roots)
+    if root_list:  # can't build the cache unless there's at least one component to walk
+        with cached_references(root_list[0].document):
+            for r in roots:
+                r.accept(visitor)
+    return visitor.contained
+
+
+def is_dna_part(obj: sbol3.Component) -> bool:
+    """Check if an SBOL Component is a DNA Part, i.e., having type 'SBO:DNA', and exactly 1 sequence property
+
+    :param obj: Sbol3 Document to be checked
+    :return: true if dna part
+    """
+    # must have a type of dna
+    def has_dna_type(component: sbol3.Component) -> bool:
+        return any(tyto.SBO.deoxyribonucleic_acid.is_ancestor_of(type) for type in component.types)
+
+    # there must be atleast 1 SO role, among others
+    def check_roles(component: sbol3.Component) -> bool:
+        return any(tyto.SO.get_term_by_uri(role) for role in component.roles)
+
+    # check all conditions
+    return isinstance(obj, sbol3.Component) and check_roles(obj) \
+        and has_dna_type(obj) and len(obj.sequences) == 1
 
 
 def ensure_singleton_feature(system: sbol3.Component, target: Union[sbol3.Feature, sbol3.Component]):
@@ -165,7 +222,7 @@ def constitutive(target: Union[sbol3.Feature, sbol3.Component], system: Optional
     containers = [c.subject for c in system.constraints
                   if c.restriction == sbol3.SBOL_CONTAINS and c.object == target.identity]
     for c in containers:
-        contains(c.lookup(), promoter_component)
+        contains(find_child(c), promoter_component)
 
     return promoter_component
 
@@ -202,7 +259,7 @@ def in_role(interaction: sbol3.Interaction, role: str) -> sbol3.Feature:
     feature_participation = [p for p in interaction.participations if role in p.roles]
     if len(feature_participation) != 1:
         raise ValueError(f'Role can be in 1 participant: found {len(feature_participation)} in {interaction.identity}')
-    return feature_participation[0].participant.lookup()
+    return find_child(feature_participation[0].participant)
 
 
 def all_in_role(interaction: sbol3.Interaction, role: str) -> List[sbol3.Feature]:
@@ -212,7 +269,7 @@ def all_in_role(interaction: sbol3.Interaction, role: str) -> List[sbol3.Feature
     :param role: role to search for
     :return: sorted list of Features playing that role
     """
-    return id_sort([p.participant.lookup() for p in interaction.participations if role in p.roles])
+    return id_sort([find_child(p.participant) for p in interaction.participations if role in p.roles])
 
 
 def dna_component_with_sequence(identity: str, sequence: str, **kwargs) -> Tuple[sbol3.Component, sbol3.Sequence]:

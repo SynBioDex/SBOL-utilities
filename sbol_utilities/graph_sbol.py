@@ -4,7 +4,7 @@ import rdflib
 import argparse
 
 
-def graph_sbol(doc, outfile='out'):
+def graph_sbol(doc: sbol3.Document, file_format: str = "pdf", view_now: bool = False, outfile: str = "out"):
     g = doc.graph()
     dot_master = graphviz.Digraph()
 
@@ -48,7 +48,7 @@ def graph_sbol(doc, outfile='out'):
             dot_master.edge(_strip_scheme(start_node), _strip_scheme(end_node), label=edge, weight='0', **association_relationship)
         
     #print(dot_master.source)
-    dot_master.render(outfile, view=True)
+    dot_master.render(outfile, view=view_now, format=file_format)
  
 
 def _get_node_label(graph, uri):
@@ -122,7 +122,11 @@ composition_relationship = {
     } 
 
 
-if __name__ == "__main__":
+def main():
+    """Main wrapper: read from input file, to sbol3 document, then invoke graph_sbol
+
+    :return: None
+    """
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "-i",
@@ -130,8 +134,31 @@ if __name__ == "__main__":
         dest="in_file",
         help="Input PAML file",
     )
-    args_dict = vars(parser.parse_args())
+    parser.add_argument(
+        "-f",
+        "--format",
+        dest="file_format",
+        default="pdf",
+        help="Final file format to produce graph in",
+    )
+    parser.add_argument(
+        "-v",
+        "--view",
+        dest="view_now",
+        action="store_true",
+        help="Open generated file automatically",
+    )
 
+    # Parse cli args, if -v is present, dont open generated file
+    args_dict = vars(parser.parse_args())
     doc = sbol3.Document()
     doc.read(args_dict['in_file'])
-    graph_sbol(doc, args_dict['in_file'].split('.')[0])
+    file_format: str = args_dict['file_format']
+    view_now: bool = not bool(args_dict['view_now'])
+    outfile: str = args_dict['in_file'].split('.')[0]
+
+    graph_sbol(doc, file_format, view_now, outfile)
+
+
+if __name__ == "__main__":
+    main()

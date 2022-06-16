@@ -1,6 +1,5 @@
 import unittest
 
-import sbol_utilities.expand_combinatorial_derivations
 import sbol_utilities.helper_functions
 import tempfile
 import sbol3
@@ -8,11 +7,14 @@ import os
 import logging
 import sys
 from unittest.mock import patch
+from pathlib import Path
 
+from sbol_utilities.sbol_diff import file_diff
 from sbol_utilities.workarounds import copy_toplevel_and_dependencies
-from test_helpers import assert_files_identical
+from sbol_utilities.expand_combinatorial_derivations import root_combinatorial_derivations, \
+    expand_derivations
 
-TESTFILE_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'test_files')
+TESTFILE_DIR = Path(__file__).parent / 'test_files'
 
 logging.getLogger().setLevel(level=logging.DEBUG)
 
@@ -24,9 +26,9 @@ class TestCDExpansion(unittest.TestCase):
         doc = sbol3.Document()
         doc.read(os.path.join(TESTFILE_DIR, 'simple_library.nt'))
         sbol3.set_namespace('http://sbolstandard.org/testfiles')
-        roots = list(sbol_utilities.expand_combinatorial_derivations.root_combinatorial_derivations(doc))
+        roots = list(root_combinatorial_derivations(doc))
         assert len(roots) == 1, f'Unexpected roots: {[r.identity for r in roots]}'
-        derivative_collections = sbol_utilities.expand_combinatorial_derivations.expand_derivations(roots)
+        derivative_collections = expand_derivations(roots)
         assert not len(doc.validate())
         assert len(doc.find('Round_1_order_collection').members) == 24
 
@@ -37,16 +39,16 @@ class TestCDExpansion(unittest.TestCase):
 
         temp_name = tempfile.mkstemp(suffix='.nt')[1]
         output_doc.write(temp_name, sbol3.SORTED_NTRIPLES)
-        assert_files_identical(temp_name, os.path.join(TESTFILE_DIR, 'expanded_simple_library.nt'))
+        self.assertFalse(file_diff(temp_name, str(TESTFILE_DIR / 'expanded_simple_library.nt')))
 
     def test_multi_backbone(self):
         """Test expansion of a specification with multiple backbones"""
         doc = sbol3.Document()
         doc.read(os.path.join(TESTFILE_DIR, 'two_backbones.nt'))
         sbol3.set_namespace('http://sbolstandard.org/testfiles')
-        roots = list(sbol_utilities.expand_combinatorial_derivations.root_combinatorial_derivations(doc))
+        roots = list(root_combinatorial_derivations(doc))
         assert len(roots) == 2
-        derivative_collections = sbol_utilities.expand_combinatorial_derivations.expand_derivations(roots)
+        expand_derivations(roots)
         assert not doc.validate().errors and not doc.validate().warnings
         assert len(doc.find('Two_by_six_ins_collection').members) == 6
         assert len(doc.find('Two_by_six_derivatives').members) == 12
@@ -70,10 +72,11 @@ class TestCDExpansion(unittest.TestCase):
     def test_commandline(self):
         """Test expansion of combinatorial derivations from command line"""
         temp_name = tempfile.mkstemp(suffix='.nt')[1]
-        test_args = ['sbol-expand-derivations', '-vv', os.path.join(TESTFILE_DIR, 'simple_library.nt'), '-o', temp_name]
+        test_args = ['sbol-expand-derivations', '-vv', str(TESTFILE_DIR / 'simple_library.nt'),
+                     '-o', temp_name]
         with patch.object(sys, 'argv', test_args):
             sbol_utilities.expand_combinatorial_derivations.main()
-        assert_files_identical(temp_name, os.path.join(TESTFILE_DIR, 'expanded_simple_library.nt'))
+        self.assertFalse(file_diff(temp_name, str(TESTFILE_DIR / 'expanded_simple_library.nt')))
 
 if __name__ == '__main__':
     unittest.main()

@@ -2,20 +2,36 @@ import filecmp
 import os
 import tempfile
 import unittest
+from pathlib import Path
 
 import sbol3
 import tyto
 
-from sbol_utilities.component import contained_components, contains, add_feature, add_interaction, constitutive, \
-    regulate, order, in_role, all_in_role, ensure_singleton_feature
+from sbol_utilities.component import contained_components, contains, add_feature, add_interaction, \
+    constitutive, \
+    regulate, order, in_role, all_in_role, ensure_singleton_feature, is_dna_part
 from sbol_utilities.component import dna_component_with_sequence, rna_component_with_sequence, \
     protein_component_with_sequence, media, functional_component, promoter, rbs, cds, terminator, \
     protein_stability_element, gene, operator, engineered_region, mrna, transcription_factor, \
     strain, ed_simple_chemical, ed_protein
+from sbol_utilities.helper_functions import find_top_level, toplevel_named, TopLevelNotFound, outgoing_links
 from sbol_utilities.sbol_diff import doc_diff    
 
 
 class TestComponent(unittest.TestCase):
+
+    def test_dna_part(self):
+        """Test the correctness of is_dna_part check"""
+        # create a test dna component
+        dna_identity = 'Test_dna_identity'
+        dna_sequence = 'Test_dna_sequence'
+        dna_description = 'Test_dna_description'
+        sbol3.set_namespace('http://sbolstandard.org/testfiles')
+        # we don't need dna_sequence object
+        test_dna_component, _ = dna_component_with_sequence(dna_identity, dna_sequence, description=dna_description)
+        # adding atleast 1 SO role
+        test_dna_component.roles.append(sbol3.SO_GENE)
+        assert is_dna_part(test_dna_component) 
 
     def test_system_building(self):
         doc = sbol3.Document()
@@ -41,9 +57,11 @@ class TestComponent(unittest.TestCase):
         prod = add_interaction(sbol3.SBO_GENETIC_PRODUCTION,
                                participants={gfp: sbol3.SBO_PRODUCT, gfp_cds: sbol3.SBO_TEMPLATE})
 
-        assert contained_components(system) == {system, gfp_cds}
-        assert in_role(prod, sbol3.SBO_PRODUCT) == gfp
-        assert all_in_role(prod, sbol3.SBO_TEMPLATE) == [ensure_singleton_feature(system, gfp_cds)]
+        self.assertEqual(contained_components(system), {system, gfp_cds})
+        self.assertEqual(outgoing_links(doc), set())
+        self.assertEqual(in_role(prod, sbol3.SBO_PRODUCT), gfp)
+        self.assertEqual(all_in_role(prod, sbol3.SBO_TEMPLATE),
+                         [ensure_singleton_feature(system, gfp_cds)])
 
         # confirm that the system constructed is exactly as expected
         tmp_out = tempfile.mkstemp(suffix='.nt')[1]
@@ -51,6 +69,31 @@ class TestComponent(unittest.TestCase):
         test_dir = os.path.dirname(os.path.realpath(__file__))
         comparison_file = os.path.join(test_dir, 'test_files', 'component_construction.nt')
         assert filecmp.cmp(tmp_out, comparison_file), f'Converted file {tmp_out} is not identical'
+
+    def test_containment(self):
+        """Test the operation of the contained_components function"""
+        doc = sbol3.Document()
+        test_dir = Path(__file__).parent
+        doc.read(str(test_dir / 'test_files' / 'constraints_library.nt'))
+
+        # Total of 43 parts, 2 non-library composites, 6 templates, 2 inserts
+        self.assertEqual(len(contained_components(doc.objects)), 53)
+        self.assertEqual(len(contained_components(toplevel_named(doc, 'BB-B0032-BB'))), 4)
+        self.assertEqual(len(contained_components(toplevel_named(doc, 'UNSX-UP'))), 3)
+        # 1 template, 4 in first slot, 4+template in 2nd slot
+        c = toplevel_named(doc, 'Multicolor expression')
+        self.assertEqual(len(contained_components(c)), 10)
+        # 1 template, 4 in first slot, 4+template in 2nd slot
+        c = toplevel_named(doc, 'Multicolor regulatory')
+        self.assertEqual(len(contained_components(c)), 10)
+        # 1 template, 1 backbone, 1 insert, 10 in 1st slot, 4 in 2nd (-1 shared), 5 in 3rd, 2 others
+        self.assertEqual(len(contained_components(toplevel_named(doc, 'Two color - operon'))), 23)
+
+        # Test again with an incomplete file. Should fail when missing elements are requested, but not when untouched
+        doc.read(str(test_dir / 'test_files' / 'incomplete_constraints_library.nt'))
+        self.assertRaises(TopLevelNotFound, lambda: contained_components(doc.objects))
+        self.assertEqual(len(contained_components(toplevel_named(doc, 'BB-B0032-BB'))), 4)
+        self.assertRaises(TopLevelNotFound, lambda: contained_components(toplevel_named(doc, 'Multicolor expression')))
 
     def test_high_level_constructors(self):
         """Test construction of components and features using helper functions: for each, build manually and compare."""
