@@ -14,7 +14,7 @@ SBOL3_FILE_1 = os.path.join(os.path.abspath(os.path.curdir), \
 COMP_TYPES = [sbol3.SBO_DNA]                # Temporarily assuming only dna components to be dealt with in genbank files
 COMP_ROLES = [sbol3.SO_ENGINEERED_REGION]   # Temporarilty assuming components to only have the engineered_region role
 
-def convert_genbank_to_sbol3(gb_file: str, sbol3_file: str):
+def convert_genbank_to_sbol3(gb_file: str, sbol3_file: str, write: bool = False):
     # create sbol3 document, and record parser handler for gb file
     doc = sbol3.Document()
     record = GENBANK_PARSER.parse(open(gb_file))
@@ -31,12 +31,13 @@ def convert_genbank_to_sbol3(gb_file: str, sbol3_file: str):
                     encoding=sbol3.IUPAC_DNA_ENCODING)
     doc.add(seq)
     comp.sequences = [ seq ]
-    doc.write(fpath=sbol3_file, file_format=sbol3.SORTED_NTRIPLES)
+    if write: doc.write(fpath=sbol3_file, file_format=sbol3.SORTED_NTRIPLES)
+    return doc
 
 
 # Currently we don't parse input for gb and sbol3 files (hardcoded)
 def main():
-    convert_genbank_to_sbol3(gb_file=GENBANK_FILE_1, sbol3_file=SBOL3_FILE_1)
+    convert_genbank_to_sbol3(gb_file=GENBANK_FILE_1, sbol3_file=SBOL3_FILE_1, write=True)
 
 if __name__ == '__main__':
     main()
