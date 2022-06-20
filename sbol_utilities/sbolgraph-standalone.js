@@ -1,4 +1,4 @@
-#!/usr/bin/env -S node --no-deprecation
+#!/usr/bin/env node
 //  This file is a standalone bundle encapsulating https://github.com/sboltools/sbolgraph v0.45.0
 /******/ (function(modules) { // webpackBootstrap
 /******/ 	// The module cache
