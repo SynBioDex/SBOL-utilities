@@ -552,16 +552,58 @@ def backbone(identity: str, sequence: str, dropout_location: List[int], linear:b
     if linear:
         backbone_component.types.append(sbol3.SO_LINEAR)
     else: backbone_component.types.append(sbol3.SO_CIRCULAR)
-    #make location, how to setup a default orientation?
+    #make locations, how to setup a default orientation?
     dropout_location_comp = sbol3.Range(sequence=backbone_seq, start=dropout_location[0], end=dropout_location[1])
     insertion_site_location1 = sbol3.Range(sequence=backbone_seq, start=dropout_location[0], end=dropout_location[0]+4)
     insertion_site_location2 = sbol3.Range(sequence=backbone_seq, start=dropout_location[1]-4, end=dropout_location[1])
+    open_backbone_location = sbol3.Range(sequence=backbone_seq, start=dropout_location[1], end=dropout_location[0])
     #make feature
     dropout_sequence_feature = sbol3.SequenceFeature(locations=[dropout_location_comp], roles=[tyto.SO.deletion])
     insertion_sites_feature = sbol3.SequenceFeature(locations=[insertion_site_location1, insertion_site_location2], roles=[tyto.SO.insertion_site])
-    backbone_component.features.append(dropout_sequence_feature)
-    backbone_component.features.append(insertion_sites_feature)
+    open_backbone_feature = sbol3.SequenceFeature(locations=open_backbone_location) #discuss role
+    backbone_component.features.append([dropout_sequence_feature,insertion_sites_feature, open_backbone_feature])
     return backbone_component, backbone_seq
+
+def part_in_backbone(identity: str, part: sbol3.Component, backbone: sbol3.Component, linear:bool=False, **kwargs) -> Tuple[sbol3.Component, sbol3.Sequence]:
+    """Creates a Part in Backbone Component and its Sequence.
+
+    :param identity: The identity of the Component. The identity of Sequence is also identity with the suffix '_seq'.
+    :param part: Part to be located in the backbone as SBOL Component.
+    :param backbone: Backbone in wich the part is located as SBOL Component.
+    :param linear: Boolean than indicates if the backbone is linear, by default it is seted to Flase which means that it has a circular topology.
+    :param kwargs: Keyword arguments of any other Component attribute.
+    :return: A tuple of Component and Sequence.
+    """
+
+    # check that backbone has a plasmid vector or child ontology term
+    if any(backbone.roles) == tyto.SO.plasmid_vector: # how to check if child also?
+        pass
+    else: raise TypeError('The backbone has no valid plasmid vector or child role')
+    # get backbone sequence
+    backbone_sequence = backbone.sequences[0].lookup().elemets
+    # extract backbone open sequence
+    open_backbone_sequence = backbone_sequence[backbone.features[0].locations[0].start -1: backbone.features[0].locations[0].end -1]
+    # make sure there are recognition sites
+    # extract part sequence
+    part_sequence = part.sequences[0].lookup().elemets
+    # make new component sequence
+    part_in_backbone_seq_str = part_sequence + open_backbone_sequence
+    # part in backbone Component
+    part_in_backbone_component, part_in_backbone_seq = dna_component_with_sequence(identity, part_in_backbone_seq_str, **kwargs)
+    part_in_backbone_component.roles.append(tyto.SO.plasmid_vector) #review
+    # inherit part type?
+    part_subcomponent_location = sbol3.Range(sequence=part_in_backbone_seq, start=1, end=len(part_sequence))
+    backbone_subcomponent_location = sbol3.Range(sequence=part_in_backbone_seq, start=len(part_sequence)+1, end=len(part_in_backbone_seq_str))
+    part_subcomponent = sbol3.SubComponent(part, roles=[tyto.SO.engineered_insert], role_integration='mergeRoles', locations=[part_subcomponent_location])
+    backbone_subcomponent = sbol3.SubComponent(backbone, locations=[backbone_subcomponent_location], source_locations=[backbone.features[2].locations]) #generalize source location
+    part_in_backbone_component.features.append([part_subcomponent, backbone_subcomponent])
+
+    if linear:
+        raise NotImplementedError('Not implemented for linear backbones')
+    else: part_in_backbone_component.types.append(sbol3.SO_CIRCULAR)
+    #make locations, how to setup a default orientation?
+    # read subcomponent all, diff between Location and Source Location, Ranges are child objects
+    return part_in_backbone_component, part_in_backbone_seq
 
 def digestion(reactant:sbol3.Component, restriction_enzymes:List[sbol3.ExternallyDefined])-> Tuple[sbol3.Component, sbol3.Interaction]:
     """Digests a Component using the provided restriction enzymes and creates a product Component and a digestion Interaction.
@@ -593,24 +635,22 @@ def digestion(reactant:sbol3.Component, restriction_enzymes:List[sbol3.Externall
         circular=False
         linear=False
 
-    # look for the Component Sequence
-    # extract Sequence elements
-    reactant_seq = 'get reactant sequence from sbol Component'
+    reactant_seq = reactant.sequences[0].lookup().elemets
     # Dseqrecord is from PyDNA package
     ds_reactant = Dseqrecord(reactant_seq, linear=linear, circular=circular)
 
     if any(reactant.types)==sbol3.SO_CIRCULAR:
         digested_reactant = ds_reactant.cut(restriction_enzyme_names) #how do you extract the part if there are too many cuts?
         # check digested_reactant
-        part, backbone = digested_reactant
+        part_extract, backbone = digested_reactant
     elif any(reactant.types)==sbol3.SO_LINEAR:
         digested_reactant = ds_reactant.cut(restriction_enzyme_names) #how do you extract the part if there are too many cuts?
         # check digested_reactant
-        prefix, part, suffix = digested_reactant
+        prefix, part_extract, suffix = digested_reactant
     else: raise NotImplementedError('The reactant has no valid topology type')
     # Build product Component and Participation
     if reactant == 'part':
-        product_sequence = part.seq
+        product_sequence = part_extract.seq
         prod_comp, prod_seq = dna_component_with_sequence(identity='part_extract', sequence=str(product_sequence))
         # add sticky ends features
         # add recognition site features
