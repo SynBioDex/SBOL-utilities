@@ -30,7 +30,7 @@ def convert_genbank_to_sbol3(gb_file: str, sbol3_file: str, write: bool = False)
                     elements=record.sequence.lower(), \
                     encoding=sbol3.IUPAC_DNA_ENCODING)
     doc.add(seq)
-    comp.sequences = [ seq ]
+    comp.sequences = [seq]
     if write: doc.write(fpath=sbol3_file, file_format=sbol3.SORTED_NTRIPLES)
     return doc
 
