@@ -10,7 +10,8 @@ class TestGenBank2SBOL3(unittest.TestCase):
         sbol3.set_namespace("https://testing.sbol3.genbank/")
         TEST_OUTPUT_SBOL3 = SBOL3_FILE_1 + ".test" 
         # Don't write to file for testing, we directly compare sbol documents
-        test_output_sbol3 = convert_genbank_to_sbol3(GENBANK_FILE_1, TEST_OUTPUT_SBOL3, write=False)
+        test_output_sbol3 = convert_genbank_to_sbol3(GENBANK_FILE_1, TEST_OUTPUT_SBOL3, 
+                            namespace="https://testing.sbol3.genbank/", write=False)
         sbol3_file_1 = sbol3.Document()
         sbol3_file_1.read(location=SBOL3_FILE_1, file_format=sbol3.SORTED_NTRIPLES)
         assert not doc_diff(test_output_sbol3, sbol3_file_1), \
