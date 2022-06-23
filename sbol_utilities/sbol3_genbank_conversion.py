@@ -47,11 +47,15 @@ def convert_genbank_to_sbol3(gb_file: str, sbol3_file: str,
         if record.features:
             comp.features = []
             for i in range(len(record.features)):
+                # should we have this constant???
                 SEQ_FEAT_RANGE_ORIENTATION = "https://identifiers.org/SO:0001030" # inline orientation
+                # create "Range" FeatureLocation by parsing genbank record location
                 gb_feat = record.features[i]
                 gb_loc = gb_feat.location
                 # adding roles to feature?
-                locs = sbol3.Range(sequence=seq, start=gb_loc.nofuzzy_start, end=int(gb_loc.end), orientation=SEQ_FEAT_RANGE_ORIENTATION)
+                # both "nofuzzy_start" and "start" give bad int values (checkout the generated sbol)???
+                locs = sbol3.Range(sequence=seq, start=gb_loc.nofuzzy_start,
+                                   end=int(gb_loc.end), orientation=SEQ_FEAT_RANGE_ORIENTATION)
                 feat = sbol3.SequenceFeature(locations=[locs], name=gb_feat.qualifiers['label'][0])
                 comp.features.append(feat)
     if write:

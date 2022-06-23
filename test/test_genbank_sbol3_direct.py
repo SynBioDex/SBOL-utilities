@@ -26,7 +26,6 @@ class TestGenBank2SBOL3(unittest.TestCase):
                             namespace="https://testing.sbol3.genbank/", write=False)
         sbol3_file_2 = sbol3.Document()
         sbol3_file_2.read(location=SBOL3_FILE_2, file_format=sbol3.SORTED_NTRIPLES)
-        print(test_output_sbol3)
         for obj in test_output_sbol3: 
             if isinstance(obj, sbol3.Component): print(obj.features)
         assert not doc_diff(test_output_sbol3, sbol3_file_2), \
