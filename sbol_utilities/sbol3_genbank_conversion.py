@@ -1,6 +1,6 @@
 import os
 import sbol3
-from Bio import GenBank
+from Bio import GenBank, SeqIO
 GENBANK_PARSER = GenBank.RecordParser()
 
 # Conversion Constants (NOTE: most are placeholding and temporary for now)
@@ -21,20 +21,22 @@ def convert_genbank_to_sbol3(gb_file: str, sbol3_file: str,
     # create sbol3 document, and record parser handler for gb file
     sbol3.set_namespace(namespace)
     doc = sbol3.Document()
-    record = GENBANK_PARSER.parse(open(gb_file))
-    # NOTE: Currently we assume only linear or circular topology is possible
-    COMP_TYPES.append(sbol3.SO_LINEAR if record.topology == "linear" else sbol3.SO_CIRCULAR)
-    comp = sbol3.Component(identity=record.accession[0],
-                    types=COMP_TYPES,
-                    roles=COMP_ROLES,
-                    description=record.definition)
-    doc.add(comp)
-    # NOTE: Currently we use a single method of encoding (IUPAC)
-    seq = sbol3.Sequence(identity=record.accession[0] + "_sequence",
-                    elements=record.sequence.lower(),
-                    encoding=sbol3.IUPAC_DNA_ENCODING)
-    doc.add(seq)
-    comp.sequences = [seq]
+    # access records by parsing gb file using SeqIO class
+    records = list(SeqIO.parse(gb_file, "genbank").records)
+    for record in records:
+        # NOTE: Currently we assume only linear or circular topology is possible
+        COMP_TYPES.append(sbol3.SO_LINEAR if record.annotations['topology'] == "linear" else sbol3.SO_CIRCULAR)
+        comp = sbol3.Component(identity=record.name,
+                        types=COMP_TYPES,
+                        roles=COMP_ROLES,
+                        description=record.description)
+        doc.add(comp)
+        # NOTE: Currently we use a single method of encoding (IUPAC)
+        seq = sbol3.Sequence(identity=record.name + "_sequence",
+                        elements=str(record.seq.lower()),
+                        encoding=sbol3.IUPAC_DNA_ENCODING)
+        doc.add(seq)
+        comp.sequences = [seq]
     if write: 
         doc.write(fpath=sbol3_file, file_format=sbol3.SORTED_NTRIPLES)
     return doc
