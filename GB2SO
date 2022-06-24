@@ -79,4 +79,5 @@
 "snoRNA" "SO:0000275"
 "V_gene_segment" "SO:0000466"
 "V_segment" "SO:0000466"
+
 		return so.getURIbyId("SO:0000110");

@@ -4,6 +4,7 @@ from Bio import SeqIO
 from sbol3.constants import SBOL_SEQUENCE_FEATURE
 
 # Conversion Constants (NOTE: most are placeholding and temporary for now)
+TEST_NAMESPACE = "https://test.sbol3.genbank/"
 SAMPLE_GB_FILE_1 = "BBa_J23101.gb"
 SAMPLE_SBOL3_FILE_1 = "BBa_J23101_from_genbank_to_sbol3_direct.nt"
 SAMPLE_GB_FILE_2 = "iGEM_SBOL2_imports.gb"
@@ -24,14 +25,14 @@ SBOL3_FILE_2 = os.path.join(os.path.abspath(os.path.curdir), "test/test_files", 
 
 
 def convert_genbank_to_sbol3(gb_file: str, sbol3_file: str, namespace: str =
-                             "https://test.sbol3.genbank/", write: bool = False) -> sbol3.Document:
+                            TEST_NAMESPACE, write: bool = False) -> sbol3.Document:
     """Convert a GenBank document on disk into an SBOL3 document
     Specifically, the GenBank document is first imported to SBOL2, then converted from SBOL2 to SBOL3
 
     :param gb_file: path to read GenBank file from
     :param sbol3_file: path to write SBOL3 file to, if write set to true
     :param namespace: URIs of Components will be set to {namespace}/{genbank_id},
-                      defaults to "https://test.sbol3.genbank/"
+                      defaults to "https://test.sbol3.genbank/" 
     :param write: writes the generated sbol3 document in SORTED_NTRIPLES
                       format to provided sbol3_file path
     :return: SBOL3 document containing converted materials

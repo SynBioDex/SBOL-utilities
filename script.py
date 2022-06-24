@@ -1,16 +1,18 @@
 import csv
+import sys
 
 def main(file_name):
     """Read vim modified mappings of gb and so ontologies"""
-    hmp = {}; mappings = 81
+    hmp = {}; mappings = 82
     while mappings:
         line = input().split(" ")
-        line[0] = line[0].lstrip('("')
-        line[0] = line[0].rstrip('")')
-        line[1] = line[1].lstrip('("')
-        line[1] = line[1].rstrip('")')
-        if not hmp.get(line[0]): hmp[line[0]] = line[1]
-        else: print(f"DUPLICATE KEY!: KEY: {line[0]} VALUE {line[1]}")
+        if len(line) > 1:
+            line[0] = line[0].lstrip('("')
+            line[0] = line[0].rstrip('")')
+            line[1] = line[1].lstrip('("')
+            line[1] = line[1].rstrip('")')
+            if not hmp.get(line[0]): hmp[line[0]] = line[1]
+            else: print(f"DUPLICATE KEY!: KEY: {line[0]} VALUE {line[1]}")
         mappings -= 1
     writeCSV(hmp, file_name)
 
@@ -35,8 +37,15 @@ def readCSV(file_name):
         return hmp
 
 if __name__ == '__main__':
-    # FILE_NAME = 'gb2so.csv'
-    FILE_NAME = 'so2gb.csv'
+    FILE_NAME = "gb2so.csv"
+    IN_FILE = "GB2SO"
+    if sys.argv[1] == "GB2SO":
+        FILE_NAME = 'gb2so.csv'
+        IN_FILE = "GB2SO"
+    elif sys.argv[1] == "SO2GB":
+        FILE_NAME = 'so2gb.csv'
+        IN_FILE = "SO2GB"
+    sys.stdin = open(IN_FILE, "r")
     main(FILE_NAME)
     print(readCSV(FILE_NAME))
     print(len(readCSV(FILE_NAME)))
