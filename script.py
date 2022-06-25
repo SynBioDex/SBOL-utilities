@@ -20,10 +20,10 @@ def writeCSV(mappings: dict, file_name):
     """Write GenBank to SO ontologies dict to a csv"""
     with open(file_name, mode='w') as csv_file:
         fieldnames = ['GenBank_Ontology', 'SO_Ontology']
-        writer = csv.DictWriter(csv_file, fieldnames=fieldnames if file_name == 'gb2so.csv' else list(reversed(fieldnames)))
+        writer = csv.DictWriter(csv_file, fieldnames=fieldnames if file_name == 'sbol_utilities/gb2so.csv' else list(reversed(fieldnames)))
         writer.writeheader()
         for mapping in mappings:
-            if file_name == 'gb2so.csv':
+            if file_name == 'sbol_utilities/gb2so.csv':
                 writer.writerow({'GenBank_Ontology': mapping, 'SO_Ontology': mappings[mapping]})
             else:
                 writer.writerow({'SO_Ontology': mapping, 'GenBank_Ontology': mappings[mapping]})
@@ -37,13 +37,13 @@ def readCSV(file_name):
         return hmp
 
 if __name__ == '__main__':
-    FILE_NAME = "gb2so.csv"
+    FILE_NAME = "sbol_utilities/gb2so.csv"
     IN_FILE = "GB2SO"
     if sys.argv[1] == "GB2SO":
-        FILE_NAME = 'gb2so.csv'
+        FILE_NAME = 'sbol_utilities/gb2so.csv'
         IN_FILE = "GB2SO"
     elif sys.argv[1] == "SO2GB":
-        FILE_NAME = 'so2gb.csv'
+        FILE_NAME = 'sbol_utilities/so2gb.csv'
         IN_FILE = "SO2GB"
     sys.stdin = open(IN_FILE, "r")
     main(FILE_NAME)

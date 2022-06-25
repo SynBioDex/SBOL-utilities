@@ -95,13 +95,20 @@ class GenBank_SBOL3_Converter:
             if record.features:
                 comp.features = []
                 for i in range(len(record.features)):
-                    # create "Range" FeatureLocation by parsing genbank record location
+                    # create "Range/Cut" FeatureLocation by parsing genbank record location
                     gb_feat = record.features[i]
                     gb_loc = gb_feat.location
-                    # adding roles to feature?
-                    locs = sbol3.Range(sequence=seq, start=int(gb_loc.start),
-                                       # TODO: create a method to find orientation rather than hardcoding
-                                       end=int(gb_loc.end), orientation=SEQ_FEAT_RANGE_ORIENTATION)
+                    # Default orientation is "inline" except if complement is specified via strand
+                    feat_orientation = SEQ_FEAT_RANGE_ORIENTATION
+                    if gb_loc.strand == -1: feat_orientation = "https://identifiers.org/SO:0001031"
+                    # Create a cut or range as featurelocation depending on whether location is specified as 
+                    # Cut (eg: "n^n+1", parsed as [n:n] by biopython) or Range (eg: "n..m", parsed as [n:m] by biopython)
+                    if gb_loc.start == gb_loc.end:
+                       # TODO: Biopython parses both "276" (range) and "276^277" (cut) in locations as [276:276], distinction?
+                        locs = sbol3.Cut(sequence=seq, at=int(gb_loc.start), orientation=feat_orientation)
+                    else:
+                        locs = sbol3.Range(sequence=seq, start=int(gb_loc.start),
+                                           end=int(gb_loc.end), orientation=feat_orientation)
                     # TODO: Add defaults below if mappings are not found / key does not exist
                     # Obtain sequence feature role from gb2so mappings
                     feat_role = self.gb2so_map[record.features[i].type]
