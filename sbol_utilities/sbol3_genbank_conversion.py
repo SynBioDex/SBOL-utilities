@@ -1,6 +1,7 @@
 import os
-import sbol3
 import csv
+import sbol3
+import logging
 from Bio import SeqIO
 from sbol3.constants import SBOL_SEQUENCE_FEATURE
 
@@ -23,27 +24,34 @@ SAMPLE_GENBANK_FILE_2 = os.path.join(os.path.abspath(os.path.curdir), "test/test
                                 "iGEM_SBOL2_imports.gb")
 SAMPLE_SBOL3_FILE_2 = os.path.join(os.path.abspath(os.path.curdir), "test/test_files",
                                 "iGEM_SBOL2_imports_from_genbank_to_sbol3_direct.nt")
-GB2SO_MAPPINGS = {}
-SO2GB_MAPPINGS = {}
 SO_SEQ_FEAT_ROLE_NS = "http://identifiers.org/so/"
 GB2SO_MAPPINGS_CSV = os.path.join(os.path.abspath(os.path.curdir), "gb2so.csv")
 SO2GB_MAPPINGS_CSV = os.path.join(os.path.abspath(os.path.curdir), "so2gb.csv")
 
 
 class GenBank_SBOL3_Converter:
-    def create_GB2SO_role_mappings(self, gb2so_csv: str = GB2SO_MAPPINGS_CSV, so2gb_csv: str = SO2GB_MAPPINGS_CSV):
+    gb2so_map = {}
+    so2gb_map = {}
+    def create_GB2SO_role_mappings(self, gb2so_csv: str = GB2SO_MAPPINGS_CSV, so2gb_csv: str = SO2GB_MAPPINGS_CSV, 
+                                   convert_gb2so: bool = True, convert_so2gb: bool = True):
         """Reads 2 CSV Files containing mappings for converting between GenBank and SO ontologies roles
         :param gb2so_csv: path to read genbank to so conversion csv file
         :param so2gb_csv: path to read so to genbank conversion csv file
+        :param convert_gb2so: bool stating whether to read csv for gb2so mappings
+        :param convert_so2gb: bool stating whether to read csv for so2gb mappings
         """
-        with open(gb2so_csv, mode='r') as csv_file:
-            csv_reader = csv.DictReader(csv_file)
-            for row in csv_reader:
-                GB2SO_MAPPINGS[row["GenBank_Ontology"]] = row["SO_Ontology"]
-        with open(so2gb_csv, mode='r') as csv_file:
-            csv_reader = csv.DictReader(csv_file)
-            for row in csv_reader:
-                SO2GB_MAPPINGS[row["SO_Ontology"]] = row["GenBank_Ontology"]
+        if convert_gb2so:
+            logging.info("Reading GB to SO ontology mappings csv")
+            with open(gb2so_csv, mode='r') as csv_file:
+                csv_reader = csv.DictReader(csv_file)
+                for row in csv_reader:
+                    self.gb2so_map[row["GenBank_Ontology"]] = row["SO_Ontology"]
+        if convert_so2gb:
+            logging.info("Reading SO to GB ontology mappings csv")
+            with open(so2gb_csv, mode='r') as csv_file:
+                csv_reader = csv.DictReader(csv_file)
+                for row in csv_reader:
+                    self.so2gb_map[row["SO_Ontology"]] = row["GenBank_Ontology"]
 
 
     def convert_genbank_to_sbol3(self, gb_file: str, sbol3_file: str = "sbol3.out", namespace: str =
@@ -63,13 +71,18 @@ class GenBank_SBOL3_Converter:
         sbol3.set_namespace(namespace)
         doc = sbol3.Document()
         # access records by parsing gb file using SeqIO class
+        logging.info("Parsing Genbank records using SeqIO class.")
         records = list(SeqIO.parse(gb_file, "genbank").records)
+        # create updated py dict to store mappings between gb and so ontologies
+        logging.info("Creating GenBank and SO ontologies mappings for sequence feature roles")
+        self.create_GB2SO_role_mappings(gb2so_csv=GB2SO_MAPPINGS_CSV, 
+                                        so2gb_csv=SO2GB_MAPPINGS_CSV, convert_so2gb=False)
         for record in records:
             # NOTE: Currently we assume only linear or circular topology is possible
-            COMP_TYPES.append(sbol3.SO_LINEAR 
-                              if record.annotations['topology'] == "linear" else sbol3.SO_CIRCULAR)
+            extra_comp_types = [sbol3.SO_LINEAR 
+                              if record.annotations['topology'] == "linear" else sbol3.SO_CIRCULAR]
             comp = sbol3.Component(identity=record.name,
-                                   types=COMP_TYPES,
+                                   types=COMP_TYPES + extra_comp_types,
                                    roles=COMP_ROLES,
                                    description=record.description)
             doc.add(comp)
@@ -80,8 +93,6 @@ class GenBank_SBOL3_Converter:
             doc.add(seq)
             comp.sequences = [seq]
             if record.features:
-                # create updated py dict to store mappings between gb and so ontologies
-                self.create_GB2SO_role_mappings(gb2so_csv=GB2SO_MAPPINGS_CSV, so2gb_csv=SO2GB_MAPPINGS_CSV)
                 comp.features = []
                 for i in range(len(record.features)):
                     # create "Range" FeatureLocation by parsing genbank record location
@@ -89,21 +100,26 @@ class GenBank_SBOL3_Converter:
                     gb_loc = gb_feat.location
                     # adding roles to feature?
                     locs = sbol3.Range(sequence=seq, start=int(gb_loc.start),
+                                       # TODO: create a method to find orientation rather than hardcoding
                                        end=int(gb_loc.end), orientation=SEQ_FEAT_RANGE_ORIENTATION)
+                    # TODO: Add defaults below if mappings are not found / key does not exist
                     # Obtain sequence feature role from gb2so mappings
-                    feat_role = GB2SO_MAPPINGS[record.features[i].type]
+                    feat_role = self.gb2so_map[record.features[i].type]
                     feat_role = SO_SEQ_FEAT_ROLE_NS + feat_role
                     feat = sbol3.SequenceFeature(locations=[locs], 
                                                  roles=feat_role,
                                                  name=gb_feat.qualifiers['label'][0])
                     comp.features.append(feat)
         if write:
+            logging.info("Writing created sbol3 document to disk.")
             doc.write(fpath=sbol3_file, file_format=sbol3.SORTED_NTRIPLES)
         return doc
 
 
 # Currently we don't parse input for gb and sbol3 files (hardcoded)
 def main():
+    log_level = logging.INFO
+    logging.getLogger().setLevel(level=log_level)
     converter = GenBank_SBOL3_Converter()
     converter.convert_genbank_to_sbol3(gb_file=SAMPLE_GENBANK_FILE_2, sbol3_file=SAMPLE_SBOL3_FILE_2, write=True)
 
