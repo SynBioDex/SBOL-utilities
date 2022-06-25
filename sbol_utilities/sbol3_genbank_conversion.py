@@ -16,17 +16,17 @@ SEQ_FEAT_RANGE_ORIENTATION = "https://identifiers.org/SO:0001030"  # inline orie
 # TODO: Temporarily encoding sequnce objects in IUPUC mode only
 SEQUENCE_ENCODING = sbol3.IUPAC_DNA_ENCODING
 # Complete file paths to pass as paramteres for testing
-SAMPLE_GENBANK_FILE_1 = os.path.join(os.path.abspath(os.path.curdir), 
-                                "test/test_files", "BBa_J23101.gb")
-SAMPLE_SBOL3_FILE_1 = os.path.join(os.path.abspath(os.path.curdir), "test/test_files",
-                                "BBa_J23101_from_genbank_to_sbol3_direct.nt")
-SAMPLE_GENBANK_FILE_2 = os.path.join(os.path.abspath(os.path.curdir), "test/test_files",
-                                "iGEM_SBOL2_imports.gb")
-SAMPLE_SBOL3_FILE_2 = os.path.join(os.path.abspath(os.path.curdir), "test/test_files",
-                                "iGEM_SBOL2_imports_from_genbank_to_sbol3_direct.nt")
+SAMPLE_GENBANK_FILE_1 = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__)), 
+                                     os.pardir, "test/test_files", "BBa_J23101.gb"))
+SAMPLE_GENBANK_FILE_2 = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__)), 
+                                     os.pardir, "test/test_files", "iGEM_SBOL2_imports.gb"))
+SAMPLE_SBOL3_FILE_1 = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__)), 
+                         os.pardir, "test/test_files", "BBa_J23101_from_genbank_to_sbol3_direct.nt"))
+SAMPLE_SBOL3_FILE_2 = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__)), 
+                         os.pardir, "test/test_files", "iGEM_SBOL2_imports_from_genbank_to_sbol3_direct.nt"))
 SO_SEQ_FEAT_ROLE_NS = "http://identifiers.org/so/"
-GB2SO_MAPPINGS_CSV = os.path.join(os.path.abspath(os.path.curdir), "gb2so.csv")
-SO2GB_MAPPINGS_CSV = os.path.join(os.path.abspath(os.path.curdir), "so2gb.csv")
+GB2SO_MAPPINGS_CSV = os.path.join(os.path.dirname(os.path.realpath(__file__)), "gb2so.csv")
+SO2GB_MAPPINGS_CSV = os.path.join(os.path.dirname(os.path.realpath(__file__)), "so2gb.csv")
 
 
 class GenBank_SBOL3_Converter:

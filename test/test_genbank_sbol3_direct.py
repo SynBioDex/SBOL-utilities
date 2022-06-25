@@ -1,14 +1,16 @@
 import unittest
 import sbol3
+from pathlib import Path
 from sbol_utilities.sbol_diff import doc_diff
-from sbol_utilities.sbol3_genbank_conversion import GenBank_SBOL3_Converter, \
-    SAMPLE_GENBANK_FILE_1, SAMPLE_SBOL3_FILE_1, SAMPLE_GENBANK_FILE_2, SAMPLE_SBOL3_FILE_2, TEST_NAMESPACE
+from sbol_utilities.sbol3_genbank_conversion import GenBank_SBOL3_Converter, TEST_NAMESPACE
 
 class TestGenBank2SBOL3(unittest.TestCase):
     # Create converter instance
     converter = GenBank_SBOL3_Converter()
     def test_simple_file_1(self):
         """Test conversion of a simple genbank file with a single sequence"""
+        SAMPLE_GENBANK_FILE_1 = str(Path(__file__).parent) + "/test_files/" + "BBa_J23101.gb"
+        SAMPLE_SBOL3_FILE_1 = str(Path(__file__).parent) + "/test_files/" + "BBa_J23101_from_genbank_to_sbol3_direct.nt"
         sbol3.set_namespace(TEST_NAMESPACE)
         TEST_OUTPUT_SBOL3 = SAMPLE_SBOL3_FILE_1 + ".test" 
         # Don't write to file for testing, we directly compare sbol documents
@@ -21,6 +23,8 @@ class TestGenBank2SBOL3(unittest.TestCase):
 
     def test_simple_file_2(self):
         """Test conversion of a simple genbank file with a multiple sequence with multiple features"""
+        SAMPLE_GENBANK_FILE_2 = str(Path(__file__).parent) + "/test_files/" + "iGEM_SBOL2_imports.gb"
+        SAMPLE_SBOL3_FILE_2 = str(Path(__file__).parent) + "/test_files/" + "iGEM_SBOL2_imports_from_genbank_to_sbol3_direct.nt"
         sbol3.set_namespace(TEST_NAMESPACE)
         TEST_OUTPUT_SBOL3 = SAMPLE_SBOL3_FILE_2 + ".test" 
         # Don't write to file for testing, we directly compare sbol documents
