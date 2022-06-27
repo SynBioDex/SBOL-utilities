@@ -75,12 +75,12 @@
 <https://test.sbol3.genbank/pSB1C3/SequenceFeature12> <http://sbols.org/v3#displayId> "SequenceFeature12" .
 <https://test.sbol3.genbank/pSB1C3/SequenceFeature12> <http://sbols.org/v3#hasLocation> <https://test.sbol3.genbank/pSB1C3/SequenceFeature12/Range1> .
 <https://test.sbol3.genbank/pSB1C3/SequenceFeature12> <http://sbols.org/v3#name> "BioBrick prefix" .
-<https://test.sbol3.genbank/pSB1C3/SequenceFeature12> <http://sbols.org/v3#role> <http://identifiers.org/so/SO:0001411> .
+<https://test.sbol3.genbank/pSB1C3/SequenceFeature12> <http://sbols.org/v3#role> <http://identifiers.org/so/SO:0000001> .
 <https://test.sbol3.genbank/pSB1C3/SequenceFeature12> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://sbols.org/v3#SequenceFeature> .
 <https://test.sbol3.genbank/pSB1C3/SequenceFeature1> <http://sbols.org/v3#displayId> "SequenceFeature1" .
 <https://test.sbol3.genbank/pSB1C3/SequenceFeature1> <http://sbols.org/v3#hasLocation> <https://test.sbol3.genbank/pSB1C3/SequenceFeature1/Range1> .
 <https://test.sbol3.genbank/pSB1C3/SequenceFeature1> <http://sbols.org/v3#name> "BioBrick suffix" .
-<https://test.sbol3.genbank/pSB1C3/SequenceFeature1> <http://sbols.org/v3#role> <http://identifiers.org/so/SO:0001411> .
+<https://test.sbol3.genbank/pSB1C3/SequenceFeature1> <http://sbols.org/v3#role> <http://identifiers.org/so/SO:0000001> .
 <https://test.sbol3.genbank/pSB1C3/SequenceFeature1> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://sbols.org/v3#SequenceFeature> .
 <https://test.sbol3.genbank/pSB1C3/SequenceFeature2/Range1> <http://sbols.org/v3#displayId> "Range1" .
 <https://test.sbol3.genbank/pSB1C3/SequenceFeature2/Range1> <http://sbols.org/v3#end> "93"^^<http://www.w3.org/2001/XMLSchema#integer> .
@@ -124,7 +124,7 @@
 <https://test.sbol3.genbank/pSB1C3/SequenceFeature5> <http://sbols.org/v3#displayId> "SequenceFeature5" .
 <https://test.sbol3.genbank/pSB1C3/SequenceFeature5> <http://sbols.org/v3#hasLocation> <https://test.sbol3.genbank/pSB1C3/SequenceFeature5/Range1> .
 <https://test.sbol3.genbank/pSB1C3/SequenceFeature5> <http://sbols.org/v3#name> "rep (pMB1)" .
-<https://test.sbol3.genbank/pSB1C3/SequenceFeature5> <http://sbols.org/v3#role> <http://identifiers.org/so/SO:0001411> .
+<https://test.sbol3.genbank/pSB1C3/SequenceFeature5> <http://sbols.org/v3#role> <http://identifiers.org/so/SO:0000001> .
 <https://test.sbol3.genbank/pSB1C3/SequenceFeature5> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://sbols.org/v3#SequenceFeature> .
 <https://test.sbol3.genbank/pSB1C3/SequenceFeature6/Range1> <http://sbols.org/v3#displayId> "Range1" .
 <https://test.sbol3.genbank/pSB1C3/SequenceFeature6/Range1> <http://sbols.org/v3#end> "276"^^<http://www.w3.org/2001/XMLSchema#integer> .
@@ -135,7 +135,7 @@
 <https://test.sbol3.genbank/pSB1C3/SequenceFeature6> <http://sbols.org/v3#displayId> "SequenceFeature6" .
 <https://test.sbol3.genbank/pSB1C3/SequenceFeature6> <http://sbols.org/v3#hasLocation> <https://test.sbol3.genbank/pSB1C3/SequenceFeature6/Range1> .
 <https://test.sbol3.genbank/pSB1C3/SequenceFeature6> <http://sbols.org/v3#name> "ORI" .
-<https://test.sbol3.genbank/pSB1C3/SequenceFeature6> <http://sbols.org/v3#role> <http://identifiers.org/so/SO:0001411> .
+<https://test.sbol3.genbank/pSB1C3/SequenceFeature6> <http://sbols.org/v3#role> <http://identifiers.org/so/SO:0000001> .
 <https://test.sbol3.genbank/pSB1C3/SequenceFeature6> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://sbols.org/v3#SequenceFeature> .
 <https://test.sbol3.genbank/pSB1C3/SequenceFeature7/Range1> <http://sbols.org/v3#displayId> "Range1" .
 <https://test.sbol3.genbank/pSB1C3/SequenceFeature7/Range1> <http://sbols.org/v3#end> "1147"^^<http://www.w3.org/2001/XMLSchema#integer> .

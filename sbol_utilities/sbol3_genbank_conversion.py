@@ -32,7 +32,9 @@ SO2GB_MAPPINGS_CSV = os.path.join(os.path.dirname(os.path.realpath(__file__)), "
 class GenBank_SBOL3_Converter:
     gb2so_map = {}
     so2gb_map = {}
-    def create_GB2SO_role_mappings(self, gb2so_csv: str = GB2SO_MAPPINGS_CSV, so2gb_csv: str = SO2GB_MAPPINGS_CSV, 
+    default_SO_ontology = "SO:0000110"
+    default_GB_ontology = "" # TODO: Whats the default here?
+    def create_GB_SO_role_mappings(self, gb2so_csv: str = GB2SO_MAPPINGS_CSV, so2gb_csv: str = SO2GB_MAPPINGS_CSV, 
                                    convert_gb2so: bool = True, convert_so2gb: bool = True):
         """Reads 2 CSV Files containing mappings for converting between GenBank and SO ontologies roles
         :param gb2so_csv: path to read genbank to so conversion csv file
@@ -75,8 +77,7 @@ class GenBank_SBOL3_Converter:
         records = list(SeqIO.parse(gb_file, "genbank").records)
         # create updated py dict to store mappings between gb and so ontologies
         logging.info("Creating GenBank and SO ontologies mappings for sequence feature roles")
-        self.create_GB2SO_role_mappings(gb2so_csv=GB2SO_MAPPINGS_CSV, 
-                                        so2gb_csv=SO2GB_MAPPINGS_CSV, convert_so2gb=False)
+        self.create_GB_SO_role_mappings(gb2so_csv=GB2SO_MAPPINGS_CSV, convert_so2gb=False)
         for record in records:
             # NOTE: Currently we assume only linear or circular topology is possible
             extra_comp_types = [sbol3.SO_LINEAR 
@@ -111,10 +112,14 @@ class GenBank_SBOL3_Converter:
                                            end=int(gb_loc.end), orientation=feat_orientation)
                     # TODO: Add defaults below if mappings are not found / key does not exist
                     # Obtain sequence feature role from gb2so mappings
-                    feat_role = self.gb2so_map[record.features[i].type]
-                    feat_role = SO_SEQ_FEAT_ROLE_NS + feat_role
+                    feat_role = SO_SEQ_FEAT_ROLE_NS
+                    if self.gb2so_map.get(record.features[i].type):
+                        feat_role += self.gb2so_map[record.features[i].type]
+                    else:
+                        logging.info(i)
+                        feat_role += self.default_SO_ontology
                     feat = sbol3.SequenceFeature(locations=[locs], 
-                                                 roles=feat_role,
+                                                 roles=[feat_role],
                                                  name=gb_feat.qualifiers['label'][0])
                     comp.features.append(feat)
         if write:
