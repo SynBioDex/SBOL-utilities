@@ -24,7 +24,6 @@ SAMPLE_SBOL3_FILE_1 = os.path.abspath(os.path.join(os.path.dirname(os.path.realp
                          os.pardir, "test/test_files", "BBa_J23101_from_genbank_to_sbol3_direct.nt"))
 SAMPLE_SBOL3_FILE_2 = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__)), 
                          os.pardir, "test/test_files", "iGEM_SBOL2_imports_from_genbank_to_sbol3_direct.nt"))
-SO_SEQ_FEAT_ROLE_NS = "http://identifiers.org/so/"
 GB2SO_MAPPINGS_CSV = os.path.join(os.path.dirname(os.path.realpath(__file__)), "gb2so.csv")
 SO2GB_MAPPINGS_CSV = os.path.join(os.path.dirname(os.path.realpath(__file__)), "so2gb.csv")
 
@@ -72,16 +71,17 @@ class GenBank_SBOL3_Converter:
         # create sbol3 document, and record parser handler for gb file
         sbol3.set_namespace(namespace)
         doc = sbol3.Document()
-        # access records by parsing gb file using SeqIO class
-        logging.info("Parsing Genbank records using SeqIO class.")
-        records = list(SeqIO.parse(gb_file, "genbank").records)
         # create updated py dict to store mappings between gb and so ontologies
         logging.info("Creating GenBank and SO ontologies mappings for sequence feature roles")
         self.create_GB_SO_role_mappings(gb2so_csv=GB2SO_MAPPINGS_CSV, convert_so2gb=False)
-        for record in records:
+        # access records by parsing gb file using SeqIO class
+        logging.info("Parsing Genbank records using SeqIO class.")
+        for record in list(SeqIO.parse(gb_file, "genbank").records):
             # NOTE: Currently we assume only linear or circular topology is possible
-            extra_comp_types = [sbol3.SO_LINEAR 
-                              if record.annotations['topology'] == "linear" else sbol3.SO_CIRCULAR]
+            if record.annotations['topology'] == "linear":
+                extra_comp_types = [sbol3.SO_LINEAR] 
+            else:
+                extra_comp_types = [sbol3.SO_CIRCULAR]
             comp = sbol3.Component(identity=record.name,
                                    types=COMP_TYPES + extra_comp_types,
                                    roles=COMP_ROLES,
@@ -95,13 +95,13 @@ class GenBank_SBOL3_Converter:
             comp.sequences = [seq]
             if record.features:
                 comp.features = []
-                for i in range(len(record.features)):
+                for gb_feat in record.features:
                     # create "Range/Cut" FeatureLocation by parsing genbank record location
-                    gb_feat = record.features[i]
                     gb_loc = gb_feat.location
                     # Default orientation is "inline" except if complement is specified via strand
                     feat_orientation = SEQ_FEAT_RANGE_ORIENTATION
-                    if gb_loc.strand == -1: feat_orientation = "https://identifiers.org/SO:0001031"
+                    if gb_loc.strand == -1: 
+                        feat_orientation = "https://identifiers.org/SO:0001031"
                     # Create a cut or range as featurelocation depending on whether location is specified as 
                     # Cut (eg: "n^n+1", parsed as [n:n] by biopython) or Range (eg: "n..m", parsed as [n:m] by biopython)
                     if gb_loc.start == gb_loc.end:
@@ -112,11 +112,10 @@ class GenBank_SBOL3_Converter:
                                            end=int(gb_loc.end), orientation=feat_orientation)
                     # TODO: Add defaults below if mappings are not found / key does not exist
                     # Obtain sequence feature role from gb2so mappings
-                    feat_role = SO_SEQ_FEAT_ROLE_NS
-                    if self.gb2so_map.get(record.features[i].type):
-                        feat_role += self.gb2so_map[record.features[i].type]
+                    feat_role = sbol3.SO_NS
+                    if self.gb2so_map.get(gb_feat.type):
+                        feat_role += self.gb2so_map[gb_feat.type]
                     else:
-                        logging.info(i)
                         feat_role += self.default_SO_ontology
                     feat = sbol3.SequenceFeature(locations=[locs], 
                                                  roles=[feat_role],
