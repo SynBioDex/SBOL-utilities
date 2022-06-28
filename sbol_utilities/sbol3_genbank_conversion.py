@@ -188,7 +188,7 @@ class GenBank_SBOL3_Converter:
                             orientation=feat_orientation,
                         )
                     # Obtain sequence feature role from gb2so mappings
-                    feat_role = sbol3.SO_NS
+                    feat_role = sbol3.SO_NS[:-3]
                     if self.gb2so_map.get(gb_feat.type):
                         feat_role += self.gb2so_map[gb_feat.type]
                     else:
