@@ -15,6 +15,7 @@ from Bio.Seq import Seq
 
 from sbol_utilities.helper_functions import strip_sbol2_version, GENETIC_DESIGN_FILE_TYPES, \
     find_top_level
+from sbol_utilities.sbol3_genbank_conversion import GenBank_SBOL3_Converter
 from sbol_utilities.workarounds import id_sort
 
 # sbol javascript executable based on https://github.com/sboltools/sbolgraph
@@ -395,7 +396,17 @@ def command_line_converter(args_dict: Dict[str, Any]):
     if input_file_type == 'FASTA':
         doc3 = convert_from_fasta(input_file, namespace)
     elif input_file_type == 'GenBank':
-        doc3 = convert_from_genbank(input_file, namespace, args_dict['allow_genbank_online'])
+        allow_legacy_converter = args_dict['allow_legacy_converter']
+        converter = GenBank_SBOL3_Converter()
+        doc3 = converter.convert_genbank_to_sbol3(gb_file=input_file, sbol3_file=output_file, 
+                                                  namespace=namespace, write=False)
+        if not doc3:
+            logging.error(f"No SBOL3 output document was produced by new converter;\n    Please make sure you have the latest pip package installed.")
+            if allow_legacy_converter:
+                logging.info(f"Error encountered with conversion using new offline converter, reverting to legacy online converter.")
+                doc3 = convert_from_genbank(input_file, namespace, args_dict['allow_genbank_online'])
+            else:
+                return
     elif input_file_type == 'SBOL2':
         doc2 = sbol2.Document()
         doc2.read(input_file)
@@ -474,6 +485,8 @@ def genbank2sbol():
                         help='Print running explanation of conversion process')
     parser.add_argument('--allow-genbank-online', dest='allow_genbank_online', action='store_true', default=False,
                         help='Perform GenBank conversion using online converter')
+    parser.add_argument('--allow-legacy-converter', dest='allow_legacy_converter', action='store_true', default=False,
+                        help='Allow to fallback to legacy online converter in case of any ambiguities.')
     args_dict = vars(parser.parse_args())
     args_dict['input_file_type'] = 'GenBank'
     args_dict['output_file_type'] = 'SBOL3'

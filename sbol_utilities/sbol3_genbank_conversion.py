@@ -135,7 +135,7 @@ class GenBank_SBOL3_Converter:
         )
         for record in list(SeqIO.parse(gb_file, "genbank").records):
             # NOTE: Currently we assume only linear or circular topology is possible
-            logging.info(f"Parsing record - {record.id} in genbank file.")
+            logging.info(f"Parsing record - `{record.id}` in genbank file.")
             if record.annotations["topology"] == "linear":
                 extra_comp_types = [sbol3.SO_LINEAR]
             else:
@@ -164,7 +164,7 @@ class GenBank_SBOL3_Converter:
                 comp.features = []
                 for gb_feat in record.features:
                     logging.info(
-                        f"Parsing feature {gb_feat.qualifiers['label'][0]} for record {record.id}"
+                        f"Parsing feature `{gb_feat.qualifiers['label'][0]}` for record `{record.id}`"
                     )
                     # create "Range/Cut" FeatureLocation by parsing genbank record location
                     gb_loc = gb_feat.location
