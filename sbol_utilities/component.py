@@ -573,6 +573,8 @@ def backbone(identity: str, sequence: str, dropout_location: List[int], fusion_s
     backbone_component.features.append(dropout_sequence_feature)
     backbone_component.features.append(insertion_sites_feature)
     backbone_component.features.append(open_backbone_feature)
+    backbone_dropout_meets = sbol3.Constraint(restriction='http://sbols.org/v3#meets', subject=dropout_sequence_feature, object=open_backbone_feature)
+    backbone_component.constraints.append(backbone_dropout_meets)
     return backbone_component, backbone_seq
 
 

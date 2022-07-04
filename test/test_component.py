@@ -323,6 +323,8 @@ class TestComponent(unittest.TestCase):
         circular_backbone_component.features.append(dropout_sequence_feature)
         circular_backbone_component.features.append(insertion_sites_feature)
         circular_backbone_component.features.append(open_backbone_feature)
+        backbone_dropout_meets = sbol3.Constraint(restriction='http://sbols.org/v3#meets', subject=dropout_sequence_feature, object=open_backbone_feature)
+        circular_backbone_component.constraints.append(backbone_dropout_meets)
         doc.add([circular_backbone_component, circular_backbone_seq])
         assert doc_diff(doc, hlc_doc) == 0, f'Constructor Error: Circular {backbone_identity}'
 
@@ -346,6 +348,8 @@ class TestComponent(unittest.TestCase):
         linear_backbone_component.features.append(dropout_sequence_feature)
         linear_backbone_component.features.append(insertion_sites_feature)
         linear_backbone_component.features.append(open_backbone_feature)
+        backbone_dropout_meets = sbol3.Constraint(restriction='http://sbols.org/v3#meets', subject=dropout_sequence_feature, object=open_backbone_feature)
+        linear_backbone_component.constraints.append(backbone_dropout_meets)
         doc.add([linear_backbone_component, linear_backbone_seq])
         assert doc_diff(doc, hlc_doc) == 0, f'Constructor Error: Linear {backbone_identity}'
 
