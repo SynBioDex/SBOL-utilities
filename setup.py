@@ -38,7 +38,7 @@ setup(name='sbol-utilities',
             'rdflib',
             'biopython',
             'graphviz',
-            'tyto>=1.0',
+            'tyto>=1.2.1',
             'openpyxl',
             'sbol_factory>=1.0a11'
             ],

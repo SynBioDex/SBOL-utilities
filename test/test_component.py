@@ -8,12 +8,14 @@ import sbol3
 import tyto
 
 from sbol_utilities.component import contained_components, contains, add_feature, add_interaction, \
-    constitutive, \
+    constitutive, ed_restriction_enzyme, \
     regulate, order, in_role, all_in_role, ensure_singleton_feature, is_dna_part
 from sbol_utilities.component import dna_component_with_sequence, rna_component_with_sequence, \
     protein_component_with_sequence, media, functional_component, promoter, rbs, cds, terminator, \
     protein_stability_element, gene, operator, engineered_region, mrna, transcription_factor, \
     strain, ed_simple_chemical, ed_protein
+
+from sbol_utilities.component import ed_restriction_enzyme, backbone
 from sbol_utilities.helper_functions import find_top_level, toplevel_named, TopLevelNotFound, outgoing_links
 from sbol_utilities.sbol_diff import doc_diff    
 
@@ -288,6 +290,73 @@ class TestComponent(unittest.TestCase):
         hlc_doc.add(hlc_media_comp)
         doc.add(media_comp)
         assert doc_diff(doc, hlc_doc) == 0, f'Constructor Error: {media_identity}'
+
+    def test_sep055(self):
+        """Test construction of components and features using helper functions: for each, build manually and compare."""
+        hlc_doc = sbol3.Document()
+        doc = sbol3.Document()
+        sbol3.set_namespace('http://sbolstandard.org/testfiles')
+
+        restriction_enzyme_name = 'BsaI'
+        restriction_enzyme_definition = 'http://rebase.neb.com/rebase/enz/BsaI.html' # TODO: replace with getting the URI from Enzyme when REBASE identifiers become available in biopython 1.80
+        bsai = ed_restriction_enzyme(restriction_enzyme_name)
+        assert bsai.definition == restriction_enzyme_definition, 'Constructor Error: ed_restriction_enzyme'
+
+        backbone_identity = 'backbone'
+        backbone_sequence = 'aaGGGGttttCCCCaa'
+        dropout_location = [3,15]
+        fusion_site_length = 4
+        test_description = 'test'
+
+        hl_circular_backbone_component, hl_circular_backbone_seq = backbone(identity=backbone_identity, sequence=backbone_sequence, dropout_location=dropout_location, fusion_site_length=fusion_site_length, linear=False, description=test_description)
+        hlc_doc.add([hl_circular_backbone_component, hl_circular_backbone_seq])
+
+        circular_backbone_seq = sbol3.Sequence(f'{backbone_identity}_seq', elements=backbone_sequence, encoding=sbol3.IUPAC_DNA_ENCODING)
+        circular_backbone_component =  sbol3.Component(backbone_identity, types=[sbol3.SBO_DNA, sbol3.SO_CIRCULAR], roles=[sbol3.SO_DOUBLE_STRANDED, tyto.SO.plasmid_vector], sequences=[circular_backbone_seq], description=test_description)
+
+        dropout_location_comp = sbol3.Range(sequence=circular_backbone_seq, start=dropout_location[0], end=dropout_location[1])
+        insertion_site_location1 = sbol3.Range(sequence=circular_backbone_seq, start=dropout_location[0], end=dropout_location[0]+fusion_site_length, order=1)
+        insertion_site_location2 = sbol3.Range(sequence=circular_backbone_seq, start=dropout_location[1]-fusion_site_length, end=dropout_location[1], order=3)
+        open_backbone_location1 = sbol3.Range(sequence=circular_backbone_seq, start=1, end=dropout_location[0]+fusion_site_length, order=2)
+        open_backbone_location2 = sbol3.Range(sequence=circular_backbone_seq, start=dropout_location[1]-fusion_site_length, end=len(backbone_sequence), order=1)
+        dropout_sequence_feature = sbol3.SequenceFeature(locations=[dropout_location_comp], roles=[tyto.SO.deletion])
+        insertion_sites_feature = sbol3.SequenceFeature(locations=[insertion_site_location1, insertion_site_location2], roles=[tyto.SO.insertion_site])
+        open_backbone_feature = sbol3.SequenceFeature(locations=[open_backbone_location1, open_backbone_location2])
+    
+        circular_backbone_component.features.append(dropout_sequence_feature)
+        circular_backbone_component.features.append(insertion_sites_feature)
+        circular_backbone_component.features.append(open_backbone_feature)
+        backbone_dropout_meets = sbol3.Constraint(restriction='http://sbols.org/v3#meets', subject=dropout_sequence_feature, object=open_backbone_feature)
+        circular_backbone_component.constraints.append(backbone_dropout_meets)
+        doc.add([circular_backbone_component, circular_backbone_seq])
+        assert doc_diff(doc, hlc_doc) == 0, f'Constructor Error: Circular {backbone_identity}'
+
+        hlc_doc = sbol3.Document()
+        doc = sbol3.Document()
+        sbol3.set_namespace('http://sbolstandard.org/testfiles')
+
+        hl_linear_backbone_component, hl_linear_backbone_seq = backbone(identity=backbone_identity, sequence=backbone_sequence, dropout_location=dropout_location, fusion_site_length=fusion_site_length, linear=True, description=test_description)
+        hlc_doc.add([hl_linear_backbone_component, hl_linear_backbone_seq])
+
+        linear_backbone_seq = sbol3.Sequence(f'{backbone_identity}_seq', elements=backbone_sequence, encoding=sbol3.IUPAC_DNA_ENCODING)
+        linear_backbone_component =  sbol3.Component(backbone_identity, types=[sbol3.SBO_DNA, sbol3.SO_LINEAR], roles=[sbol3.SO_DOUBLE_STRANDED, sbol3.SO_ENGINEERED_REGION], sequences=[linear_backbone_seq], description=test_description)
+        
+        dropout_location_comp = sbol3.Range(sequence=linear_backbone_seq, start=dropout_location[0], end=dropout_location[1]) 
+        insertion_site_location1 = sbol3.Range(sequence=linear_backbone_seq, start=dropout_location[0], end=dropout_location[0]+fusion_site_length, order=1)
+        insertion_site_location2 = sbol3.Range(sequence=linear_backbone_seq, start=dropout_location[1]-fusion_site_length, end=dropout_location[1], order=3)
+        open_backbone_location1 = sbol3.Range(sequence=linear_backbone_seq, start=1, end=dropout_location[0]+fusion_site_length, order=1)
+        open_backbone_location2 = sbol3.Range(sequence=linear_backbone_seq, start=dropout_location[1]-fusion_site_length, end=len(backbone_sequence), order=2)
+        dropout_sequence_feature = sbol3.SequenceFeature(locations=[dropout_location_comp], roles=[tyto.SO.deletion])
+        insertion_sites_feature = sbol3.SequenceFeature(locations=[insertion_site_location1, insertion_site_location2], roles=[tyto.SO.insertion_site])
+        open_backbone_feature = sbol3.SequenceFeature(locations=[open_backbone_location1, open_backbone_location2])
+
+        linear_backbone_component.features.append(dropout_sequence_feature)
+        linear_backbone_component.features.append(insertion_sites_feature)
+        linear_backbone_component.features.append(open_backbone_feature)
+        backbone_dropout_meets = sbol3.Constraint(restriction='http://sbols.org/v3#meets', subject=dropout_sequence_feature, object=open_backbone_feature)
+        linear_backbone_component.constraints.append(backbone_dropout_meets)
+        doc.add([linear_backbone_component, linear_backbone_seq])
+        assert doc_diff(doc, hlc_doc) == 0, f'Constructor Error: Linear {backbone_identity}'
 
 if __name__ == '__main__':
     unittest.main()
