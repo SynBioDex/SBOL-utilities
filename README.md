@@ -1,5 +1,7 @@
 # SBOL-utilities
+
 SBOL-utilities is a collection of scripts and functions for manipulating SBOL 3 data that can be run from the command line or as functions in Python.
+[Additional documentation is online at readthedocs.io](https://sbol-utilities.readthedocs.io/en/latest/).
 
 [![Documentation Status](https://readthedocs.org/projects/sbol-utilities/badge/?version=latest)](http://sbol-utilities.readthedocs.io/)
 [![Docstrings Coverage](https://github.com/SynBioDex/SBOL-utilities/actions/workflows/docstr-coverage.yml/badge.svg)](https://github.com/SynBioDex/SBOL-utilities/actions/workflows/docstr-coverage.yml)
@@ -21,6 +23,7 @@ pip3 install sbol-utilities
 Certain utilities also have non-Python dependencies, which must be installed separately:
 - `graph-sbol` requires [Graphviz](https://graphviz.org/) to be able to render diagrams.
 - `sbol-converter` requires [node.js](https://nodejs.org/en/) to be able to locally run Javascript.
+
 
 ## Utilities
 
@@ -69,3 +72,9 @@ The `sbol-calculate-sequences` utility attempts to calculate the sequence of any
 ### Compute the difference between two SBOL3 documents
 The `sbol-diff` utility computes the difference between two SBOL3 documents
 and reports the differences.
+
+
+## Contributing
+
+We welcome contributions that patch bugs, improve existing utilities or documentation, or add new utilities!
+For guidance on how to contribute effectively to this project, see [CONTRIBUTING.md](CONTRIBUTING.md).
