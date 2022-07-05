@@ -40,8 +40,7 @@ setup(name='sbol-utilities',
             'graphviz',
             'tyto>=1.2.1',
             'openpyxl',
-            'sbol_factory>=1.0a11',
-            'pydna'
+            'sbol_factory>=1.0a11'
             ],
       extras_require={  # requirements for development
           'dev': ['pytest', 'interrogate']

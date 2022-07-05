@@ -1,16 +1,14 @@
 from __future__ import annotations
-from ast import Raise
 
 from typing import Dict, Iterable, List, Union, Optional, Tuple
-from xmlrpc.client import Boolean
 
 import sbol3
 import tyto
 
-from pydna.dseqrecord import Dseqrecord
-
 from sbol_utilities.helper_functions import id_sort, find_child, find_top_level, SBOL3PassiveVisitor, cached_references
 from sbol_utilities.workarounds import get_parent
+
+from Bio import Restriction
 
 
 # TODO: consider allowing return of LocalSubComponent and ExternallyDefined
@@ -531,8 +529,8 @@ def ed_restriction_enzyme(name:str, **kwargs) -> sbol3.ExternallyDefined:
     :param kwargs: Keyword arguments of any other ExternallyDefined attribute.
     :return: An ExternallyDefined object.
     """
-    exec(f'from Bio.Restriction import {name}')
-    definition=f'http://rebase.neb.com/rebase/enz/{name}.html'
+    check_enzyme = Restriction.__dict__[name]
+    definition=f'http://rebase.neb.com/rebase/enz/{name}.html' # TODO: replace with getting the URI from Enzyme when REBASE identifiers become available in biopython 1.8
     return sbol3.ExternallyDefined([sbol3.SBO_PROTEIN], definition=definition, name=name, **kwargs)
 
 def backbone(identity: str, sequence: str, dropout_location: List[int], fusion_site_length:int, linear:bool, **kwargs) -> Tuple[sbol3.Component, sbol3.Sequence]:
@@ -540,7 +538,7 @@ def backbone(identity: str, sequence: str, dropout_location: List[int], fusion_s
 
     :param identity: The identity of the Component. The identity of Sequence is also identity with the suffix '_seq'.
     :param sequence: The DNA sequence of the Component encoded in IUPAC.
-    :param dropout_location: List of 2 integers that indicates the start and the end of the dropout sequence including overhangs. Note that the index of the first location is 1, as is typical practice in biology, rather than 0, as is typical practice in computer science.
+    :param dropout_location: List of 2 integers that indicates the start and the end of the dropout sequence including overhangs. Note that the index of the first location is 1, as is typical practice in biology, rather than 0, as is typical practice in computer science. # TODO: add generalization to support multiple drop-out locations and non-identical fusion sites lengths.
     :param fusion_site_length: Integer of the lenght of the fusion sites (eg. BsaI fusion site lenght is 4, SapI fusion site lenght is 3)
     :param linear: Boolean than indicates if the backbone is linear, by default it is seted to Flase which means that it has a circular topology.
     :param kwargs: Keyword arguments of any other Component attribute.
@@ -551,25 +549,22 @@ def backbone(identity: str, sequence: str, dropout_location: List[int], fusion_s
     backbone_component, backbone_seq = dna_component_with_sequence(identity, sequence, **kwargs)
     backbone_component.roles.append(sbol3.SO_DOUBLE_STRANDED)  
     dropout_location_comp = sbol3.Range(sequence=backbone_seq, start=dropout_location[0], end=dropout_location[1])
-    insertion_site_location1 = sbol3.Range(sequence=backbone_seq, start=dropout_location[0], end=dropout_location[0]+fusion_site_length)
-    insertion_site_location2 = sbol3.Range(sequence=backbone_seq, start=dropout_location[1]-fusion_site_length, end=dropout_location[1])
-      
+    insertion_site_location1 = sbol3.Range(sequence=backbone_seq, start=dropout_location[0], end=dropout_location[0]+fusion_site_length, order=1)
+    insertion_site_location2 = sbol3.Range(sequence=backbone_seq, start=dropout_location[1]-fusion_site_length, end=dropout_location[1], order=3)
+    dropout_sequence_feature = sbol3.SequenceFeature(locations=[dropout_location_comp], roles=[tyto.SO.deletion])
+    insertion_sites_feature = sbol3.SequenceFeature(locations=[insertion_site_location1, insertion_site_location2], roles=[tyto.SO.insertion_site])
     if linear:
         backbone_component.types.append(sbol3.SO_LINEAR)
         backbone_component.roles.append(sbol3.SO_ENGINEERED_REGION)
-        open_backbone_location1 = sbol3.Range(sequence=backbone_seq, start=1, end=dropout_location[0]+fusion_site_length)
-        open_backbone_location2 = sbol3.Range(sequence=backbone_seq, start=dropout_location[1]-fusion_site_length, end=len(sequence))
-        dropout_sequence_feature = sbol3.SequenceFeature(locations=[dropout_location_comp], roles=[tyto.SO.deletion])
-        insertion_sites_feature = sbol3.SequenceFeature(locations=[insertion_site_location1, insertion_site_location2], roles=[tyto.SO.insertion_site])
-        open_backbone_feature = sbol3.SequenceFeature(locations=[open_backbone_location1, open_backbone_location2]) 
+        open_backbone_location1 = sbol3.Range(sequence=backbone_seq, start=1, end=dropout_location[0]+fusion_site_length, order=1)
+        open_backbone_location2 = sbol3.Range(sequence=backbone_seq, start=dropout_location[1]-fusion_site_length, end=len(sequence), order=2)
+        open_backbone_feature = sbol3.SequenceFeature(locations=[open_backbone_location1, open_backbone_location2])
     else: 
         backbone_component.types.append(sbol3.SO_CIRCULAR)
         backbone_component.roles.append(tyto.SO.plasmid_vector)
-        open_backbone_location = sbol3.Range(sequence=backbone_seq, start=dropout_location[1], end=dropout_location[0]+fusion_site_length)
-        dropout_sequence_feature = sbol3.SequenceFeature(locations=[dropout_location_comp], roles=[tyto.SO.deletion])
-        insertion_sites_feature = sbol3.SequenceFeature(locations=[insertion_site_location1, insertion_site_location2], roles=[tyto.SO.insertion_site])
-        open_backbone_feature = sbol3.SequenceFeature(locations=[open_backbone_location]) 
-
+        open_backbone_location1 = sbol3.Range(sequence=backbone_seq, start=1, end=dropout_location[0]+fusion_site_length, order=2)
+        open_backbone_location2 = sbol3.Range(sequence=backbone_seq, start=dropout_location[1]-fusion_site_length, end=len(sequence), order=1)
+        open_backbone_feature = sbol3.SequenceFeature(locations=[open_backbone_location1, open_backbone_location2])
     backbone_component.features.append(dropout_sequence_feature)
     backbone_component.features.append(insertion_sites_feature)
     backbone_component.features.append(open_backbone_feature)
