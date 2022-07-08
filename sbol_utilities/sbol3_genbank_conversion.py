@@ -124,11 +124,11 @@ class GenBank_SBOL3_Converter:
             gb2so_csv=GB2SO_MAPPINGS_CSV, convert_so2gb=False
         )
         if not map_created:
-            logging.critical(
+            # TODO: Need better SBOL3-GenBank specific error classes in future
+            raise ValueError(
                 f"Required CSV data files are not present in your package.\n    Please reinstall the sbol_utilities package.\n \
                 Stopping current conversion process.\n    Reverting to legacy converter if new Conversion process is not forced."
             )
-            return None
         # access records by parsing gb file using SeqIO class
         logging.info(
             f"Parsing Genbank records using SeqIO class.\n    Using GenBank file {gb_file}"

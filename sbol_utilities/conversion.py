@@ -307,14 +307,6 @@ def convert_from_genbank(path: str, namespace: str, allow_genbank_online: bool =
         converter = GenBank_SBOL3_Converter()
         doc = converter.convert_genbank_to_sbol3(gb_file=path, namespace=namespace, write=False)
         return doc
-        # if not doc3:
-        #     logging.error(f"No SBOL3 output document was produced by new converter;\n \
-        #                   Please make sure you have the latest pip package installed.")
-        #     if allow_legacy_converter:
-        #         logging.info(f"Error encountered with conversion using new offline converter, reverting to legacy online converter.")
-        #         doc3 = convert_from_genbank(input_file, namespace, args_dict['allow_genbank_online'])
-        #     else:
-        #         return
     doc2 = sbol2.Document()
     sbol2.setHomespace(namespace)
     # Convert document offline
@@ -423,7 +415,7 @@ def command_line_converter(args_dict: Dict[str, Any]):
         raise ValueError(f'Unknown file type {input_file_type}; should have been caught earlier')
 
     # Convert output from SBOL3
-    if doc3: logging.info('Writing output file '+output_file)
+    logging.info('Writing output file '+output_file)
     if output_file_type == 'FASTA':
         convert_to_fasta(doc3, output_file)
     elif output_file_type == 'GenBank':
@@ -437,7 +429,7 @@ def command_line_converter(args_dict: Dict[str, Any]):
         finally:
             sbol2.Config.setOption(sbol2.ConfigOptions.VALIDATE_ONLINE, validate_online)
     elif output_file_type == 'SBOL3':
-        if doc3: doc3.write(output_file, sbol3.SORTED_NTRIPLES)
+        doc3.write(output_file, sbol3.SORTED_NTRIPLES)
     else:
         raise ValueError(f'Unknown file type {output_file_type}; should have been caught earlier')
 
@@ -456,6 +448,8 @@ def main():
                         help="Print running explanation of conversion process")
     parser.add_argument('--allow-genbank-online', dest='allow_genbank_online', action='store_true', default=False,
                         help='Perform GenBank conversion using online converter')
+    parser.add_argument('--force-new-converter', dest='force_new_converter', action='store_true', default=False,
+                        help='Force the usage of new (offline) converter instead of legacy (online) converter.')
     args_dict = vars(parser.parse_args())
     # Call the shared command-line conversion routine
     command_line_converter(args_dict)
@@ -542,6 +536,8 @@ def sbol2genbank():
                         help="Print running explanation of conversion process")
     parser.add_argument('--allow-genbank-online', dest='allow_genbank_online', action='store_true', default=False,
                         help='Perform GenBank conversion using online converter')
+    parser.add_argument('--force-new-converter', dest='force_new_converter', action='store_true', default=False,
+                        help='Force the usage of new (offline) converter instead of legacy (online) converter.')
     args_dict = vars(parser.parse_args())
     args_dict['input_file_type'] = 'SBOL3'
     args_dict['output_file_type'] = 'GenBank'
