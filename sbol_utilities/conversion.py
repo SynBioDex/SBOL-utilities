@@ -305,8 +305,7 @@ def convert_from_genbank(path: str, namespace: str, allow_genbank_online: bool =
     """
     if force_new_converter:
         converter = GenBank_SBOL3_Converter()
-        doc = converter.convert_genbank_to_sbol3(gb_file=path, namespace=namespace, write=False)
-        return doc
+        return converter.convert_genbank_to_sbol3(gb_file=path, namespace=namespace, write=False)
     doc2 = sbol2.Document()
     sbol2.setHomespace(namespace)
     # Convert document offline
