@@ -2,7 +2,10 @@ import os
 import csv
 import sbol3
 import logging
+from typing import List
 from Bio import SeqIO
+from Bio.Seq import Seq
+from Bio.SeqRecord import SeqRecord
 from sbol3.constants import SBOL_SEQUENCE_FEATURE
 
 # Conversion Constants (NOTE: most are placeholding and temporary for now)
@@ -103,7 +106,7 @@ class GenBank_SBOL3_Converter:
         write: bool = False,
     ) -> sbol3.Document:
         """Convert a GenBank document on disk into an SBOL3 document
-        Specifically, the GenBank document is first imported to SBOL2, then converted from SBOL2 to SBOL3
+        The GenBank document is parsed using BioPython, and corresponding objects of SBOL3 document are created
 
         :param gb_file: path to read GenBank file from
         :param sbol3_file: path to write SBOL3 file to, if write set to true
@@ -206,15 +209,51 @@ class GenBank_SBOL3_Converter:
             doc.write(fpath=sbol3_file, file_format=sbol3.SORTED_NTRIPLES)
         return doc
 
+    def convert_sbol3_to_genbank(
+        self,
+        sbol3_file: str,
+        gb_file: str = "genbank.out",
+        write: bool = False,
+    ) -> List[SeqRecord]:
+        """Convert a SBOL3 document on disk into a GenBank document
+        The GenBank document is made using an array of SeqRecords using BioPython, by parsing SBOL3 objects
+
+        :param sbol3_file: path to read SBOL3 file from
+        :param gb_file: path to write GenBank file to, if write set to true
+        :param write: writes the generated sbol3 document in SORTED_NTRIPLES
+                          format to provided sbol3_file path
+        :return: Array of SeqRecord objects which comprise the generated GenBank document
+        """
+        doc = sbol3.Document()
+        doc.read(sbol3_file)
+        SEQ_RECORDS = []
+        for obj in doc.objects:
+            if isinstance(obj, sbol3.Component):
+                # TODO: can component have multiple sequences? How should we handle Seq objects for those
+                obj_seq = doc.find(obj.sequences[0])
+                seq = Seq(obj_seq.elements.upper())
+                seq_rec = SeqRecord(seq=seq, id=obj.display_id, description=obj.description, name=obj.display_id)
+                # TODO: hardcoded molecule_type as DNA, derivation?
+                seq_rec.annotations["molecule_type"] = "DNA"
+                # TODO: hardcoded topology as linear, derivation?
+                seq_rec.annotations["topology"] = "linear"
+                SEQ_RECORDS.append(seq_rec)
+                print(obj)
+                print(seq)
+                print(seq_rec)
+        if write: SeqIO.write(SEQ_RECORDS, gb_file, "genbank")
+        return SEQ_RECORDS
+
 
 # Currently we don't parse input for gb and sbol3 files (hardcoded)
 def main():
     log_level = logging.INFO
     logging.getLogger().setLevel(level=log_level)
     converter = GenBank_SBOL3_Converter()
-    converter.convert_genbank_to_sbol3(
-        gb_file=SAMPLE_GENBANK_FILE_2, sbol3_file=SAMPLE_SBOL3_FILE_2, write=True
-    )
+    # converter.convert_genbank_to_sbol3(
+    #     gb_file=SAMPLE_GENBANK_FILE_2, sbol3_file=SAMPLE_SBOL3_FILE_2, write=True
+    # )
+    converter.convert_sbol3_to_genbank(sbol3_file="BBa_J23101.nt", write=True)
 
 
 if __name__ == "__main__":
