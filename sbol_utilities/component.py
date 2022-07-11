@@ -572,6 +572,176 @@ def backbone(identity: str, sequence: str, dropout_location: List[int], fusion_s
     backbone_component.constraints.append(backbone_dropout_meets)
     return backbone_component, backbone_seq
 
+def part_insert(identity: str, part: sbol3.Component, fusion_site_sequences:List[str], **kwargs) -> Tuple[sbol3.Component, sbol3.Sequence]:
+    """Creates a Part insert Component and its Sequence.
+
+    :param identity: The identity of the Component. The identity of Sequence is also identity with the suffix '_seq'.
+    :param part: Part to be located in the backbone as SBOL Component.
+    :param fusion_site_sequences: List of upstream and downstream (in that order) fusion sites.
+    :param kwargs: Keyword arguments of any other Component attribute.
+    :return: A tuple of Component and Sequence.
+    """
+    if len(part.sequences)==1:
+        pass
+    else: raise NotImplementedError(f'The part needs to have only one sequence. The input part has {len(part.sequences)} sequences')
+    
+    part_sequence = part.sequences[0].lookup().elements
+    # make new component sequence
+    part_insert_seq_str = fusion_site_sequences[0]+part_sequence+fusion_site_sequences[1]
+    # part in backbone Component
+    part_insert_component, part_insert_seq = dna_component_with_sequence(identity, part_insert_seq_str, **kwargs)
+    types_set = set(part_insert_component.types)
+    roles_set = set(part_insert_component.roles)
+    types_set.add(sbol3.SO_DOUBLE_STRANDED)
+    types_set.add(part.types)
+    roles_set.add(tyto.SO.engineered_insert) #review
+    roles_set.add(part.roles)
+    part_insert_component.types = list(types_set)
+    part_insert_component.roles = list(roles_set)
+    upstream_fusion_site_location = sbol3.Range(sequence=part_insert_seq, start=1, end=len(fusion_site_sequences[0]))
+    downstream_fusion_site_location = sbol3.Range(sequence=part_insert_seq, start=len(part_insert_seq_str)-len(fusion_site_sequences[1]), end=len(part_insert_seq_str))
+    upstream_fusion_site_feature = sbol3.SequenceFeature(locations=[upstream_fusion_site_location], roles=[tyto.SO.restriction_enzyme_five_prime_single_strand_overhang])
+    downstream_fusion_site_feature = sbol3.SequenceFeature(locations=[downstream_fusion_site_location], roles=[tyto.SO.restriction_enzyme_three_prime_single_strand_overhang])
+    part_insert_component.features.append(upstream_fusion_site_feature)
+    part_insert_component.features.append(downstream_fusion_site_feature)
+    return part_insert_component, part_insert_seq
+
+def part_in_backbone(identity: str, part: sbol3.Component, backbone: sbol3.Component, linear:bool=False, **kwargs) -> Tuple[sbol3.Component, sbol3.Sequence]:
+    """Creates a Part in Backbone Component and its Sequence.
+
+    :param identity: The identity of the Component. The identity of Sequence is also identity with the suffix '_seq'.
+    :param part: Part to be located in the backbone as SBOL Component.
+    :param backbone: Backbone in wich the part is located as SBOL Component.
+    :param linear: Boolean than indicates if the backbone is linear, by default it is seted to Flase which means that it has a circular topology.
+    :param kwargs: Keyword arguments of any other Component attribute.
+    :return: A tuple of Component and Sequence.
+    """
+    #TODO check extreme from the part and backbone, if they match pass, if not raise error 
+    # check that backbone has a plasmid vector or child ontology term
+    if any(role==tyto.SO.plasmid_vector for role in backbone.roles): # how to check if child also?
+        pass
+    else: raise TypeError('The backbone has no valid plasmid vector or child role')
+    # get backbone sequence
+    backbone_sequence = backbone.sequences[0].lookup().elements
+    # extract backbone open sequence
+    open_backbone_sequence = backbone_sequence[backbone.features[2].locations[0].start -1 : -1] + backbone_sequence[0 : backbone.features[2].locations[0].end]
+    # make sure there are recognition sites
+    # extract part sequence
+    part_sequence = part.sequences[0].lookup().elements
+    # make new component sequence
+    part_in_backbone_seq_str = part_sequence + open_backbone_sequence
+    # part in backbone Component
+    part_in_backbone_component, part_in_backbone_seq = dna_component_with_sequence(identity, part_in_backbone_seq_str, **kwargs)
+    part_in_backbone_component.roles.append(tyto.SO.plasmid_vector) #review
+    # inherit part type?
+    part_subcomponent_location = sbol3.Range(sequence=part_in_backbone_seq, start=1, end=len(part_sequence))
+    backbone_subcomponent_location = sbol3.Range(sequence=part_in_backbone_seq, start=len(part_sequence)+1, end=len(part_in_backbone_seq_str))
+    source_location = sbol3.Range(sequence=backbone_sequence, start=backbone.features[-1].locations[0].start, end=backbone.features[-1].locations[0].end) # review
+    part_subcomponent = sbol3.SubComponent(part, roles=[tyto.SO.engineered_insert], locations=[part_subcomponent_location]) #TODO add role_integration='mergeRoles', causes problems replacing the previous roles
+    backbone_subcomponent = sbol3.SubComponent(backbone, locations=[backbone_subcomponent_location], source_locations=[source_location])  #[backbone.features[2].locations[0]]) #generalize source location
+    part_in_backbone_component.features.append(part_subcomponent)
+    part_in_backbone_component.features.append(backbone_subcomponent)
+
+    if linear:
+        raise NotImplementedError('Not implemented for linear backbones')
+    else: part_in_backbone_component.types.append(sbol3.SO_CIRCULAR)
+    #make locations, how to setup a default orientation?
+    # read subcomponent all, diff between Location and Source Location, Ranges are child objects
+    return part_in_backbone_component, part_in_backbone_seq
+
+def digestion(reactant:sbol3.Component, restriction_enzymes:List[sbol3.ExternallyDefined], assembly_plan:sbol3.Component)-> Tuple[sbol3.Component, sbol3.Sequence]:
+    """Digests a Component using the provided restriction enzymes and creates a product Component and a digestion Interaction.
+
+    :param reactant: DNA to be digested as SBOL Component. 
+    :param restriction_enzymes: Restriction enzymes used  Externally Defined.
+    :return: A tuple of Component and Interaction.
+    """
+    # This lists start empty but we will be filled as the algorithm proceeds
+    participations=[]
+    restriction_enzyme_names=[]
+    restriction_enzymes_pydna=[]
+    # Loop through reastriction_enzymes to make Participations.
+    for r in restriction_enzymes:
+        restriction_enzyme_names.append(r.name)
+        
+    for n in restriction_enzyme_names:
+        load = f'from Bio.Restriction import {n}'
+        save = f'restriction_enzymes_pydna.append({n})'
+        exec(load)
+        exec(save)
+ 
+    # Inform topology to PyDNA
+    if any(n==sbol3.SO_CIRCULAR for n in reactant.types):
+        circular=True
+        linear=False
+    elif any(n==sbol3.SO_LINEAR for n in reactant.types):
+        circular=False
+        linear=True
+    else:
+        circular=False
+        linear=False
+    # check that the reactant has only one DNA sequence
+    if len(reactant.sequences)==1:
+        pass
+    else: raise NotImplementedError(f'The reactant needs to have only one sequence. The input reactant has {len(reactant.sequences)} sequences')
+    reactant_seq = reactant.sequences[0].lookup().elements
+    # Dseqrecord is from PyDNA package with reactant sequence
+    ds_reactant = Dseqrecord(reactant_seq, linear=linear, circular=circular)
+    digested_reactant = ds_reactant.cut(restriction_enzymes_pydna)
+
+
+    if len(digested_reactant)==0 or len(digested_reactant)>3:
+        raise NotImplementedError(f'Not supported number of products. Found{len(digested_reactant)}')
+    elif any(n==sbol3.SO_CIRCULAR for n in reactant.types) and len(digested_reactant)==2:
+        digested_reactant = ds_reactant.cut(restriction_enzymes_pydna) #how do you extract the part if there are too many cuts?
+        # check digested_reactant
+        part_extract, backbone = digested_reactant
+    elif any(n==sbol3.SO_LINEAR for n in reactant.types) and len(digested_reactant)==3:
+        digested_reactant = ds_reactant.cut(restriction_enzymes_pydna) #how do you extract the part if there are too many cuts?
+        # check digested_reactant
+        prefix, part_extract, suffix = digested_reactant
+    else: raise NotImplementedError('The reactant has no valid topology type')
+    # Build product Component and Participation
+    reactant_roles = []
+    for f in reactant.features:
+        for r in f.roles:
+             reactant_roles.append(r)
+    # if part
+    if any(n==tyto.SO.engineered_insert for n in reactant_roles):
+        product_sequence = part_extract.seq
+        prod_comp, prod_seq = dna_component_with_sequence(identity='part_extract', sequence=str(product_sequence))
+        # add sticky ends features
+        # add recognition site features
+    # if backbone
+    elif any(n==tyto.SO.deletion for n in reactant_roles):
+        product_sequence = backbone.seq
+        prod_comp, prod_seq = dna_component_with_sequence(identity='backbone', sequence=str(product_sequence))
+        # add sticky ends features
+        # add recognition site features
+    else: raise NotImplementedError('The reactant has no valid roles')
+
+    # Create reactant Participation.
+    react_subcomp = sbol3.SubComponent(reactant)
+    assembly_plan.features.append(react_subcomp)
+    reactant_participation = sbol3.Participation(roles=[sbol3.SBO_REACTANT], participant=react_subcomp)
+    participations.append(reactant_participation)
+    
+    prod_subcomp = sbol3.SubComponent(prod_comp)
+    assembly_plan.features.append(prod_subcomp)
+    product_participation = sbol3.Participation(roles=[sbol3.SBO_PRODUCT], participant=prod_subcomp)
+    participations.append(product_participation)
+    # add restriction enzyme participations 
+    for r in restriction_enzymes:
+        assembly_plan.features.append(r)
+        modifier_participation = sbol3.Participation(roles=[sbol3.SBO_MODIFIER], participant=r)
+        participations.append(modifier_participation)
+
+    # Make Interaction
+    interaction = sbol3.Interaction(types=[tyto.SBO.cleavage], participations=participations)
+    assembly_plan.interactions.append(interaction)
+                    
+    return prod_comp, prod_seq
+
 
 
 
