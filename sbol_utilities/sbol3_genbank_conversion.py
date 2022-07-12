@@ -6,6 +6,7 @@ from typing import List
 from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
+from Bio.SeqFeature import SeqFeature, FeatureLocation
 from sbol3.constants import SBOL_SEQUENCE_FEATURE
 
 # Conversion Constants (NOTE: most are placeholding and temporary for now)
@@ -61,7 +62,7 @@ class GenBank_SBOL3_Converter:
     gb2so_map = {}
     so2gb_map = {}
     default_SO_ontology = "SO:0000110"
-    default_GB_ontology = ""  # TODO: Whats the default here?
+    default_GB_ontology = "todo"  # TODO: Whats the default here?
 
     def create_GB_SO_role_mappings(
         self,
@@ -229,18 +230,47 @@ class GenBank_SBOL3_Converter:
         SEQ_RECORDS = []
         for obj in doc.objects:
             if isinstance(obj, sbol3.Component):
+                SEQ_REC_FEATURES = []
                 # TODO: can component have multiple sequences? How should we handle Seq objects for those
                 obj_seq = doc.find(obj.sequences[0])
                 seq = Seq(obj_seq.elements.upper())
+                # TODO: "Version" annotation information currently not stored when converted genbank to sbol3
                 seq_rec = SeqRecord(seq=seq, id=obj.display_id, description=obj.description, name=obj.display_id)
                 # TODO: hardcoded molecule_type as DNA, derivation?
                 seq_rec.annotations["molecule_type"] = "DNA"
                 # TODO: hardcoded topology as linear, derivation?
                 seq_rec.annotations["topology"] = "linear"
+                if obj.features:
+                    for obj_feat in obj.features:
+                        obj_feat_loc = obj_feat.locations[0]
+                        feat_strand = 1
+                        if obj_feat_loc.orientation == sbol3.SO_FORWARD: feat_strand = 1
+                        elif obj_feat_loc.orientation == sbol3.SO_REVERSE: feat_strand = -1
+                        # TODO: Raise custom converter class ERROR for `else:` 
+                        # TODO: fix differences between "cuts"/"ranges"
+                        # FIXME: Issue with start location
+                        feat_loc = FeatureLocation(start=obj_feat_loc.start, end=obj_feat_loc.end)
+                        map_created = self.create_GB_SO_role_mappings(
+                            so2gb_csv=SO2GB_MAPPINGS_CSV, convert_gb2so=False
+                        )
+                        if not map_created:
+                            # TODO: Need better SBOL3-GenBank specific error classes in future
+                            raise ValueError(
+                                f"Required CSV data files are not present in your package.\n    Please reinstall the sbol_utilities package.\n \
+                                Stopping current conversion process.\n    Reverting to legacy converter if new Conversion process is not forced."
+                            )
+                        # Obtain sequence feature role from gb2so mappings
+                        obj_feat_role = obj_feat.roles[0]
+                        obj_feat_role = obj_feat_role[obj_feat.roles[0].index(":", 5) - 2:]
+                        feat_role = self.default_GB_ontology
+                        if self.so2gb_map.get(obj_feat_role):
+                            feat_role = self.so2gb_map[obj_feat_role]
+                        feat = SeqFeature(location=feat_loc, strand=feat_strand, type=feat_role)
+                        feat.qualifiers['label'] = obj_feat.name
+                        SEQ_REC_FEATURES.append(feat)
+                        seq_rec.features = SEQ_REC_FEATURES
+                        print(feat)
                 SEQ_RECORDS.append(seq_rec)
-                print(obj)
-                print(seq)
-                print(seq_rec)
         if write: SeqIO.write(SEQ_RECORDS, gb_file, "genbank")
         return SEQ_RECORDS
 
@@ -253,7 +283,7 @@ def main():
     # converter.convert_genbank_to_sbol3(
     #     gb_file=SAMPLE_GENBANK_FILE_2, sbol3_file=SAMPLE_SBOL3_FILE_2, write=True
     # )
-    converter.convert_sbol3_to_genbank(sbol3_file="BBa_J23101.nt", write=True)
+    converter.convert_sbol3_to_genbank(sbol3_file="iGEM_from_genbank.nt", write=True)
 
 
 if __name__ == "__main__":
