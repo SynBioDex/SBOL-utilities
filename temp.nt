@@ -1,9 +1,0 @@
-<https://example.org/MyPackage/promoters/package> <http://sbols.org/v3#member> <https://example.org/MyPackage/inhibitors/J364009_sequence> .
-<https://example.org/MyPackage/promoters/package> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://sbols.org/v3#TopLevel> .
-<https://example.org/MyPackage/promoters/package> <http://sbols.org/v3#member> <https://example.org/MyPackage/inhibitors/J364009> .
-<https://example.org/MyPackage/promoters/package> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://sbols.org/SEP054#Package> .
-<https://example.org/MyPackage/promoters/package> <http://sbols.org/v3#member> <https://example.org/MyPackage/promoters/J364007_sequence> .
-<https://example.org/MyPackage/promoters/package> <http://sbols.org/v3#member> <https://example.org/MyPackage/promoters/J364007> .
-<https://example.org/MyPackage/promoters/package> <http://sbols.org/v3#hasNamespace> <https://example.org/MyPackage/promoters> .
-<https://example.org/MyPackage/promoters/package> <http://sbols.org/v3#displayId> "package" .
-

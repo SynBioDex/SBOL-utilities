@@ -1,25 +1,21 @@
 import os
 from pathlib import Path
-from attr import define
 from urllib.parse import urlparse
 
 from sbol_factory import SBOLFactory
 import sbol3
 
-from sbol_utilities.workarounds import type_to_standard_extension
+# Create SEP054 Python classes from definition file
+sep_054 = SBOLFactory('sep_054', Path(__file__).parent / 'sep_054_extension.ttl', 'http://sbols.org/SEP054#')
 
-# this makes a sub-package that will be used until these migrate into the SBOL3 namespace
-sep_054 = SBOLFactory('sep_054',
-            os.path.join(os.path.dirname(os.path.realpath(__file__)), 'sep_054_extension.ttl'),
-            'http://sbols.org/SEP054#')
-
-PACKAGE_DIRECTORY = '.sip'
+GENERATED_CONTENT_SUBDIRECTORY = '.sip'
 """Per SEP 054: When built with respect to a specific directory, generated content SHOULD be stored in a hidden 
 subdirectory named .sip.
 
 The `.sip` directory MUST contain nothing besides the `package.nt` and dissociated package files.
 The directory MAY, of course, omit these files before they have been build.
-The contents of each dissociated package files SHOULD contain precisely the set of dependencies indicated for that package in `package.nt`."""
+The contents of each dissociated package files SHOULD contain precisely the set of dependencies indicated for that 
+package in `package.nt`."""
 PACKAGE_FILE_NAME = 'package.nt'
 """Per SEP_054: Each Package and its associated Module objects (but not sub-packages), SHOULD be stored in sorted 
 N-triples format in a file named .sip/package.nt"""
@@ -55,13 +51,13 @@ def is_package_directory(dir: str):
 def regularize_package_directory(dir: str):
     """Ensure directory has a package subdirectory, which has only the package and dissociated package dependencies"""
     # Ensure that package directory exists
-    package_path = os.path.join(dir, PACKAGE_DIRECTORY)
+    package_path = os.path.join(dir, GENERATED_CONTENT_SUBDIRECTORY)
     Path(package_path).mkdir(parents=True, exist_ok=True)
 
     # Ensure that the package directory has no subdirectories
     package_sub_dirs = [s for s in os.scandir(package_path) if s.is_dir()]
     if len(package_sub_dirs):
-        raise ValueError(f'Package {dir}: {PACKAGE_DIRECTORY} subdirectory should not have any subdirectories of its '
+        raise ValueError(f'Package {dir}: {GENERATED_CONTENT_SUBDIRECTORY} subdirectory should not have any subdirectories of its '
                          f'own, but found {package_sub_dirs[0]}')
 
 
@@ -86,13 +82,12 @@ def dir_to_package(dir: str):
         sub_package_list = [define_package(doc) for doc in doc_list]
         # Collect packages from sub-directories
         for sub_dir in dirs:
-            path = os.path.join(root, sub_dir, PACKAGE_DIRECTORY, 'package.nt')
+            path = os.path.join(root, sub_dir, GENERATED_CONTENT_SUBDIRECTORY, 'package.nt')
             doc = sbol3.Document()
             doc.read(path)
             # TODO: Check there is only one object- a package, if no throw an error
             package = doc.objects[0]
             sub_package_list.append(package)
-
 
         # Get the namespace (longest common path of all the namespaces)
         # FIXME: Does the package namespace HAVE to match the path in the dir, or is that nice but not required?
@@ -115,7 +110,7 @@ def dir_to_package(dir: str):
         regularize_package_directory(root)
 
         # Save the document to the package directory
-        out_path = os.path.join(root, PACKAGE_DIRECTORY, 'package.nt')
+        out_path = os.path.join(root, GENERATED_CONTENT_SUBDIRECTORY, 'package.nt')
         doc.write(out_path, sbol3.SORTED_NTRIPLES)
 
 
@@ -136,12 +131,12 @@ def docs_to_package(root_package_doc: sbol3.Document, sub_package_docs: sbol3.Do
 
     package = aggregate_subpackages(root_package, sub_package_list)
 
-    return(package)
+    return (package)
 
 
 # Throwing errors from specifying list[sep_054.Package] on Python 3.7
 def aggregate_subpackages(root_package: sep_054.Package,
-                         sub_package_list):
+                          sub_package_list):
     """ Take a package object representing a root package and one or more 
         additional sbol package objects for the subpackages. Add the subpackages
         to the package definition, if their name spaces indicate that they are
@@ -149,7 +144,7 @@ def aggregate_subpackages(root_package: sep_054.Package,
         the added subpackage information.
     Args:
         root_package (sep_054.Package): First document, for the package
-        *sub_packages (sep_054.Package): The document(s) for subpackages
+        sub_package_list (sep_054.Package): The document(s) for subpackages
 
     Return
         root_package: The root package with the added sub-packages
@@ -164,10 +159,10 @@ def aggregate_subpackages(root_package: sep_054.Package,
             root_package.subpackages.append(package)
         else:
             raise ValueError(f'Package object {package} is not a well-defined '
-                         f'subpackage of the root package {root_package}. The '
-                         f'sub-package namespace is {package.namespace}, which '
-                         f'does not share a prefix with the root package '
-                         f'namespace {root_package.namespace}.')
+                             f'subpackage of the root package {root_package}. The '
+                             f'sub-package namespace is {package.namespace}, which '
+                             f'does not share a prefix with the root package '
+                             f'namespace {root_package.namespace}.')
 
     return root_package
 
@@ -226,12 +221,12 @@ def check_prefix(root_package: sep_054.Package, sub_package: sep_054.Package):
     sub_namespace = sub_package.namespace
 
     # Parse the namespaces as URIs
-    root_URI = urlparse(root_namespace)
-    sub_URI = urlparse(sub_namespace)
+    root_uri = urlparse(root_namespace)
+    sub_uri = urlparse(sub_namespace)
 
     # Check scheme and netloc are the same
-    schemes = set(url.scheme for url in [root_URI, sub_URI])
-    netlocs = set(url.netloc for url in [root_URI, sub_URI])
+    schemes = set(url.scheme for url in [root_uri, sub_uri])
+    netlocs = set(url.netloc for url in [root_uri, sub_uri])
 
     if len(schemes) == 1 & len(netlocs) == 1:
         pass
@@ -242,27 +237,26 @@ def check_prefix(root_package: sep_054.Package, sub_package: sep_054.Package):
                          f'represent a root and sub package.')
 
     # Break the paths down into chunks separated by "/"
-    root_URI_split = root_URI.path.split('/')
-    sub_URI_split = sub_URI.path.split('/')
+    root_uri_split = root_uri.path.split('/')
+    sub_uri_split = sub_uri.path.split('/')
 
     # Get all of the paths into one list
-    all = [root_URI_split, sub_URI_split]
+    all = [root_uri_split, sub_uri_split]
 
     # Get common elements
     zipped = list(zip(*all))
     common_elements = [list(set(zipped[i]))[0] for i in range(len(zipped)) if len(set(zipped[i])) == 1]
 
     # Check that the common elements are the same as the entire root package
-    if common_elements == root_URI_split:
+    if common_elements == root_uri_split:
         is_sub = True
     else:
         raise ValueError(f'The namespace of package object {sub_package} '
-                         f'({sub_URI}) does not contain the namesace of the '
-                         f'root package object {root_packag} ({root_URI}) as a '
+                         f'({sub_uri}) does not contain the namesace of the '
+                         f'root package object {root_package} ({root_uri}) as a '
                          f'prefix. So {sub_package} is not a valid sub-package '
                          f'of {root_package}')
-
-    return(is_sub)
+    return is_sub
 
 
 def get_prefix(package_list):
@@ -279,11 +273,11 @@ def get_prefix(package_list):
     namespace_list = [package.namespace for package in package_list]
 
     # Parse the namespaces as URIs
-    URI_list = [urlparse(namespace) for namespace in namespace_list]
+    uri_list = [urlparse(namespace) for namespace in namespace_list]
 
     # Check scheme and netloc are the same
-    schemes = set(url.scheme for url in URI_list)
-    netlocs = set(url.netloc for url in URI_list)
+    schemes = set(url.scheme for url in uri_list)
+    netlocs = set(url.netloc for url in uri_list)
 
     if len(schemes) == 1 & len(netlocs) == 1:
         pass
@@ -294,7 +288,7 @@ def get_prefix(package_list):
                          f'represent a root and sub package.')
 
     # Break the paths down into chunks separated by "/"
-    split_URIs = [URI.path.split('/') for URI in URI_list]
+    split_URIs = [URI.path.split('/') for URI in uri_list]
 
     # Get common elements
     zipped = list(zip(*split_URIs))
@@ -303,9 +297,8 @@ def get_prefix(package_list):
     # Rejoin the common elements to get the common path
     common_path = '/'.join(common_elements)
     prefix = schemes.pop() + '://' + netlocs.pop() + common_path
+    return prefix
 
-    return(prefix)
 
-
-def validate_package(package:  sep_054.Package):
+def validate_package(package: sep_054.Package):
     pass

@@ -6,9 +6,9 @@
 @prefix sep054: <http://sbols.org/SEP054#> .
 @base <http://sbols.org/SEP054#> .
 
-<http://sbols.org/SEP054#> rdf:type owl:Ontology ;
+sep054: rdf:type owl:Ontology ;
                                owl:imports sbol: ;
-                               rdfs:comment "Proposed package management classes from SEP 054" ;
+                               rdfs:comment "Package management classes from SEP 054" ;
                                owl:versionInfo "1.0-alpha1" .
 
 sep054:Dependency rdf:type owl:Class ;
@@ -21,27 +21,27 @@ sep054:Dependency rdf:type owl:Class ;
         * Package: all of the modules in a package, implicitly including all of its dependencies.
 
         A dependency list MAY contain redundant or overlapping entries. For example, a dependency list may contain
-        both a package and a module within that package, both a module and specific objects in the module, or even
-        multiple entries for the same object. In this case, the effective dependency list is the union of all of the
-        individual dependencies in the list.
+        both a package and a supackage within that package, both a subpackage and specific objects in the subpackage,
+        or even multiple entries for the same object. In such cases, the effective dependency list is the union of all
+        of the individual dependencies in the list.
 
-        This permissive union behavior is intended to allow independently defined dependency lists to be safely
-        merged, e.g., in a package that depends on two other packages. Accordingly, a tool SHOULD NOT consider it
-        to be an issue of there are redundancies between Dependency objects contained by different Module objects. A
-        tool MAY, however, choose to warn users about redundancies within the dependencies of an individual Module.''';
+        This permissive unioning behavior is intended to allow independently defined dependency lists to be safely
+        merged, e.g., in a package that depends on two other packages. Accordingly, a tool SHOULD NOT consider it to be
+        an issue if there are redundancies between Dependency objects contained by different Package objects. A tool
+        MAY, however, choose to warn users about redundancies within the dependencies of an individual Package.''';
         rdfs:subClassOf sbol:Identified ,
     [ rdf:type owl:Restriction ; owl:allValuesFrom sep054:Package ; owl:onProperty sep054:package ;
       owl:minCardinality "1"^^xsd:nonNegativeInteger ; owl:maxCardinality "1"^^xsd:nonNegativeInteger ; ] ,
     [ rdf:type owl:Restriction ; owl:allValuesFrom xsd:string ; owl:onProperty sep054:versionConstraint ;
       owl:maxCardinality "1"^^xsd:nonNegativeInteger ; ] ,
-    [ rdf:type owl:Restriction ; owl:allValuesFrom sep054:Module ; owl:onProperty sep054:module ;
+    [ rdf:type owl:Restriction ; owl:allValuesFrom sep054:Package ; owl:onProperty sep054:subpackage ;
       owl:maxCardinality "1"^^xsd:nonNegativeInteger ; ] ,
     [ rdf:type owl:Restriction ; owl:allValuesFrom sbol:TopLevel ; owl:onProperty sep054:object ; ] ,
     [ rdf:type owl:Restriction ; owl:allValuesFrom xsd:boolean ; owl:onProperty sep054:includeObjectReferences ;
       owl:maxCardinality "1"^^xsd:nonNegativeInteger ; ] .
 
 sep054:package rdf:type owl:ObjectProperty ;
-        rdfs:comment '''Package that is the dependency or contains the dependency''' ;
+        rdfs:comment '''Root package that is the dependency or contains the dependency''' ;
               rdfs:domain sep054:Dependency ;
               rdfs:range sep054:Package ;
               rdfs:label "package" .
@@ -54,16 +54,16 @@ sep054:versionConstraint rdf:type owl:DatatypeProperty ;
               rdfs:range xsd:string ;
               rdfs:label "versionConstraint" .
 
-sep054:module rdf:type owl:ObjectProperty ;
-        rdfs:comment '''If the dependency is or is contained within a specific sub-package or sub-module within a
-        package, this property specifies its URI.''' ;
+sep054:subpackage rdf:type owl:ObjectProperty ;
+        rdfs:comment '''If the dependency is or is contained within a specific sub-package within the package,
+        this property specifies its URI.''' ;
               rdfs:domain sep054:Dependency ;
-              rdfs:range sep054:Module ;
+              rdfs:range sep054:Package ;
               rdfs:label "module" .
 
 sep054:object rdf:type owl:ObjectProperty ;
-        rdfs:comment '''If dependency is specific objects rather than a complete module or package, each instance
-        of this property indicates one of those objects.''' ;
+        rdfs:comment '''If dependency is specific TopLevel objects rather than a complete package, each instance of
+        this property indicates one of those objects.''' ;
               rdfs:domain sep054:Dependency ;
               rdfs:range sbol:TopLevel ;
               rdfs:label "objects" .
@@ -80,22 +80,33 @@ sep054:includeObjectReferences rdf:type owl:DatatypeProperty ;
 
 
 sep054:Package rdf:type owl:Class ;
-        rdfs:comment  '''`Package` extends the `Collection` class with the following fields:
-                * `version` [0,1], string: The value of this property SHOULD use SemVer to indicate the version of
-                  this package. This property SHOULD be set if and only if a package is a root package.
-                * `conversion` [1], boolean: Indicates if this is a native package (false) or conversion package (true)
-                * `dissociated` [0,1], string: If not set, this is an atomic package. If set, indicates this package is
-                  a dissociated package of the type identified by the string (see practices below).
-                * `hasDependency` [0,n], URI: `Dependency` child objects
-                * `subPackage` [0,n], URI: Indicates the set of `Package` objects aggregated in the `Package`.
-                The `displayId` of a `Module` SHOULD be `module`, unless it is also a `package`.
-                Every `member` of a `Package` MUST have the same value for `hasNamespace` as the module itself.
-                A package SHOULD have `dissociated` set only if `conversion` is also true.
-                A package SHOULD only have values for `subPackage` if it is a native package (i.e., `conversion` is false).
-                A Package is a systematic aggregation of sub-packages intended to be distributed and used as a
-                coherent whole. When stored in a hierarchical structure (e.g., files in directories), the relationship
-                between module namespaces MUST be identical to the relationship between module locations in the structure.
-                Note that packages can have sub-packages.''' ;
+        rdfs:comment  '''A Package is a systematic aggregation of SBOL materials intended to be distributed and used
+        as a coherent whole. A package is associated with a specific namespace, and all TopLevel objects in the package
+        must share that namespace. When stored in a hierarchical structure (e.g., files in directories), the
+        relationship between package namespaces MUST be identical to the relationship between package locations in the
+        structure. Note that packages can have sub-packages.
+
+        The `displayId` of a Package SHOULD be `package`.
+
+        Every member of a Package MUST have the same value for `hasNamespace` as the package itself.
+
+        A package SHOULD have `dissociated` set only if `conversion` is also true.
+
+        A package SHOULD only have values for `subPackage` if it is a native package (i.e., `conversion` is false).
+
+        For packages with `conversion` equal to true, the `version` property SHOULD match its major version number to
+        the major version of the data source, where applicable. Other elements of the versioning SHOULD be used to
+        indicate versioning of the converted material.
+
+        Note that any change to the sequence of a part SHOULD be a major version change, since there is no guarantee
+        that the part will continue to have the same behavior. There are certain circumstances where it would not be,
+        such as correcting a bug in which a sequence was not listed correctly to begin with. To add a sequence that is
+        expected to have better performance, do not change the sequence: add a new part and deprecate the old one.
+
+        Every Package object pointed to by `subPackage` MUST have a `hasNamespace` that is equal to the `hasNamespace`
+        of the Package object plus a local sub-path. For example `https://example.org/MyPackage/` might have
+        `subPackage` values `https://example.org/MyPackage/promoters` and
+        `https://example.org/MyPackage/regulatory/repressors`''' ;
         rdfs:subClassOf sbol:Collection ,
     [ rdf:type owl:Restriction ; owl:allValuesFrom xsd:string ; owl:onProperty sep054:version ;
       owl:maxCardinality "1"^^xsd:nonNegativeInteger ; ] ,
@@ -134,7 +145,7 @@ sep054:hasDependency rdf:type owl:ObjectProperty ;
               rdfs:label "dependencies" .
 
 sep054:subPackage rdf:type owl:ObjectProperty ;
-        rdfs:comment '''URI: Indicates the set of sub-`Package` objects aggregated in the `Package`.''' ;
+        rdfs:comment '''Indicates the set of sub-`Package` objects aggregated in the `Package`.''' ;
               rdfs:domain sep054:Package ;
               rdfs:range sep054:Package ;
               rdfs:label "subpackages" .
