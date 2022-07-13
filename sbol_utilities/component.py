@@ -612,7 +612,7 @@ def part_in_backbone(identity: str, part: sbol3.Component, backbone: sbol3.Compo
     :param identity: The identity of the Component. The identity of Sequence is also identity with the suffix '_seq'.
     :param part: Part to be located in the backbone as SBOL Component.
     :param backbone: Backbone in wich the part is located as SBOL Component.
-    :param linear: Boolean than indicates if the backbone is linear, by default it is seted to Flase which means that it has a circular topology.
+    :param linear: Boolean than indicates if the backbone is linear, by default it is set to False, which means that it has a circular topology.
     :param kwargs: Keyword arguments of any other Component attribute.
     :return: A tuple of Component and Sequence.
     """
