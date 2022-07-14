@@ -213,6 +213,7 @@ class GenBank_SBOL3_Converter:
     def convert_sbol3_to_genbank(
         self,
         sbol3_file: str,
+        doc: sbol3.Document = None,
         gb_file: str = "genbank.out",
         write: bool = False,
     ) -> List[SeqRecord]:
@@ -224,9 +225,14 @@ class GenBank_SBOL3_Converter:
         :param write: writes the generated genbank document to provided path
         :return: Array of SeqRecord objects which comprise the generated GenBank document
         """
-        doc = sbol3.Document()
-        doc.read(sbol3_file)
+        if not doc:
+            doc = sbol3.Document()
+            doc.read(sbol3_file)
         SEQ_RECORDS = []
+        logging.info(
+            "Creating GenBank and SO ontologies mappings for sequence feature roles"
+        )
+        # create updated py dict to store mappings between gb and so ontologies
         map_created = self.create_GB_SO_role_mappings(
             so2gb_csv=SO2GB_MAPPINGS_CSV, convert_gb2so=False
         )
@@ -236,9 +242,14 @@ class GenBank_SBOL3_Converter:
                 f"Required CSV data files are not present in your package.\n    Please reinstall the sbol_utilities package.\n \
                 Stopping current conversion process.\n    Reverting to legacy converter if new Conversion process is not forced."
             )
+        # consider sbol3 objects which are components
+        logging.info(
+            f"Parsing SBOL3 Document components using SBOL3 Document: \n{doc}"
+        )
         for obj in doc.objects:
             if isinstance(obj, sbol3.Component):
                 SEQ_REC_FEATURES = []
+                logging.info(f"Parsing component - `{obj.display_id}` in sbol3 document.")
                 # TODO: can component have multiple sequences? How should we handle Seq objects for those
                 obj_seq = doc.find(obj.sequences[0])
                 seq = Seq(obj_seq.elements.upper())
@@ -251,6 +262,9 @@ class GenBank_SBOL3_Converter:
                 if obj.features:
                     # converting all sequence features
                     for obj_feat in obj.features:
+                        logging.info(
+                            f"Parsing feature `{obj_feat.name}` for component `{obj.display_id}`"
+                        )
                         obj_feat_loc = obj_feat.locations[0]
                         feat_strand = 1
                         # feature strand value which denotes orientation of the location of the feature
@@ -273,7 +287,11 @@ class GenBank_SBOL3_Converter:
                         seq_rec.features = SEQ_REC_FEATURES
                 SEQ_RECORDS.append(seq_rec)
         # writing generated genbank document to disk at path provided
-        if write: SeqIO.write(SEQ_RECORDS, gb_file, "genbank")
+        if write: 
+            logging.info(
+                f"Writing created genbank file to disk.\n    With path {gb_file}"
+            )
+            SeqIO.write(SEQ_RECORDS, gb_file, "genbank")
         return SEQ_RECORDS
 
 
@@ -285,7 +303,7 @@ def main():
     # converter.convert_genbank_to_sbol3(
     #     gb_file=SAMPLE_GENBANK_FILE_2, sbol3_file=SAMPLE_SBOL3_FILE_2, write=True
     # )
-    converter.convert_sbol3_to_genbank(sbol3_file="iGEM_from_genbank.nt", write=True)
+    converter.convert_sbol3_to_genbank(sbol3_file="BBa_J23101.nt", write=True)
 
 
 if __name__ == "__main__":

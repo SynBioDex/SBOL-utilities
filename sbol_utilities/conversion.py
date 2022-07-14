@@ -320,7 +320,7 @@ def convert_from_genbank(path: str, namespace: str, allow_genbank_online: bool =
     return doc
 
 
-def convert_to_genbank(doc3: sbol3.Document, path: str, allow_genbank_online: bool = False) \
+def convert_to_genbank(doc3: sbol3.Document, path: str, allow_genbank_online: bool = False, force_new_converter: bool = False) \
         -> List[SeqRecord.SeqRecord]:
     """Convert an SBOL3 document to a GenBank file, which is written to disk
     Note that for compatibility with version control software, if no prov:modified term is available on each Component,
@@ -331,6 +331,9 @@ def convert_to_genbank(doc3: sbol3.Document, path: str, allow_genbank_online: bo
     :param allow_genbank_online: use the online converter rather than the local converter
     :return: BioPython SeqRecord of the GenBank that was written
     """
+    if force_new_converter:
+        converter = GenBank_SBOL3_Converter()
+        return converter.convert_sbol3_to_genbank(sbol3_file=None, doc=doc3, gb_file=path, write=True)
     # first convert to SBOL2, then export to a temp GenBank file
     doc2 = convert3to2(doc3)
 
@@ -418,7 +421,7 @@ def command_line_converter(args_dict: Dict[str, Any]):
     if output_file_type == 'FASTA':
         convert_to_fasta(doc3, output_file)
     elif output_file_type == 'GenBank':
-        convert_to_genbank(doc3, output_file, args_dict['allow_genbank_online'])
+        convert_to_genbank(doc3=doc3, path=output_file, allow_genbank_online=args_dict['allow_genbank_online'], force_new_converter=args_dict['force_new_converter'])
     elif output_file_type == 'SBOL2':
         doc2 = convert3to2(doc3)
         validate_online = sbol2.Config.getOption(sbol2.ConfigOptions.VALIDATE_ONLINE)
