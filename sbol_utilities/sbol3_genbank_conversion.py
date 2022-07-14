@@ -221,13 +221,21 @@ class GenBank_SBOL3_Converter:
 
         :param sbol3_file: path to read SBOL3 file from
         :param gb_file: path to write GenBank file to, if write set to true
-        :param write: writes the generated sbol3 document in SORTED_NTRIPLES
-                          format to provided sbol3_file path
+        :param write: writes the generated genbank document to provided path
         :return: Array of SeqRecord objects which comprise the generated GenBank document
         """
         doc = sbol3.Document()
         doc.read(sbol3_file)
         SEQ_RECORDS = []
+        map_created = self.create_GB_SO_role_mappings(
+            so2gb_csv=SO2GB_MAPPINGS_CSV, convert_gb2so=False
+        )
+        if not map_created:
+            # TODO: Need better SBOL3-GenBank specific error classes in future
+            raise ValueError(
+                f"Required CSV data files are not present in your package.\n    Please reinstall the sbol_utilities package.\n \
+                Stopping current conversion process.\n    Reverting to legacy converter if new Conversion process is not forced."
+            )
         for obj in doc.objects:
             if isinstance(obj, sbol3.Component):
                 SEQ_REC_FEATURES = []
@@ -241,36 +249,30 @@ class GenBank_SBOL3_Converter:
                 # TODO: hardcoded topology as linear, derivation?
                 seq_rec.annotations["topology"] = "linear"
                 if obj.features:
+                    # converting all sequence features
                     for obj_feat in obj.features:
                         obj_feat_loc = obj_feat.locations[0]
                         feat_strand = 1
+                        # feature strand value which denotes orientation of the location of the feature
                         if obj_feat_loc.orientation == sbol3.SO_FORWARD: feat_strand = 1
                         elif obj_feat_loc.orientation == sbol3.SO_REVERSE: feat_strand = -1
+                        feat_loc = FeatureLocation(start=obj_feat_loc.start - 1, end=obj_feat_loc.end, strand=feat_strand)
                         # TODO: Raise custom converter class ERROR for `else:` 
-                        # TODO: fix differences between "cuts"/"ranges"
-                        # FIXME: Issue with start location
-                        feat_loc = FeatureLocation(start=obj_feat_loc.start, end=obj_feat_loc.end)
-                        map_created = self.create_GB_SO_role_mappings(
-                            so2gb_csv=SO2GB_MAPPINGS_CSV, convert_gb2so=False
-                        )
-                        if not map_created:
-                            # TODO: Need better SBOL3-GenBank specific error classes in future
-                            raise ValueError(
-                                f"Required CSV data files are not present in your package.\n    Please reinstall the sbol_utilities package.\n \
-                                Stopping current conversion process.\n    Reverting to legacy converter if new Conversion process is not forced."
-                            )
-                        # Obtain sequence feature role from gb2so mappings
+                        # FIXME: order of features not same as original genbank doc?
                         obj_feat_role = obj_feat.roles[0]
                         obj_feat_role = obj_feat_role[obj_feat.roles[0].index(":", 5) - 2:]
+                        # Obtain sequence feature role from so2gb mappings
                         feat_role = self.default_GB_ontology
                         if self.so2gb_map.get(obj_feat_role):
                             feat_role = self.so2gb_map[obj_feat_role]
+                        # create sequence feature object with label qualifier
                         feat = SeqFeature(location=feat_loc, strand=feat_strand, type=feat_role)
-                        feat.qualifiers['label'] = obj_feat.name
+                        if obj_feat.name: feat.qualifiers['label'] = obj_feat.name
+                        # add feature to list of features
                         SEQ_REC_FEATURES.append(feat)
                         seq_rec.features = SEQ_REC_FEATURES
-                        print(feat)
                 SEQ_RECORDS.append(seq_rec)
+        # writing generated genbank document to disk at path provided
         if write: SeqIO.write(SEQ_RECORDS, gb_file, "genbank")
         return SEQ_RECORDS
 

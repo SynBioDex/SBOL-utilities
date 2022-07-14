@@ -1,6 +1,9 @@
 import unittest
+import filecmp
 import sbol3
+import os
 from pathlib import Path
+from helpers import copy_to_tmp
 from sbol_utilities.sbol_diff import doc_diff
 from sbol_utilities.sbol3_genbank_conversion import (
     GenBank_SBOL3_Converter,
@@ -8,11 +11,11 @@ from sbol_utilities.sbol3_genbank_conversion import (
 )
 
 
-class TestGenBank2SBOL3(unittest.TestCase):
+class TestGenBankSBOL3(unittest.TestCase):
     # Create converter instance
     converter = GenBank_SBOL3_Converter()
 
-    def test_simple_file_1(self):
+    def test_gbtosbol3_1(self):
         """Test conversion of a simple genbank file with a single sequence"""
         SAMPLE_GENBANK_FILE_1 = Path(__file__).parent / "test_files" / "BBa_J23101.gb"
         SAMPLE_SBOL3_FILE_1 = (
@@ -37,7 +40,7 @@ class TestGenBank2SBOL3(unittest.TestCase):
             test_output_sbol3, sbol3_file_1
         ), f"Converted SBOL3 file: {TEST_OUTPUT_SBOL3} not identical to expected file: {SAMPLE_SBOL3_FILE_1}"
 
-    def test_simple_file_2(self):
+    def test_gbtosbol3_2(self):
         """Test conversion of a simple genbank file with a multiple sequence with multiple features"""
         SAMPLE_GENBANK_FILE_2 = (
             Path(__file__).parent / "test_files" / "iGEM_SBOL2_imports.gb"
@@ -64,6 +67,22 @@ class TestGenBank2SBOL3(unittest.TestCase):
             test_output_sbol3, sbol3_file_2
         ), f"Converted SBOL3 file: {TEST_OUTPUT_SBOL3} not identical to expected file: {SAMPLE_SBOL3_FILE_2}"
 
+    def test_sbol3togb_1(self):
+        """Test ability to convert from SBOL3 to GenBank using new converter"""
+        # create tmp directory to store generated genbank file in for comparison
+        tmp_sub = copy_to_tmp(package=['BBa_J23101.nt'])
+        doc3 = sbol3.Document()
+        doc3.read(os.path.join(tmp_sub, 'BBa_J23101.nt'))
+        # Get the SBOL3 test document path
+        SAMPLE_SBOL3_FILE_1 = (
+            Path(__file__).parent / "test_files" / "BBa_J23101.nt"
+        )
+        # Convert to GenBank and check contents
+        outfile = os.path.join(tmp_sub, 'BBa_J23101.gb')
+        self.converter.convert_sbol3_to_genbank(sbol3_file=str(SAMPLE_SBOL3_FILE_1), gb_file=outfile, write=True)
+        test_dir = os.path.dirname(os.path.realpath(__file__))
+        comparison_file = os.path.join(test_dir, 'test_files', 'BBa_J23101.gb')
+        assert filecmp.cmp(outfile, comparison_file), f'Converted GenBank file {comparison_file} is not identical'
 
 if __name__ == "__main__":
     unittest.main()
