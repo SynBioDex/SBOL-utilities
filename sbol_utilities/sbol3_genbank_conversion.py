@@ -243,9 +243,7 @@ class GenBank_SBOL3_Converter:
                 Stopping current conversion process.\n    Reverting to legacy converter if new Conversion process is not forced."
             )
         # consider sbol3 objects which are components
-        logging.info(
-            f"Parsing SBOL3 Document components using SBOL3 Document: \n{doc}"
-        )
+        logging.info(f"Parsing SBOL3 Document components using SBOL3 Document: \n{doc}")
         for obj in doc.objects:
             if isinstance(obj, sbol3.Component):
                 SEQ_REC_FEATURES = []
@@ -254,7 +252,12 @@ class GenBank_SBOL3_Converter:
                 obj_seq = doc.find(obj.sequences[0])
                 seq = Seq(obj_seq.elements.upper())
                 # TODO: "Version" annotation information currently not stored when converted genbank to sbol3
-                seq_rec = SeqRecord(seq=seq, id=obj.display_id, description=obj.description, name=obj.display_id)
+                seq_rec = SeqRecord(
+                    seq=seq,
+                    id=obj.display_id,
+                    description=obj.description,
+                    name=obj.display_id,
+                )
                 # TODO: hardcoded molecule_type as DNA, derivation?
                 seq_rec.annotations["molecule_type"] = "DNA"
                 # TODO: hardcoded topology as linear, derivation?
@@ -268,26 +271,37 @@ class GenBank_SBOL3_Converter:
                         obj_feat_loc = obj_feat.locations[0]
                         feat_strand = 1
                         # feature strand value which denotes orientation of the location of the feature
-                        if obj_feat_loc.orientation == sbol3.SO_FORWARD: feat_strand = 1
-                        elif obj_feat_loc.orientation == sbol3.SO_REVERSE: feat_strand = -1
-                        feat_loc = FeatureLocation(start=obj_feat_loc.start - 1, end=obj_feat_loc.end, strand=feat_strand)
-                        # TODO: Raise custom converter class ERROR for `else:` 
+                        if obj_feat_loc.orientation == sbol3.SO_FORWARD:
+                            feat_strand = 1
+                        elif obj_feat_loc.orientation == sbol3.SO_REVERSE:
+                            feat_strand = -1
+                        feat_loc = FeatureLocation(
+                            start=obj_feat_loc.start - 1,
+                            end=obj_feat_loc.end,
+                            strand=feat_strand,
+                        )
+                        # TODO: Raise custom converter class ERROR for `else:`
                         # FIXME: order of features not same as original genbank doc?
                         obj_feat_role = obj_feat.roles[0]
-                        obj_feat_role = obj_feat_role[obj_feat.roles[0].index(":", 5) - 2:]
+                        obj_feat_role = obj_feat_role[
+                            obj_feat.roles[0].index(":", 5) - 2 :
+                        ]
                         # Obtain sequence feature role from so2gb mappings
                         feat_role = self.default_GB_ontology
                         if self.so2gb_map.get(obj_feat_role):
                             feat_role = self.so2gb_map[obj_feat_role]
                         # create sequence feature object with label qualifier
-                        feat = SeqFeature(location=feat_loc, strand=feat_strand, type=feat_role)
-                        if obj_feat.name: feat.qualifiers['label'] = obj_feat.name
+                        feat = SeqFeature(
+                            location=feat_loc, strand=feat_strand, type=feat_role
+                        )
+                        if obj_feat.name:
+                            feat.qualifiers["label"] = obj_feat.name
                         # add feature to list of features
                         SEQ_REC_FEATURES.append(feat)
                         seq_rec.features = SEQ_REC_FEATURES
                 SEQ_RECORDS.append(seq_rec)
         # writing generated genbank document to disk at path provided
-        if write: 
+        if write:
             logging.info(
                 f"Writing created genbank file to disk.\n    With path {gb_file}"
             )

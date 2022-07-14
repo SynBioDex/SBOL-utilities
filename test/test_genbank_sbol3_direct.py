@@ -70,19 +70,22 @@ class TestGenBankSBOL3(unittest.TestCase):
     def test_sbol3togb_1(self):
         """Test ability to convert from SBOL3 to GenBank using new converter"""
         # create tmp directory to store generated genbank file in for comparison
-        tmp_sub = copy_to_tmp(package=['BBa_J23101_from_genbank_to_sbol3_direct.nt'])
+        tmp_sub = copy_to_tmp(package=["BBa_J23101_from_genbank_to_sbol3_direct.nt"])
         doc3 = sbol3.Document()
-        doc3.read(os.path.join(tmp_sub, 'BBa_J23101_from_genbank_to_sbol3_direct.nt'))
-        # Get the SBOL3 test document path
-        SAMPLE_SBOL3_FILE_1 = (
-            Path(__file__).parent / "test_files" / "BBa_J23101_from_genbank_to_sbol3_direct.nt"
-        )
+        doc3.read(os.path.join(tmp_sub, "BBa_J23101_from_genbank_to_sbol3_direct.nt"))
         # Convert to GenBank and check contents
-        outfile = os.path.join(tmp_sub, 'BBa_J23101.gb')
-        self.converter.convert_sbol3_to_genbank(sbol3_file=str(SAMPLE_SBOL3_FILE_1), gb_file=outfile, write=True)
+        outfile = os.path.join(tmp_sub, "BBa_J23101.gb")
+        self.converter.convert_sbol3_to_genbank(
+            sbol3_file=None, doc=doc3, gb_file=outfile, write=True
+        )
         test_dir = os.path.dirname(os.path.realpath(__file__))
-        comparison_file = os.path.join(test_dir, 'test_files', 'BBa_J23101_from_sbol3_direct.gb')
-        assert filecmp.cmp(outfile, comparison_file), f'Converted GenBank file {comparison_file} is not identical'
+        comparison_file = os.path.join(
+            test_dir, "test_files", "BBa_J23101_from_sbol3_direct.gb"
+        )
+        assert filecmp.cmp(
+            outfile, comparison_file
+        ), f"Converted GenBank file {comparison_file} is not identical"
+
 
 if __name__ == "__main__":
     unittest.main()
