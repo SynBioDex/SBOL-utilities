@@ -124,18 +124,18 @@ class GenBank_SBOL3_Converter:
             gb2so_csv=GB2SO_MAPPINGS_CSV, convert_so2gb=False
         )
         if not map_created:
-            logging.critical(
+            # TODO: Need better SBOL3-GenBank specific error classes in future
+            raise ValueError(
                 f"Required CSV data files are not present in your package.\n    Please reinstall the sbol_utilities package.\n \
                 Stopping current conversion process.\n    Reverting to legacy converter if new Conversion process is not forced."
             )
-            return None
         # access records by parsing gb file using SeqIO class
         logging.info(
             f"Parsing Genbank records using SeqIO class.\n    Using GenBank file {gb_file}"
         )
         for record in list(SeqIO.parse(gb_file, "genbank").records):
             # NOTE: Currently we assume only linear or circular topology is possible
-            logging.info(f"Parsing record - {record.id} in genbank file.")
+            logging.info(f"Parsing record - `{record.id}` in genbank file.")
             if record.annotations["topology"] == "linear":
                 extra_comp_types = [sbol3.SO_LINEAR]
             else:
@@ -164,7 +164,7 @@ class GenBank_SBOL3_Converter:
                 comp.features = []
                 for gb_feat in record.features:
                     logging.info(
-                        f"Parsing feature {gb_feat.qualifiers['label'][0]} for record {record.id}"
+                        f"Parsing feature `{gb_feat.qualifiers['label'][0]}` for record `{record.id}`"
                     )
                     # create "Range/Cut" FeatureLocation by parsing genbank record location
                     gb_loc = gb_feat.location
