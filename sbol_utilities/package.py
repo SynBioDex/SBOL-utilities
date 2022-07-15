@@ -8,6 +8,8 @@ from sbol_factory import SBOLFactory
 import sbol3
 
 # Create SEP054 Python classes from definition file
+from sbol_utilities.helper_functions import sbol3_namespace
+
 sep_054 = SBOLFactory('sep_054', Path(__file__).parent / 'sep_054_extension.ttl', 'http://sbols.org/SEP054#')
 
 GENERATED_CONTENT_SUBDIRECTORY = '.sip'
@@ -192,9 +194,9 @@ def doc_to_package(doc: sbol3.Document) -> sep_054.Package:
         raise ValueError(f'Document {doc} does not form a well-defined package, as objects different namespaces.'
                          f'The namespaces found are {candidate_namespaces}.')
 
-    # Create the Package object
-    # TODO: with package_namespace
-    return sep_054.Package(f'{package_namespace}/package', members=doc.objects, namespace=package_namespace)
+    # Create and return the Package object
+    with sbol3_namespace(package_namespace):
+        return sep_054.Package('package', members=doc.objects)
 
 
 def check_prefix(root_package: sep_054.Package, sub_package: sep_054.Package):

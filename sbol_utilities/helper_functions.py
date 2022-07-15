@@ -56,6 +56,30 @@ def build_reference_cache(doc: sbol3.Document) -> dict[str, sbol3.Identified]:
     return cache
 
 
+# TODO: search for all set_namespace and change to with sbol3_namespace
+class sbol3_namespace:
+    """Context manager for temporarily setting the working namespace for pySBOL3."""
+
+    def __init__(self, namespace):
+        """Temporarily set the working namespace for pySBOL3. Example:
+
+        ```python
+        with sbol3_namespace('http://my.name/package/'):
+            doc.add(sbol3.Sequence('my_seq'))
+        ```
+
+        :param namespace: the temporary namespace to use
+        """
+        self._old_namespace = sbol3.get_namespace()
+        self._temporary_namespace = namespace
+
+    def __enter__(self):
+        sbol3.set_namespace(self._temporary_namespace)
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        sbol3.set_namespace(self._old_namespace)
+
+
 @contextmanager
 def cached_references(doc: sbol3.Document) -> Generator[dict[str, sbol3.Identified]]:
     """Context manager for a document reference cache for use with
