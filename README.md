@@ -1,5 +1,15 @@
 # SBOL-utilities
+
 SBOL-utilities is a collection of scripts and functions for manipulating SBOL 3 data that can be run from the command line or as functions in Python.
+[Additional documentation is online at readthedocs.io](https://sbol-utilities.readthedocs.io/en/latest/).
+
+[![Documentation Status](https://readthedocs.org/projects/sbol-utilities/badge/?version=latest)](http://sbol-utilities.readthedocs.io/)
+[![Docstrings Coverage](https://github.com/SynBioDex/SBOL-utilities/actions/workflows/docstr-coverage.yml/badge.svg)](https://github.com/SynBioDex/SBOL-utilities/actions/workflows/docstr-coverage.yml)
+[![PyPI version fury.io](https://badge.fury.io/py/sbol-utilities.svg)](https://pypi.python.org/pypi/sbol-utilities/)
+[![PyPI license](https://img.shields.io/pypi/l/sbol-utilities.svg)](https://pypi.python.org/pypi/sbol-utilities/)
+[![PyPI pyversions](https://img.shields.io/pypi/pyversions/sbol-utilities.svg)](https://pypi.python.org/pypi/sbol-utilities/)
+[![gh-action badge](https://github.com/SynBioDex/SBOL-utilities/actions/workflows/python-app.yml/badge.svg)](https://github.com/SynBioDex/SBOL-utilities/actions)
+
 
 ## Installation
 
@@ -13,6 +23,7 @@ pip3 install sbol-utilities
 Certain utilities also have non-Python dependencies, which must be installed separately:
 - `graph-sbol` requires [Graphviz](https://graphviz.org/) to be able to render diagrams.
 - `sbol-converter` requires [node.js](https://nodejs.org/en/) to be able to locally run Javascript.
+
 
 ## Utilities
 
@@ -65,3 +76,9 @@ and reports the differences.
 ### Add a package definition to an SBOL file
 The `aggregate_subpackages` and `define_package` utility in `package` creates 
 SBOL packages objects from one or more input files.
+
+## Contributing
+
+We welcome contributions that patch bugs, improve existing utilities or documentation, or add new utilities!
+For guidance on how to contribute effectively to this project, see [CONTRIBUTING.md](CONTRIBUTING.md).
+>>>>>>> 679b4c6930c2f757c656dc19a4eef54730069d23

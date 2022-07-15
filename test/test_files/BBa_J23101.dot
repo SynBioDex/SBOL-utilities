@@ -1,0 +1,32 @@
+digraph {
+	subgraph cluster_toplevels {
+		graph [style=invis]
+		Document
+		"synbiohub.org/public/igem/BBa_J23101"
+		Document -> "synbiohub.org/public/igem/BBa_J23101"
+		Document
+		"synbiohub.org/public/igem/BBa_J23101_sequence"
+		Document -> "synbiohub.org/public/igem/BBa_J23101_sequence"
+		Document
+		"synbiohub.org/public/igem/igem2sbol"
+		Document -> "synbiohub.org/public/igem/igem2sbol"
+	}
+	subgraph "cluster_synbiohub.org/public/igem/BBa_J23101" {
+		graph [style=invis]
+	}
+	subgraph "cluster_synbiohub.org/public/igem/BBa_J23101_sequence" {
+		graph [style=invis]
+	}
+	subgraph "cluster_synbiohub.org/public/igem/igem2sbol" {
+		graph [style=invis]
+	}
+	"synbiohub.org/public/igem/BBa_J23101" [label=BBa_J23101]
+	"synbiohub.org/public/igem/igem2sbol" [label=igem2sbol]
+	"synbiohub.org/public/igem/BBa_J23101" -> "synbiohub.org/public/igem/igem2sbol" [label=generated_by arrowhead=vee arrowtail=odiamond dir=both fontname="Bitstream Vera Sans" fontsize=8 weight=0]
+	"synbiohub.org/public/igem/BBa_J23101" [label=BBa_J23101]
+	"synbiohub.org/public/igem/BBa_J23101_sequence" [label=BBa_J23101_sequence]
+	"synbiohub.org/public/igem/BBa_J23101" -> "synbiohub.org/public/igem/BBa_J23101_sequence" [label=sequences arrowhead=vee arrowtail=odiamond dir=both fontname="Bitstream Vera Sans" fontsize=8 weight=0]
+	"synbiohub.org/public/igem/BBa_J23101_sequence" [label=BBa_J23101_sequence]
+	"synbiohub.org/public/igem/igem2sbol" [label=igem2sbol]
+	"synbiohub.org/public/igem/BBa_J23101_sequence" -> "synbiohub.org/public/igem/igem2sbol" [label=generated_by arrowhead=vee arrowtail=odiamond dir=both fontname="Bitstream Vera Sans" fontsize=8 weight=0]
+}
