@@ -1,34 +1,34 @@
 import filecmp
 import unittest
 import os
+from pathlib import Path
 import tempfile
 import shutil
 
 import sbol3
 
 import sbol_utilities.package
+from sbol_utilities.sbol_diff import doc_diff
+
+TEST_FILES = Path(__file__).parent / 'test_files'
+
 
 class TestPackage(unittest.TestCase):
     def test_define_package_single_file(self):
         """Test defining a package from an SBOL document"""
         # Read in the test file
-        test_dir = os.path.dirname(os.path.realpath(__file__))
         doc_01 = sbol3.Document()
-        doc_01.read(os.path.join(test_dir, 'test_files', 'package_in_01.nt'))
+        doc_01.read(str(TEST_FILES / 'package_in_01.nt'))
 
-        # Run the function
-        out_01 = sbol_utilities.package.define_package(doc_01)
-
-        # Write a temporary file
-        doc = sbol3.Document()
-        doc.add(out_01)
-        tmp_out = tempfile.mkstemp(suffix='.nt')[1]
-        doc.write(tmp_out, sbol3.SORTED_NTRIPLES)
+        # Create the package and add it to a document
+        out_doc = sbol3.Document()
+        out_01 = sbol_utilities.package.doc_to_package(doc_01)
+        out_doc.add(out_01)
 
         # Compare it to the saved results file, make sure they are the same
-        comparison_file = os.path.join(test_dir, 'test_files', 'package_out_01.nt')
-        assert filecmp.cmp(tmp_out, comparison_file), 'Output from package creation function with one file is not as expected'
-
+        expected = sbol3.Document()
+        expected.read(str(TEST_FILES / 'package_out_01.nt'))
+        self.assertFalse(doc_diff(out_doc, expected))
 
     def test_define_package_multi_file(self):
         """Test defining a package from multiple SBOL documents"""
@@ -56,7 +56,6 @@ class TestPackage(unittest.TestCase):
         # Compare it to the saved results file, make sure they are the same
         comparison_file = os.path.join(test_dir, 'test_files', 'package_out_02.nt')
         assert filecmp.cmp(tmp_out, comparison_file), 'Output from package creation function with three files is not as expected'
-
 
     def test_prefix_too_short(self):
         """ Test that having a sub-package with a different namespace than the 

@@ -1,5 +1,7 @@
+from __future__ import annotations
 import os
 from pathlib import Path
+from typing import Union
 from urllib.parse import urlparse
 
 from sbol_factory import SBOLFactory
@@ -13,12 +15,12 @@ GENERATED_CONTENT_SUBDIRECTORY = '.sip'
 subdirectory named .sip.
 
 The `.sip` directory MUST contain nothing besides the `package.nt` and dissociated package files.
-The directory MAY, of course, omit these files before they have been build.
+The directory MAY, of course, omit these files before they have been built.
 The contents of each dissociated package files SHOULD contain precisely the set of dependencies indicated for that 
 package in `package.nt`."""
 PACKAGE_FILE_NAME = 'package.nt'
-"""Per SEP_054: Each Package and its associated Module objects (but not sub-packages), SHOULD be stored in sorted 
-N-triples format in a file named .sip/package.nt"""
+"""Per SEP_054: Each Package and its associated filed-derived sub-Package objects (but not sub-directory derived 
+sub-packages), SHOULD be stored in sorted N-triples format in a file named .sip/package.nt."""
 DISSOCIATED_IMPORT_TEMPLATE = '{}.nt'
 """Per SEP 054: Imports from a dissociated package X SHOULD be stored in sorted N-triples format in a file 
 named .sip/X.nt"""
@@ -26,7 +28,7 @@ CONVERTED_MODULE_TEMPLATE = '{}.nt'
 """Per SEP 054: Imports from a dissociated package X SHOULD be stored in sorted N-triples format in a file 
 named .sip/X.nt"""
 
-BUILD_DIRECTORY = '.build'
+BUILD_SUBDIRECTORY = '.build'
 """Per SEP 054: When built with respect to a specific directory, a build artifact SHOULD be stored in a hidden 
 subdirectory named .build.
 
@@ -43,33 +45,51 @@ dependencies included in the artifact) SHOULD be X-standalone-package.[EXTENSION
 appropriate extension for its format."""
 
 
-def is_package_directory(dir: str):
-    """Check if a directory is a package directory, by checking if it contains any SBOL3 file in itself or a package
-    file in its .sip subdirectory"""
+def get_package_directory(directory: Union[Path, str]) -> Path:
+    """Return path to package directory, after ensuring it exists and has no subdirectories of its own.
+
+    :param directory: directory on which to ensure package subdirectory exists
+    :returns: Path to package directory
+    """
+    return _ensure_leaf_subdirectory(directory, GENERATED_CONTENT_SUBDIRECTORY)
 
 
-def regularize_package_directory(dir: str):
-    """Ensure directory has a package subdirectory, which has only the package and dissociated package dependencies"""
+def get_build_directory(directory: Union[Path, str]) -> Path:
+    """Return path to build directory, after ensuring it exists and has no subdirectories of its own.
+
+    :param directory: directory on which to ensure build subdirectory exists
+    :returns: Path to build directory
+    """
+    return _ensure_leaf_subdirectory(directory, BUILD_SUBDIRECTORY)
+
+
+def _ensure_leaf_subdirectory(directory: Path, leaf_name: str) -> Path:
+    """Ensure directory has a named subdirectory (e.g., for package or build), and has no subdirectories of its own
+
+    :param directory: directory on which to ensure leaf subdirectory exists
+    :param leaf_name: name for subdirectory
+    :returns: Path to leaf directory
+    """
+    leaf_path = Path(directory) / leaf_name
     # Ensure that package directory exists
-    package_path = os.path.join(dir, GENERATED_CONTENT_SUBDIRECTORY)
-    Path(package_path).mkdir(parents=True, exist_ok=True)
-
+    leaf_path.mkdir(parents=True, exist_ok=True)
     # Ensure that the package directory has no subdirectories
-    package_sub_dirs = [s for s in os.scandir(package_path) if s.is_dir()]
-    if len(package_sub_dirs):
-        raise ValueError(f'Package {dir}: {GENERATED_CONTENT_SUBDIRECTORY} subdirectory should not have any subdirectories of its '
-                         f'own, but found {package_sub_dirs[0]}')
+    leaf_sub_dirs = [s for s in os.scandir(leaf_path) if s.is_dir()]
+    if len(leaf_sub_dirs):
+        raise ValueError(f'Package {directory}: {leaf_name} subdirectory should have no subdirectories, but found '
+                         f'{leaf_sub_dirs}')
+    return leaf_path
 
 
-def dir_to_package(dir: str):
+def dir_to_package(directory: Union[Path, str]):
     # Check it is a package directory
     # Check that there is NOT a package directory
     # TODO:
 
     # Walk the tree from the bottom up
-    for root, dirs, files in os.walk(dir, topdown=False):
-        # List all of the nt files, read them in as sbol docs
-        file_list = [f for f in files if f.endswith(".nt")]
+    for root, dirs, files in os.walk(directory, topdown=False):
+        # Read all SBOL files in as documents
+        file_list = [f for f in files if f.endswith(".nt")]  # TODO: generalize to other formats
         path_list = [root + '/' + file for file in file_list]
         doc_list = []
         for file in path_list:
@@ -79,8 +99,8 @@ def dir_to_package(dir: str):
 
         # Make a list of the package objects for each of the subpackages
         # Define packages for the files saved in the directory
-        sub_package_list = [define_package(doc) for doc in doc_list]
-        # Collect packages from sub-directories
+        sub_package_list = [doc_to_package(doc) for doc in doc_list]
+        # Collect packages from subdirectories
         for sub_dir in dirs:
             path = os.path.join(root, sub_dir, GENERATED_CONTENT_SUBDIRECTORY, 'package.nt')
             doc = sbol3.Document()
@@ -107,49 +127,40 @@ def dir_to_package(dir: str):
         doc.add(package)
 
         # Make the package directory
-        regularize_package_directory(root)
+        get_package_directory(root)
 
         # Save the document to the package directory
         out_path = os.path.join(root, GENERATED_CONTENT_SUBDIRECTORY, 'package.nt')
         doc.write(out_path, sbol3.SORTED_NTRIPLES)
 
 
-def docs_to_package(root_package_doc: sbol3.Document, sub_package_docs: sbol3.Document):
+def docs_to_package(root_package_doc: sbol3.Document, sub_package_docs: list[sbol3.Document]) -> sep_054.Package:
     """ Take files for a root packages and 0 or more sub-packages. For each
     file, a package object will be generated, then the sub-packages will be
     added to the root package.
 
     Args:
-        root_package_file: First document, for the package
-        *sub_package_files: The document(s) for subpackages
+        root_package_doc: First document, for the package
+        sub_package_docs: The document(s) for subpackages
 
     Return
         package: The root package with the added sub-packages
     """
-    root_package = define_package(root_package_doc)
-    sub_package_list = [define_package(sub_package) for sub_package in sub_package_docs]
-
-    package = aggregate_subpackages(root_package, sub_package_list)
-
-    return (package)
+    root_package = doc_to_package(root_package_doc)
+    sub_package_list = [doc_to_package(sub_package) for sub_package in sub_package_docs]
+    aggregate_subpackages(root_package, sub_package_list)
+    return root_package
 
 
-# Throwing errors from specifying list[sep_054.Package] on Python 3.7
-def aggregate_subpackages(root_package: sep_054.Package,
-                          sub_package_list):
-    """ Take a package object representing a root package and one or more 
-        additional sbol package objects for the subpackages. Add the subpackages
-        to the package definition, if their name spaces indicate that they are
-        a proper subpackage for the rootpackage. Return the package object with
-        the added subpackage information.
+def aggregate_subpackages(root_package: sep_054.Package, sub_package_list: list[sep_054.Package]):
+    """ Modifies a root package by adding the sub-packages to its definition
+    (after checking that their namespaces are compatible with being sub-packages of the root)
     Args:
-        root_package (sep_054.Package): First document, for the package
-        sub_package_list (sep_054.Package): The document(s) for subpackages
-
-    Return
-        root_package: The root package with the added sub-packages
+        root_package: Package to add to
+        sub_package_list: sub-packages to add to root
     """
     # The root package should have conversion=false and dissociated not set
+    # TODO: check if this is true, rather than assuming it should be made true
     root_package.conversion = False
 
     # For each of the sub-packages, check if it's namespace contains the root
@@ -164,44 +175,26 @@ def aggregate_subpackages(root_package: sep_054.Package,
                              f'does not share a prefix with the root package '
                              f'namespace {root_package.namespace}.')
 
-    return root_package
 
+def doc_to_package(doc: sbol3.Document) -> sep_054.Package:
+    """Generate a package from the contents of a single SBOL document (ignoring  subpackages)
 
-def define_package(package_file: sbol3.Document):
-    """Function to take one sbol document and define a package from it
-
-    Args:
-        package_file (sbol3.Document): SBOL document containing a package
-
-    Return
-        package: The package definition
+    :param doc: SBOL document from which package should be generated
+    :returns: Package object
     """
-    # Check that all of the objects have the same namespace, if they do, save
-    # that as the package namespace
-    candidate_namespaces = set(o.namespace for o in package_file.objects)
-
+    # Collect TopLevel object namespaces: if all are the same, that is the package namespace
+    candidate_namespaces = set(o.namespace for o in doc.objects)
     if len(candidate_namespaces) == 0:
-        raise ValueError(f'Document {package_file} does not contain any top-'
-                         f'level objects, and so does not represent a package.')
+        raise ValueError(f'Document {doc} must contain at least one SBOL TopLevel objects to be a package')
     elif len(candidate_namespaces) == 1:
-        package_namespace = ''.join(candidate_namespaces)
+        package_namespace = candidate_namespaces.pop()
     else:
-        raise ValueError(f'Document {package_file} does not represent a well-'
-                         f'defined package. Not all members in the file have '
-                         f'the same namespace. The namespaces found are '
-                         f'{candidate_namespaces}.')
+        raise ValueError(f'Document {doc} does not form a well-defined package, as objects different namespaces.'
+                         f'The namespaces found are {candidate_namespaces}.')
 
-    # Get list of all top level objects in the package
-    all_identities = [o.identity for o in package_file.objects]
-
-    # Define the package
-    # It is suggested to name all packages '/package', but not required
-    package = sep_054.Package(package_namespace + '/package')
-    package.members = all_identities
-    package.namespace = package_namespace
-    # TODO: Call a separate function to get the dependencies
-
-    return package
+    # Create the Package object
+    # TODO: with package_namespace
+    return sep_054.Package(f'{package_namespace}/package', members=doc.objects, namespace=package_namespace)
 
 
 def check_prefix(root_package: sep_054.Package, sub_package: sep_054.Package):
@@ -240,11 +233,9 @@ def check_prefix(root_package: sep_054.Package, sub_package: sep_054.Package):
     root_uri_split = root_uri.path.split('/')
     sub_uri_split = sub_uri.path.split('/')
 
-    # Get all of the paths into one list
-    all = [root_uri_split, sub_uri_split]
-
+    # Get all the paths into one list
     # Get common elements
-    zipped = list(zip(*all))
+    zipped = list(zip(*[root_uri_split, sub_uri_split]))
     common_elements = [list(set(zipped[i]))[0] for i in range(len(zipped)) if len(set(zipped[i])) == 1]
 
     # Check that the common elements are the same as the entire root package
@@ -252,7 +243,7 @@ def check_prefix(root_package: sep_054.Package, sub_package: sep_054.Package):
         is_sub = True
     else:
         raise ValueError(f'The namespace of package object {sub_package} '
-                         f'({sub_uri}) does not contain the namesace of the '
+                         f'({sub_uri}) does not contain the namespace of the '
                          f'root package object {root_package} ({root_uri}) as a '
                          f'prefix. So {sub_package} is not a valid sub-package '
                          f'of {root_package}')
@@ -288,17 +279,13 @@ def get_prefix(package_list):
                          f'represent a root and sub package.')
 
     # Break the paths down into chunks separated by "/"
-    split_URIs = [URI.path.split('/') for URI in uri_list]
+    split_uris = [URI.path.split('/') for URI in uri_list]
 
     # Get common elements
-    zipped = list(zip(*split_URIs))
+    zipped = list(zip(*split_uris))
     common_elements = [list(set(zipped[i]))[0] for i in range(len(zipped)) if len(set(zipped[i])) == 1]
 
     # Rejoin the common elements to get the common path
     common_path = '/'.join(common_elements)
     prefix = schemes.pop() + '://' + netlocs.pop() + common_path
     return prefix
-
-
-def validate_package(package: sep_054.Package):
-    pass
