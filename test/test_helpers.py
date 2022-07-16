@@ -2,6 +2,8 @@ import unittest
 import os
 from pathlib import Path
 
+import sbol3
+
 from sbol_utilities import component
 
 from sbol_utilities.helper_functions import *
@@ -76,6 +78,16 @@ class TestHelpers(unittest.TestCase):
         self.assertEqual(sequence, found_object)
         found_object = find_top_level(c1.sequences[0], cache)
         self.assertEqual(sequence, found_object)
+
+    def test_with_namespace(self):
+        """Make sure the "with namespace" functionality work as expected"""
+        doc = sbol3.Document()
+        sbol3.set_namespace("http://test.com/something")
+        with sbol3_namespace("http://test.com/another"):
+            doc.add(sbol3.Sequence("my_sequence"))
+        self.assertEqual("http://test.com/something", sbol3.get_namespace())
+        s = doc.find("my_sequence")
+        self.assertEqual(s.identity, "http://test.com/another/my_sequence")
 
     def test_with_cached_references(self):
         test_dir = os.path.dirname(os.path.realpath(__file__))
