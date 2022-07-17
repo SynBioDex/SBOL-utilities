@@ -7,9 +7,10 @@ import shutil
 
 import sbol3
 
-import sbol_utilities.package
+import sbol_utilities.sbol_diff
+from sbol_utilities import package
 from sbol_utilities.helper_functions import sbol3_namespace
-from sbol_utilities.sbol_diff import doc_diff
+from sbol_utilities.sbol_diff import doc_diff, file_diff
 
 TEST_FILES = Path(__file__).parent / 'test_files'
 
@@ -23,7 +24,7 @@ class TestPackage(unittest.TestCase):
 
         # Create the package and add it to a document
         out_doc = sbol3.Document()
-        out_01 = sbol_utilities.package.doc_to_package(doc_01)
+        out_01 = package.doc_to_package(doc_01)
         out_doc.add(out_01)
 
         # Compare it to the saved results file, make sure they are the same
@@ -46,7 +47,7 @@ class TestPackage(unittest.TestCase):
 
         # Run the function
         # Here, I only want the package object, not any of the subpackages
-        out_02 = sbol_utilities.package.docs_to_package(doc_01, [doc_02, doc_03])
+        out_02 = package.docs_to_package(doc_01, [doc_02, doc_03])
 
         # Write a temporary file
         doc = sbol3.Document()
@@ -81,7 +82,7 @@ class TestPackage(unittest.TestCase):
 
         # Run the function
         with self.assertRaises(ValueError):
-            sbol_utilities.package.docs_to_package(doc_01, [doc_02, doc_03])
+            package.docs_to_package(doc_01, [doc_02, doc_03])
 
 
     def test_subpackage_fails(self):
@@ -103,7 +104,7 @@ class TestPackage(unittest.TestCase):
 
         # Run the function
         with self.assertRaises(ValueError):
-            sbol_utilities.package.docs_to_package(doc_01, [doc_02, doc_03])
+            package.docs_to_package(doc_01, [doc_02, doc_03])
 
     def test_make_package_from_MyPackage(self):
         """ Create a package based on the files in a directory (test/test_files/
@@ -114,7 +115,7 @@ class TestPackage(unittest.TestCase):
         dir_name = os.path.join(test_dir, 'test_files', 'MyPackage')
 
         # Pass to the function
-        sbol_utilities.package.directory_to_package(dir_name)
+        package.directory_to_package(dir_name)
 
         # Compare all of the package files to the saved results file, make sure 
         # they are the same, then delete the package directory
@@ -149,7 +150,7 @@ class TestPackage(unittest.TestCase):
                                 'MyPackage_w_multiple_files')
 
         # Pass to the function
-        sbol_utilities.package.directory_to_package(dir_name)
+        package.directory_to_package(dir_name)
 
         # Compare all of the package files to the saved results file, make sure 
         # they are the same, then delete the package directory
@@ -184,7 +185,7 @@ class TestPackage(unittest.TestCase):
                                 'MyPackage_w_sub_sub_packages')
 
         # Pass to the function
-        sbol_utilities.package.directory_to_package(dir_name)
+        package.directory_to_package(dir_name)
 
         # Compare all of the package files to the saved results file, make sure 
         # they are the same, then delete the package directory
@@ -208,6 +209,26 @@ class TestPackage(unittest.TestCase):
             # Delete the package directory
             shutil.rmtree(out_path, ignore_errors=True)
 
+    def test_install_package(self):
+        with tempfile.TemporaryDirectory() as temp_dir_name:
+            tempdir = Path(temp_dir_name)
+            # create a temporary package manager for testing
+            package.ACTIVE_PACKAGE_MANAGER = package.PackageManager(tempdir)
+            # make and install a miniature package
+            doc = sbol3.Document()
+            doc.read(str(TEST_FILES / 'BBa_J23101.nt'))
+            p = package.doc_to_package(doc)
+            package.install_package(p, doc)
+            # check that the files that are created look like what is expected
+            self.assertEqual(2, len(list(tempdir.iterdir())))
+            self.assertFalse(file_diff(TEST_FILES / 'BBa_J23101.nt', tempdir / 'e9325cfb11264f3c300f592e33c97c04.nt'))
+            catalog_doc = sbol3.Document()
+            catalog_doc.read(str(tempdir / 'package-catalog.nt'))
+            self.assertEqual(2, len(catalog_doc.objects))
+            p = catalog_doc.find('https://synbiohub.org/package')
+            self.assertEqual((tempdir / 'e9325cfb11264f3c300f592e33c97c04.nt').as_uri(),
+                             p.attachments[0].lookup().source)
+
     def test_cross_document_lookup(self):
         """Test that package system correctly overrides the document lookup function to enable cross-package lookups"""
         # What I want for a load pattern:
@@ -216,16 +237,14 @@ class TestPackage(unittest.TestCase):
         # A catalog is stored in Path.home() / ".sip" / "installed-packages.nt"
         # iGEM materials are stored in Path.home() / ".sip" / "igem"
         # sbol_utilities.package.load_package('igem')
-        sbol_utilities.package.load_package('https://synbiohub.org/public/igem', TEST_FILES / 'BBa_J23101.nt')
+        package.load_package('https://synbiohub.org/public/igem', TEST_FILES / 'BBa_J23101.nt')
         doc = sbol3.Document()
         with sbol3_namespace('http://foo.bar/baz'):
             doc.add(sbol3.Component('qux',sbol3.SBO_DNA,
                                     sequences=['https://synbiohub.org/public/igem/BBa_J23101_sequence']))
 
         c = doc.find('qux')
-        print('Going to look up')
-        print(c.sequences[0].lookup())
-        print('looked up')
+        self.assertEqual('https://synbiohub.org/public/igem/BBa_J23101_sequence', c.sequences[0].lookup().identity)
 
 
 if __name__ == '__main__':

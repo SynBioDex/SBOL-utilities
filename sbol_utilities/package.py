@@ -1,8 +1,11 @@
 from __future__ import annotations
+
+import logging
 import os
 from dataclasses import dataclass
+from hashlib import sha256
 from pathlib import Path
-from typing import Union, Optional, Tuple
+from typing import Union, Optional
 from urllib.parse import urlparse
 
 from sbol3.refobj_property import ReferencedURI
@@ -47,6 +50,15 @@ STANDALONE_DISTRIBUTION_TEMPLATE = '{}-standalone-package.{}'
 """Per SEP 054: For a package named X, the name of a build artifact for stand-alone distribution (i.e., with all 
 dependencies included in the artifact) SHOULD be X-standalone-package.[EXTENSION], where [EXTENSION] is an 
 appropriate extension for its format."""
+
+DEFAULT_PACKAGE_CATALOG_DIRECTORY = Path.home() / GENERATED_CONTENT_SUBDIRECTORY
+"""By default a package catalog will be stored in a generated subdirectory of the user's home directory."""
+
+PACKAGE_CATALOG_NAME = 'package-catalog.nt'
+"""Name of the file used to store a catalog of available packages"""
+
+PACKAGE_HASH_NAME_LENGTH = 32
+"""Length of names created from package URIs"""
 
 def get_package_directory(directory: Union[Path, str]) -> Path:
     """Return path to package directory, after ensuring it exists and has no subdirectories of its own.
@@ -294,20 +306,67 @@ def get_prefix(package_list):
     return prefix
 
 
+# TODO: consider moving this to an SEP 054 class
 @dataclass
 class LoadedPackage:
     package: sep_054.Package
     document: sbol3.Document
+    source_file: Path = None
+    """File the package was loaded from, if any"""
 
 
 class PackageManager:
 
-    def __init__(self):
-        # Loaded packages tracks the set of loaded namespaces, associating each with a dictionary of {namespace, [package, doc]}
+    def __init__(self, catalog_directory: Path = DEFAULT_PACKAGE_CATALOG_DIRECTORY):
+        self._catalog_directory = catalog_directory
+        # ensure catalog directory exists
+        self._catalog_directory.mkdir(parents=True, exist_ok=True)
+        # Track set of loaded packages
         self.loaded_packages: dict[str, LoadedPackage] = dict()
+        """Tracks the set of currently loaded packages (initially empty). It is a dictionary mapping
+         from namespace to the collection of loaded information"""
+        self._catalog_file = self._catalog_directory / PACKAGE_CATALOG_NAME
+        # Catalog of available packages, and document it was drawn from
+        self.package_catalog, self._package_catalog_doc = PackageManager._load_package_catalog(self._catalog_file)
+
+    @staticmethod
+    def _load_package_catalog(catalog_file: Path) -> tuple[dict[str, sep_054.Package], sbol3.Document]:
+        doc = sbol3.Document()
+        # TODO: unwrap Path->str after https://github.com/SynBioDex/pySBOL3/issues/407 published in pySBOL3 1.0.2
+        try:
+            doc.read(str(catalog_file))
+        except FileNotFoundError:
+            logging.warning('Unable to find package catalog file %s; using empty catalog', catalog_file)
+        return {p.namespace: p for p in doc.objects if isinstance(p, sep_054.Package)}, doc
+
+    def _save_package_catalog(self, catalog_file: Path = None):
+        # TODO: unwrap Path->str after https://github.com/SynBioDex/pySBOL3/issues/407 published in pySBOL3 1.0.2
+        self._package_catalog_doc.write(str(catalog_file or self._catalog_file), sbol3.SORTED_NTRIPLES)
+
+    @staticmethod
+    def _identity_to_filename(identity: str) -> str:
+        hash_name = sha256(identity.encode()).hexdigest()[:PACKAGE_HASH_NAME_LENGTH]
+        return f'{hash_name}.nt'
+
+    def install_package(self, package: sep_054.Package, doc: sbol3.Document):
+        # TODO: validate package against document before installation
+        logging.info('Installing package %s',package.identity)
+        # Write package document to collection
+        file_path = self._catalog_directory / PackageManager._identity_to_filename(package.identity)
+        doc.write(str(file_path), sbol3.SORTED_NTRIPLES)
+        # Create an attachment for the newly written file
+        # TODO: fill out the rest of the attachment fields correctly
+        attachment = sbol3.Attachment(f'{package.identity}_file', source=file_path.as_uri())
+        package.attachments.append(attachment)
+        # Add the package and save the catalog
+        self._package_catalog_doc.add([package, attachment])
+        self._save_package_catalog()
+        logging.info('Successfully installed package %s',package.identity)
 
     def load_package(self, uri, from_path):
         doc = sbol3.Document()
+        #from urllib.parse import unquote, urlparse
+        #from_path = unquote(urlparse(uri).path)
         doc.read(str(from_path))
         # TODO: get the package too
         self.loaded_packages[uri] = LoadedPackage(None, doc)
@@ -337,6 +396,9 @@ def load_package(uri, from_path):
     ACTIVE_PACKAGE_MANAGER.load_package(uri, from_path)
 
 
+def install_package(package: sep_054.Package, doc: sbol3.Document):
+    ACTIVE_PACKAGE_MANAGER.install_package(package, doc)
+
 #################
 # Replace ReferencedURI lookup function with package-aware lookup:
 original_referenced_uri_lookup = sbol3.refobj_property.ReferencedURI.lookup
@@ -349,4 +411,3 @@ def package_aware_lookup(self: ReferencedURI) -> Optional[sbol3.Identified]:
 
 # Monkey-patch package-aware lookup function over base lookup function
 sbol3.refobj_property.ReferencedURI.lookup = package_aware_lookup
-
