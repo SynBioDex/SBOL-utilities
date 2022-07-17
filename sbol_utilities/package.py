@@ -1,9 +1,11 @@
 from __future__ import annotations
 import os
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Union
+from typing import Union, Optional, Tuple
 from urllib.parse import urlparse
 
+from sbol3.refobj_property import ReferencedURI
 from sbol_factory import SBOLFactory
 import sbol3
 
@@ -46,7 +48,6 @@ STANDALONE_DISTRIBUTION_TEMPLATE = '{}-standalone-package.{}'
 dependencies included in the artifact) SHOULD be X-standalone-package.[EXTENSION], where [EXTENSION] is an 
 appropriate extension for its format."""
 
-
 def get_package_directory(directory: Union[Path, str]) -> Path:
     """Return path to package directory, after ensuring it exists and has no subdirectories of its own.
 
@@ -83,7 +84,7 @@ def _ensure_leaf_subdirectory(directory: Path, leaf_name: str) -> Path:
     return leaf_path
 
 
-def dir_to_package(directory: Union[Path, str]):
+def directory_to_package(directory: Union[Path, str]):
     # Check it is a package directory
     # Check that there is NOT a package directory
     # TODO:
@@ -291,3 +292,61 @@ def get_prefix(package_list):
     common_path = '/'.join(common_elements)
     prefix = schemes.pop() + '://' + netlocs.pop() + common_path
     return prefix
+
+
+@dataclass
+class LoadedPackage:
+    package: sep_054.Package
+    document: sbol3.Document
+
+
+class PackageManager:
+
+    def __init__(self):
+        # Loaded packages tracks the set of loaded namespaces, associating each with a dictionary of {namespace, [package, doc]}
+        self.loaded_packages: dict[str, LoadedPackage] = dict()
+
+    def load_package(self, uri, from_path):
+        doc = sbol3.Document()
+        doc.read(str(from_path))
+        # TODO: get the package too
+        self.loaded_packages[uri] = LoadedPackage(None, doc)
+
+    def find_package_doc(self, uri: ReferencedURI) -> Optional[sbol3.Document]:
+        last_uri = None
+        uri = str(uri)
+        while uri and uri != last_uri:
+            if uri in self.loaded_packages:
+                return self.loaded_packages[uri].document
+            last_uri = uri
+            uri = uri.rsplit('/', maxsplit=1)[0]
+        return None
+
+    def lookup(self, uri: ReferencedURI):
+        package_doc = self.find_package_doc(uri)
+        if package_doc:
+            return package_doc.find(str(uri))
+        else:
+            return None
+
+
+ACTIVE_PACKAGE_MANAGER = PackageManager()
+
+
+def load_package(uri, from_path):
+    ACTIVE_PACKAGE_MANAGER.load_package(uri, from_path)
+
+
+#################
+# Replace ReferencedURI lookup function with package-aware lookup:
+original_referenced_uri_lookup = sbol3.refobj_property.ReferencedURI.lookup
+
+
+def package_aware_lookup(self: ReferencedURI) -> Optional[sbol3.Identified]:
+    return original_referenced_uri_lookup(self) or \
+        ACTIVE_PACKAGE_MANAGER.lookup(self)
+
+
+# Monkey-patch package-aware lookup function over base lookup function
+sbol3.refobj_property.ReferencedURI.lookup = package_aware_lookup
+
