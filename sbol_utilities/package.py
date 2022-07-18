@@ -60,6 +60,7 @@ PACKAGE_CATALOG_NAME = 'package-catalog.nt'
 PACKAGE_HASH_NAME_LENGTH = 32
 """Length of names created from package URIs"""
 
+
 def get_package_directory(directory: Union[Path, str]) -> Path:
     """Return path to package directory, after ensuring it exists and has no subdirectories of its own.
 
@@ -350,7 +351,7 @@ class PackageManager:
 
     def install_package(self, package: sep_054.Package, doc: sbol3.Document):
         # TODO: validate package against document before installation
-        logging.info('Installing package %s',package.identity)
+        logging.info('Installing package %s', package.identity)
         # Write package document to collection
         file_path = self._catalog_directory / PackageManager._identity_to_filename(package.identity)
         doc.write(str(file_path), sbol3.SORTED_NTRIPLES)
@@ -361,12 +362,13 @@ class PackageManager:
         # Add the package and save the catalog
         self._package_catalog_doc.add([package, attachment])
         self._save_package_catalog()
-        logging.info('Successfully installed package %s',package.identity)
+        logging.info('Successfully installed package %s', package.identity)
 
     def load_package(self, uri, from_path):
         doc = sbol3.Document()
-        #from urllib.parse import unquote, urlparse
-        #from_path = unquote(urlparse(uri).path)
+        # TODO: switch to trying to get the path from the catalog, converting file URI to path per the following:
+        # from urllib.parse import unquote, urlparse
+        # from_path = unquote(urlparse(uri).path)
         doc.read(str(from_path))
         # TODO: get the package too
         self.loaded_packages[uri] = LoadedPackage(None, doc)
@@ -382,6 +384,7 @@ class PackageManager:
         return None
 
     def lookup(self, uri: ReferencedURI):
+        # TODO: figure out how lookup will work for dissociated packages
         package_doc = self.find_package_doc(uri)
         if package_doc:
             return package_doc.find(str(uri))
@@ -390,6 +393,7 @@ class PackageManager:
 
 
 ACTIVE_PACKAGE_MANAGER = PackageManager()
+"""Package manager in use, initialized with default settings"""
 
 
 def load_package(uri, from_path):
@@ -399,12 +403,16 @@ def load_package(uri, from_path):
 def install_package(package: sep_054.Package, doc: sbol3.Document):
     ACTIVE_PACKAGE_MANAGER.install_package(package, doc)
 
+
 #################
 # Replace ReferencedURI lookup function with package-aware lookup:
 original_referenced_uri_lookup = sbol3.refobj_property.ReferencedURI.lookup
 
 
 def package_aware_lookup(self: ReferencedURI) -> Optional[sbol3.Identified]:
+    """Package-aware lookup works by first trying lookup in the local sbol3.Document, then checking if the references
+    lead elsewhere."""
+    # TODO: consider the handling of materials in the current document that should be in a different package
     return original_referenced_uri_lookup(self) or \
         ACTIVE_PACKAGE_MANAGER.lookup(self)
 
