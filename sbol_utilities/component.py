@@ -538,7 +538,7 @@ def backbone(identity: str, sequence: str, dropout_location: List[int], fusion_s
 
     :param identity: The identity of the Component. The identity of Sequence is also identity with the suffix '_seq'.
     :param sequence: The DNA sequence of the Component encoded in IUPAC.
-    :param dropout_location: List of 2 integers that indicates the start and the end of the dropout sequence including overhangs. Note that the index of the first location is 1, as is typical practice in biology, rather than 0, as is typical practice in computer science. # TODO: add generalization to support multiple drop-out locations and non-identical fusion sites lengths.
+    :param dropout_location: List of 2 integers that indicates the start and the end of the dropout sequence including overhangs. Note that the index of the first location is 1, as is typical practice in biology, rather than 0, as is typical practice in computer science.
     :param fusion_site_length: Integer of the lenght of the fusion sites (eg. BsaI fusion site lenght is 4, SapI fusion site lenght is 3)
     :param linear: Boolean than indicates if the backbone is linear, by default it is seted to Flase which means that it has a circular topology.
     :param kwargs: Keyword arguments of any other Component attribute.
@@ -556,13 +556,13 @@ def backbone(identity: str, sequence: str, dropout_location: List[int], fusion_s
     if linear:
         backbone_component.types.append(sbol3.SO_LINEAR)
         backbone_component.roles.append(sbol3.SO_ENGINEERED_REGION)
-        open_backbone_location1 = sbol3.Range(sequence=backbone_seq, start=1, end=dropout_location[0]+fusion_site_length, order=1)
-        open_backbone_location2 = sbol3.Range(sequence=backbone_seq, start=dropout_location[1]-fusion_site_length, end=len(sequence), order=2)
+        open_backbone_location1 = sbol3.Range(sequence=backbone_seq, start=1, end=dropout_location[0]+fusion_site_length-1, order=1)
+        open_backbone_location2 = sbol3.Range(sequence=backbone_seq, start=dropout_location[1]-fusion_site_length, end=len(sequence), order=3)
         open_backbone_feature = sbol3.SequenceFeature(locations=[open_backbone_location1, open_backbone_location2])
     else: 
         backbone_component.types.append(sbol3.SO_CIRCULAR)
         backbone_component.roles.append(tyto.SO.plasmid_vector)
-        open_backbone_location1 = sbol3.Range(sequence=backbone_seq, start=1, end=dropout_location[0]+fusion_site_length, order=2)
+        open_backbone_location1 = sbol3.Range(sequence=backbone_seq, start=1, end=dropout_location[0]+fusion_site_length-1, order=2)
         open_backbone_location2 = sbol3.Range(sequence=backbone_seq, start=dropout_location[1]-fusion_site_length, end=len(sequence), order=1)
         open_backbone_feature = sbol3.SequenceFeature(locations=[open_backbone_location1, open_backbone_location2])
     backbone_component.features.append(dropout_sequence_feature)
