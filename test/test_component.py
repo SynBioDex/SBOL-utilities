@@ -317,12 +317,12 @@ class TestComponent(unittest.TestCase):
         dropout_location_comp = sbol3.Range(sequence=circular_backbone_seq, start=dropout_location[0], end=dropout_location[1])
         insertion_site_location1 = sbol3.Range(sequence=circular_backbone_seq, start=dropout_location[0], end=dropout_location[0]+fusion_site_length, order=1)
         insertion_site_location2 = sbol3.Range(sequence=circular_backbone_seq, start=dropout_location[1]-fusion_site_length, end=dropout_location[1], order=3)
-        open_backbone_location1 = sbol3.Range(sequence=circular_backbone_seq, start=1, end=dropout_location[0]+fusion_site_length-1, order=2)
+        open_backbone_location1 = sbol3.Range(sequence=circular_backbone_seq, start=1, end=dropout_location[0]+fusion_site_length -1, order=2)
         open_backbone_location2 = sbol3.Range(sequence=circular_backbone_seq, start=dropout_location[1]-fusion_site_length, end=len(backbone_sequence), order=1)
         dropout_sequence_feature = sbol3.SequenceFeature(locations=[dropout_location_comp], roles=[tyto.SO.deletion])
         insertion_sites_feature = sbol3.SequenceFeature(locations=[insertion_site_location1, insertion_site_location2], roles=[tyto.SO.insertion_site])
         open_backbone_feature = sbol3.SequenceFeature(locations=[open_backbone_location1, open_backbone_location2])
-    
+
         circular_backbone_component.features.append(dropout_sequence_feature)
         circular_backbone_component.features.append(insertion_sites_feature)
         circular_backbone_component.features.append(open_backbone_feature)
@@ -340,11 +340,11 @@ class TestComponent(unittest.TestCase):
 
         linear_backbone_seq = sbol3.Sequence(f'{backbone_identity}_seq', elements=backbone_sequence, encoding=sbol3.IUPAC_DNA_ENCODING)
         linear_backbone_component =  sbol3.Component(backbone_identity, types=[sbol3.SBO_DNA, sbol3.SO_LINEAR], roles=[sbol3.SO_DOUBLE_STRANDED, sbol3.SO_ENGINEERED_REGION], sequences=[linear_backbone_seq], description=test_description)
-        
+
         dropout_location_comp = sbol3.Range(sequence=linear_backbone_seq, start=dropout_location[0], end=dropout_location[1]) 
-        insertion_site_location1 = sbol3.Range(sequence=linear_backbone_seq, start=dropout_location[0], end=dropout_location[0]+fusion_site_length-1, order=1)
+        insertion_site_location1 = sbol3.Range(sequence=linear_backbone_seq, start=dropout_location[0], end=dropout_location[0]+fusion_site_length, order=1)
         insertion_site_location2 = sbol3.Range(sequence=linear_backbone_seq, start=dropout_location[1]-fusion_site_length, end=dropout_location[1], order=3)
-        open_backbone_location1 = sbol3.Range(sequence=linear_backbone_seq, start=1, end=dropout_location[0]+fusion_site_length, order=1)
+        open_backbone_location1 = sbol3.Range(sequence=linear_backbone_seq, start=1, end=dropout_location[0]+fusion_site_length-1, order=1)
         open_backbone_location2 = sbol3.Range(sequence=linear_backbone_seq, start=dropout_location[1]-fusion_site_length, end=len(backbone_sequence), order=3)
         dropout_sequence_feature = sbol3.SequenceFeature(locations=[dropout_location_comp], roles=[tyto.SO.deletion])
         insertion_sites_feature = sbol3.SequenceFeature(locations=[insertion_site_location1, insertion_site_location2], roles=[tyto.SO.insertion_site])
@@ -357,6 +357,7 @@ class TestComponent(unittest.TestCase):
         linear_backbone_component.constraints.append(backbone_dropout_meets)
         doc.add([linear_backbone_component, linear_backbone_seq])
         assert doc_diff(doc, hlc_doc) == 0, f'Constructor Error: Linear {backbone_identity}'
+
 
         hlc_doc = sbol3.Document()
         doc = sbol3.Document()
