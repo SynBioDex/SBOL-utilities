@@ -189,6 +189,7 @@ class GenBank_SBOL3_Converter:
                     if self.gb2so_map.get(gb_feat.type):
                         feat_role += self.gb2so_map[gb_feat.type]
                     else:
+                        logging.warning(f"Feature type: `{gb_feat.type}` for feature: `{gb_feat.qualifiers['label'][0]}` of record: `{record.name}` has no corresponding ontology term for SO, using the default SO term, {self.DEFAULT_SO_TERM}")
                         feat_role += self.DEFAULT_SO_TERM
                     feat = sbol3.SequenceFeature(
                         locations=[locs],
@@ -235,9 +236,13 @@ class GenBank_SBOL3_Converter:
         for obj in doc.objects:
             if isinstance(obj, sbol3.Component):
                 logging.info(f"Parsing component - `{obj.display_id}` in sbol3 document.")
-                # TODO: can component have multiple sequences? How should we handle Seq objects for those
-                obj_seq = doc.find(obj.sequences[0])
-                seq = Seq(obj_seq.elements.upper())
+                # NOTE: A single component/record cannot have multiple sequences
+                seq = None # If no sequence is found for a component
+                if obj.sequences and len(obj.sequences) == 1:
+                    obj_seq = doc.find(obj.sequences[0])
+                    seq = Seq(obj_seq.elements.upper())
+                elif len(obj.sequences) > 1:
+                    raise ValueError(f"Component `{obj.display_id}` of given SBOL3 document has more than 1 sequnces (`{len(obj.sequences)}`). This is invalid; a component may only have 1 or 0 sequences.")
                 # TODO: "Version" annotation information currently not stored when converted genbank to sbol3
                 seq_rec = SeqRecord(
                     seq=seq,
@@ -271,7 +276,7 @@ class GenBank_SBOL3_Converter:
                             if obj_feat_loc.orientation == sbol3.SO_REVERSE:
                                 feat_strand = self.BIO_STRAND_REVERSE
                             elif obj_feat_loc.orientation != sbol3.SO_FORWARD:
-                                raise ValueError(f"Location orientation: '{obj_feat_loc.orientation}' for feature: '{obj_feat.name}' of component: '{obj.display_id}' is not a valid orientation.\n Valid orientations are '{sbol3.SO_FORWARD}', '{sbol3.SO_REVERSE}'")
+                                raise ValueError(f"Location orientation: `{obj_feat_loc.orientation}` for feature: `{obj_feat.name}` of component: `{obj.display_id}` is not a valid orientation.\n Valid orientations are `{sbol3.SO_FORWARD}`, `{sbol3.SO_REVERSE}`")
                             # TODO: Raise custom converter class ERROR for `else:`
                             feat_loc = FeatureLocation(
                                 start=obj_feat_loc.start,
@@ -290,6 +295,8 @@ class GenBank_SBOL3_Converter:
                             feat_role = self.DEFAULT_GB_TERM
                             if self.so2gb_map.get(obj_feat_role):
                                 feat_role = self.so2gb_map[obj_feat_role]
+                            else:
+                                logging.warning(f"Feature role: `{obj_feat_role}` for feature: `{obj_feat}` of component: `{obj.display_id}` has no corresponding ontology term for GenBank, using the default GenBank term, {self.DEFAULT_GB_TERM}")
                             # create sequence feature object with label qualifier
                             feat = SeqFeature(
                                 location=feat_loc, strand=feat_strand, type=feat_role
