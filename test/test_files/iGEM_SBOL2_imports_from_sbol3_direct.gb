@@ -1,5 +1,5 @@
 LOCUS       BBa_J23100                35 bp    DNA     linear   UNK 01-JAN-1980
-DEFINITION  constitutive promoter family member..
+DEFINITION  constitutive promoter family member.
 ACCESSION   BBa_J23100
 VERSION     BBa_J23100
 KEYWORDS    .
@@ -11,7 +11,7 @@ ORIGIN
         1 ttgacggcta gctcagtcct aggtacagtg ctagc
 //
 LOCUS       BBa_J23102                35 bp    DNA     linear   UNK 01-JAN-1980
-DEFINITION  constitutive promoter family member..
+DEFINITION  constitutive promoter family member.
 ACCESSION   BBa_J23102
 VERSION     BBa_J23102
 KEYWORDS    .
@@ -23,7 +23,7 @@ ORIGIN
         1 ttgacagcta gctcagtcct aggtactgtg ctagc
 //
 LOCUS       LmrA                     567 bp    DNA     linear   UNK 01-JAN-1980
-DEFINITION  ..
+DEFINITION  .
 ACCESSION   LmrA
 VERSION     LmrA
 KEYWORDS    .
@@ -44,7 +44,7 @@ ORIGIN
       541 tgtattccgg atctgctgaa acgttaa
 //
 LOCUS       pSB1C3                  2070 bp    DNA     linear   UNK 01-JAN-1980
-DEFINITION  High copy BioBrick assembly plasmid..
+DEFINITION  High copy BioBrick assembly plasmid.
 ACCESSION   pSB1C3
 VERSION     pSB1C3
 KEYWORDS    .
@@ -54,28 +54,28 @@ SOURCE      .
 FEATURES             Location/Qualifiers
      misc_feature    1..21
                      /label="BioBrick suffix"
-     stem_loop       2009..2012
-                     /label="end of terminator"
-     misc_feature    261..875
-                     /label="rep (pMB1)"
-     misc_feature    2051..2072
-                     /label="BioBrick prefix"
-     CDS             1160..1819
-                     /label="Chloramphenicol resistance"
-     stem_loop       1042..1147
-                     /label="T0 terminator"
-     primer_bind     1933..1952
-                     /label="Verification forward (VF2) primer binding site"
      stem_loop       22..93
                      /label="E. coli his operon terminator"
      stem_loop       30..64
                      /label="Stem loop"
-     misc_feature    276
-                     /label="ORI"
      primer_bind     157..176
                      /label="Verification reverse (VR) primer binding site"
+     misc_feature    261..875
+                     /label="rep (pMB1)"
+     misc_feature    276
+                     /label="ORI"
+     stem_loop       1042..1147
+                     /label="T0 terminator"
+     CDS             1160..1819
+                     /label="Chloramphenicol resistance"
+     primer_bind     1933..1952
+                     /label="Verification forward (VF2) primer binding site"
+     stem_loop       2009..2012
+                     /label="end of terminator"
      stem_loop       2022..2041
                      /label="Stem loop"
+     misc_feature    2051..2072
+                     /label="BioBrick prefix"
 ORIGIN
         1 tactagtagc ggccgctgca gtccggcaaa aaagggcaag gtgtcaccac cctgcccttt
        61 ttctttaaaa ccgaaaagat tacttcgcgt tatgcaggct tcctcgctca ctgactcgct

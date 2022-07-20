@@ -246,7 +246,6 @@ class GenBank_SBOL3_Converter:
         logging.info(f"Parsing SBOL3 Document components using SBOL3 Document: \n{doc}")
         for obj in doc.objects:
             if isinstance(obj, sbol3.Component):
-                SEQ_REC_FEATURES = []
                 logging.info(f"Parsing component - `{obj.display_id}` in sbol3 document.")
                 # TODO: can component have multiple sequences? How should we handle Seq objects for those
                 obj_seq = doc.find(obj.sequences[0])
@@ -262,6 +261,7 @@ class GenBank_SBOL3_Converter:
                 seq_rec.annotations["molecule_type"] = "DNA"
                 # TODO: hardcoded topology as linear, derivation?
                 seq_rec.annotations["topology"] = "linear"
+                SEQ_REC_FEATURES = []
                 if obj.features:
                     # converting all sequence features
                     for obj_feat in obj.features:
@@ -275,16 +275,16 @@ class GenBank_SBOL3_Converter:
                             feat_strand = 1
                         elif obj_feat_loc.orientation == sbol3.SO_REVERSE:
                             feat_strand = -1
+                        # TODO: Raise custom converter class ERROR for `else:`
                         feat_loc = FeatureLocation(
-                            start=obj_feat_loc.start - 1,
+                            start=obj_feat_loc.start,
                             end=obj_feat_loc.end,
                             strand=feat_strand,
                         )
-                        # TODO: Raise custom converter class ERROR for `else:`
                         # FIXME: order of features not same as original genbank doc?
                         obj_feat_role = obj_feat.roles[0]
                         obj_feat_role = obj_feat_role[
-                            obj_feat.roles[0].index(":", 5) - 2 :
+                            obj_feat.roles[0].index(":", 6) - 2 :
                         ]
                         # Obtain sequence feature role from so2gb mappings
                         feat_role = self.default_GB_ontology
@@ -298,7 +298,9 @@ class GenBank_SBOL3_Converter:
                             feat.qualifiers["label"] = obj_feat.name
                         # add feature to list of features
                         SEQ_REC_FEATURES.append(feat)
-                        seq_rec.features = SEQ_REC_FEATURES
+                # Sort features based on feature location start/end, lexicographically
+                SEQ_REC_FEATURES.sort(key=lambda feat: (feat.location.start, feat.location.end))
+                seq_rec.features = SEQ_REC_FEATURES
                 SEQ_RECORDS.append(seq_rec)
         # writing generated genbank document to disk at path provided
         if write:
@@ -317,7 +319,7 @@ def main():
     # converter.convert_genbank_to_sbol3(
     #     gb_file=SAMPLE_GENBANK_FILE_2, sbol3_file=SAMPLE_SBOL3_FILE_2, write=True
     # )
-    converter.convert_sbol3_to_genbank(sbol3_file="BBa_J23101.nt", write=True)
+    converter.convert_sbol3_to_genbank(sbol3_file="iGEM_SBOL2_imports_from_genbank_to_sbol3_direct.nt", write=True)
 
 
 if __name__ == "__main__":

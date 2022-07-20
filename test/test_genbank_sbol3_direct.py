@@ -86,6 +86,25 @@ class TestGenBankSBOL3(unittest.TestCase):
             outfile, comparison_file
         ), f"Converted GenBank file {comparison_file} is not identical"
 
+    def test_sbol3togb_2(self):
+        """Test ability to convert from SBOL3 to GenBank with multiple records/features using new converter"""
+        # create tmp directory to store generated genbank file in for comparison
+        tmp_sub = copy_to_tmp(package=["iGEM_SBOL2_imports_from_genbank_to_sbol3_direct.nt"])
+        doc3 = sbol3.Document()
+        doc3.read(os.path.join(tmp_sub, "iGEM_SBOL2_imports_from_genbank_to_sbol3_direct.nt"))
+        # Convert to GenBank and check contents
+        outfile = os.path.join(tmp_sub, "iGEM_SBOL2_imports.gb")
+        self.converter.convert_sbol3_to_genbank(
+            sbol3_file=None, doc=doc3, gb_file=outfile, write=True
+        )
+        test_dir = os.path.dirname(os.path.realpath(__file__))
+        comparison_file = os.path.join(
+            test_dir, "test_files", "iGEM_SBOL2_imports_from_sbol3_direct.gb"
+        )
+        assert filecmp.cmp(
+            outfile, comparison_file
+        ), f"Converted GenBank file {comparison_file} is not identical"
+
 
 if __name__ == "__main__":
     unittest.main()
