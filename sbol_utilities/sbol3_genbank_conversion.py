@@ -214,7 +214,7 @@ class GenBank_SBOL3_Converter:
         if not doc:
             doc = sbol3.Document()
             doc.read(sbol3_file)
-        SEQ_RECORDS = []
+        seq_records = []
         logging.info(
             "Creating GenBank and SO ontologies mappings for sequence feature roles"
         )
@@ -250,54 +250,62 @@ class GenBank_SBOL3_Converter:
                 # TODO: temporalily hardcoding version as "1"
                 # FIXME: Version still not being displayed on record's VERSION
                 seq_rec.annotations["sequence_version"] = self.DEFAULT_GB_REC_VERSION
-                SEQ_REC_FEATURES = []
+                seq_rec_features = []
                 if obj.features:
                     # converting all sequence features
                     for obj_feat in obj.features:
-                        logging.info(
-                            f"Parsing feature `{obj_feat.name}` for component `{obj.display_id}`"
-                        )
-                        obj_feat_loc = obj_feat.locations[0]
-                        feat_strand = 1
-                        # feature strand value which denotes orientation of the location of the feature
-                        if obj_feat_loc.orientation == sbol3.SO_FORWARD:
+                        # TODO: Also add ability to parse subcomponent feature type
+                        # Note: Currently we only parse sequence features from sbol3 to genbank
+                        if isinstance(obj_feat, sbol3.SequenceFeature):
+                            logging.info(
+                                f"Parsing feature `{obj_feat.name}` for component `{obj.display_id}`"
+                            )
+                            # TODO: There may be multiple locations for a feature from sbol3; 
+                            #       add ability to parse them into a single genbank feature
+                            obj_feat_loc = obj_feat.locations[0]
                             feat_strand = 1
-                        elif obj_feat_loc.orientation == sbol3.SO_REVERSE:
-                            feat_strand = -1
-                        # TODO: Raise custom converter class ERROR for `else:`
-                        feat_loc = FeatureLocation(
-                            start=obj_feat_loc.start,
-                            end=obj_feat_loc.end,
-                            strand=feat_strand,
-                        )
-                        # FIXME: order of features not same as original genbank doc?
-                        obj_feat_role = obj_feat.roles[0]
-                        obj_feat_role = obj_feat_role[
-                            obj_feat.roles[0].index(":", 6) - 2 :
-                        ]
-                        # Obtain sequence feature role from so2gb mappings
-                        feat_role = self.DEFAULT_GB_TERM
-                        if self.so2gb_map.get(obj_feat_role):
-                            feat_role = self.so2gb_map[obj_feat_role]
-                        # create sequence feature object with label qualifier
-                        feat = SeqFeature(
-                            location=feat_loc, strand=feat_strand, type=feat_role
-                        )
-                        if obj_feat.name:
-                            feat.qualifiers["label"] = obj_feat.name
-                        # add feature to list of features
-                        SEQ_REC_FEATURES.append(feat)
+                            # feature strand value which denotes orientation of the location of the feature
+                            if obj_feat_loc.orientation == sbol3.SO_FORWARD:
+                                feat_strand = 1
+                            elif obj_feat_loc.orientation == sbol3.SO_REVERSE:
+                                feat_strand = -1
+                            # TODO: Raise custom converter class ERROR for `else:`
+                            feat_loc = FeatureLocation(
+                                start=obj_feat_loc.start,
+                                end=obj_feat_loc.end,
+                                strand=feat_strand,
+                            )
+                            # FIXME: order of features not same as original genbank doc?
+                            obj_feat_role = obj_feat.roles[0]
+                            # NOTE: The so2gb.csv data file has rows of format 'SO:xxxxxxx,<GenBank_Term>', 
+                            # and the obj_feat_role returns the URI (i.e 'https://identifiers.org/SO:xxxxxx').
+                            # The slicing and subtracting is done to obtain the 'SO:xxxxxxx' portion from the URI.
+                            obj_feat_role = obj_feat_role[
+                                obj_feat_role.index(":", 6) - 2 :
+                            ]
+                            # Obtain sequence feature role from so2gb mappings
+                            feat_role = self.DEFAULT_GB_TERM
+                            if self.so2gb_map.get(obj_feat_role):
+                                feat_role = self.so2gb_map[obj_feat_role]
+                            # create sequence feature object with label qualifier
+                            feat = SeqFeature(
+                                location=feat_loc, strand=feat_strand, type=feat_role
+                            )
+                            if obj_feat.name:
+                                feat.qualifiers["label"] = obj_feat.name
+                            # add feature to list of features
+                            seq_rec_features.append(feat)
                 # Sort features based on feature location start/end, lexicographically
-                SEQ_REC_FEATURES.sort(key=lambda feat: (feat.location.start, feat.location.end))
-                seq_rec.features = SEQ_REC_FEATURES
-                SEQ_RECORDS.append(seq_rec)
+                seq_rec_features.sort(key=lambda feat: (feat.location.start, feat.location.end))
+                seq_rec.features = seq_rec_features
+                seq_records.append(seq_rec)
         # writing generated genbank document to disk at path provided
         if write:
             logging.info(
                 f"Writing created genbank file to disk.\n    With path {gb_file}"
             )
-            SeqIO.write(SEQ_RECORDS, gb_file, "genbank")
-        return SEQ_RECORDS
+            SeqIO.write(seq_records, gb_file, "genbank")
+        return seq_records
 
 
 # Currently we don't parse input for gb and sbol3 files (hardcoded)
