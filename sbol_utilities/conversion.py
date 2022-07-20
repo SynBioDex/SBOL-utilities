@@ -402,10 +402,7 @@ def command_line_converter(args_dict: Dict[str, Any]):
     if input_file_type == 'FASTA':
         doc3 = convert_from_fasta(input_file, namespace)
     elif input_file_type == 'GenBank':
-        doc3 = convert_from_genbank(path=input_file,
-                                    namespace=namespace,
-                                    allow_genbank_online=args_dict['allow_genbank_online'],
-                                    force_new_converter=args_dict['force_new_converter'])
+        doc3 = convert_from_genbank(input_file, namespace, args_dict['allow_genbank_online'], args_dict['force_new_converter'])
     elif input_file_type == 'SBOL2':
         doc2 = sbol2.Document()
         doc2.read(input_file)
@@ -421,7 +418,7 @@ def command_line_converter(args_dict: Dict[str, Any]):
     if output_file_type == 'FASTA':
         convert_to_fasta(doc3, output_file)
     elif output_file_type == 'GenBank':
-        convert_to_genbank(doc3=doc3, path=output_file, allow_genbank_online=args_dict['allow_genbank_online'], force_new_converter=args_dict['force_new_converter'])
+        convert_to_genbank(doc3, output_file, args_dict['allow_genbank_online'], args_dict['force_new_converter'])
     elif output_file_type == 'SBOL2':
         doc2 = convert3to2(doc3)
         validate_online = sbol2.Config.getOption(sbol2.ConfigOptions.VALIDATE_ONLINE)

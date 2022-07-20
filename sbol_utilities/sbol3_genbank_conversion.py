@@ -61,16 +61,12 @@ SO2GB_MAPPINGS_CSV = os.path.join(
 class GenBank_SBOL3_Converter:
     gb2so_map = {}
     so2gb_map = {}
-    default_SO_ontology = "SO:0000110"
-    default_GB_ontology = "todo"  # TODO: Whats the default here?
+    DEFAULT_GB_REC_VERSION = 1
+    DEFAULT_SO_TERM = "SO:0000110"
+    DEFAULT_GB_TERM = "todo"  # TODO: Whats the default here?
 
-    def create_GB_SO_role_mappings(
-        self,
-        gb2so_csv: str = GB2SO_MAPPINGS_CSV,
-        so2gb_csv: str = SO2GB_MAPPINGS_CSV,
-        convert_gb2so: bool = True,
-        convert_so2gb: bool = True,
-    ):
+    def create_GB_SO_role_mappings(self, gb2so_csv: str = GB2SO_MAPPINGS_CSV, so2gb_csv: str = SO2GB_MAPPINGS_CSV,
+                                   convert_gb2so: bool = True, convert_so2gb: bool = True):
         """Reads 2 CSV Files containing mappings for converting between GenBank and SO ontologies roles
         :param gb2so_csv: path to read genbank to so conversion csv file
         :param so2gb_csv: path to read so to genbank conversion csv file
@@ -99,13 +95,8 @@ class GenBank_SBOL3_Converter:
                 return 0
         return 1
 
-    def convert_genbank_to_sbol3(
-        self,
-        gb_file: str,
-        sbol3_file: str = "sbol3.out",
-        namespace: str = TEST_NAMESPACE,
-        write: bool = False,
-    ) -> sbol3.Document:
+    def convert_genbank_to_sbol3(self, gb_file: str, sbol3_file: str = "sbol3.out", namespace: str = TEST_NAMESPACE,
+                                 write: bool = False) -> sbol3.Document:
         """Convert a GenBank document on disk into an SBOL3 document
         The GenBank document is parsed using BioPython, and corresponding objects of SBOL3 document are created
 
@@ -196,7 +187,7 @@ class GenBank_SBOL3_Converter:
                     if self.gb2so_map.get(gb_feat.type):
                         feat_role += self.gb2so_map[gb_feat.type]
                     else:
-                        feat_role += self.default_SO_ontology
+                        feat_role += self.DEFAULT_SO_TERM
                     feat = sbol3.SequenceFeature(
                         locations=[locs],
                         roles=[feat_role],
@@ -210,13 +201,8 @@ class GenBank_SBOL3_Converter:
             doc.write(fpath=sbol3_file, file_format=sbol3.SORTED_NTRIPLES)
         return doc
 
-    def convert_sbol3_to_genbank(
-        self,
-        sbol3_file: str,
-        doc: sbol3.Document = None,
-        gb_file: str = "genbank.out",
-        write: bool = False,
-    ) -> List[SeqRecord]:
+    def convert_sbol3_to_genbank(self, sbol3_file: str, doc: sbol3.Document = None, gb_file: str = "genbank.out",
+                                 write: bool = False) -> List[SeqRecord]:
         """Convert a SBOL3 document on disk into a GenBank document
         The GenBank document is made using an array of SeqRecords using BioPython, by parsing SBOL3 objects
 
@@ -261,6 +247,9 @@ class GenBank_SBOL3_Converter:
                 seq_rec.annotations["molecule_type"] = "DNA"
                 # TODO: hardcoded topology as linear, derivation?
                 seq_rec.annotations["topology"] = "linear"
+                # TODO: temporalily hardcoding version as "1"
+                # FIXME: Version still not being displayed on record's VERSION
+                seq_rec.annotations["sequence_version"] = self.DEFAULT_GB_REC_VERSION
                 SEQ_REC_FEATURES = []
                 if obj.features:
                     # converting all sequence features
@@ -287,7 +276,7 @@ class GenBank_SBOL3_Converter:
                             obj_feat.roles[0].index(":", 6) - 2 :
                         ]
                         # Obtain sequence feature role from so2gb mappings
-                        feat_role = self.default_GB_ontology
+                        feat_role = self.DEFAULT_GB_TERM
                         if self.so2gb_map.get(obj_feat_role):
                             feat_role = self.so2gb_map[obj_feat_role]
                         # create sequence feature object with label qualifier
