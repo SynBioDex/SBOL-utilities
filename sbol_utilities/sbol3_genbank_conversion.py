@@ -61,9 +61,11 @@ SO2GB_MAPPINGS_CSV = os.path.join(
 class GenBank_SBOL3_Converter:
     gb2so_map = {}
     so2gb_map = {}
-    DEFAULT_GB_REC_VERSION = 1
     DEFAULT_SO_TERM = "SO:0000110"
     DEFAULT_GB_TERM = "todo"  # TODO: Whats the default here?
+    BIO_STRAND_FORWARD = 1
+    BIO_STRAND_REVERSE = -1
+    DEFAULT_GB_REC_VERSION = 1
 
     def create_GB_SO_role_mappings(self, gb2so_csv: str = GB2SO_MAPPINGS_CSV, so2gb_csv: str = SO2GB_MAPPINGS_CSV,
                                    convert_gb2so: bool = True, convert_so2gb: bool = True):
@@ -121,7 +123,7 @@ class GenBank_SBOL3_Converter:
         if not map_created:
             # TODO: Need better SBOL3-GenBank specific error classes in future
             raise ValueError(
-                f"Required CSV data files are not present in your package.\n    Please reinstall the sbol_utilities package.\n \
+                "Required CSV data files are not present in your package.\n    Please reinstall the sbol_utilities package.\n \
                 Stopping current conversion process.\n    Reverting to legacy converter if new Conversion process is not forced."
             )
         # access records by parsing gb file using SeqIO class
@@ -263,12 +265,13 @@ class GenBank_SBOL3_Converter:
                             # TODO: There may be multiple locations for a feature from sbol3; 
                             #       add ability to parse them into a single genbank feature
                             obj_feat_loc = obj_feat.locations[0]
-                            feat_strand = 1
+                            feat_strand = self.BIO_STRAND_FORWARD
                             # feature strand value which denotes orientation of the location of the feature
-                            if obj_feat_loc.orientation == sbol3.SO_FORWARD:
-                                feat_strand = 1
-                            elif obj_feat_loc.orientation == sbol3.SO_REVERSE:
-                                feat_strand = -1
+                            # By default its 1 for SO_FORWARD orientation of sbol3 feature location, and -1 for SO_REVERSE
+                            if obj_feat_loc.orientation == sbol3.SO_REVERSE:
+                                feat_strand = self.BIO_STRAND_REVERSE
+                            elif obj_feat_loc.orientation != sbol3.SO_FORWARD:
+                                raise ValueError(f"Location orientation: '{obj_feat_loc.orientation}' for feature: '{obj_feat.name}' of component: '{obj.display_id}' is not a valid orientation.\n Valid orientations are '{sbol3.SO_FORWARD}', '{sbol3.SO_REVERSE}'")
                             # TODO: Raise custom converter class ERROR for `else:`
                             feat_loc = FeatureLocation(
                                 start=obj_feat_loc.start,
