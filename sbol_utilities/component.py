@@ -583,12 +583,16 @@ def part_in_backbone(identity: str, part: sbol3.Component, backbone: sbol3.Compo
     :return: A tuple of Component and Sequence.
     """
     # check that backbone has a plasmid vector or child ontology term
-    assert is_plasmid(backbone)==True, 'The backbone has no valid plasmid vector or child role'
+    if is_plasmid(backbone)==False:
+        raise TypeError('The backbone has no valid plasmid vector or child role')
     # check that the backbone and part has one sequence
-    assert len(backbone.sequences)==1, f'The backbone should have only one sequence, found {len(backbone.sequences)} sequences' 
-    assert len(part.sequences)==1, f'The part should have only one sequence, found{len(part.sequences)} sequences'
+    if len(backbone.sequences)!=1:
+        raise ValueError(f'The backbone should have only one sequence, found {len(backbone.sequences)} sequences')
+    if len(part.sequences)!=1:
+        raise ValueError(f'The part should have only one sequence, found{len(part.sequences)} sequences')
     # check that the the last feature of backbone has 2 locations
-    assert len(backbone.features[-1].locations)==2, f'The backbone last feature should be the open backbone and should contain 2 Locations, found {len(backbone.features[-1].locations)} Locations'
+    if len(backbone.features[-1].locations)!=2:
+        raise ValueError(f'The backbone last feature should be the open backbone and should contain 2 Locations, found {len(backbone.features[-1].locations)} Locations')
     # get backbone sequence
     backbone_sequence = backbone.sequences[0].lookup().elements
     # compute open backbone sequences
