@@ -62,7 +62,7 @@ class GenBank_SBOL3_Converter:
     gb2so_map = {}
     so2gb_map = {}
     DEFAULT_SO_TERM = "SO:0000110"
-    DEFAULT_GB_TERM = "todo"  # TODO: Whats the default here?
+    DEFAULT_GB_TERM = "misc_feature"
     BIO_STRAND_FORWARD = 1
     BIO_STRAND_REVERSE = -1
     DEFAULT_GB_REC_VERSION = 1
