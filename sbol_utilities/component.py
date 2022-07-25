@@ -5,10 +5,11 @@ from typing import Dict, Iterable, List, Union, Optional, Tuple
 import sbol3
 import tyto
 
-from sbol_utilities.helper_functions import id_sort, find_child, find_top_level, SBOL3PassiveVisitor, cached_references, is_plasmid
+from sbol_utilities.helper_functions import id_sort, find_child, find_top_level, SBOL3PassiveVisitor, cached_references, is_plasmid, is_circular
 from sbol_utilities.workarounds import get_parent
 
 from Bio import Restriction
+from pydna import Dseqrecord
 
 
 # TODO: consider allowing return of LocalSubComponent and ExternallyDefined
@@ -622,3 +623,83 @@ def part_in_backbone(identity: str, part: sbol3.Component, backbone: sbol3.Compo
     # adding topology
     part_in_backbone_component.types.append(topology_type)
     return part_in_backbone_component, part_in_backbone_seq
+
+def digestion(reactant:sbol3.Component, restriction_enzymes:List[sbol3.ExternallyDefined], assembly_plan:sbol3.Component)-> Tuple[sbol3.Component, sbol3.Sequence]:
+    """Digests a Component using the provided restriction enzymes and creates a product Component and a digestion Interaction.
+
+    :param reactant: DNA to be digested as SBOL Component. 
+    :param restriction_enzymes: Restriction enzymes used  Externally Defined.
+    :return: A tuple of Component and Interaction.
+    """
+    if all(t != sbol3.SBO_DNA for t in reactant.types):
+        raise TypeError(f'The reactant should has a DNA type. Types founded {reactant.types}.')
+    if len(reactant.sequences)!=1:
+        raise ValueError(f'The reactant needs to have only one sequence. The input reactant has {len(reactant.sequences)} sequences')
+    participations=[]
+    restriction_enzymes_pydna=[] 
+    for re in restriction_enzymes:
+        enzyme = Restriction.__dict__[re.name]
+        restriction_enzymes_pydna.append(enzyme)
+        assembly_plan.features.append(re)
+        modifier_participation = sbol3.Participation(roles=[sbol3.SBO_MODIFIER], participant=re)
+        participations.append(modifier_participation)
+
+    # Inform topology to PyDNA, if not found assuming circular. 
+    if is_circular(reactant):
+        circular=True
+        linear=False
+    elif any(n==sbol3.SO_LINEAR for n in reactant.types):
+        circular=False
+        linear=True
+    else: 
+        circular=True
+        linear=False
+    reactant_seq = reactant.sequences[0].lookup().elements
+    # Dseqrecord is from PyDNA package with reactant sequence
+    ds_reactant = Dseqrecord(reactant_seq, linear=linear, circular=circular)
+    digested_reactant = ds_reactant.cut(restriction_enzymes_pydna)
+
+    if len(digested_reactant)==0 or len(digested_reactant)>3:
+        raise NotImplementedError(f'Not supported number of products. Found{len(digested_reactant)}')
+    elif circular and len(digested_reactant)==2:
+        digested_reactant = ds_reactant.cut(restriction_enzymes_pydna) 
+        part_extract, backbone = digested_reactant
+    elif linear and len(digested_reactant)==3:
+        digested_reactant = ds_reactant.cut(restriction_enzymes_pydna)
+        # check digested_reactant
+        prefix, part_extract, suffix = digested_reactant
+    else: raise NotImplementedError('The reactant has no valid topology type')
+    # Extracting roles from features
+    reactant_features_roles = []
+    for f in reactant.features:
+        for r in f.roles:
+             reactant_features_roles.append(r)
+    # if part
+    if any(n==tyto.SO.engineered_insert for n in reactant_features_roles):
+        product_sequence = part_extract.seq
+        prod_comp, prod_seq = dna_component_with_sequence(identity=f'{reactant.name}_part_extract', sequence=str(product_sequence))
+        # add sticky ends features
+    # if backbone
+    elif any(n==tyto.SO.deletion for n in reactant_features_roles):
+        product_sequence = backbone.seq
+        prod_comp, prod_seq = dna_component_with_sequence(identity=f'{reactant.name}_backbone', sequence=str(product_sequence))
+        # add sticky ends features
+        # add recognition site features
+    else: raise NotImplementedError('The reactant has no valid roles')
+
+    # Create reactant Participation.
+    react_subcomp = sbol3.SubComponent(reactant)
+    assembly_plan.features.append(react_subcomp)
+    reactant_participation = sbol3.Participation(roles=[sbol3.SBO_REACTANT], participant=react_subcomp)
+    participations.append(reactant_participation)
+    
+    prod_subcomp = sbol3.SubComponent(prod_comp)
+    assembly_plan.features.append(prod_subcomp)
+    product_participation = sbol3.Participation(roles=[sbol3.SBO_PRODUCT], participant=prod_subcomp)
+    participations.append(product_participation)
+   
+    # Make Interaction
+    interaction = sbol3.Interaction(types=[tyto.SBO.cleavage], participations=participations)
+    assembly_plan.interactions.append(interaction)
+                    
+    return prod_comp, prod_seq
