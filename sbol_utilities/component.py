@@ -9,7 +9,7 @@ from sbol_utilities.helper_functions import id_sort, find_child, find_top_level,
 from sbol_utilities.workarounds import get_parent
 
 from Bio import Restriction
-from pydna import Dseqrecord
+from pydna.dseqrecord import Dseqrecord
 
 
 # TODO: consider allowing return of LocalSubComponent and ExternallyDefined
