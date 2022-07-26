@@ -2,7 +2,7 @@ import os
 import csv
 import sbol3
 import logging
-from typing import List
+from typing import List, Sequence, Union, Optional
 from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
@@ -66,6 +66,40 @@ class GenBank_SBOL3_Converter:
     BIO_STRAND_FORWARD = 1
     BIO_STRAND_REVERSE = -1
     DEFAULT_GB_REC_VERSION = 1
+
+    def __init__(self) -> None:
+        def build_component_genbank_extension(*, identity, type_uri):
+            """A builder function to be called by the SBOL3 parser
+            when it encounters a Component in an SBOL file.
+            """
+            # `types` is required and not known at build time.
+            # Supply a missing value to the constructor, then clear
+            # the missing value before returning the built object.
+            obj = self.Component_GenBank_Extension(identity=identity, types=[sbol3.PYSBOL3_MISSING], type_uri=type_uri)
+            # Remove the placeholder value
+            obj.clear_property(sbol3.SBOL_TYPE)
+            return obj
+        # Register the builder function so it can be invoked by
+        # the SBOL3 parser to build objects with a Component type URI
+        sbol3.Document.register_builder(sbol3.SBOL_COMPONENT, build_component_genbank_extension)
+
+    class Component_GenBank_Extension(sbol3.Component):
+        """Overrides the sbol3 Component class to include fields to directly read and write 
+        extraneous properties of GenBank not storeable in any SBOL3 datafield.
+        """
+        GENBANK_EXTRA_PROPERTY_NS = "http://www.ncbi.nlm.nih.gov/genbank"
+        def __init__(self, identity: str, types: Optional[Union[str, Sequence[str]]], **kwargs):
+            # instantiating sbol3 component object
+            super().__init__(identity=identity, types=types, **kwargs)
+            # Setting properties for GenBank's extraneous properties not settable in any SBOL3 field.
+            self.genbank_date          = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#date"    , 0, 1)
+            self.genbank_division      = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#division", 0, 1)
+            self.genbank_keywords      = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#keywords", 0, 1)
+            self.genbank_locus         = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#locus"   , 0, 1)
+            self.genbank_molecule_type = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#molecule", 0, 1)
+            self.genbank_organism      = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#organism", 0, 1)
+            self.genbank_source        = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#source"  , 0, 1)
+
 
     def create_GB_SO_role_mappings(self, gb2so_csv: str = GB2SO_MAPPINGS_CSV, so2gb_csv: str = SO2GB_MAPPINGS_CSV,
                                    convert_gb2so: bool = True, convert_so2gb: bool = True):
@@ -137,7 +171,8 @@ class GenBank_SBOL3_Converter:
                 extra_comp_types = [sbol3.SO_LINEAR]
             else:
                 extra_comp_types = [sbol3.SO_CIRCULAR]
-            comp = sbol3.Component(
+            # creating component extended Component class to include GenBank extraneous properties
+            comp = self.Component_GenBank_Extension(
                 identity=record.name,
                 types=COMP_TYPES + extra_comp_types,
                 roles=COMP_ROLES,
@@ -147,27 +182,20 @@ class GenBank_SBOL3_Converter:
             # Setting properties for GenBank's extraneous properties not settable in any SBOL3 field.
             # 1. GenBank Record Date
             # TODO: Let it be able to accept date into sbol3.DateTimeProperty() instead
-            comp.genbank_date = sbol3.TextProperty(comp, 'http://www.ncbi.nlm.nih.gov/genbank#date', 0, 1)
             comp.genbank_date = record.annotations['date']
             # 2. GenBank Record Division
-            comp.genbank_division = sbol3.TextProperty(comp, 'http://www.ncbi.nlm.nih.gov/genbank#division', 0, 1)
             comp.genbank_division = record.annotations['data_file_division']
             # 3. GenBank Record Keywords
-            comp.genbank_keywords = sbol3.TextProperty(comp, 'http://www.ncbi.nlm.nih.gov/genbank#keywords', 0, 1)
             # TODO: Keywords are a list, need to use another property type
             comp.genbank_keywords = record.annotations['keywords'][0]
             # 4. GenBank Record Locus
-            comp.genbank_locus = sbol3.TextProperty(comp, 'http://www.ncbi.nlm.nih.gov/genbank#locus', 0, 1)
             # TODO: BioPython's parsing doesn't explicitly place a "locus" datafield?
             comp.genbank_locus = record.name
             # 5. GenBank Record Molecule Type
-            comp.genbank_molecule_type = sbol3.TextProperty(comp, 'http://www.ncbi.nlm.nih.gov/genbank#molecule', 0, 1)
             comp.genbank_molecule_type = record.annotations['molecule_type']
             # 6. GenBank Record Organism
-            comp.genbank_organism = sbol3.TextProperty(comp, 'http://www.ncbi.nlm.nih.gov/genbank#organism', 0, 1)
             comp.genbank_organism = record.annotations['organism']
             # 7. GenBank Record Source
-            comp.genbank_source = sbol3.TextProperty(comp, 'http://www.ncbi.nlm.nih.gov/genbank#source', 0, 1)
             comp.genbank_source = record.annotations['source']
             # TODO: Currently we use a fixed method of encoding (IUPAC)
             seq = sbol3.Sequence(
@@ -261,31 +289,6 @@ class GenBank_SBOL3_Converter:
         logging.info(f"Parsing SBOL3 Document components using SBOL3 Document: \n{doc}")
         for obj in doc.objects:
             if isinstance(obj, sbol3.Component):
-                comp = obj
-                # 1. GenBank Record Date
-                comp.genbank_date = sbol3.TextProperty(comp, 'http://www.ncbi.nlm.nih.gov/genbank#date', 0, 1)
-                print(f"date {obj.genbank_date}")
-                # 2. GenBank Record Division
-                comp.genbank_division = sbol3.TextProperty(comp, 'http://www.ncbi.nlm.nih.gov/genbank#division', 0, 1)
-                print(f"division {obj.genbank_division}")
-                # 3. GenBank Record Keywords
-                comp.genbank_keywords = sbol3.TextProperty(comp, 'http://www.ncbi.nlm.nih.gov/genbank#keywords', 0, 1)
-                print(f"keywords {obj.genbank_keywords}")
-                # TODO: Keywords are a list, need to use another property type
-                # 4. GenBank Record Locus
-                comp.genbank_locus = sbol3.TextProperty(comp, 'http://www.ncbi.nlm.nih.gov/genbank#locus', 0, 1)
-                print(f"locus {obj.genbank_locus}")
-                # TODO: BioPython's parsing doesn't explicitly place a "locus" datafield?
-                # 5. GenBank Record Molecule Type
-                comp.genbank_molecule_type = sbol3.TextProperty(comp, 'http://www.ncbi.nlm.nih.gov/genbank#molecule', 0, 1)
-                print(f"mtype {obj.genbank_molecule_type}")
-                # 6. GenBank Record Organism
-                comp.genbank_organism = sbol3.TextProperty(comp, 'http://www.ncbi.nlm.nih.gov/genbank#organism', 0, 1)
-                print(f"organism {obj.genbank_organism}")
-                # 7. GenBank Record Source
-                comp.genbank_source = sbol3.TextProperty(comp, 'http://www.ncbi.nlm.nih.gov/genbank#source', 0, 1)
-                print(f"source {obj.genbank_source}")
-
                 logging.info(f"Parsing component - `{obj.display_id}` in sbol3 document.")
                 # NOTE: A single component/record cannot have multiple sequences
                 seq = None # If no sequence is found for a component
@@ -301,6 +304,29 @@ class GenBank_SBOL3_Converter:
                     description=obj.description,
                     name=obj.display_id,
                 )
+                # Resetting extraneous genbank properties from extended component-genbank class
+                # TODO: check if these fields are actually getting reset; apparently they are still using defaults
+                if isinstance(obj, self.Component_GenBank_Extension):
+                    # 1. GenBank Record Date
+                    seq_rec.annotations['date'] = obj.genbank_date
+                    # 2. GenBank Record Division
+                    seq_rec.annotations['data_file_division'] = obj.genbank_division
+                    # 3. GenBank Record Keywords
+                    # TODO: Keywords are a list, need to use another property type
+                    # seq_rec.annotations['keywords'] = obj.genbank_keywords
+                    # 4. GenBank Record Locus
+                    # TODO: No explicit way to set locus via BioPython?
+                    # 5. GenBank Record Molecule Type
+                    seq_rec.annotations['molecule_type'] = obj.genbank_molecule_type
+                    # 6. GenBank Record Organism
+                    seq_rec.annotations['organism'] = obj.genbank_organism
+                    # 7. GenBank Record Source
+                    # FIXME: Apparently, if a default source was used during in the GenBank file
+                    #        during conversion of GenBank -> SBOL, component.genbank_source is "", 
+                    #        and while plugging it back in during conversion of SBOL -> GenBank, it
+                    #        simply prints "", whereas the default "." should have been printed
+                    # seq_rec.annotations['source'] = obj.genbank_source
+
                 # TODO: hardcoded molecule_type as DNA, derivation?
                 seq_rec.annotations["molecule_type"] = "DNA"
                 # TODO: hardcoded topology as linear, derivation?
@@ -374,10 +400,10 @@ def main():
     log_level = logging.INFO
     logging.getLogger().setLevel(level=log_level)
     converter = GenBank_SBOL3_Converter()
-    converter.convert_genbank_to_sbol3(
-        gb_file=SAMPLE_GENBANK_FILE_1, sbol3_file="test.nt", write=True
-    )
-    converter.convert_sbol3_to_genbank(sbol3_file="test.nt", write=True)
+    # converter.convert_genbank_to_sbol3(
+    #     gb_file=SAMPLE_GENBANK_FILE_2, sbol3_file=SAMPLE_SBOL3_FILE_2, write=True
+    # )
+    converter.convert_sbol3_to_genbank(sbol3_file=SAMPLE_SBOL3_FILE_2, write=True)
 
 
 if __name__ == "__main__":
