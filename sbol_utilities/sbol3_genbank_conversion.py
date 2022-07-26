@@ -131,7 +131,7 @@ class GenBank_SBOL3_Converter:
             f"Parsing Genbank records using SeqIO class.\n    Using GenBank file {gb_file}"
         )
         for record in list(SeqIO.parse(gb_file, "genbank").records):
-            # NOTE: Currently we assume only linear or circular topology is possible
+            # TODO: Currently we assume only linear or circular topology is possible
             logging.info(f"Parsing record - `{record.id}` in genbank file.")
             if record.annotations["topology"] == "linear":
                 extra_comp_types = [sbol3.SO_LINEAR]
@@ -144,7 +144,32 @@ class GenBank_SBOL3_Converter:
                 description=record.description,
             )
             doc.add(comp)
-            # NOTE: Currently we use a fixed method of encoding (IUPAC)
+            # Setting properties for GenBank's extraneous properties not settable in any SBOL3 field.
+            # 1. GenBank Record Date
+            # TODO: Let it be able to accept date into sbol3.DateTimeProperty() instead
+            comp.genbank_date = sbol3.TextProperty(comp, 'http://www.ncbi.nlm.nih.gov/genbank#date', 0, 1)
+            comp.genbank_date = record.annotations['date']
+            # 2. GenBank Record Division
+            comp.genbank_division = sbol3.TextProperty(comp, 'http://www.ncbi.nlm.nih.gov/genbank#division', 0, 1)
+            comp.genbank_date = record.annotations['data_file_division']
+            # 3. GenBank Record Keywords
+            comp.genbank_keywords = sbol3.TextProperty(comp, 'http://www.ncbi.nlm.nih.gov/genbank#keywords', 0, 1)
+            # TODO: Keywords are a list, need to use another property type
+            comp.genbank_keywords = record.annotations['keywords'][0]
+            # 4. GenBank Record Locus
+            comp.genbank_locus = sbol3.TextProperty(comp, 'http://www.ncbi.nlm.nih.gov/genbank#locus', 0, 1)
+            # TODO: BioPython's parsing doesn't explicitly place a "locus" datafield?
+            comp.genbank_locus = record.name
+            # 5. GenBank Record Molecule Type
+            comp.genbank_molecule_type = sbol3.TextProperty(comp, 'http://www.ncbi.nlm.nih.gov/genbank#molecule', 0, 1)
+            comp.genbank_molecule_type = record.annotations['molecule_type']
+            # 6. GenBank Record Organism
+            comp.genbank_organism = sbol3.TextProperty(comp, 'http://www.ncbi.nlm.nih.gov/genbank#organism', 0, 1)
+            comp.genbank_organism = record.annotations['organism']
+            # 7. GenBank Record Source
+            comp.genbank_source = sbol3.TextProperty(comp, 'http://www.ncbi.nlm.nih.gov/genbank#source', 0, 1)
+            comp.genbank_source = record.annotations['source']
+            # TODO: Currently we use a fixed method of encoding (IUPAC)
             seq = sbol3.Sequence(
                 identity=record.name + "_sequence",
                 elements=str(record.seq.lower()),
@@ -153,6 +178,7 @@ class GenBank_SBOL3_Converter:
             doc.add(seq)
             comp.sequences = [seq]
             # Sending out warnings for genbank info not storeable in sbol3
+            # TODO: Have them stored as properties for a SBOL3 Component under a different ncbi namespace, as the old converter does.
             for keys in record.annotations:
                 logging.warning(
                     f"Extraneous information not storeable in SBOL3 - {keys}: {record.annotations[keys]}"
@@ -323,10 +349,10 @@ def main():
     log_level = logging.INFO
     logging.getLogger().setLevel(level=log_level)
     converter = GenBank_SBOL3_Converter()
-    # converter.convert_genbank_to_sbol3(
-    #     gb_file=SAMPLE_GENBANK_FILE_2, sbol3_file=SAMPLE_SBOL3_FILE_2, write=True
-    # )
-    converter.convert_sbol3_to_genbank(sbol3_file="iGEM_SBOL2_imports_from_genbank_to_sbol3_direct.nt", write=True)
+    converter.convert_genbank_to_sbol3(
+        gb_file=SAMPLE_GENBANK_FILE_1, sbol3_file="test.out", write=True
+    )
+    # converter.convert_sbol3_to_genbank(sbol3_file="iGEM_SBOL2_imports_from_genbank_to_sbol3_direct.nt", write=True)
 
 
 if __name__ == "__main__":
