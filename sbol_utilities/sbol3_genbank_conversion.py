@@ -151,7 +151,7 @@ class GenBank_SBOL3_Converter:
             comp.genbank_date = record.annotations['date']
             # 2. GenBank Record Division
             comp.genbank_division = sbol3.TextProperty(comp, 'http://www.ncbi.nlm.nih.gov/genbank#division', 0, 1)
-            comp.genbank_date = record.annotations['data_file_division']
+            comp.genbank_division = record.annotations['data_file_division']
             # 3. GenBank Record Keywords
             comp.genbank_keywords = sbol3.TextProperty(comp, 'http://www.ncbi.nlm.nih.gov/genbank#keywords', 0, 1)
             # TODO: Keywords are a list, need to use another property type
@@ -261,6 +261,31 @@ class GenBank_SBOL3_Converter:
         logging.info(f"Parsing SBOL3 Document components using SBOL3 Document: \n{doc}")
         for obj in doc.objects:
             if isinstance(obj, sbol3.Component):
+                comp = obj
+                # 1. GenBank Record Date
+                comp.genbank_date = sbol3.TextProperty(comp, 'http://www.ncbi.nlm.nih.gov/genbank#date', 0, 1)
+                print(f"date {obj.genbank_date}")
+                # 2. GenBank Record Division
+                comp.genbank_division = sbol3.TextProperty(comp, 'http://www.ncbi.nlm.nih.gov/genbank#division', 0, 1)
+                print(f"division {obj.genbank_division}")
+                # 3. GenBank Record Keywords
+                comp.genbank_keywords = sbol3.TextProperty(comp, 'http://www.ncbi.nlm.nih.gov/genbank#keywords', 0, 1)
+                print(f"keywords {obj.genbank_keywords}")
+                # TODO: Keywords are a list, need to use another property type
+                # 4. GenBank Record Locus
+                comp.genbank_locus = sbol3.TextProperty(comp, 'http://www.ncbi.nlm.nih.gov/genbank#locus', 0, 1)
+                print(f"locus {obj.genbank_locus}")
+                # TODO: BioPython's parsing doesn't explicitly place a "locus" datafield?
+                # 5. GenBank Record Molecule Type
+                comp.genbank_molecule_type = sbol3.TextProperty(comp, 'http://www.ncbi.nlm.nih.gov/genbank#molecule', 0, 1)
+                print(f"mtype {obj.genbank_molecule_type}")
+                # 6. GenBank Record Organism
+                comp.genbank_organism = sbol3.TextProperty(comp, 'http://www.ncbi.nlm.nih.gov/genbank#organism', 0, 1)
+                print(f"organism {obj.genbank_organism}")
+                # 7. GenBank Record Source
+                comp.genbank_source = sbol3.TextProperty(comp, 'http://www.ncbi.nlm.nih.gov/genbank#source', 0, 1)
+                print(f"source {obj.genbank_source}")
+
                 logging.info(f"Parsing component - `{obj.display_id}` in sbol3 document.")
                 # NOTE: A single component/record cannot have multiple sequences
                 seq = None # If no sequence is found for a component
@@ -350,9 +375,9 @@ def main():
     logging.getLogger().setLevel(level=log_level)
     converter = GenBank_SBOL3_Converter()
     converter.convert_genbank_to_sbol3(
-        gb_file=SAMPLE_GENBANK_FILE_1, sbol3_file="test.out", write=True
+        gb_file=SAMPLE_GENBANK_FILE_1, sbol3_file="test.nt", write=True
     )
-    # converter.convert_sbol3_to_genbank(sbol3_file="iGEM_SBOL2_imports_from_genbank_to_sbol3_direct.nt", write=True)
+    converter.convert_sbol3_to_genbank(sbol3_file="test.nt", write=True)
 
 
 if __name__ == "__main__":
