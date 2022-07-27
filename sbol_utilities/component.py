@@ -634,7 +634,7 @@ def digestion(reactant:sbol3.Component, restriction_enzymes:List[sbol3.Externall
     if all(t != sbol3.SBO_DNA for t in reactant.types):
         raise TypeError(f'The reactant should has a DNA type. Types founded {reactant.types}.')
     if len(reactant.sequences)!=1:
-        raise ValueError(f'The reactant needs to have only one sequence. The input reactant has {len(reactant.sequences)} sequences')
+        raise ValueError(f'The reactant needs to have precisely one sequence. The input reactant has {len(reactant.sequences)} sequences')
     participations=[]
     restriction_enzymes_pydna=[] 
     for re in restriction_enzymes:
