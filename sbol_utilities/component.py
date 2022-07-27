@@ -659,7 +659,7 @@ def digestion(reactant:sbol3.Component, restriction_enzymes:List[sbol3.Externall
     ds_reactant = Dseqrecord(reactant_seq, linear=linear, circular=circular)
     digested_reactant = ds_reactant.cut(restriction_enzymes_pydna)
 
-    if len(digested_reactant)==0 or len(digested_reactant)>3:
+    if len(digested_reactant)<2 or len(digested_reactant)>3:
         raise NotImplementedError(f'Not supported number of products. Found{len(digested_reactant)}')
     elif circular and len(digested_reactant)==2:
         digested_reactant = ds_reactant.cut(restriction_enzymes_pydna) 
