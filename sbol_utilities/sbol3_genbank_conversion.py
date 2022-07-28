@@ -79,6 +79,9 @@ class GenBank_SBOL3_Converter:
             # Remove the placeholder value
             obj.clear_property(sbol3.SBOL_TYPE)
             return obj
+        # set up logging
+        log_level = logging.INFO
+        logging.getLogger().setLevel(level=log_level)
         # Register the builder function so it can be invoked by
         # the SBOL3 parser to build objects with a Component type URI
         sbol3.Document.register_builder(sbol3.SBOL_COMPONENT, build_component_genbank_extension)
@@ -325,7 +328,7 @@ class GenBank_SBOL3_Converter:
                     #        during conversion of GenBank -> SBOL, component.genbank_source is "", 
                     #        and while plugging it back in during conversion of SBOL -> GenBank, it
                     #        simply prints "", whereas the default "." should have been printed
-                    # seq_rec.annotations['source'] = obj.genbank_source
+                    if obj.genbank_source != "": seq_rec.annotations['source'] = obj.genbank_source
 
                 # TODO: hardcoded molecule_type as DNA, derivation?
                 seq_rec.annotations["molecule_type"] = "DNA"
@@ -397,13 +400,11 @@ class GenBank_SBOL3_Converter:
 
 # Currently we don't parse input for gb and sbol3 files (hardcoded)
 def main():
-    log_level = logging.INFO
-    logging.getLogger().setLevel(level=log_level)
     converter = GenBank_SBOL3_Converter()
-    # converter.convert_genbank_to_sbol3(
-    #     gb_file=SAMPLE_GENBANK_FILE_2, sbol3_file=SAMPLE_SBOL3_FILE_2, write=True
-    # )
-    converter.convert_sbol3_to_genbank(sbol3_file=SAMPLE_SBOL3_FILE_2, write=True)
+    converter.convert_genbank_to_sbol3(
+        gb_file="test.gb", sbol3_file="sbol.nt", write=True
+    )
+    converter.convert_sbol3_to_genbank(sbol3_file="sbol.nt", write=True)
 
 
 if __name__ == "__main__":

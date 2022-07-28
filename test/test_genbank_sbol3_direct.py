@@ -105,6 +105,32 @@ class TestGenBankSBOL3(unittest.TestCase):
             outfile, comparison_file
         ), f"Converted GenBank file {comparison_file} is not identical"
 
+    def test_round_trip_extra_properties(self):
+        SAMPLE_GENBANK_FILE = "sequence2_modified_2.gb"
+        sbol3.set_namespace(TEST_NAMESPACE)
+        TEST_OUTPUT_SBOL3 = SAMPLE_GENBANK_FILE + ".nt"
+        # Don't write to file for testing, we directly compare sbol documents
+        test_output_sbol3 = self.converter.convert_genbank_to_sbol3(
+            SAMPLE_GENBANK_FILE,
+            TEST_OUTPUT_SBOL3,
+            namespace=TEST_NAMESPACE,
+            write=False,
+        )
+        # create tmp directory to store generated genbank file in for comparison
+        tmp_sub = copy_to_tmp(package=[SAMPLE_GENBANK_FILE])
+        # Convert to GenBank and check contents
+        outfile = os.path.join(tmp_sub, SAMPLE_GENBANK_FILE + ".test")
+        self.converter.convert_sbol3_to_genbank(
+            sbol3_file=None, doc=test_output_sbol3, gb_file=outfile, write=True
+        )
+        test_dir = os.path.dirname(os.path.realpath(__file__))
+        comparison_file = os.path.join(
+            test_dir, "test_files", SAMPLE_GENBANK_FILE
+        )
+        assert filecmp.cmp(
+            outfile, comparison_file
+        ), f"Converted GenBank file {outfile} is not identical to expected file {comparison_file}"
+
 
 if __name__ == "__main__":
     unittest.main()
