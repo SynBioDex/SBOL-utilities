@@ -7,7 +7,7 @@ setup(name='sbol-utilities',
       long_description_content_type='text/markdown',
       url='https://github.com/SynBioDex/SBOL-utilities',
       license='MIT License',
-      version='1.0a16',
+      version='1.0a17',
       # See https://pypi.python.org/pypi?%3Aaction=list_classifiers
       classifiers=[
             # How mature is this project? Common values are
@@ -35,10 +35,10 @@ setup(name='sbol-utilities',
       install_requires=[
             'sbol3>=1.0b11',
             'sbol2>=1.4',
-            'rdflib',
+            'rdflib>=6.2',
             'biopython',
             'graphviz',
-            'tyto>=1.0',
+            'tyto>=1.2.1',
             'openpyxl',
             'sbol_factory>=1.0a11'
             ],
