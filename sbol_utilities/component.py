@@ -626,12 +626,13 @@ def part_in_backbone(identity: str, part: sbol3.Component, backbone: sbol3.Compo
 
 def digestion(reactant:sbol3.Component, restriction_enzymes:List[sbol3.ExternallyDefined], assembly_plan:sbol3.Component)-> Tuple[sbol3.Component, sbol3.Sequence]:
     """Digests a Component using the provided restriction enzymes and creates a product Component and a digestion Interaction.
+    The product Component is assumed to be the insert for parts in backbone and the backbone for backbones.
 
     :param reactant: DNA to be digested as SBOL Component. 
     :param restriction_enzymes: Restriction enzymes used  Externally Defined.
     :return: A tuple of Component and Interaction.
     """
-    if all(t != sbol3.SBO_DNA for t in reactant.types):
+    if sbol3.SBO_DNA not in reactant.types:
         raise TypeError(f'The reactant should has a DNA type. Types founded {reactant.types}.')
     if len(reactant.sequences)!=1:
         raise ValueError(f'The reactant needs to have precisely one sequence. The input reactant has {len(reactant.sequences)} sequences')
@@ -644,16 +645,14 @@ def digestion(reactant:sbol3.Component, restriction_enzymes:List[sbol3.Externall
         modifier_participation = sbol3.Participation(roles=[sbol3.SBO_MODIFIER], participant=re)
         participations.append(modifier_participation)
 
-    # Inform topology to PyDNA, if not found assuming circular. 
+    # Inform topology to PyDNA, if not found assuming linear. 
     if is_circular(reactant):
         circular=True
         linear=False
-    elif any(n==sbol3.SO_LINEAR for n in reactant.types):
+    else: 
         circular=False
         linear=True
-    else: 
-        circular=True
-        linear=False
+        
     reactant_seq = reactant.sequences[0].lookup().elements
     # Dseqrecord is from PyDNA package with reactant sequence
     ds_reactant = Dseqrecord(reactant_seq, linear=linear, circular=circular)
@@ -661,9 +660,10 @@ def digestion(reactant:sbol3.Component, restriction_enzymes:List[sbol3.Externall
 
     if len(digested_reactant)<2 or len(digested_reactant)>3:
         raise NotImplementedError(f'Not supported number of products. Found{len(digested_reactant)}')
+    #TODO select them based on content rather than size.
     elif circular and len(digested_reactant)==2:
-        digested_reactant = ds_reactant.cut(restriction_enzymes_pydna) 
-        part_extract, backbone = digested_reactant
+        digested_reactant = ds_reactant.cut(restriction_enzymes_pydna)
+        part_extract, backbone = sorted(digested_reactant, key=len)
     elif linear and len(digested_reactant)==3:
         digested_reactant = ds_reactant.cut(restriction_enzymes_pydna)
         # check digested_reactant
