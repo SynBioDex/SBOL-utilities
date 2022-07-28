@@ -310,6 +310,7 @@ class GenBank_SBOL3_Converter:
                                     feat_locs.append(feat_loc)
                                 # sort feature locations lexicographically internally first
                                 feat_locs.sort(key=lambda loc: (loc.start, loc.end))
+                                print(f"locs {feat_locs}")
                                 for loc in feat_locs:
                                     feat_loc_array += [loc.start, loc.end]
                                 feat_loc = CompoundLocation(parts=feat_locs, operator="join")
@@ -357,7 +358,7 @@ def main():
     logging.getLogger().setLevel(level=log_level)
     converter = GenBank_SBOL3_Converter()
     converter.convert_genbank_to_sbol3(
-        gb_file="test.gb", sbol3_file="sbol.nt", write=True
+        gb_file="genbank.out", sbol3_file="sbol.nt", write=True
     )
     converter.convert_sbol3_to_genbank(sbol3_file="sbol.nt", write=True)
 
