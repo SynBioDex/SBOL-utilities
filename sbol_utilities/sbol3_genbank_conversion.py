@@ -68,9 +68,11 @@ class GenBank_SBOL3_Converter:
     DEFAULT_GB_REC_VERSION = 1
 
     def __init__(self) -> None:
-        def build_component_genbank_extension(*, identity, type_uri):
+        def build_component_genbank_extension(*, identity, type_uri) -> GenBank_SBOL3_Converter.Component_GenBank_Extension:
             """A builder function to be called by the SBOL3 parser
             when it encounters a Component in an SBOL file.
+            :param identity: identity for new component class instance to have
+            :param type_uri: type_uri for new component class instance to have
             """
             # `types` is required and not known at build time.
             # Supply a missing value to the constructor, then clear
@@ -91,7 +93,7 @@ class GenBank_SBOL3_Converter:
         extraneous properties of GenBank not storeable in any SBOL3 datafield.
         """
         GENBANK_EXTRA_PROPERTY_NS = "http://www.ncbi.nlm.nih.gov/genbank"
-        def __init__(self, identity: str, types: Optional[Union[str, Sequence[str]]], **kwargs):
+        def __init__(self, identity: str, types: Optional[Union[str, Sequence[str]]], **kwargs) -> None:
             # instantiating sbol3 component object
             super().__init__(identity=identity, types=types, **kwargs)
             # Setting properties for GenBank's extraneous properties not settable in any SBOL3 field.
@@ -105,7 +107,7 @@ class GenBank_SBOL3_Converter:
 
 
     def create_GB_SO_role_mappings(self, gb2so_csv: str = GB2SO_MAPPINGS_CSV, so2gb_csv: str = SO2GB_MAPPINGS_CSV,
-                                   convert_gb2so: bool = True, convert_so2gb: bool = True):
+                                   convert_gb2so: bool = True, convert_so2gb: bool = True) -> int:
         """Reads 2 CSV Files containing mappings for converting between GenBank and SO ontologies roles
         :param gb2so_csv: path to read genbank to so conversion csv file
         :param so2gb_csv: path to read so to genbank conversion csv file
