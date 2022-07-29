@@ -1,5 +1,6 @@
 import os
 import csv
+import math
 import sbol3
 import rdflib
 import logging
@@ -8,7 +9,7 @@ from sbol3 import ListProperty, Property
 from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
-from Bio.SeqFeature import SeqFeature, FeatureLocation
+from Bio.SeqFeature import SeqFeature, FeatureLocation, Reference
 from sbol3.constants import SBOL_SEQUENCE_FEATURE
 
 # Conversion Constants (NOTE: most are placeholding and temporary for now)
@@ -108,7 +109,14 @@ class GenBank_SBOL3_Converter:
             self.genbank_organism      = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#organism", 0, 1)
             self.genbank_source        = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#source"  , 0, 1)
             # there can be multiple taxonomy, thus upper bound needs to be > 1 in order to use TextListProperty
-            self.genbank_taxonomy      = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#taxonomy", 0, 9)
+            self.genbank_taxonomy      = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#taxonomy", 0, math.inf)
+            self.genbank_reference_authors = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#reference#authors", 0, math.inf)
+            self.genbank_reference_comment = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#reference#comment", 0, math.inf)
+            self.genbank_reference_journal = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#reference#journal", 0, math.inf)
+            self.genbank_reference_consrtm = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#reference#consrtm", 0, math.inf)
+            self.genbank_reference_title = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#reference#title", 0, math.inf)
+            self.genbank_reference_medline_id = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#reference#medline_id", 0, math.inf)
+            self.genbank_reference_pubmed_id = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#reference#pubmed_id", 0, math.inf)
             # self.genbank_references    = self.ReferenceProperty(self.GENBANK_EXTRA_PROPERTY_NS + "#reference")
         #     self.genbank_references    = self.REFERENCE_Property(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#reference", 0, 2)
         #
@@ -257,23 +265,22 @@ class GenBank_SBOL3_Converter:
             # 8. GenBank Record Taxonomy
             comp.genbank_taxonomy = sorted(record.annotations['taxonomy'])
             # 9. GenBank Record References
-            print(record.annotations['references'])
+            print(list(record.annotations['references']))
             # record_references = []
-            # if record.annotations['references']:
-            #     for reference in record.annotations['references']:
-            #         GENBANK_EXTRA_PROPERTY_NS = self.Component_GenBank_Extension.GENBANK_EXTRA_PROPERTY_NS
-            #         reference_property = self.Component_GenBank_Extension.ReferenceProperty(GENBANK_EXTRA_PROPERTY_NS + "#reference", comp)
-            #         reference_property.authors = reference.authors
-            #         reference_property.comment = reference.comment
-            #         reference_property.journal = reference.journal
-            #         reference_property.consrtm = reference.consrtm
-            #         reference_property.title = reference.title
-            #         reference_property.medline_id = reference.medline_id
-            #         reference_property.pubmed_id = reference.pubmed_id
-            #         record_references.append(reference)
+            if record.annotations['references']:
+                for index in range(len(record.annotations['references'])):
+                    reference = record.annotations['references'][index]
+                    print(reference)
+                    comp.genbank_reference_authors.append(f"{index+1}:" + reference.authors)
+                    comp.genbank_reference_comment.append(f"{index+1}:" + reference.comment)
+                    comp.genbank_reference_journal.append(f"{index+1}:" + reference.journal)
+                    comp.genbank_reference_title.append(f"{index+1}:" + reference.title)
+                    comp.genbank_reference_consrtm.append(f"{index+1}:" + reference.consrtm)
+                    comp.genbank_reference_medline_id.append(f"{index+1}:" + reference.medline_id)
+                    comp.genbank_reference_pubmed_id.append(f"{index+1}:" + reference.pubmed_id)
             # print('final')
             # comp.genbank_references = record_references
-            # print(comp.genbank_references)
+            # print(comp.genbank_reference_authors)
             # TODO: Currently we use a fixed method of encoding (IUPAC)
             seq = sbol3.Sequence(
                 identity=record.name + "_sequence",
@@ -408,7 +415,25 @@ class GenBank_SBOL3_Converter:
                     #        becomes unsorted while retrieving from the sbol file
                     seq_rec.annotations['taxonomy'] = sorted(list(obj.genbank_taxonomy))
                     # 9. GenBank Record References
-                    # print(obj.genbank_references)
+                    record_references = []
+                    list(obj.genbank_reference_authors).sort(key=lambda value: value.split(":", 1)[0])
+                    list(obj.genbank_reference_comment).sort(key=lambda value: value.split(":", 1)[0])
+                    list(obj.genbank_reference_title).sort(key=lambda value: value.split(":", 1)[0])
+                    list(obj.genbank_reference_journal).sort(key=lambda value: value.split(":", 1)[0])
+                    list(obj.genbank_reference_consrtm).sort(key=lambda value: value.split(":", 1)[0])
+                    list(obj.genbank_reference_pubmed_id).sort(key=lambda value: value.split(":", 1)[0])
+                    list(obj.genbank_reference_medline_id).sort(key=lambda value: value.split(":", 1)[0])
+                    for index in range(len(obj.genbank_reference_journal)):
+                        reference = Reference()
+                        reference.authors = list(obj.genbank_reference_authors)[index].split(":", 1)[1]
+                        reference.comment = list(obj.genbank_reference_comment)[index].split(":", 1)[1]
+                        reference.journal = list(obj.genbank_reference_journal)[index].split(":", 1)[1]
+                        reference.title = list(obj.genbank_reference_title)[index].split(":", 1)[1]
+                        reference.consrtm = list(obj.genbank_reference_consrtm)[index].split(":", 1)[1]
+                        reference.medline_id = list(obj.genbank_reference_medline_id)[index].split(":", 1)[1]
+                        reference.pubmed_id = list(obj.genbank_reference_pubmed_id)[index].split(":", 1)[1]
+                        record_references.append(reference)
+                    seq_rec.annotations['references'] = record_references
 
                 # TODO: hardcoded molecule_type as DNA, derivation?
                 seq_rec.annotations["molecule_type"] = "DNA"

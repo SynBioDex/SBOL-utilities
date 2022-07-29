@@ -1,4 +1,3 @@
-
 <https://test.sbol3.genbank/AF165912/SequenceFeature1/Range1> <http://sbols.org/v3#displayId> "Range1" .
 <https://test.sbol3.genbank/AF165912/SequenceFeature1/Range1> <http://sbols.org/v3#end> "5485"^^<http://www.w3.org/2001/XMLSchema#integer> .
 <https://test.sbol3.genbank/AF165912/SequenceFeature1/Range1> <http://sbols.org/v3#hasSequence> <https://test.sbol3.genbank/AF165912_sequence> .
@@ -108,6 +107,20 @@
 <https://test.sbol3.genbank/AF165912> <http://www.ncbi.nlm.nih.gov/genbank#locus> "AF165912" .
 <https://test.sbol3.genbank/AF165912> <http://www.ncbi.nlm.nih.gov/genbank#molecule> "DNA" .
 <https://test.sbol3.genbank/AF165912> <http://www.ncbi.nlm.nih.gov/genbank#organism> "Arabidopsis thaliana" .
+<https://test.sbol3.genbank/AF165912> <http://www.ncbi.nlm.nih.gov/genbank#reference#authors> "1:Choi,Y.H., Choi,S.B. and Cho,S.H." .
+<https://test.sbol3.genbank/AF165912> <http://www.ncbi.nlm.nih.gov/genbank#reference#authors> "2:Choi,Y.H., Choi,S.B. and Cho,S.H." .
+<https://test.sbol3.genbank/AF165912> <http://www.ncbi.nlm.nih.gov/genbank#reference#comment> "1:" .
+<https://test.sbol3.genbank/AF165912> <http://www.ncbi.nlm.nih.gov/genbank#reference#comment> "2:" .
+<https://test.sbol3.genbank/AF165912> <http://www.ncbi.nlm.nih.gov/genbank#reference#consrtm> "1:" .
+<https://test.sbol3.genbank/AF165912> <http://www.ncbi.nlm.nih.gov/genbank#reference#consrtm> "2:" .
+<https://test.sbol3.genbank/AF165912> <http://www.ncbi.nlm.nih.gov/genbank#reference#journal> "1:Unpublished" .
+<https://test.sbol3.genbank/AF165912> <http://www.ncbi.nlm.nih.gov/genbank#reference#journal> "2:Submitted (06-JUL-1999) Biology, Inha University, Yonghyon-Dong 253, Inchon 402-751, Korea" .
+<https://test.sbol3.genbank/AF165912> <http://www.ncbi.nlm.nih.gov/genbank#reference#medline_id> "1:" .
+<https://test.sbol3.genbank/AF165912> <http://www.ncbi.nlm.nih.gov/genbank#reference#medline_id> "2:" .
+<https://test.sbol3.genbank/AF165912> <http://www.ncbi.nlm.nih.gov/genbank#reference#pubmed_id> "1:" .
+<https://test.sbol3.genbank/AF165912> <http://www.ncbi.nlm.nih.gov/genbank#reference#pubmed_id> "2:" .
+<https://test.sbol3.genbank/AF165912> <http://www.ncbi.nlm.nih.gov/genbank#reference#title> "1:Structure of a CTP:Phosphocholine Cytidylyltransferase Gene from Arabidopsis thaliana" .
+<https://test.sbol3.genbank/AF165912> <http://www.ncbi.nlm.nih.gov/genbank#reference#title> "2:Direct Submission" .
 <https://test.sbol3.genbank/AF165912> <http://www.ncbi.nlm.nih.gov/genbank#source> "Arabidopsis thaliana (thale cress)" .
 <https://test.sbol3.genbank/AF165912> <http://www.ncbi.nlm.nih.gov/genbank#taxonomy> "Arabidopsis" .
 <https://test.sbol3.genbank/AF165912> <http://www.ncbi.nlm.nih.gov/genbank#taxonomy> "Brassicaceae" .

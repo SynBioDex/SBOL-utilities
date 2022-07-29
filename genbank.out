@@ -10,6 +10,16 @@ SOURCE      Arabidopsis thaliana (thale cress)
             Eukaryota; Gunneridae; Magnoliophyta; Pentapetalae; Spermatophyta;
             Streptophyta; Tracheophyta; Viridiplantae; eudicotyledons; malvids;
             rosids.
+REFERENCE   1
+  AUTHORS   Choi,Y.H., Choi,S.B. and Cho,S.H.
+  TITLE     Structure of a CTP:Phosphocholine Cytidylyltransferase Gene from
+            Arabidopsis thaliana
+  JOURNAL   Unpublished
+REFERENCE   2
+  AUTHORS   Choi,Y.H., Choi,S.B. and Cho,S.H.
+  TITLE     Direct Submission
+  JOURNAL   Submitted (06-JUL-1999) Biology, Inha University, Yonghyon-Dong 253,
+            Inchon 402-751, Korea
 FEATURES             Location/Qualifiers
      regulatory      1..1602
                      /label="c3"
