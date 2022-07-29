@@ -1,8 +1,10 @@
 import os
 import csv
 import sbol3
+import rdflib
 import logging
-from typing import List, Sequence, Union, Optional
+from typing import List, Sequence, Union, Optional, Any
+from sbol3 import ListProperty, Property
 from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
@@ -91,6 +93,7 @@ class GenBank_SBOL3_Converter:
     class Component_GenBank_Extension(sbol3.Component):
         """Overrides the sbol3 Component class to include fields to directly read and write 
         extraneous properties of GenBank not storeable in any SBOL3 datafield.
+        :extends: sbol3.Component class
         """
         GENBANK_EXTRA_PROPERTY_NS = "http://www.ncbi.nlm.nih.gov/genbank"
         def __init__(self, identity: str, types: Optional[Union[str, Sequence[str]]], **kwargs) -> None:
@@ -104,7 +107,56 @@ class GenBank_SBOL3_Converter:
             self.genbank_molecule_type = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#molecule", 0, 1)
             self.genbank_organism      = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#organism", 0, 1)
             self.genbank_source        = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#source"  , 0, 1)
-
+            # there can be multiple taxonomy, thus upper bound needs to be > 1 in order to use TextListProperty
+            self.genbank_taxonomy      = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#taxonomy", 0, 9)
+            # self.genbank_references    = self.ReferenceProperty(self.GENBANK_EXTRA_PROPERTY_NS + "#reference")
+        #     self.genbank_references    = self.REFERENCE_Property(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#reference", 0, 2)
+        #
+        # class ReferenceProperty:
+        #     def __init__(self, GENBANK_EXTRA_PROPERTY_NS: str, Property_Owner: Any) -> None:
+        #         self.authors = sbol3.TextProperty(Property_Owner, f"{GENBANK_EXTRA_PROPERTY_NS}#author", 0, 1)
+        #         self.comment = sbol3.TextProperty(Property_Owner, f"{GENBANK_EXTRA_PROPERTY_NS}#comment", 0, 1)
+        #         self.journal = sbol3.TextProperty(Property_Owner, f"{GENBANK_EXTRA_PROPERTY_NS}#journal", 0, 1)
+        #         self.consrtm = sbol3.TextProperty(Property_Owner, f"{GENBANK_EXTRA_PROPERTY_NS}#consrtm", 0, 1)
+        #         self.title = sbol3.TextProperty(Property_Owner, f"{GENBANK_EXTRA_PROPERTY_NS}#title", 0, 1)
+        #         self.medline_id = sbol3.TextProperty(Property_Owner, f"{GENBANK_EXTRA_PROPERTY_NS}#medline_id", 0, 1)
+        #         self.pubmed_id = sbol3.TextProperty(Property_Owner, f"{GENBANK_EXTRA_PROPERTY_NS}#pubmed_id", 0, 1)
+        #         # self.location = 
+        #        
+        #
+        # class ReferencePropertyMixin:
+        #     def from_user(self, value: Any) -> Union[None, rdflib.Literal]:
+        #         if value is None:
+        #             return None
+        #         # return value
+        #         # if not isinstance(value, str):
+        #         #     raise TypeError(f'Expecting string, got {type(value)}')
+        #         rdflib.PROV
+        #         return rdflib.Literal(value)
+        #     def to_user(self, value: Any) -> str:
+        #         # return str(value)
+        #         return str(value)
+        # class ReferenceListProperty(ReferencePropertyMixin, ListProperty):
+        #     def __init__(self, property_owner: Any, property_uri: str,
+        #                  lower_bound: int, upper_bound: int,
+        #                  validation_rules: Optional[List] = None,
+        #                  initial_value: Optional[str] = None):
+        #         super().__init__(property_owner, property_uri,
+        #                          lower_bound, upper_bound, validation_rules)
+        #         if initial_value is not None:
+        #             if isinstance(initial_value, str):
+        #                 # Wrap the singleton in a list
+        #                 initial_value = [initial_value]
+        #             self.set(initial_value)
+        # def REFERENCE_Property(self, property_owner: Any, property_uri: str,
+        #                  lower_bound: int, upper_bound: Union[int, float],
+        #                  validation_rules: Optional[List] = None,
+        #                  initial_value: Optional[Union[str, List[str]]] = None
+        #                  # ) -> Union[str, list[str], Property]:
+        #                  ):
+        #     return self.ReferenceListProperty(property_owner, property_uri,
+        #                             lower_bound, upper_bound,
+        #                             validation_rules, initial_value)
 
     def create_GB_SO_role_mappings(self, gb2so_csv: str = GB2SO_MAPPINGS_CSV, so2gb_csv: str = SO2GB_MAPPINGS_CSV,
                                    convert_gb2so: bool = True, convert_so2gb: bool = True) -> int:
@@ -202,6 +254,26 @@ class GenBank_SBOL3_Converter:
             comp.genbank_organism = record.annotations['organism']
             # 7. GenBank Record Source
             comp.genbank_source = record.annotations['source']
+            # 8. GenBank Record Taxonomy
+            comp.genbank_taxonomy = sorted(record.annotations['taxonomy'])
+            # 9. GenBank Record References
+            print(record.annotations['references'])
+            # record_references = []
+            # if record.annotations['references']:
+            #     for reference in record.annotations['references']:
+            #         GENBANK_EXTRA_PROPERTY_NS = self.Component_GenBank_Extension.GENBANK_EXTRA_PROPERTY_NS
+            #         reference_property = self.Component_GenBank_Extension.ReferenceProperty(GENBANK_EXTRA_PROPERTY_NS + "#reference", comp)
+            #         reference_property.authors = reference.authors
+            #         reference_property.comment = reference.comment
+            #         reference_property.journal = reference.journal
+            #         reference_property.consrtm = reference.consrtm
+            #         reference_property.title = reference.title
+            #         reference_property.medline_id = reference.medline_id
+            #         reference_property.pubmed_id = reference.pubmed_id
+            #         record_references.append(reference)
+            # print('final')
+            # comp.genbank_references = record_references
+            # print(comp.genbank_references)
             # TODO: Currently we use a fixed method of encoding (IUPAC)
             seq = sbol3.Sequence(
                 identity=record.name + "_sequence",
@@ -331,6 +403,12 @@ class GenBank_SBOL3_Converter:
                     #        and while plugging it back in during conversion of SBOL -> GenBank, it
                     #        simply prints "", whereas the default "." should have been printed
                     if obj.genbank_source != "": seq_rec.annotations['source'] = obj.genbank_source
+                    # 8. GenBank Record taxonomy
+                    # FIXME: Even though component.genbank_taxonomy is stored in sorted order, it 
+                    #        becomes unsorted while retrieving from the sbol file
+                    seq_rec.annotations['taxonomy'] = sorted(list(obj.genbank_taxonomy))
+                    # 9. GenBank Record References
+                    # print(obj.genbank_references)
 
                 # TODO: hardcoded molecule_type as DNA, derivation?
                 seq_rec.annotations["molecule_type"] = "DNA"
