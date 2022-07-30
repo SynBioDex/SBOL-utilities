@@ -2,12 +2,13 @@ import os
 import requests
 from Bio import SeqIO
 import git
+from datetime import datetime
 
 IDT_API_TOKEN_URL = "https://www.idtdna.com/Identityserver/connect/token"
 IDT_API_SCORE_URL = "https://www.idtdna.com/api/complexities/screengBlockSequences"
 DISTRIBUTION_FASTA = 'distribution_synthesis_inserts.fasta'
 """File name for the distribution FASTA export for synthesis, to be located in the root directory"""
-
+partition_size = 10
 
 def get_token(username: str, password: str, ClientID: str, ClientSecret: str):
     data = {'grant_type': 'password', 'username': username, 'password': password, 'scope': 'test'}
@@ -24,9 +25,9 @@ def screening(token, listOfSequences):
         sequence = { "Name": record.name, "Sequence": str(record.seq) }
         sequences.append(sequence)
 
-    partition_size = 10
+    #print(len(sequences)) = 328
     partitions_sequences = [sequences[x:x+partition_size] for x in range(0, len(sequences), partition_size)]
-
+    #partitions_sequences = [sequences[x:x + partition_size] for x in range(0, 30, partition_size)]
     results = []
     for idx, partition in enumerate(partitions_sequences):
         print('Request {0} of {1} with size {2}'.format(idx, len(partitions_sequences), len(partition)))
@@ -34,7 +35,8 @@ def screening(token, listOfSequences):
                 headers={'Authorization': 'Bearer {}'.format(token),
                 'Content-Type': 'application/json; charset=utf-8'},
                 json=partition,
-                timeout = 180)
+                timeout = 240)
+        #print(resp.json()[0][1])
         results.append(resp.json())
 
     print('Requests to IDT API finished.')
@@ -42,23 +44,48 @@ def screening(token, listOfSequences):
     return results
 
 def check_synthesizability(username: str, password: str, ClientID: str, ClientSecret: str, fasta_path: str):
-    #root = "www" #ver como agarrar direccion
 
     print(f'Importing distribution sequences')
 
     with open(fasta_path) as handle:
         sequences = SeqIO.parse(handle, "fasta")
+
         print(f'Connecting to IDT DNA')
         token = get_token(username, password, ClientID, ClientSecret)
         scores = screening(token, sequences)
+
         print(scores)
 
+    #Extract sequences' names
+    with open(fasta_path) as handle:
+        sequences = SeqIO.parse(handle, "fasta")
+        ids = []
+        for seque in sequences:
+            #print(str(seque.seq[:]))
+            #print(str(seque.name))
+            ids.append(str(seque.name))
 
-root = git.Repo('.', search_parent_directories=True).working_tree_dir
-fasta_path = os.path.join(root, DISTRIBUTION_FASTA)
-#username = 'username'
-#password = 'password'
-#ClientID = 'ClientID'
-#ClientSecret = 'ClientSecret'
 
-check_synthesizability(username, password, ClientID, ClientServer, fasta_path)
+    #Retrieve only complexity scores
+    scores_list = []
+    for i in range(0, 10):
+        for j in range(0, partition_size):
+            scores_list.append(scores[i][j][1].get('ActualValue'))
+
+    print(scores_list)
+    print(ids)
+
+    return scores_list, ids
+
+def main():
+    root = git.Repo('.', search_parent_directories=True).working_tree_dir
+    fasta_path = os.path.join(root, DISTRIBUTION_FASTA)
+    username = 'username'
+    password = 'password'
+    ClientID = 'ClientID'
+    ClientSecret = 'ClientSecret'
+
+    check_synthesizability(username, password, ClientID, ClientSecret, fasta_path)
+
+if __name__ == '__main__':
+    main()
