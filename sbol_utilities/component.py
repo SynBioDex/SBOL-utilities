@@ -597,8 +597,8 @@ def part_in_backbone(identity: str, part: sbol3.Component, backbone: sbol3.Compo
     # get backbone sequence
     backbone_sequence = backbone.sequences[0].lookup().elements
     # compute open backbone sequences
-    open_backbone_sequence_from_location1=backbone_sequence[backbone.features[-1].locations[0].start -1 : backbone.features[-1].locations[0].end -1]
-    open_backbone_sequence_from_location2=backbone_sequence[backbone.features[-1].locations[1].start -1 : backbone.features[-1].locations[1].end-1]
+    open_backbone_sequence_from_location1=backbone_sequence[backbone.features[-1].locations[0].start -1 : backbone.features[-1].locations[0].end]
+    open_backbone_sequence_from_location2=backbone_sequence[backbone.features[-1].locations[1].start -1 : backbone.features[-1].locations[1].end]
     # extract part sequence
     part_sequence = part.sequences[0].lookup().elements
     # make new component sequence
