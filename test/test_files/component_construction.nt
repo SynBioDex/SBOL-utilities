@@ -1,4 +1,3 @@
-
 <http://sbolstandard.org/testfiles/gfp_cds> <http://sbols.org/v3#displayId> "gfp_cds" .
 <http://sbolstandard.org/testfiles/gfp_cds> <http://sbols.org/v3#hasNamespace> <http://sbolstandard.org/testfiles> .
 <http://sbolstandard.org/testfiles/gfp_cds> <http://sbols.org/v3#role> <https://identifiers.org/SO:0000316> .
