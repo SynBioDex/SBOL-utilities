@@ -70,7 +70,11 @@ def check_synthesizability(username: str, password: str, ClientID: str, ClientSe
     scores_list = []
     for i in range(0, 10):
         for j in range(0, partition_size):
-            scores_list.append(scores[i][j][1].get('ActualValue'))
+            complexity_score = 0
+            for k in range(0, len(scores[i][j])):
+                complexity_score += scores[i][j][k].get('Score')
+
+            scores_list.append(complexity_score)
 
     print(scores_list)
     print(ids)
