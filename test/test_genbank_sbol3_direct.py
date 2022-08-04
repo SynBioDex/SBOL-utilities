@@ -88,9 +88,9 @@ class TestGenBankSBOL3(unittest.TestCase):
         self._test_sbol3_to_genbank(SAMPLE_SBOL3_FILE=SBOL3_FILE, SAMPLE_GENBANK_FILE=GENBANK_FILE)
 
     def test_round_trip_multiple_loc_feat(self):
-        SAMPLE_GENBANK_FILE = "sequence2_modified.gb"
         sbol3.set_namespace(TEST_NAMESPACE)
-        TEST_OUTPUT_SBOL3 = SAMPLE_GENBANK_FILE + ".nt"
+        SAMPLE_GENBANK_FILE = (Path(__file__).parent / "test_files" / "multiple_feature_locations.gb")
+        TEST_OUTPUT_SBOL3 = str(SAMPLE_GENBANK_FILE) + ".nt"
         # Don't write to file for testing, we directly compare sbol documents
         test_output_sbol3 = self.converter.convert_genbank_to_sbol3(
             str(SAMPLE_GENBANK_FILE),
@@ -99,16 +99,13 @@ class TestGenBankSBOL3(unittest.TestCase):
             write=False,
         )
         # create tmp directory to store generated genbank file in for comparison
-        tmp_sub = copy_to_tmp(package=[SAMPLE_GENBANK_FILE])
+        tmp_sub = copy_to_tmp(package=[str(SAMPLE_GENBANK_FILE)])
         # Convert to GenBank and check contents
-        outfile = os.path.join(tmp_sub, str(SAMPLE_GENBANK_FILE) + ".test")
+        outfile = os.path.join(tmp_sub, str(SAMPLE_GENBANK_FILE).split("/")[-1] + ".test")
         self.converter.convert_sbol3_to_genbank(
             sbol3_file=None, doc=test_output_sbol3, gb_file=outfile, write=True
         )
-        test_dir = os.path.dirname(os.path.realpath(__file__))
-        comparison_file = os.path.join(
-            test_dir, "test_files", SAMPLE_GENBANK_FILE
-        )
+        comparison_file = str(SAMPLE_GENBANK_FILE)
         assert filecmp.cmp(
             outfile, comparison_file
         ), f"Converted GenBank file {outfile} is not identical to expected file {comparison_file}"
