@@ -272,11 +272,11 @@ class GenBank_SBOL3_Converter:
                             )
                             # TODO: There may be multiple locations for a feature from sbol3; 
                             #       add ability to parse them into a single genbank feature
-                            feat_loc = None
-                            feat_loc_array = []
+                            feat_loc_parts = []
+                            feat_loc_object = None
+                            feat_loc_positions = []
                             feat_strand = self.BIO_STRAND_FORWARD
-                            if len(obj_feat.locations) == 1:
-                                obj_feat_loc = obj_feat.locations[0]
+                            for obj_feat_loc in obj_feat.locations:
                                 feat_strand = self.BIO_STRAND_FORWARD
                                 # feature strand value which denotes orientation of the location of the feature
                                 # By default its 1 for SO_FORWARD orientation of sbol3 feature location, and -1 for SO_REVERSE
@@ -285,35 +285,22 @@ class GenBank_SBOL3_Converter:
                                 elif obj_feat_loc.orientation != sbol3.SO_FORWARD:
                                     raise ValueError(f"Location orientation: `{obj_feat_loc.orientation}` for feature: `{obj_feat.name}` of component: `{obj.display_id}` is not a valid orientation.\n Valid orientations are `{sbol3.SO_FORWARD}`, `{sbol3.SO_REVERSE}`")
                                 # TODO: Raise custom converter class ERROR for `else:`
-                                feat_loc = FeatureLocation(
+                                feat_loc_object = FeatureLocation(
                                     start=obj_feat_loc.start,
                                     end=obj_feat_loc.end,
                                     strand=feat_strand,
                                 )
-                                feat_loc_array = [feat_loc.start, feat_loc.end]
-                            elif len(obj_feat.locations) > 1:
-                                feat_locs = []
-                                for obj_feat_loc in obj_feat.locations:
-                                    feat_strand = self.BIO_STRAND_FORWARD
-                                    # feature strand value which denotes orientation of the location of the feature
-                                    # By default its 1 for SO_FORWARD orientation of sbol3 feature location, and -1 for SO_REVERSE
-                                    if obj_feat_loc.orientation == sbol3.SO_REVERSE:
-                                        feat_strand = self.BIO_STRAND_REVERSE
-                                    elif obj_feat_loc.orientation != sbol3.SO_FORWARD:
-                                        raise ValueError(f"Location orientation: `{obj_feat_loc.orientation}` for feature: `{obj_feat.name}` of component: `{obj.display_id}` is not a valid orientation.\n Valid orientations are `{sbol3.SO_FORWARD}`, `{sbol3.SO_REVERSE}`")
-                                    # TODO: Raise custom converter class ERROR for `else:`
-                                    feat_loc = FeatureLocation(
-                                        start=obj_feat_loc.start,
-                                        end=obj_feat_loc.end,
-                                        strand=feat_strand,
-                                    )
-                                    feat_locs.append(feat_loc)
-                                # sort feature locations lexicographically internally first
-                                feat_locs.sort(key=lambda loc: (loc.start, loc.end))
-                                print(f"locs {feat_locs}")
-                                for loc in feat_locs:
-                                    feat_loc_array += [loc.start, loc.end]
-                                feat_loc = CompoundLocation(parts=feat_locs, operator="join")
+                                feat_loc_parts.append(feat_loc_object)
+                            # sort feature locations lexicographically internally first
+                            feat_loc_parts.sort(key=lambda loc: (loc.start, loc.end))
+                            for loc in feat_loc_parts:
+                                feat_loc_positions += [loc.start, loc.end]
+                            if len(feat_loc_parts) > 1:
+                                feat_loc_object = CompoundLocation(parts=feat_loc_parts, operator="join")
+                            elif len(feat_loc_parts) == 1:
+                                feat_loc_object = feat_loc_parts[0]
+                            # action to perform if no location found?
+                            # else:
 
                             # FIXME: order of features not same as original genbank doc?
                             obj_feat_role = obj_feat.roles[0]
@@ -332,9 +319,9 @@ class GenBank_SBOL3_Converter:
                             # create sequence feature object with label qualifier
                             # TODO: feat_strand value ambiguous in case of mulitple locations?
                             feat = SeqFeature(
-                                location=feat_loc, strand=feat_strand, type=feat_role
+                                location=feat_loc_object, strand=feat_strand, type=feat_role
                             )
-                            feat_order[feat] = feat_loc_array
+                            feat_order[feat] = feat_loc_positions
                             if obj_feat.name:
                                 feat.qualifiers["label"] = obj_feat.name
                             # add feature to list of features
