@@ -296,10 +296,11 @@ class GenBank_SBOL3_Converter:
                                 )
                                 feat_loc_parts.append(feat_loc_object)
                             # sort feature locations lexicographically internally first
-                            if obj_feat.orientation == sbol3.SO_FORWARD:
-                                feat_loc_parts.sort(key=lambda loc: (loc.start, loc.end))
+                            # NOTE: If the feature location has an outer "complement" location operator, the sort needs to be in reverse order
                             if obj_feat.orientation == sbol3.SO_REVERSE:
                                 feat_loc_parts.sort(key=lambda loc: (loc.start, loc.end), reverse=True)
+                            else:
+                                feat_loc_parts.sort(key=lambda loc: (loc.start, loc.end))
                             for loc in feat_loc_parts:
                                 feat_loc_positions += [loc.start, loc.end]
                             if len(feat_loc_parts) > 1:
