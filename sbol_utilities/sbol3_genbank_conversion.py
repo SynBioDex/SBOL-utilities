@@ -265,9 +265,9 @@ class GenBank_SBOL3_Converter:
             # 8. GenBank Record Taxonomy
             comp.genbank_taxonomy = sorted(record.annotations['taxonomy'])
             # 9. GenBank Record References
-            print(list(record.annotations['references']))
             # record_references = []
-            if record.annotations['references']:
+            # if record.annotations['references']:
+            if 'references' in record.annotations:
                 for index in range(len(record.annotations['references'])):
                     reference = record.annotations['references'][index]
                     print(reference)
@@ -278,7 +278,6 @@ class GenBank_SBOL3_Converter:
                     comp.genbank_reference_consrtm.append(f"{index+1}:" + reference.consrtm)
                     comp.genbank_reference_medline_id.append(f"{index+1}:" + reference.medline_id)
                     comp.genbank_reference_pubmed_id.append(f"{index+1}:" + reference.pubmed_id)
-            # print('final')
             # comp.genbank_references = record_references
             # print(comp.genbank_reference_authors)
             # TODO: Currently we use a fixed method of encoding (IUPAC)
