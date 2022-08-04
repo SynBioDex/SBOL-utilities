@@ -1,32 +1,70 @@
-LOCUS       AF165912                5485 bp    DNA     linear   UNK 01-JAN-1980
+LOCUS       AF165912                5485 bp    DNA     linear   PLN 29-JUL-1999
 DEFINITION  Arabidopsis thaliana CTP:phosphocholine cytidylyltransferase (CCT)
             gene, complete cds.
 ACCESSION   AF165912
-VERSION     AF165912
+VERSION     AF165912.1  GI:5640000
 KEYWORDS    .
-SOURCE      .
-  ORGANISM  .
-            .
+SOURCE      Arabidopsis thaliana (thale cress)
+  ORGANISM  Arabidopsis thaliana
+            Eukaryota; Viridiplantae; Streptophyta; Embryophyta; Tracheophyta;
+            Spermatophyta; Magnoliophyta; eudicotyledons; Gunneridae;
+            Pentapetalae; rosids; malvids; Brassicales; Brassicaceae;
+            Camelineae; Arabidopsis.
+REFERENCE   1  (bases 1 to 5485)
+  AUTHORS   Choi,Y.H., Choi,S.B. and Cho,S.H.
+  TITLE     Structure of a CTP:Phosphocholine Cytidylyltransferase Gene from
+            Arabidopsis thaliana
+  JOURNAL   Unpublished
+REFERENCE   2  (bases 1 to 5485)
+  AUTHORS   Choi,Y.H., Choi,S.B. and Cho,S.H.
+  TITLE     Direct Submission
+  JOURNAL   Submitted (06-JUL-1999) Biology, Inha University, Yonghyon-Dong
+            253, Inchon 402-751, Korea
 FEATURES             Location/Qualifiers
-     regulatory      1..1602
-                     /label="c3"
-     gene            1..4637
-                     /label="c2"
      source          1..5485
                      /label="c1"
+                     /organism="Arabidopsis thaliana"
+                     /mol_type="genomic DNA"
+                     /db_xref="taxon:3702"
+                     /ecotype="Col-0"
+     gene            1..4637
+                     /label="c2"
+                     /gene="CCT"
+     regulatory      1..1602
+                     /label="c3"
+                     /regulatory_class="promoter"
+                     /gene="CCT"
      regulatory      1554..1560
                      /label="c4"
+                     /regulatory_class="TATA_box"
+                     /gene="CCT"
+     mRNA            complement(join(1603..1891,2322..2438,2538..2633,2801..2843,
+                     2918..3073,3167..3247,3874..3972,4082..4637))
+                     /label="c5"
+                     /gene="CCT"
+                     /product="CTP:phosphocholine cytidylyltransferase"
      5'UTR           1603..1712
                      /label="c6"
-     mRNA            complement(join(4082..4637,3874..3972,3167..3247,
-                     2918..3073,2801..2843,2538..2633,2322..2438,1603..1891))
-                     /label="c5"
+                     /gene="CCT"
      CDS             join(1713..1891,2322..2438,2538..2633,2801..2843,
                      2918..3073,3167..3247,3874..3972,4082..4309)
                      /label="c7"
+                     /gene="CCT"
+                     /EC_number="2.7.7.15"
+                     /codon_start=1
+                     /product="CTP:phosphocholine cytidylyltransferase"
+                     /protein_id="AAD45922.1"
+                     /db_xref="GI:5640001"
+                     /translation="MSNVIGDRTEDGLSTAAAASGSTAVQSSPPTDRPVRVYADGIYD
+                     LFHFGHARSLEQAKLAFPNNTYLLVGCCNDETTHKYKGRTVMTAEERYESLRHCKWVD
+                     EVIPDAPWVVNQEFLDKHQIDYVAHDSLPYADSSGAGKDVYEFVKKVGRFKETQRTEG
+                     ISTSDIIMRIVKDYNQYVMRNLDRGYSREDLGVSFVKEKRLRVNMRLKKLQERVKEQQ
+                     ERVGEKIQTVKMLRNEWVENADRWVAGFLEIFEEGCHKMGTAIVDSIQERLMRQKSAE
+                     RLENGQDDDTDDQFYEEYFDHDMGSDDDEDEKFYDEEEVKEEETEKTVMTDAKDNK"
      3'UTR           4310..4637
                      /label="c8"
-ORIGIN
+                     /gene="CCT"
+ORIGIN      
         1 ccagaatggt tactatggac atccgccaac catacaagct atggtgaaat gctttatcta
        61 tctcattttt agtttcaaag cttttgttat aacacatgca aatccatatc cgtaaccaat
       121 atccaatcgc ttgacatagt ctgatgaagt ttttggtagt taagataaag ctcgagactg

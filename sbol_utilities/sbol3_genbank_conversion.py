@@ -166,9 +166,9 @@ class GenBank_SBOL3_Converter:
                     )
                     for gb_loc in gb_feat.location.parts:
                         # Default orientation is "inline" except if complement is specified via strand
-                        feat_orientation = sbol3.SO_FORWARD
+                        feat_loc_orientation = sbol3.SO_FORWARD
                         if gb_loc.strand == -1:
-                            feat_orientation = sbol3.SO_REVERSE
+                            feat_loc_orientation = sbol3.SO_REVERSE
                         # create "Range/Cut" FeatureLocation by parsing genbank record location
                         # Create a cut or range as featurelocation depending on whether location is specified as
                         # Cut (eg: "n^n+1", parsed as [n:n] by biopython) or Range (eg: "n..m", parsed as [n:m] by biopython)
@@ -176,14 +176,14 @@ class GenBank_SBOL3_Converter:
                             locs = sbol3.Cut(
                                 sequence=seq,
                                 at=int(gb_loc.start),
-                                orientation=feat_orientation,
+                                orientation=feat_loc_orientation,
                             )
                         else:
                             locs = sbol3.Range(
                                 sequence=seq,
                                 start=int(gb_loc.start),
                                 end=int(gb_loc.end),
-                                orientation=feat_orientation,
+                                orientation=feat_loc_orientation,
                             )
                         feat_locations.append(locs)
                     # Obtain sequence feature role from gb2so mappings
@@ -193,10 +193,14 @@ class GenBank_SBOL3_Converter:
                     else:
                         logging.warning(f"Feature type: `{gb_feat.type}` for feature: `{gb_feat.qualifiers['label'][0]}` of record: `{record.name}` has no corresponding ontology term for SO, using the default SO term, {self.DEFAULT_SO_TERM}")
                         feat_role += self.DEFAULT_SO_TERM
+                    feat_orientation = sbol3.SO_FORWARD
+                    if gb_feat.strand == -1:
+                        feat_orientation = sbol3.SO_REVERSE
                     feat = sbol3.SequenceFeature(
                         locations=feat_locations,
                         roles=[feat_role],
                         name=gb_feat.qualifiers["label"][0],
+                        orientation=feat_orientation
                     )
                     comp.features.append(feat)
         if write:
@@ -292,7 +296,10 @@ class GenBank_SBOL3_Converter:
                                 )
                                 feat_loc_parts.append(feat_loc_object)
                             # sort feature locations lexicographically internally first
-                            feat_loc_parts.sort(key=lambda loc: (loc.start, loc.end))
+                            if obj_feat.orientation == sbol3.SO_FORWARD:
+                                feat_loc_parts.sort(key=lambda loc: (loc.start, loc.end))
+                            if obj_feat.orientation == sbol3.SO_REVERSE:
+                                feat_loc_parts.sort(key=lambda loc: (loc.start, loc.end), reverse=True)
                             for loc in feat_loc_parts:
                                 feat_loc_positions += [loc.start, loc.end]
                             if len(feat_loc_parts) > 1:
@@ -345,7 +352,7 @@ def main():
     logging.getLogger().setLevel(level=log_level)
     converter = GenBank_SBOL3_Converter()
     converter.convert_genbank_to_sbol3(
-        gb_file="genbank.out", sbol3_file="sbol.nt", write=True
+        gb_file="sequence2_modified.gb", sbol3_file="sbol.nt", write=True
     )
     converter.convert_sbol3_to_genbank(sbol3_file="sbol.nt", write=True)
 
