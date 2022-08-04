@@ -6,7 +6,7 @@ from typing import List
 from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
-from Bio.SeqFeature import SeqFeature, FeatureLocation
+from Bio.SeqFeature import CompoundLocation, SeqFeature, FeatureLocation
 from sbol3.constants import SBOL_SEQUENCE_FEATURE
 
 # Conversion Constants (NOTE: most are placeholding and temporary for now)
@@ -160,30 +160,32 @@ class GenBank_SBOL3_Converter:
             if record.features:
                 comp.features = []
                 for gb_feat in record.features:
+                    feat_locations = []
                     logging.info(
                         f"Parsing feature `{gb_feat.qualifiers['label'][0]}` for record `{record.id}`"
                     )
-                    # create "Range/Cut" FeatureLocation by parsing genbank record location
-                    gb_loc = gb_feat.location
-                    # Default orientation is "inline" except if complement is specified via strand
-                    feat_orientation = sbol3.SO_FORWARD
-                    if gb_loc.strand == -1:
-                        feat_orientation = sbol3.SO_REVERSE
-                    # Create a cut or range as featurelocation depending on whether location is specified as
-                    # Cut (eg: "n^n+1", parsed as [n:n] by biopython) or Range (eg: "n..m", parsed as [n:m] by biopython)
-                    if gb_loc.start == gb_loc.end:
-                        locs = sbol3.Cut(
-                            sequence=seq,
-                            at=int(gb_loc.start),
-                            orientation=feat_orientation,
-                        )
-                    else:
-                        locs = sbol3.Range(
-                            sequence=seq,
-                            start=int(gb_loc.start),
-                            end=int(gb_loc.end),
-                            orientation=feat_orientation,
-                        )
+                    for gb_loc in gb_feat.location.parts:
+                        # Default orientation is "inline" except if complement is specified via strand
+                        feat_loc_orientation = sbol3.SO_FORWARD
+                        if gb_loc.strand == -1:
+                            feat_loc_orientation = sbol3.SO_REVERSE
+                        # create "Range/Cut" FeatureLocation by parsing genbank record location
+                        # Create a cut or range as featurelocation depending on whether location is specified as
+                        # Cut (eg: "n^n+1", parsed as [n:n] by biopython) or Range (eg: "n..m", parsed as [n:m] by biopython)
+                        if gb_loc.start == gb_loc.end:
+                            locs = sbol3.Cut(
+                                sequence=seq,
+                                at=int(gb_loc.start),
+                                orientation=feat_loc_orientation,
+                            )
+                        else:
+                            locs = sbol3.Range(
+                                sequence=seq,
+                                start=int(gb_loc.start),
+                                end=int(gb_loc.end),
+                                orientation=feat_loc_orientation,
+                            )
+                        feat_locations.append(locs)
                     # Obtain sequence feature role from gb2so mappings
                     feat_role = sbol3.SO_NS[:-3]
                     if self.gb2so_map.get(gb_feat.type):
@@ -191,10 +193,14 @@ class GenBank_SBOL3_Converter:
                     else:
                         logging.warning(f"Feature type: `{gb_feat.type}` for feature: `{gb_feat.qualifiers['label'][0]}` of record: `{record.name}` has no corresponding ontology term for SO, using the default SO term, {self.DEFAULT_SO_TERM}")
                         feat_role += self.DEFAULT_SO_TERM
+                    feat_orientation = sbol3.SO_FORWARD
+                    if gb_feat.strand == -1:
+                        feat_orientation = sbol3.SO_REVERSE
                     feat = sbol3.SequenceFeature(
-                        locations=[locs],
+                        locations=feat_locations,
                         roles=[feat_role],
                         name=gb_feat.qualifiers["label"][0],
+                        orientation=feat_orientation
                     )
                     comp.features.append(feat)
         if write:
@@ -259,6 +265,7 @@ class GenBank_SBOL3_Converter:
                 seq_rec.annotations["sequence_version"] = self.DEFAULT_GB_REC_VERSION
                 seq_rec_features = []
                 if obj.features:
+                    feat_order = {}
                     # converting all sequence features
                     for obj_feat in obj.features:
                         # TODO: Also add ability to parse subcomponent feature type
@@ -269,20 +276,40 @@ class GenBank_SBOL3_Converter:
                             )
                             # TODO: There may be multiple locations for a feature from sbol3; 
                             #       add ability to parse them into a single genbank feature
-                            obj_feat_loc = obj_feat.locations[0]
+                            feat_loc_parts = []
+                            feat_loc_object = None
+                            feat_loc_positions = []
                             feat_strand = self.BIO_STRAND_FORWARD
-                            # feature strand value which denotes orientation of the location of the feature
-                            # By default its 1 for SO_FORWARD orientation of sbol3 feature location, and -1 for SO_REVERSE
-                            if obj_feat_loc.orientation == sbol3.SO_REVERSE:
-                                feat_strand = self.BIO_STRAND_REVERSE
-                            elif obj_feat_loc.orientation != sbol3.SO_FORWARD:
-                                raise ValueError(f"Location orientation: `{obj_feat_loc.orientation}` for feature: `{obj_feat.name}` of component: `{obj.display_id}` is not a valid orientation.\n Valid orientations are `{sbol3.SO_FORWARD}`, `{sbol3.SO_REVERSE}`")
-                            # TODO: Raise custom converter class ERROR for `else:`
-                            feat_loc = FeatureLocation(
-                                start=obj_feat_loc.start,
-                                end=obj_feat_loc.end,
-                                strand=feat_strand,
-                            )
+                            for obj_feat_loc in obj_feat.locations:
+                                feat_strand = self.BIO_STRAND_FORWARD
+                                # feature strand value which denotes orientation of the location of the feature
+                                # By default its 1 for SO_FORWARD orientation of sbol3 feature location, and -1 for SO_REVERSE
+                                if obj_feat_loc.orientation == sbol3.SO_REVERSE:
+                                    feat_strand = self.BIO_STRAND_REVERSE
+                                elif obj_feat_loc.orientation != sbol3.SO_FORWARD:
+                                    raise ValueError(f"Location orientation: `{obj_feat_loc.orientation}` for feature: `{obj_feat.name}` of component: `{obj.display_id}` is not a valid orientation.\n Valid orientations are `{sbol3.SO_FORWARD}`, `{sbol3.SO_REVERSE}`")
+                                # TODO: Raise custom converter class ERROR for `else:`
+                                feat_loc_object = FeatureLocation(
+                                    start=obj_feat_loc.start,
+                                    end=obj_feat_loc.end,
+                                    strand=feat_strand,
+                                )
+                                feat_loc_parts.append(feat_loc_object)
+                            # sort feature locations lexicographically internally first
+                            # NOTE: If the feature location has an outer "complement" location operator, the sort needs to be in reverse order
+                            if obj_feat.orientation == sbol3.SO_REVERSE:
+                                feat_loc_parts.sort(key=lambda loc: (loc.start, loc.end), reverse=True)
+                            else:
+                                feat_loc_parts.sort(key=lambda loc: (loc.start, loc.end))
+                            for loc in feat_loc_parts:
+                                feat_loc_positions += [loc.start, loc.end]
+                            if len(feat_loc_parts) > 1:
+                                feat_loc_object = CompoundLocation(parts=feat_loc_parts, operator="join")
+                            elif len(feat_loc_parts) == 1:
+                                feat_loc_object = feat_loc_parts[0]
+                            # action to perform if no location found?
+                            # else:
+
                             # FIXME: order of features not same as original genbank doc?
                             obj_feat_role = obj_feat.roles[0]
                             # NOTE: The so2gb.csv data file has rows of format 'SO:xxxxxxx,<GenBank_Term>', 
@@ -298,15 +325,17 @@ class GenBank_SBOL3_Converter:
                             else:
                                 logging.warning(f"Feature role: `{obj_feat_role}` for feature: `{obj_feat}` of component: `{obj.display_id}` has no corresponding ontology term for GenBank, using the default GenBank term, {self.DEFAULT_GB_TERM}")
                             # create sequence feature object with label qualifier
+                            # TODO: feat_strand value ambiguous in case of mulitple locations?
                             feat = SeqFeature(
-                                location=feat_loc, strand=feat_strand, type=feat_role
+                                location=feat_loc_object, strand=feat_strand, type=feat_role
                             )
+                            feat_order[feat] = feat_loc_positions
                             if obj_feat.name:
                                 feat.qualifiers["label"] = obj_feat.name
                             # add feature to list of features
                             seq_rec_features.append(feat)
                 # Sort features based on feature location start/end, lexicographically
-                seq_rec_features.sort(key=lambda feat: (feat.location.start, feat.location.end))
+                seq_rec_features.sort(key=lambda feat: feat_order[feat])
                 seq_rec.features = seq_rec_features
                 seq_records.append(seq_rec)
         # writing generated genbank document to disk at path provided
@@ -323,10 +352,10 @@ def main():
     log_level = logging.INFO
     logging.getLogger().setLevel(level=log_level)
     converter = GenBank_SBOL3_Converter()
-    # converter.convert_genbank_to_sbol3(
-    #     gb_file=SAMPLE_GENBANK_FILE_2, sbol3_file=SAMPLE_SBOL3_FILE_2, write=True
-    # )
-    converter.convert_sbol3_to_genbank(sbol3_file="iGEM_SBOL2_imports_from_genbank_to_sbol3_direct.nt", write=True)
+    converter.convert_genbank_to_sbol3(
+        gb_file="sequence2_modified.gb", sbol3_file="sbol.nt", write=True
+    )
+    converter.convert_sbol3_to_genbank(sbol3_file="sbol.nt", write=True)
 
 
 if __name__ == "__main__":
