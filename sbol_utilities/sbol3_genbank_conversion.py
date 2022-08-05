@@ -2,15 +2,12 @@ import os
 import csv
 import math
 import sbol3
-import rdflib
 import logging
-from typing import List, Sequence, Union, Optional, Any
-from sbol3 import ListProperty, Property
+from typing import List, Sequence, Union, Optional
 from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from Bio.SeqFeature import SeqFeature, FeatureLocation, Reference, CompoundLocation
-from sbol3.constants import SBOL_SEQUENCE_FEATURE
 
 # Conversion Constants (NOTE: most are placeholding and temporary for now)
 TEST_NAMESPACE = "https://test.sbol3.genbank/"
@@ -117,54 +114,7 @@ class GenBank_SBOL3_Converter:
             self.genbank_reference_title = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#reference#title", 0, math.inf)
             self.genbank_reference_medline_id = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#reference#medline_id", 0, math.inf)
             self.genbank_reference_pubmed_id = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#reference#pubmed_id", 0, math.inf)
-            # self.genbank_references    = self.ReferenceProperty(self.GENBANK_EXTRA_PROPERTY_NS + "#reference")
-        #     self.genbank_references    = self.REFERENCE_Property(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#reference", 0, 2)
-        #
-        # class ReferenceProperty:
-        #     def __init__(self, GENBANK_EXTRA_PROPERTY_NS: str, Property_Owner: Any) -> None:
-        #         self.authors = sbol3.TextProperty(Property_Owner, f"{GENBANK_EXTRA_PROPERTY_NS}#author", 0, 1)
-        #         self.comment = sbol3.TextProperty(Property_Owner, f"{GENBANK_EXTRA_PROPERTY_NS}#comment", 0, 1)
-        #         self.journal = sbol3.TextProperty(Property_Owner, f"{GENBANK_EXTRA_PROPERTY_NS}#journal", 0, 1)
-        #         self.consrtm = sbol3.TextProperty(Property_Owner, f"{GENBANK_EXTRA_PROPERTY_NS}#consrtm", 0, 1)
-        #         self.title = sbol3.TextProperty(Property_Owner, f"{GENBANK_EXTRA_PROPERTY_NS}#title", 0, 1)
-        #         self.medline_id = sbol3.TextProperty(Property_Owner, f"{GENBANK_EXTRA_PROPERTY_NS}#medline_id", 0, 1)
-        #         self.pubmed_id = sbol3.TextProperty(Property_Owner, f"{GENBANK_EXTRA_PROPERTY_NS}#pubmed_id", 0, 1)
-        #         # self.location = 
-        #        
-        #
-        # class ReferencePropertyMixin:
-        #     def from_user(self, value: Any) -> Union[None, rdflib.Literal]:
-        #         if value is None:
-        #             return None
-        #         # return value
-        #         # if not isinstance(value, str):
-        #         #     raise TypeError(f'Expecting string, got {type(value)}')
-        #         rdflib.PROV
-        #         return rdflib.Literal(value)
-        #     def to_user(self, value: Any) -> str:
-        #         # return str(value)
-        #         return str(value)
-        # class ReferenceListProperty(ReferencePropertyMixin, ListProperty):
-        #     def __init__(self, property_owner: Any, property_uri: str,
-        #                  lower_bound: int, upper_bound: int,
-        #                  validation_rules: Optional[List] = None,
-        #                  initial_value: Optional[str] = None):
-        #         super().__init__(property_owner, property_uri,
-        #                          lower_bound, upper_bound, validation_rules)
-        #         if initial_value is not None:
-        #             if isinstance(initial_value, str):
-        #                 # Wrap the singleton in a list
-        #                 initial_value = [initial_value]
-        #             self.set(initial_value)
-        # def REFERENCE_Property(self, property_owner: Any, property_uri: str,
-        #                  lower_bound: int, upper_bound: Union[int, float],
-        #                  validation_rules: Optional[List] = None,
-        #                  initial_value: Optional[Union[str, List[str]]] = None
-        #                  # ) -> Union[str, list[str], Property]:
-        #                  ):
-        #     return self.ReferenceListProperty(property_owner, property_uri,
-        #                             lower_bound, upper_bound,
-        #                             validation_rules, initial_value)
+
 
     def create_GB_SO_role_mappings(self, gb2so_csv: str = GB2SO_MAPPINGS_CSV, so2gb_csv: str = SO2GB_MAPPINGS_CSV,
                                    convert_gb2so: bool = True, convert_so2gb: bool = True) -> int:
@@ -195,6 +145,7 @@ class GenBank_SBOL3_Converter:
                 logging.error(f"No SO to Genbank Ontology Mapping CSV File Exists!")
                 return 0
         return 1
+
 
     def convert_genbank_to_sbol3(self, gb_file: str, sbol3_file: str = "sbol3.out", namespace: str = TEST_NAMESPACE,
                                  write: bool = False) -> sbol3.Document:
@@ -265,12 +216,9 @@ class GenBank_SBOL3_Converter:
             # 8. GenBank Record Taxonomy
             comp.genbank_taxonomy = sorted(record.annotations['taxonomy'])
             # 9. GenBank Record References
-            # record_references = []
-            # if record.annotations['references']:
             if 'references' in record.annotations:
                 for index in range(len(record.annotations['references'])):
                     reference = record.annotations['references'][index]
-                    print(reference)
                     comp.genbank_reference_authors.append(f"{index+1}:" + reference.authors)
                     comp.genbank_reference_comment.append(f"{index+1}:" + reference.comment)
                     comp.genbank_reference_journal.append(f"{index+1}:" + reference.journal)
@@ -278,8 +226,6 @@ class GenBank_SBOL3_Converter:
                     comp.genbank_reference_consrtm.append(f"{index+1}:" + reference.consrtm)
                     comp.genbank_reference_medline_id.append(f"{index+1}:" + reference.medline_id)
                     comp.genbank_reference_pubmed_id.append(f"{index+1}:" + reference.pubmed_id)
-            # comp.genbank_references = record_references
-            # print(comp.genbank_reference_authors)
             # TODO: Currently we use a fixed method of encoding (IUPAC)
             seq = sbol3.Sequence(
                 identity=record.name + "_sequence",
@@ -328,7 +274,8 @@ class GenBank_SBOL3_Converter:
                     if self.gb2so_map.get(gb_feat.type):
                         feat_role += self.gb2so_map[gb_feat.type]
                     else:
-                        logging.warning(f"Feature type: `{gb_feat.type}` for feature: `{gb_feat.qualifiers['label'][0]}` of record: `{record.name}` has no corresponding ontology term for SO, using the default SO term, {self.DEFAULT_SO_TERM}")
+                        logging.warning(f"Feature type: `{gb_feat.type}` for feature: `{gb_feat.qualifiers['label'][0]}` \n \
+                        of record: `{record.name}` has no corresponding ontology term for SO, using the default SO term, {self.DEFAULT_SO_TERM}")
                         feat_role += self.DEFAULT_SO_TERM
                     feat_orientation = sbol3.SO_FORWARD
                     if gb_feat.strand == -1:
@@ -346,6 +293,7 @@ class GenBank_SBOL3_Converter:
             )
             doc.write(fpath=sbol3_file, file_format=sbol3.SORTED_NTRIPLES)
         return doc
+
 
     def convert_sbol3_to_genbank(self, sbol3_file: str, doc: sbol3.Document = None, gb_file: str = "genbank.out",
                                  write: bool = False) -> List[SeqRecord]:
@@ -385,7 +333,8 @@ class GenBank_SBOL3_Converter:
                     obj_seq = doc.find(obj.sequences[0])
                     seq = Seq(obj_seq.elements.upper())
                 elif len(obj.sequences) > 1:
-                    raise ValueError(f"Component `{obj.display_id}` of given SBOL3 document has more than 1 sequnces (`{len(obj.sequences)}`). This is invalid; a component may only have 1 or 0 sequences.")
+                    raise ValueError(f"Component `{obj.display_id}` of given SBOL3 document has more than 1 sequnces \n \
+                    (`{len(obj.sequences)}`). This is invalid; a component may only have 1 or 0 sequences.")
                 # TODO: "Version" annotation information currently not stored when converted genbank to sbol3
                 seq_rec = SeqRecord(
                     seq=seq,
@@ -471,7 +420,9 @@ class GenBank_SBOL3_Converter:
                                 if obj_feat_loc.orientation == sbol3.SO_REVERSE:
                                     feat_strand = self.BIO_STRAND_REVERSE
                                 elif obj_feat_loc.orientation != sbol3.SO_FORWARD:
-                                    raise ValueError(f"Location orientation: `{obj_feat_loc.orientation}` for feature: `{obj_feat.name}` of component: `{obj.display_id}` is not a valid orientation.\n Valid orientations are `{sbol3.SO_FORWARD}`, `{sbol3.SO_REVERSE}`")
+                                    raise ValueError(f"Location orientation: `{obj_feat_loc.orientation}` for feature: \n \
+                                    `{obj_feat.name}` of component: `{obj.display_id}` is not a valid orientation.\n \
+                                    Valid orientations are `{sbol3.SO_FORWARD}`, `{sbol3.SO_REVERSE}`")
                                 # TODO: Raise custom converter class ERROR for `else:`
                                 feat_loc_object = FeatureLocation(
                                     start=obj_feat_loc.start,
@@ -507,7 +458,8 @@ class GenBank_SBOL3_Converter:
                             if self.so2gb_map.get(obj_feat_role):
                                 feat_role = self.so2gb_map[obj_feat_role]
                             else:
-                                logging.warning(f"Feature role: `{obj_feat_role}` for feature: `{obj_feat}` of component: `{obj.display_id}` has no corresponding ontology term for GenBank, using the default GenBank term, {self.DEFAULT_GB_TERM}")
+                                logging.warning(f"Feature role: `{obj_feat_role}` for feature: `{obj_feat}` of component: \n \
+                                `{obj.display_id}` has no corresponding ontology term for GenBank, using the default GenBank term, {self.DEFAULT_GB_TERM}")
                             # create sequence feature object with label qualifier
                             # TODO: feat_strand value ambiguous in case of mulitple locations?
                             feat = SeqFeature(

@@ -143,29 +143,14 @@ class TestGenBankSBOL3(unittest.TestCase):
         self._test_round_trip_genbank(genbank_file)
 
     def test_round_trip_multiple_loc_feat(self):
+        """Test ability to produce same genbank file on round trip when original genbank file has multiple 
+        locations on a feature
+        """
         genbank_file = (
             Path(__file__).parent / "test_files" / "sbol3_genbank_conversion" / "multiple_feature_locations.gb"
         )
         self._test_round_trip_genbank(genbank_file)
-        # TEST_OUTPUT_SBOL3 = str(genbank_file) + ".nt"
-        # # Don't write to file for testing, we directly compare sbol documents
-        # test_output_sbol3 = self.converter.convert_genbank_to_sbol3(
-        #     str(genbank_file),
-        #     TEST_OUTPUT_SBOL3,
-        #     namespace=TEST_NAMESPACE,
-        #     write=False,
-        # )
-        # # create tmp directory to store generated genbank file in for comparison
-        # tmp_sub = copy_to_tmp(package=[str(genbank_file)])
-        # # Convert to GenBank and check contents
-        # outfile = os.path.join(tmp_sub, str(genbank_file).split("/")[-1] + ".test")
-        # self.converter.convert_sbol3_to_genbank(
-        #     sbol3_file=None, doc=test_output_sbol3, gb_file=outfile, write=True
-        # )
-        # comparison_file = str(genbank_file)
-        # assert filecmp.cmp(
-        #     outfile, comparison_file
-        # ), f"Converted GenBank file {outfile} is not identical to expected file {comparison_file}"
     
+
 if __name__ == "__main__":
     unittest.main()
