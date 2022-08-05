@@ -113,13 +113,13 @@ class GenBank_SBOL3_Converter:
             self.genbank_keywords      = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#keywords"  , 0, math.inf)
             self.genbank_accessions    = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#accessions", 0, math.inf)
             # Properties to store GenBank refereces:
-            self.genbank_reference_authors    = sbol3.TextProperty(self , f"{self.GENBANK_EXTRA_PROPERTY_NS}#reference#authors"   , 0, math.inf)
-            self.genbank_reference_comment    = sbol3.TextProperty(self , f"{self.GENBANK_EXTRA_PROPERTY_NS}#reference#comment"   , 0, math.inf)
-            self.genbank_reference_journal    = sbol3.TextProperty(self , f"{self.GENBANK_EXTRA_PROPERTY_NS}#reference#journal"   , 0, math.inf)
-            self.genbank_reference_consrtm    = sbol3.TextProperty(self , f"{self.GENBANK_EXTRA_PROPERTY_NS}#reference#consrtm"   , 0, math.inf)
-            self.genbank_reference_title      = sbol3.TextProperty(self , f"{self.GENBANK_EXTRA_PROPERTY_NS}#reference#title"     , 0, math.inf)
-            self.genbank_reference_medline_id = sbol3.TextProperty(self , f"{self.GENBANK_EXTRA_PROPERTY_NS}#reference#medline_id", 0, math.inf)
-            self.genbank_reference_pubmed_id  = sbol3.TextProperty(self , f"{self.GENBANK_EXTRA_PROPERTY_NS}#reference#pubmed_id" , 0, math.inf)
+            self.genbank_reference_authors    = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#reference#authors"   , 0, math.inf)
+            self.genbank_reference_comment    = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#reference#comment"   , 0, math.inf)
+            self.genbank_reference_journal    = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#reference#journal"   , 0, math.inf)
+            self.genbank_reference_consrtm    = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#reference#consrtm"   , 0, math.inf)
+            self.genbank_reference_title      = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#reference#title"     , 0, math.inf)
+            self.genbank_reference_medline_id = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#reference#medline_id", 0, math.inf)
+            self.genbank_reference_pubmed_id  = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#reference#pubmed_id" , 0, math.inf)
 
 
     def create_GB_SO_role_mappings(self, gb2so_csv: str = GB2SO_MAPPINGS_CSV, so2gb_csv: str = SO2GB_MAPPINGS_CSV,
@@ -204,6 +204,10 @@ class GenBank_SBOL3_Converter:
             # Setting properties for GenBank's extraneous properties not settable in any SBOL3 field.
             comp.genbank_record_id = record.id
             for annotation in record.annotations:
+                # Sending out warnings for genbank info not storeable in sbol3
+                logging.warning(
+                    f"Extraneous information not storeable in SBOL3 - {annotation}: {record.annotations[annotation]}"
+                )
                 # 1. GenBank Record Date
                 # TODO: Let it be able to accept date into sbol3.DateTimeProperty() instead
                 if annotation == 'date':
@@ -250,6 +254,9 @@ class GenBank_SBOL3_Converter:
                         comp.genbank_reference_consrtm.append(f"{index+1}:" + reference.consrtm)
                         comp.genbank_reference_medline_id.append(f"{index+1}:" + reference.medline_id)
                         comp.genbank_reference_pubmed_id.append(f"{index+1}:" + reference.pubmed_id)
+                else:
+                    raise ValueError(f"The annotation `{annotation}` in the GenBank record `{record.id}`\n \
+                                        is not recognized as a standard annotation.")
             # TODO: BioPython's parsing doesn't explicitly place a "locus" datafield?
             # 13. GenBank Record Locus
 
@@ -262,12 +269,6 @@ class GenBank_SBOL3_Converter:
             )
             doc.add(seq)
             comp.sequences = [seq]
-            # Sending out warnings for genbank info not storeable in sbol3
-            # TODO: Have them stored as properties for a SBOL3 Component under a different ncbi namespace, as the old converter does.
-            for keys in record.annotations:
-                logging.warning(
-                    f"Extraneous information not storeable in SBOL3 - {keys}: {record.annotations[keys]}"
-                )
             if record.features:
                 comp.features = []
                 for gb_feat in record.features:
