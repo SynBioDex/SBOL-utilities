@@ -94,7 +94,7 @@ def main():
     parser.add_argument('password', help="Password of your IDT account")
     parser.add_argument('ClientID', help="ClientID of your IDT account")
     parser.add_argument('ClientSecret', help="ClientSecret of your IDT account")
-    parser.add_argument('fasta_path', default=fasta_path, help="Absolute path to fasta file with sequences")
+    parser.add_argument('fasta_path', help="Absolute path to fasta file with sequences")
     args_dict = vars(parser.parse_args())
 
     print(fasta_path)
