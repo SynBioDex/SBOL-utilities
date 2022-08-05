@@ -1,7 +1,7 @@
 LOCUS       BBa_J23100                35 bp    DNA     linear   UNK 01-JAN-1980
 DEFINITION  constitutive promoter family member.
 ACCESSION   BBa_J23100
-VERSION     BBa_J23100
+VERSION     BBa_J23100.1
 KEYWORDS    .
 SOURCE      .
   ORGANISM  .
@@ -13,7 +13,7 @@ ORIGIN
 LOCUS       BBa_J23102                35 bp    DNA     linear   UNK 01-JAN-1980
 DEFINITION  constitutive promoter family member.
 ACCESSION   BBa_J23102
-VERSION     BBa_J23102
+VERSION     BBa_J23102.1
 KEYWORDS    .
 SOURCE      .
   ORGANISM  .
@@ -25,7 +25,7 @@ ORIGIN
 LOCUS       LmrA                     567 bp    DNA     linear   UNK 01-JAN-1980
 DEFINITION  .
 ACCESSION   LmrA
-VERSION     LmrA
+VERSION     LmrA.1
 KEYWORDS    .
 SOURCE      .
   ORGANISM  .
@@ -46,7 +46,7 @@ ORIGIN
 LOCUS       pSB1C3                  2070 bp    DNA     linear   UNK 01-JAN-1980
 DEFINITION  High copy BioBrick assembly plasmid.
 ACCESSION   pSB1C3
-VERSION     pSB1C3
+VERSION     pSB1C3.1
 KEYWORDS    .
 SOURCE      .
   ORGANISM  .
