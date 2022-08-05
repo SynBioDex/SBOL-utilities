@@ -50,14 +50,13 @@ def screening(token, listOfSequences):
 def check_synthesizability(username: str, password: str, ClientID: str, ClientSecret: str, fasta_path: str):
 
     print(f'Importing distribution sequences')
-
     with open(fasta_path) as handle:
         sequences = SeqIO.parse(handle, "fasta")
         print(f'Connecting to IDT DNA')
         token = get_token(username, password, ClientID, ClientSecret)
         scores, length_sequences, batches = screening(token, sequences)
 
-    #Extract sequence identities and elements
+    #Extract sequence identities and elements from fasta file
     with open(fasta_path) as handle:
         sequences = SeqIO.parse(handle, "fasta")
         ids = []
@@ -66,17 +65,16 @@ def check_synthesizability(username: str, password: str, ClientID: str, ClientSe
             sequence_elements.append(str(seque.seq[:]))
             ids.append(str(seque.name))
 
-
     #Retrieve only complexity scores from IDT info
     scores_list = []
     cont = 0
+    #Iterate through results from IDT
     for i in range(0, batches):
         for j in range(0, partition_size):
             if cont == length_sequences:
                 break
             cont += 1
             complexity_score = 0
-
             for k in range(0, len(scores[i][j])):
                 complexity_score += scores[i][j][k].get('Score')
             scores_list.append(complexity_score)
@@ -84,11 +82,14 @@ def check_synthesizability(username: str, password: str, ClientID: str, ClientSe
     return scores_list, ids, sequence_elements
 
 def main():
-
+    #Retrieve datetime with UTC offset
     DateTime = datetime.datetime.utcnow()
+
+    #Default path of fasta file for iGEM Distribution sequences
     root = git.Repo('.', search_parent_directories=True).working_tree_dir
     fasta_path = os.path.join(root, DISTRIBUTION_FASTA)
 
+    #Define arguments
     parser = argparse.ArgumentParser()
     parser.add_argument('username', help="Username of your IDT account")
     parser.add_argument('password', help="Password of your IDT account")
@@ -97,9 +98,7 @@ def main():
     parser.add_argument('fasta_path', help="Absolute path to fasta file with sequences")
     args_dict = vars(parser.parse_args())
 
-    print(fasta_path)
-
-    # Extract arguments:
+    # Extract arguments
     username = args_dict['username']
     password = args_dict['password']
     ClientID = args_dict['ClientID']
@@ -121,12 +120,14 @@ def main():
 
     results = []
     for i in range(0, len(scores_list)):
-        #print(i)
+        #Create SBOL sequence objects
         variable_sequence[i] = sbol3.Sequence(ids[i], elements=sequence_elements[i], encoding=sbol3.IUPAC_DNA_ENCODING)
+        #Add IDT complexity score measure
         variable_sequence[i].measures.append(Measure(scores_list[i], unit=number_unit, name='Measure_'+ids[i]))
-
+        #Link sequence objects with timestamp
         variable_sequence[i].generated_by = [sequence_timestamp]
         doc.add(variable_sequence[i])
+        #Create list of dictionaries with results
         results.append(dict(Object=variable_sequence[i], IDTcomplexity_score=scores_list[i]))
 
     doc.write('SBOL_document_IDT_Complexity_Scores.nt', sbol3.SORTED_NTRIPLES)
