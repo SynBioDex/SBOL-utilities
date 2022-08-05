@@ -133,6 +133,18 @@ class TestGenBankSBOL3(unittest.TestCase):
         )
         self._test_sbol3_to_genbank(sample_sbol3_file=sbol3_file, sample_genbank_file=genbank_file)
 
+    def test_round_trip_testfile_1(self):
+        genbank_file = (
+            Path(__file__).parent / "test_files" / "BBa_J23101.gb"
+        )
+        self._test_round_trip_genbank(genbank_file)
+
+    def test_round_trip_testfile_2(self):
+        genbank_file = (
+            Path(__file__).parent / "test_files" / "iGEM_SBOL2_imports.gb"
+        )
+        self._test_round_trip_genbank(genbank_file)
+
     def test_round_trip_extra_properties(self):
         """Test ability to produce same genbank file on round trip when original genbank file has non standard
         values for extraneous properties
