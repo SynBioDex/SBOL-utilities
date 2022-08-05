@@ -3,7 +3,7 @@ import csv
 import math
 import sbol3
 import logging
-from typing import List, Sequence, Union, Optional
+from typing import Dict, List, Sequence, Union, Optional
 from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
@@ -17,39 +17,6 @@ COMP_TYPES = [sbol3.SBO_DNA]
 COMP_ROLES = [sbol3.SO_ENGINEERED_REGION]
 # TODO: Temporarily encoding sequnce objects in IUPUC mode only
 SEQUENCE_ENCODING = sbol3.IUPAC_DNA_ENCODING
-# Complete file paths to pass as paramteres for testing
-SAMPLE_GENBANK_FILE_1 = os.path.abspath(
-    os.path.join(
-        os.path.dirname(os.path.realpath(__file__)),
-        os.pardir,
-        "test/test_files",
-        "BBa_J23101.gb",
-    )
-)
-SAMPLE_GENBANK_FILE_2 = os.path.abspath(
-    os.path.join(
-        os.path.dirname(os.path.realpath(__file__)),
-        os.pardir,
-        "test/test_files",
-        "iGEM_SBOL2_imports.gb",
-    )
-)
-SAMPLE_SBOL3_FILE_1 = os.path.abspath(
-    os.path.join(
-        os.path.dirname(os.path.realpath(__file__)),
-        os.pardir,
-        "test/test_files",
-        "BBa_J23101_from_genbank_to_sbol3_direct.nt",
-    )
-)
-SAMPLE_SBOL3_FILE_2 = os.path.abspath(
-    os.path.join(
-        os.path.dirname(os.path.realpath(__file__)),
-        os.pardir,
-        "test/test_files",
-        "iGEM_SBOL2_imports_from_genbank_to_sbol3_direct.nt",
-    )
-)
 GB2SO_MAPPINGS_CSV = os.path.join(
     os.path.dirname(os.path.realpath(__file__)), "gb2so.csv"
 )
@@ -65,7 +32,7 @@ class GenBank_SBOL3_Converter:
     DEFAULT_GB_TERM = "misc_feature"
     BIO_STRAND_FORWARD = 1
     BIO_STRAND_REVERSE = -1
-    DEFAULT_GB_REC_VERSION = 1
+    DEFAULT_GB_SEQ_VERSION = 1
 
     def __init__(self) -> None:
         def build_component_genbank_extension(*, identity, type_uri) -> GenBank_SBOL3_Converter.Component_GenBank_Extension:
@@ -153,7 +120,7 @@ class GenBank_SBOL3_Converter:
         return 1
 
 
-    def convert_genbank_to_sbol3(self, gb_file: str, sbol3_file: str = "sbol3.out", namespace: str = TEST_NAMESPACE,
+    def convert_genbank_to_sbol3(self, gb_file: str, sbol3_file: str = "sbol3.nt", namespace: str = TEST_NAMESPACE,
                                  write: bool = False) -> sbol3.Document:
         """Convert a GenBank document on disk into an SBOL3 document
         The GenBank document is parsed using BioPython, and corresponding objects of SBOL3 document are created
@@ -325,7 +292,8 @@ class GenBank_SBOL3_Converter:
 
 
     def convert_sbol3_to_genbank(self, sbol3_file: str, doc: sbol3.Document = None, gb_file: str = "genbank.out",
-                                 write: bool = False) -> List[SeqRecord]:
+                                 # write: bool = False) -> List[SeqRecord]:
+                                 write: bool = False) -> Dict:
         """Convert a SBOL3 document on disk into a GenBank document
         The GenBank document is made using an array of SeqRecords using BioPython, by parsing SBOL3 objects
 
@@ -341,6 +309,8 @@ class GenBank_SBOL3_Converter:
         logging.info(
             "Creating GenBank and SO ontologies mappings for sequence feature roles"
         )
+        # create logs dict to be returned as conversion status of the SBOL3 file provided
+        logs: Dict[sbol3.TopLevel, bool] = {}
         # create updated py dict to store mappings between gb and so ontologies
         map_created = self.create_GB_SO_role_mappings(
             so2gb_csv=SO2GB_MAPPINGS_CSV, convert_gb2so=False
@@ -354,13 +324,21 @@ class GenBank_SBOL3_Converter:
         # consider sbol3 objects which are components
         logging.info(f"Parsing SBOL3 Document components using SBOL3 Document: \n{doc}")
         for obj in doc.objects:
+            if isinstance(obj, sbol3.TopLevel):
+                # create a key for the top level object if it is not already parsed
+                if obj not in logs:
+                    logs[obj] = False
             if isinstance(obj, sbol3.Component):
                 logging.info(f"Parsing component - `{obj.display_id}` in sbol3 document.")
                 # NOTE: A single component/record cannot have multiple sequences
                 seq = None # If no sequence is found for a component
                 if obj.sequences and len(obj.sequences) == 1:
-                    obj_seq = doc.find(obj.sequences[0])
-                    seq = Seq(obj_seq.elements.upper())
+                    if doc.find(obj.sequences[0]):
+                        obj_seq = doc.find(obj.sequences[0])
+                        seq = Seq(obj_seq.elements.upper())
+                        # mark the status of this top level sequence object as parsed and converted
+                        if isinstance(obj_seq, sbol3.TopLevel): 
+                            logs[obj_seq] = True
                 elif len(obj.sequences) > 1:
                     raise ValueError(f"Component `{obj.display_id}` of given SBOL3 document has more than 1 sequnces \n \
                     (`{len(obj.sequences)}`). This is invalid; a component may only have 1 or 0 sequences.")
@@ -428,7 +406,7 @@ class GenBank_SBOL3_Converter:
 
                 # TODO: temporalily hardcoding version as "1"
                 # FIXME: Version still not being displayed on record's VERSION
-                seq_rec.annotations["sequence_version"] = self.DEFAULT_GB_REC_VERSION
+                seq_rec.annotations["sequence_version"] = self.DEFAULT_GB_SEQ_VERSION
                 seq_rec_features = []
                 if obj.features:
                     feat_order = {}
@@ -507,6 +485,8 @@ class GenBank_SBOL3_Converter:
                 # Sort features based on feature location start/end, lexicographically
                 seq_rec_features.sort(key=lambda feat: feat_order[feat])
                 seq_rec.features = seq_rec_features
+                # mark the top level component object as parsed and converter
+                logs[obj] = True
                 seq_records.append(seq_rec)
         # writing generated genbank document to disk at path provided
         if write:
@@ -514,5 +494,5 @@ class GenBank_SBOL3_Converter:
                 f"Writing created genbank file to disk.\n    With path {gb_file}"
             )
             SeqIO.write(seq_records, gb_file, "genbank")
-        return seq_records
+        return {"status": logs, "seqrecords": seq_records}
 

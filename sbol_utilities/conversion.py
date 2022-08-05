@@ -333,7 +333,8 @@ def convert_to_genbank(doc3: sbol3.Document, path: str, allow_genbank_online: bo
     """
     if force_new_converter:
         converter = GenBank_SBOL3_Converter()
-        return converter.convert_sbol3_to_genbank(sbol3_file=None, doc=doc3, gb_file=path, write=True)
+        result_dict = converter.convert_sbol3_to_genbank(sbol3_file=None, doc=doc3, gb_file=path, write=True)
+        return result_dict["seqrecords"]
     # first convert to SBOL2, then export to a temp GenBank file
     doc2 = convert3to2(doc3)
 
