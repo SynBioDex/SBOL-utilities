@@ -171,14 +171,14 @@ class Test2To3Conversion(unittest.TestCase):
         """Test ability to convert from SBOL3 to GenBank using new converter
         by specifying the `--force-new-converter` flag """
         # Get the SBOL3 test document
-        tmp_sub = copy_to_tmp(package=['BBa_J23101_from_genbank_to_sbol3_direct.nt'])
+        tmp_sub = copy_to_tmp(package=['sbol3_genbank_conversion/BBa_J23101_from_genbank_to_sbol3_direct.nt'])
         doc3 = sbol3.Document()
         doc3.read(os.path.join(tmp_sub, 'BBa_J23101_from_genbank_to_sbol3_direct.nt'))
         # Convert to GenBank and check contents
         outfile = os.path.join(tmp_sub, 'BBa_J23101.gb')
         convert_to_genbank(doc3=doc3, path=outfile, allow_genbank_online=False, force_new_converter=True)
         test_dir = os.path.dirname(os.path.realpath(__file__))
-        comparison_file = os.path.join(test_dir, 'test_files', 'BBa_J23101_from_sbol3_direct.gb')
+        comparison_file = os.path.join(test_dir, 'test_files', 'sbol3_genbank_conversion', 'BBa_J23101_from_sbol3_direct.gb')
         assert filecmp.cmp(outfile, comparison_file), f'Converted GenBank file {comparison_file} is not identical'
 
     def test_conversion_from_genbank_new_converter(self):
@@ -193,7 +193,7 @@ class Test2To3Conversion(unittest.TestCase):
 
         # Note: cannot directly round-trip because converter is a) lossy, and b) inserts extra materials
         test_dir = os.path.dirname(os.path.realpath(__file__))
-        comparison_file = os.path.join(test_dir, 'test_files', 'BBa_J23101_from_genbank_to_sbol3_direct.nt')
+        comparison_file = os.path.join(test_dir, 'test_files', 'sbol3_genbank_conversion', 'BBa_J23101_from_genbank_to_sbol3_direct.nt')
         comparison_doc = sbol3.Document()
         comparison_doc.read(comparison_file)
         assert not doc_diff(doc3, comparison_doc), f'Converted SBOL3 file not identical to {comparison_file}'
