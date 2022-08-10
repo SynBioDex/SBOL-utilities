@@ -150,7 +150,34 @@ class TestGenBankSBOL3(unittest.TestCase):
             Path(__file__).parent / "test_files" / "sbol3_genbank_conversion" / "multiple_feature_locations.gb"
         )
         self._test_round_trip_genbank(genbank_file)
-    
+
+    def test_ignoring_sbol_properties(self):
+        """Test ability to ignore SBOL3 properties, which can't be parsed to their corresponding GenBank fields
+        while converting from SBOL3 to GenBank
+        """
+        # this test file contains only components, sequences and attachments as it's top level objects
+        sbol3_file = (
+            Path(__file__).parent / "test_files" / "sbol3_genbank_conversion" / "ignoring_sbol_properties.nt"
+        )
+        # create tmp directory to store generated genbank file in for comparison
+        tmp_sub = copy_to_tmp(package=[str(sbol3_file)])
+        doc3 = sbol3.Document()
+        doc3.read(str(sbol3_file))
+        # Convert to GenBank and check contents
+        outfile = os.path.join(tmp_sub, str(sbol3_file).split("/")[-1] + ".test")
+        res = self.converter.convert_sbol3_to_genbank(
+            sbol3_file=None, doc=doc3, gb_file=outfile, write=True
+        )
+        # since the test sbol3 file contains components, sequences and attachments, and only components and sequences will
+        # be parsed and converted to be stored in the genbank file, the attachment object should have a "False" status of conversion
+        for top_level_object in res["status"]:
+            if isinstance(top_level_object, sbol3.Component) or isinstance(top_level_object, sbol3.Sequence):
+                assert res["status"][top_level_object] == True
+            elif isinstance(top_level_object, sbol3.Attachment):
+                assert res["status"][top_level_object] == False
+            else:
+                assert res["status"][top_level_object] == False
+
 
 if __name__ == "__main__":
     unittest.main()
