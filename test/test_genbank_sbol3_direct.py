@@ -178,6 +178,11 @@ class TestGenBankSBOL3(unittest.TestCase):
             else:
                 assert res["status"][top_level_object] == False
 
+    def test_round_trip_all_testfiles(self):
+        test_file_dir = Path(__file__).parent / 'test_files'
+        for genbank_file in test_file_dir.glob('*.gb'):
+            self._test_round_trip_genbank(genbank_file)
+    
 
 if __name__ == "__main__":
     unittest.main()
