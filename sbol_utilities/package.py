@@ -1,9 +1,14 @@
 from __future__ import annotations
-import os
-from pathlib import Path
-from typing import Union
-from urllib.parse import urlparse
 
+import logging
+import os
+from dataclasses import dataclass
+from hashlib import sha256
+from pathlib import Path
+from typing import Union, Optional
+from urllib.parse import urlparse, urljoin
+
+from sbol3.refobj_property import ReferencedURI
 from sbol_factory import SBOLFactory
 import sbol3
 
@@ -46,6 +51,15 @@ STANDALONE_DISTRIBUTION_TEMPLATE = '{}-standalone-package.{}'
 dependencies included in the artifact) SHOULD be X-standalone-package.[EXTENSION], where [EXTENSION] is an 
 appropriate extension for its format."""
 
+DEFAULT_PACKAGE_CATALOG_DIRECTORY = Path.home() / GENERATED_CONTENT_SUBDIRECTORY
+"""By default a package catalog will be stored in a generated subdirectory of the user's home directory."""
+
+PACKAGE_CATALOG_NAME = 'package-catalog.nt'
+"""Name of the file used to store a catalog of available packages"""
+
+PACKAGE_HASH_NAME_LENGTH = 32
+"""Length of names created from package URIs"""
+
 
 def get_package_directory(directory: Union[Path, str]) -> Path:
     """Return path to package directory, after ensuring it exists and has no subdirectories of its own.
@@ -83,7 +97,7 @@ def _ensure_leaf_subdirectory(directory: Path, leaf_name: str) -> Path:
     return leaf_path
 
 
-def dir_to_package(directory: Union[Path, str]):
+def directory_to_package(directory: Union[Path, str]):
     # Check it is a package directory
     # Check that there is NOT a package directory
     # TODO:
@@ -291,3 +305,133 @@ def get_prefix(package_list):
     common_path = '/'.join(common_elements)
     prefix = schemes.pop() + '://' + netlocs.pop() + common_path
     return prefix
+
+
+# TODO: consider moving this to an SEP 054 class
+@dataclass
+class LoadedPackage:
+    package: sep_054.Package
+    document: sbol3.Document
+    source_file: Path = None
+    """File the package was loaded from, if any"""
+
+
+class PackageManager:
+
+    def __init__(self, catalog_directory: Path = DEFAULT_PACKAGE_CATALOG_DIRECTORY):
+        self._catalog_directory = catalog_directory
+        # ensure catalog directory exists
+        self._catalog_directory.mkdir(parents=True, exist_ok=True)
+        # Track set of loaded packages
+        self.loaded_packages: dict[str, LoadedPackage] = dict()
+        """Tracks the set of currently loaded packages (initially empty). It is a dictionary mapping
+         from namespace to the collection of loaded information"""
+        self._catalog_file = self._catalog_directory / PACKAGE_CATALOG_NAME
+        # Catalog of available packages, and document it was drawn from
+        self.package_catalog, self._package_catalog_doc = PackageManager._load_package_catalog(self._catalog_file)
+
+    @staticmethod
+    def _load_package_catalog(catalog_file: Path) -> tuple[dict[str, sep_054.Package], sbol3.Document]:
+        doc = sbol3.Document()
+        # TODO: unwrap Path->str after https://github.com/SynBioDex/pySBOL3/issues/407 published in pySBOL3 1.0.2
+        try:
+            doc.read(str(catalog_file))
+        except FileNotFoundError:
+            logging.warning('Unable to find package catalog file %s; using empty catalog', catalog_file)
+        return {p.namespace: p for p in doc.objects if isinstance(p, sep_054.Package)}, doc
+
+    def _save_package_catalog(self, catalog_file: Path = None):
+        # TODO: unwrap Path->str after https://github.com/SynBioDex/pySBOL3/issues/407 published in pySBOL3 1.0.2
+        self._package_catalog_doc.write(str(catalog_file or self._catalog_file), sbol3.SORTED_NTRIPLES)
+
+    @staticmethod
+    def _identity_to_filename(identity: str) -> str:
+        hash_name = sha256(identity.encode()).hexdigest()[:PACKAGE_HASH_NAME_LENGTH]
+        return f'{hash_name}.nt'
+
+    def install_package(self, package: sep_054.Package, doc: sbol3.Document):
+        # TODO: validate package against document before installation
+        logging.info('Installing package %s', package.identity)
+        # Write package document to collection
+        file_path = self._catalog_directory / PackageManager._identity_to_filename(package.identity)
+        doc.write(str(file_path), sbol3.SORTED_NTRIPLES)
+        # Create an attachment for the newly written file
+        # TODO: fill out the rest of the attachment fields correctly
+        attachment = sbol3.Attachment(f'{package.identity}_file', source=file_path.as_uri())
+        package.attachments.append(attachment)
+        # Add the package and save the catalog
+        self._package_catalog_doc.add([package, attachment])
+        self._save_package_catalog()
+        logging.info('Successfully installed package %s', package.identity)
+
+    def load_package(self, namespace, from_path):
+        doc = sbol3.Document()
+        # TODO: switch to trying to get the path from the catalog, converting file URI to path per the following:
+        # from urllib.parse import unquote, urlparse
+        # from_path = unquote(urlparse(uri).path)
+        doc.read(str(from_path))
+        # TODO: get the package object too - URI should come from package
+        # Per SEP 054, a package build artifact should include its Package object, Package contents, and any
+        # dissociated dependencies
+        # The document may also include non-dissociated dependencies, for which the same is true recursively
+        # Validation of a package document should thus be a comparison of the package contents and document contents
+        # TODO: implement validation as a function
+        # Make sure there is a copy of the package object in the package:
+        package_object_uri = urljoin(f'{namespace}/', 'package')
+        package = doc.find(package_object_uri)
+        if not package:
+            raise ValueError(f'Cannot find package {package_object_uri} in SBOL document {from_path}')
+        elif not isinstance(package, sep_054.Package):
+            raise ValueError(f'Object {package} is not a Package in {from_path}')
+        elif not namespace == package.namespace:
+            raise ValueError(f'Object {package} should have namespace {namespace} but found {package.namespace}')
+
+
+        self.loaded_packages[namespace] = LoadedPackage(None, doc)
+
+    def find_package_doc(self, uri: ReferencedURI) -> Optional[sbol3.Document]:
+        last_uri = None
+        uri = str(uri)
+        while uri and uri != last_uri:
+            if uri in self.loaded_packages:
+                return self.loaded_packages[uri].document
+            last_uri = uri
+            uri = uri.rsplit('/', maxsplit=1)[0]
+        return None
+
+    def lookup(self, uri: ReferencedURI):
+        # TODO: figure out how lookup will work for dissociated packages
+        package_doc = self.find_package_doc(uri)
+        if package_doc:
+            return package_doc.find(str(uri))
+        else:
+            return None
+
+
+ACTIVE_PACKAGE_MANAGER = PackageManager()
+"""Package manager in use, initialized with default settings"""
+
+
+def load_package(uri, from_path):
+    ACTIVE_PACKAGE_MANAGER.load_package(uri, from_path)
+
+
+def install_package(package: sep_054.Package, doc: sbol3.Document):
+    ACTIVE_PACKAGE_MANAGER.install_package(package, doc)
+
+
+#################
+# Replace ReferencedURI lookup function with package-aware lookup:
+original_referenced_uri_lookup = sbol3.refobj_property.ReferencedURI.lookup
+
+
+def package_aware_lookup(self: ReferencedURI) -> Optional[sbol3.Identified]:
+    """Package-aware lookup works by first trying lookup in the local sbol3.Document, then checking if the references
+    lead elsewhere."""
+    # TODO: consider the handling of materials in the current document that should be in a different package
+    return original_referenced_uri_lookup(self) or \
+        ACTIVE_PACKAGE_MANAGER.lookup(self)
+
+
+# Monkey-patch package-aware lookup function over base lookup function
+sbol3.refobj_property.ReferencedURI.lookup = package_aware_lookup

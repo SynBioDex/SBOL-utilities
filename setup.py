@@ -35,7 +35,7 @@ setup(name='sbol-utilities',
       install_requires=[
             'sbol3>=1.0b11',
             'sbol2>=1.4',
-            'rdflib',
+            'rdflib>=6.2',
             'biopython',
             'graphviz',
             'tyto>=1.2.1',

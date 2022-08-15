@@ -3,6 +3,7 @@ import logging
 import os
 import sys
 import time
+from pathlib import Path
 from typing import Union, Tuple, Optional, Sequence
 
 import rdflib.compare
@@ -52,7 +53,7 @@ def _diff_rdf(desc1: str, g1: rdflib.Graph, desc2: str, g2: rdflib.Graph,
         return 1
 
 
-def file_diff(fpath1: str, fpath2: str, silent: bool = False) -> int:
+def file_diff(fpath1: Union[Path, str], fpath2: Union[Path, str], silent: bool = False) -> int:
     """
     Compute and report the difference between two SBOL3 files
 
@@ -61,7 +62,7 @@ def file_diff(fpath1: str, fpath2: str, silent: bool = False) -> int:
     :param silent: whether to report differences to stdout
     :return: 1 if there are differences, 0 if they are the same
     """
-    return _diff_rdf(fpath1, _load_rdf(fpath1), fpath2, _load_rdf(fpath2),
+    return _diff_rdf(str(fpath1), _load_rdf(str(fpath1)), str(fpath2), _load_rdf(str(fpath2)),
                      silent=silent)
 
 
