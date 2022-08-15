@@ -1,4 +1,3 @@
-import filecmp
 import unittest
 import os
 from pathlib import Path
@@ -7,7 +6,6 @@ import shutil
 
 import sbol3
 
-import sbol_utilities.sbol_diff
 from sbol_utilities import package
 from sbol_utilities.helper_functions import sbol3_namespace
 from sbol_utilities.sbol_diff import doc_diff, file_diff
@@ -57,12 +55,12 @@ class TestPackage(unittest.TestCase):
 
         # Compare it to the saved results file, make sure they are the same
         comparison_file = os.path.join(test_dir, 'test_files', 'package_out_02.nt')
-        assert filecmp.cmp(tmp_out, comparison_file), 'Output from package creation function with three files is not as expected'
+        self.assertFalse(file_diff(tmp_out, comparison_file))
 
     def test_prefix_too_short(self):
         """ Test that having a sub-package with a different namespace than the 
         root package fails. All members of "package_in_01_error.nt" has the
-        namespace "https://bad-example.org/MyPackage", where as the subpackges
+        namespace "https://bad-example.org/MyPackage", whereas the subpackages
         are "https://example.org/MyPackage/promoters" and
         "https://example.org/MyPackage/repressors". Will raise a value error
         in check_prefix that "'The packages {root_package} and {sub_package}
@@ -83,7 +81,6 @@ class TestPackage(unittest.TestCase):
         # Run the function
         with self.assertRaises(ValueError):
             package.docs_to_package(doc_01, [doc_02, doc_03])
-
 
     def test_subpackage_fails(self):
         """ Test that having one subpackage file with multiple namespaces fails.
@@ -109,7 +106,7 @@ class TestPackage(unittest.TestCase):
     def test_make_package_from_MyPackage(self):
         """ Create a package based on the files in a directory (test/test_files/
         MyPackage). The function automatically saves the package files in the 
-        .sip package directories of each sub-directory. """
+        .sip package directories of each subdirectory. """
         # Set the package directory
         test_dir = os.path.dirname(os.path.realpath(__file__))
         dir_name = os.path.join(test_dir, 'test_files', 'MyPackage')
@@ -117,7 +114,7 @@ class TestPackage(unittest.TestCase):
         # Pass to the function
         package.directory_to_package(dir_name)
 
-        # Compare all of the package files to the saved results file, make sure 
+        # Compare all the package files to the saved results file, make sure
         # they are the same, then delete the package directory
         for root, _, _ in os.walk(dir_name):
             # Collect the output from the actual function
@@ -125,8 +122,8 @@ class TestPackage(unittest.TestCase):
             out_path = os.path.join(root, '.sip')
             out_file = os.path.join(out_path, 'package.nt')
 
-            # I have saved all of the results to compare against in one 
-            # directory with the names corresponding to the sub-directory name
+            # I have saved all the results to compare against in one
+            # directory with the names corresponding to the subdirectory name
             # from the original directory
             file_name = root.split('/')[-1] + '.nt'
             comparison_file = os.path.join(test_dir,
@@ -134,15 +131,16 @@ class TestPackage(unittest.TestCase):
                                            'MyPackage-results',
                                            file_name)
 
-            assert filecmp.cmp(out_file, comparison_file), 'Output from package creation function with directory is not as expected'
-            
+            self.assertFalse(file_diff(out_file, comparison_file))
+
             # Delete the package directory
+            # TODO: change to a temp directory so we don't have to do this
             shutil.rmtree(out_path, ignore_errors=True)
 
     def test_make_package_from_MyPackage_w_multiple_files(self):
         """ Create a package based on the files in a directory (test/test_files/
         MyPackage_w_multiple_files). The function automatically saves the 
-        package file in the .sip package directories of each sub-directory. """
+        package file in the .sip package directories of each subdirectory. """
         # Set the package directory
         test_dir = os.path.dirname(os.path.realpath(__file__))
         dir_name = os.path.join(test_dir,
@@ -152,7 +150,7 @@ class TestPackage(unittest.TestCase):
         # Pass to the function
         package.directory_to_package(dir_name)
 
-        # Compare all of the package files to the saved results file, make sure 
+        # Compare all the package files to the saved results file, make sure
         # they are the same, then delete the package directory
         for root, _, _ in os.walk(dir_name):
             # Collect the output from the actual function
@@ -160,8 +158,8 @@ class TestPackage(unittest.TestCase):
             out_path = os.path.join(root, '.sip')
             out_file = os.path.join(out_path, 'package.nt')
 
-            # I have saved all of the results to compare against in one 
-            # directory with the names corresponding to the sub-directory name
+            # I have saved all the results to compare against in one
+            # directory with the names corresponding to the subdirectory name
             # from the original directory
             file_name = root.split('/')[-1] + '.nt'
             comparison_file = os.path.join(test_dir,
@@ -169,15 +167,16 @@ class TestPackage(unittest.TestCase):
                                            'MyPackage_w_multiple_files-results',
                                            file_name)
 
-            assert filecmp.cmp(out_file, comparison_file), 'Output from package creation function with directory is not as expected'
-            
+            self.assertFalse(file_diff(out_file, comparison_file))
+
             # Delete the package directory
+            # TODO: change to a temp directory so we don't have to do this
             shutil.rmtree(out_path, ignore_errors=True)
 
     def test_make_package_from_MyPackage_w_sub_sub_packages(self):
         """ Create a package based on the files in a directory (test/test_files/
         MyPackage_w_sub_sub_packages). The function automatically saves the 
-        package file in the .sip package directories of each sub-directory. """
+        package file in the .sip package directories of each subdirectory. """
         # Set the package directory
         test_dir = os.path.dirname(os.path.realpath(__file__))
         dir_name = os.path.join(test_dir,
@@ -187,7 +186,7 @@ class TestPackage(unittest.TestCase):
         # Pass to the function
         package.directory_to_package(dir_name)
 
-        # Compare all of the package files to the saved results file, make sure 
+        # Compare all the package files to the saved results file, make sure
         # they are the same, then delete the package directory
         for root, _, _ in os.walk(dir_name):
             # Collect the output from the actual function
@@ -195,8 +194,8 @@ class TestPackage(unittest.TestCase):
             out_path = os.path.join(root, '.sip')
             out_file = os.path.join(out_path, 'package.nt')
 
-            # I have saved all of the results to compare against in one 
-            # directory with the names corresponding to the sub-directory name
+            # I have saved all the results to compare against in one
+            # directory with the names corresponding to the subdirectory name
             # from the original directory
             file_name = root.split('/')[-1] + '.nt'
             comparison_file = os.path.join(test_dir,
@@ -204,9 +203,10 @@ class TestPackage(unittest.TestCase):
                                            'MyPackage_w_sub_sub_packages-results',
                                            file_name)
 
-            assert filecmp.cmp(out_file, comparison_file), 'Output from package creation function with directory is not as expected'
-            
+            self.assertFalse(file_diff(out_file, comparison_file))
+
             # Delete the package directory
+            # TODO: change to a temp directory so we don't have to do this
             shutil.rmtree(out_path, ignore_errors=True)
 
     def test_install_package(self):
@@ -240,7 +240,7 @@ class TestPackage(unittest.TestCase):
         package.load_package('https://synbiohub.org/public/igem', TEST_FILES / 'BBa_J23101.nt')
         doc = sbol3.Document()
         with sbol3_namespace('http://foo.bar/baz'):
-            doc.add(sbol3.Component('qux',sbol3.SBO_DNA,
+            doc.add(sbol3.Component('qux', sbol3.SBO_DNA,
                                     sequences=['https://synbiohub.org/public/igem/BBa_J23101_sequence']))
 
         c = doc.find('qux')
