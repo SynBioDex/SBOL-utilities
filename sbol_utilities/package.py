@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from hashlib import sha256
 from pathlib import Path
 from typing import Union, Optional
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urljoin
 
 from sbol3.refobj_property import ReferencedURI
 from sbol_factory import SBOLFactory
@@ -364,14 +364,30 @@ class PackageManager:
         self._save_package_catalog()
         logging.info('Successfully installed package %s', package.identity)
 
-    def load_package(self, uri, from_path):
+    def load_package(self, namespace, from_path):
         doc = sbol3.Document()
         # TODO: switch to trying to get the path from the catalog, converting file URI to path per the following:
         # from urllib.parse import unquote, urlparse
         # from_path = unquote(urlparse(uri).path)
         doc.read(str(from_path))
-        # TODO: get the package too
-        self.loaded_packages[uri] = LoadedPackage(None, doc)
+        # TODO: get the package object too - URI should come from package
+        # Per SEP 054, a package build artifact should include its Package object, Package contents, and any
+        # dissociated dependencies
+        # The document may also include non-dissociated dependencies, for which the same is true recursively
+        # Validation of a package document should thus be a comparison of the package contents and document contents
+        # TODO: implement validation as a function
+        # Make sure there is a copy of the package object in the package:
+        package_object_uri = urljoin(f'{namespace}/', 'package')
+        package = doc.find(package_object_uri)
+        if not package:
+            raise ValueError(f'Cannot find package {package_object_uri} in SBOL document {from_path}')
+        elif not isinstance(package, sep_054.Package):
+            raise ValueError(f'Object {package} is not a Package in {from_path}')
+        elif not namespace == package.namespace:
+            raise ValueError(f'Object {package} should have namespace {namespace} but found {package.namespace}')
+
+
+        self.loaded_packages[namespace] = LoadedPackage(None, doc)
 
     def find_package_doc(self, uri: ReferencedURI) -> Optional[sbol3.Document]:
         last_uri = None

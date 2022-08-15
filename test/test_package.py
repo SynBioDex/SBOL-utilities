@@ -229,6 +229,26 @@ class TestPackage(unittest.TestCase):
             self.assertEqual((tempdir / 'e9325cfb11264f3c300f592e33c97c04.nt').as_uri(),
                              p.attachments[0].lookup().source)
 
+    def test_package_loader(self):
+        """Test that package system can load packages and verify integrity of the load"""
+
+        # Does not contain specified package
+        with self.assertRaises(ValueError) as cm:
+            package.load_package('https://synbiohub.org/public/', TEST_FILES / 'BBa_J23101_package.nt')
+        self.assertTrue(str(cm.exception).startswith('Cannot find package https://synbiohub.org/public/package'))
+        # object isn't a package
+        with self.assertRaises(ValueError) as cm:
+            package.load_package('https://synbiohub.org/public/BBa_J23101', TEST_FILES / 'BBa_J23101_bad_package.nt')
+        msg = 'Object <Component https://synbiohub.org/public/BBa_J23101/package> is not a Package'
+        self.assertTrue(str(cm.exception).startswith(msg))
+        # Package has the wrong namespace
+        with self.assertRaises(ValueError) as cm:
+            package.load_package('https://synbiohub.org/public/igem', TEST_FILES / 'BBa_J23101_bad_package.nt')
+        print(str(cm.exception))
+        msg = 'Object <Package https://synbiohub.org/public/igem/package> should have namespace ' \
+              'https://synbiohub.org/public/igem but found https://synbiohub.org'
+        self.assertTrue(str(cm.exception).startswith(msg))
+
     def test_cross_document_lookup(self):
         """Test that package system correctly overrides the document lookup function to enable cross-package lookups"""
         # What I want for a load pattern:
@@ -237,7 +257,7 @@ class TestPackage(unittest.TestCase):
         # A catalog is stored in Path.home() / ".sip" / "installed-packages.nt"
         # iGEM materials are stored in Path.home() / ".sip" / "igem"
         # sbol_utilities.package.load_package('igem')
-        package.load_package('https://synbiohub.org/public/igem', TEST_FILES / 'BBa_J23101.nt')
+        package.load_package('https://synbiohub.org/public/igem', TEST_FILES / 'BBa_J23101_package.nt')
         doc = sbol3.Document()
         with sbol3_namespace('http://foo.bar/baz'):
             doc.add(sbol3.Component('qux', sbol3.SBO_DNA,
