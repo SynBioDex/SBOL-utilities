@@ -61,6 +61,10 @@ PACKAGE_HASH_NAME_LENGTH = 32
 """Length of names created from package URIs"""
 
 
+class PackageError(Exception):
+    """An error has occurred in the package system"""
+
+
 def get_package_directory(directory: Union[Path, str]) -> Path:
     """Return path to package directory, after ensuring it exists and has no subdirectories of its own.
 
@@ -375,17 +379,29 @@ class PackageManager:
         # dissociated dependencies
         # The document may also include non-dissociated dependencies, for which the same is true recursively
         # Validation of a package document should thus be a comparison of the package contents and document contents
-        # TODO: implement validation as a function
+        # TODO: extract validation as a separate function
+
         # Make sure there is a copy of the package object in the package:
         package_object_uri = urljoin(f'{namespace}/', 'package')
         package = doc.find(package_object_uri)
         if not package:
-            raise ValueError(f'Cannot find package {package_object_uri} in SBOL document {from_path}')
+            raise PackageError(f'Cannot find package {package_object_uri} in SBOL document {from_path}')
         elif not isinstance(package, sep_054.Package):
-            raise ValueError(f'Object {package} is not a Package in {from_path}')
+            raise PackageError(f'Object {package} is not a Package in {from_path}')
         elif not namespace == package.namespace:
-            raise ValueError(f'Object {package} should have namespace {namespace} but found {package.namespace}')
+            raise PackageError(f'Package {package.identity} should have namespace {namespace} but found {package.namespace}')
 
+        # Make sure all package members and document contents are identical
+        object_ids = {o.identity: o for o in doc.objects}
+        missing_members = {str(m) for m in package.members} - object_ids.keys()
+        if missing_members:
+            raise PackageError(f'Package {namespace} was missing listed members: {sorted(missing_members)}')
+        del object_ids[package.identity]
+        for m in package.members:
+            del object_ids[str(m)]
+        # TODO: subpackages may optionally be included in document - include this in validation
+        if object_ids:
+            raise PackageError(f'Package {namespace} contains unexpected members: {sorted(object_ids.keys())}')
 
         self.loaded_packages[namespace] = LoadedPackage(None, doc)
 
