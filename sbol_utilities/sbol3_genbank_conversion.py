@@ -55,6 +55,23 @@ class GenBank_SBOL3_Converter:
         # the SBOL3 parser to build objects with a Component type URI
         sbol3.Document.register_builder(sbol3.SBOL_COMPONENT, build_component_genbank_extension)
 
+    class CustomReferenceProperty(sbol3.CustomTopLevel):
+    # class CustomReferenceProperty(sbol3.CustomIdentified):
+        CUSTOM_REFERENCE_NS = "http://www.ncbi.nlm.nih.gov/genbank#reference"
+        def __init__(self, type_uri=CUSTOM_REFERENCE_NS, identity="customReferenceProperty"):
+        # def __init__(self, type_uri=CUSTOM_REFERENCE_NS, identity="customReferenceProperty"):
+            super().__init__(identity, type_uri)
+            # super().__init__(type_uri, identity=identity)
+            self.authors    = sbol3.TextProperty(self, f"{self.CUSTOM_REFERENCE_NS}#authors"   , 0, 1)
+            self.comment    = sbol3.TextProperty(self, f"{self.CUSTOM_REFERENCE_NS}#comment"   , 0, 1)
+            self.journal    = sbol3.TextProperty(self, f"{self.CUSTOM_REFERENCE_NS}#journal"   , 0, 1)
+            self.consrtm    = sbol3.TextProperty(self, f"{self.CUSTOM_REFERENCE_NS}#consrtm"   , 0, 1)
+            self.title      = sbol3.TextProperty(self, f"{self.CUSTOM_REFERENCE_NS}#title"     , 0, 1)
+            self.medline_id = sbol3.TextProperty(self, f"{self.CUSTOM_REFERENCE_NS}#medline_id", 0, 1)
+            self.pubmed_id  = sbol3.TextProperty(self, f"{self.CUSTOM_REFERENCE_NS}#pubmed_id" , 0, 1)
+            # support cut locations?
+            self.location = sbol3.OwnedObject(self, f"{self.CUSTOM_REFERENCE_NS}#location", 0, math.inf, type_constraint=sbol3.Range)
+
     class Component_GenBank_Extension(sbol3.Component):
         """Overrides the sbol3 Component class to include fields to directly read and write 
         extraneous properties of GenBank not storeable in any SBOL3 datafield.
@@ -64,6 +81,8 @@ class GenBank_SBOL3_Converter:
         def __init__(self, identity: str, types: Optional[Union[str, Sequence[str]]], **kwargs) -> None:
             # instantiating sbol3 component object
             super().__init__(identity=identity, types=types, **kwargs)
+            # self.genbank_reference = sbol3.OwnedObject(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#ref", 0, math.inf, 
+            #                                            type_constraint=self.CustomReferenceProperty)
             # Setting properties for GenBank's extraneous properties not settable in any SBOL3 field.
             self.genbank_seq_version   = sbol3.IntProperty(self,  f"{self.GENBANK_EXTRA_PROPERTY_NS}#seq_version", 0, 1)
             self.genbank_date          = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#date"       , 0, 1)
@@ -168,6 +187,16 @@ class GenBank_SBOL3_Converter:
                 description=record.description,
             )
             doc.add(comp)
+
+            # TODO: Currently we use a fixed method of encoding (IUPAC)
+            seq = sbol3.Sequence(
+                identity=record.name + "_sequence",
+                elements=str(record.seq.lower()),
+                encoding=SEQUENCE_ENCODING,
+            )
+            doc.add(seq)
+            comp.sequences = [seq]
+
             # Setting properties for GenBank's extraneous properties not settable in any SBOL3 field.
             comp.genbank_record_id = record.id
             for annotation in record.annotations:
@@ -211,6 +240,25 @@ class GenBank_SBOL3_Converter:
                     comp.genbank_seq_version = record.annotations['sequence_version']
                 # 12. GenBank Record References
                 elif annotation == 'references':
+                    for ind, reference in enumerate(record.annotations['references']):
+                        custom_reference = self.CustomReferenceProperty(identity = comp.identity + f"/Reference_{ind}")
+                        custom_reference.authors = reference.authors
+                        custom_reference.comment = reference.comment
+                        custom_reference.journal = reference.journal
+                        custom_reference.title = reference.title
+                        custom_reference.consrtm = reference.consrtm
+                        custom_reference.medline_id = reference.medline_id
+                        custom_reference.pubmed_id = reference.pubmed_id
+                        for gb_loc in reference.location:
+                            feat_loc_orientation = sbol3.SO_FORWARD
+                            if gb_loc.strand == -1:
+                                feat_loc_orientation = sbol3.SO_REVERSE
+                            if gb_loc.start == gb_loc.end:
+                                locs = sbol3.Cut( sequence=seq, at=int(gb_loc.start), orientation=feat_loc_orientation,)
+                            else:
+                                locs = sbol3.Range( sequence=seq, start=int(gb_loc.start), end=int(gb_loc.end), orientation=feat_loc_orientation,)
+                            custom_reference.location.append(locs)
+                        doc.add(custom_reference)
                     # if 'references' in record.annotations:
                     for index in range(len(record.annotations['references'])):
                         reference = record.annotations['references'][index]
@@ -226,16 +274,8 @@ class GenBank_SBOL3_Converter:
                                         is not recognized as a standard annotation.")
             # TODO: BioPython's parsing doesn't explicitly place a "locus" datafield?
             # 13. GenBank Record Locus
-
             comp.genbank_locus = record.name
-            # TODO: Currently we use a fixed method of encoding (IUPAC)
-            seq = sbol3.Sequence(
-                identity=record.name + "_sequence",
-                elements=str(record.seq.lower()),
-                encoding=SEQUENCE_ENCODING,
-            )
-            doc.add(seq)
-            comp.sequences = [seq]
+
             if record.features:
                 comp.features = []
                 for gb_feat in record.features:
