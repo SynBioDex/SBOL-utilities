@@ -5,10 +5,7 @@ import os
 from pathlib import Path
 from helpers import copy_to_tmp
 from sbol_utilities.sbol_diff import doc_diff
-from sbol_utilities.sbol3_genbank_conversion import (
-    GenBank_SBOL3_Converter,
-    TEST_NAMESPACE,
-)
+from sbol_utilities.sbol3_genbank_conversion import GenBank_SBOL3_Converter
 
 
 class TestGenBankSBOL3(unittest.TestCase):
@@ -25,7 +22,7 @@ class TestGenBankSBOL3(unittest.TestCase):
         test_output_sbol3 = self.converter.convert_genbank_to_sbol3(
             str(sample_genbank_file),
             test_output_sbol3,
-            namespace=TEST_NAMESPACE,
+            namespace=self.converter.TEST_NAMESPACE,
             write=False,
         )
         sbol3_file_1 = sbol3.Document()
@@ -60,13 +57,13 @@ class TestGenBankSBOL3(unittest.TestCase):
         and confirm the final file is exactly the same as the initial provided file.
         :param SAMPLE_GENBANK_FILE: Path of given GenBank file to round trip test
         """
-        sbol3.set_namespace(TEST_NAMESPACE)
+        sbol3.set_namespace(self.converter.TEST_NAMESPACE)
         test_output_sbol3 = str(sample_genbank_file) + ".nt"
         # Don't write to file for testing, we directly compare sbol documents
         test_output_sbol3 = self.converter.convert_genbank_to_sbol3(
             str(sample_genbank_file),
             test_output_sbol3,
-            namespace=TEST_NAMESPACE,
+            namespace=self.converter.TEST_NAMESPACE,
             write=False,
         )
         # create tmp directory to store generated genbank file in for comparison
@@ -90,7 +87,7 @@ class TestGenBankSBOL3(unittest.TestCase):
             / "sbol3_genbank_conversion"
             / "BBa_J23101_from_genbank_to_sbol3_direct.nt"
         )
-        sbol3.set_namespace(TEST_NAMESPACE)
+        sbol3.set_namespace(self.converter.TEST_NAMESPACE)
         self._test_genbank_to_sbol3(sample_sbol3_file=sbol3_file, sample_genbank_file=genbank_file)
 
     def test_gbtosbol3_2(self):
@@ -104,7 +101,7 @@ class TestGenBankSBOL3(unittest.TestCase):
             / "sbol3_genbank_conversion"
             / "iGEM_SBOL2_imports_from_genbank_to_sbol3_direct.nt"
         )
-        sbol3.set_namespace(TEST_NAMESPACE)
+        sbol3.set_namespace(self.converter.TEST_NAMESPACE)
         self._test_genbank_to_sbol3(sample_sbol3_file=sbol3_file, sample_genbank_file=genbank_file)
 
     def test_sbol3togb_1(self):
