@@ -34,6 +34,7 @@ class GenBank_SBOL3_Converter:
     BIO_STRAND_REVERSE = -1
     DEFAULT_GB_SEQ_VERSION = 1
 
+
     def __init__(self) -> None:
         def build_component_genbank_extension(*, identity, type_uri) -> GenBank_SBOL3_Converter.Component_GenBank_Extension:
             """A builder function to be called by the SBOL3 parser
@@ -50,32 +51,23 @@ class GenBank_SBOL3_Converter:
             return obj
         def build_custom_reference_property(*, identity, type_uri) -> GenBank_SBOL3_Converter.CustomReferenceProperty:
             """A builder function to be called by the SBOL3 parser
-            when it encounters a Component in an SBOL file.
-            :param identity: identity for new component class instance to have
-            :param type_uri: type_uri for new component class instance to have
+            when it encounters a CustomReferenceProperty Toplevel object in an SBOL file.
+            :param identity: identity for custom reference property instance to have
+            :param type_uri: type_uri for custom reference property instance to have
             """
-            # `types` is required and not known at build time.
-            # Supply a missing value to the constructor, then clear
-            # the missing value before returning the built object.
             obj = self.CustomReferenceProperty(identity=identity, type_uri=type_uri)
-            # Remove the placeholder value
-            # obj.clear_property(sbol3.SBOL_TYPE)
             return obj
-        # set up logging
-        log_level = logging.INFO
-        logging.getLogger().setLevel(level=log_level)
         # Register the builder function so it can be invoked by
         # the SBOL3 parser to build objects with a Component type URI
         sbol3.Document.register_builder(sbol3.SBOL_COMPONENT, build_component_genbank_extension)
+        # Register the buildre function for custom reference properties
         sbol3.Document.register_builder("http://www.ncbi.nlm.nih.gov/genbank#reference", build_custom_reference_property)
 
+
     class CustomReferenceProperty(sbol3.CustomTopLevel):
-    # class CustomReferenceProperty(sbol3.CustomIdentified):
         CUSTOM_REFERENCE_NS = "http://www.ncbi.nlm.nih.gov/genbank#reference"
         def __init__(self, type_uri=CUSTOM_REFERENCE_NS, identity="customReferenceProperty"):
-        # def __init__(self, type_uri=CUSTOM_REFERENCE_NS, identity="customReferenceProperty"):
             super().__init__(identity, type_uri)
-            # super().__init__(type_uri, identity=identity)
             self.authors    = sbol3.TextProperty(self, f"{self.CUSTOM_REFERENCE_NS}#authors"   , 0, 1)
             self.comment    = sbol3.TextProperty(self, f"{self.CUSTOM_REFERENCE_NS}#comment"   , 0, 1)
             self.journal    = sbol3.TextProperty(self, f"{self.CUSTOM_REFERENCE_NS}#journal"   , 0, 1)
@@ -88,6 +80,7 @@ class GenBank_SBOL3_Converter:
             # support cut locations?
             self.location = sbol3.OwnedObject(self, f"{self.CUSTOM_REFERENCE_NS}#location", 0, math.inf, type_constraint=sbol3.Range)
 
+
     class Component_GenBank_Extension(sbol3.Component):
         """Overrides the sbol3 Component class to include fields to directly read and write 
         extraneous properties of GenBank not storeable in any SBOL3 datafield.
@@ -97,8 +90,6 @@ class GenBank_SBOL3_Converter:
         def __init__(self, identity: str, types: Optional[Union[str, Sequence[str]]], **kwargs) -> None:
             # instantiating sbol3 component object
             super().__init__(identity=identity, types=types, **kwargs)
-            # self.genbank_reference = sbol3.OwnedObject(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#ref", 0, math.inf, 
-            #                                            type_constraint=self.CustomReferenceProperty)
             # Setting properties for GenBank's extraneous properties not settable in any SBOL3 field.
             self.genbank_seq_version   = sbol3.IntProperty(self,  f"{self.GENBANK_EXTRA_PROPERTY_NS}#seq_version", 0, 1)
             self.genbank_date          = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#date"       , 0, 1)
@@ -114,14 +105,6 @@ class GenBank_SBOL3_Converter:
             self.genbank_taxonomy      = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#taxonomy"  , 0, math.inf)
             self.genbank_keywords      = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#keywords"  , 0, math.inf)
             self.genbank_accessions    = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#accessions", 0, math.inf)
-            # Properties to store GenBank refereces:
-            self.genbank_reference_authors    = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#reference#authors"   , 0, math.inf)
-            self.genbank_reference_comment    = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#reference#comment"   , 0, math.inf)
-            self.genbank_reference_journal    = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#reference#journal"   , 0, math.inf)
-            self.genbank_reference_consrtm    = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#reference#consrtm"   , 0, math.inf)
-            self.genbank_reference_title      = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#reference#title"     , 0, math.inf)
-            self.genbank_reference_medline_id = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#reference#medline_id", 0, math.inf)
-            self.genbank_reference_pubmed_id  = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#reference#pubmed_id" , 0, math.inf)
 
 
     def create_GB_SO_role_mappings(self, gb2so_csv: str = GB2SO_MAPPINGS_CSV, so2gb_csv: str = SO2GB_MAPPINGS_CSV,
@@ -257,6 +240,7 @@ class GenBank_SBOL3_Converter:
                 # 12. GenBank Record References
                 elif annotation == 'references':
                     for ind, reference in enumerate(record.annotations['references']):
+                        # create a custom reference property instance for each reference
                         custom_reference = self.CustomReferenceProperty(identity = comp.identity + f"/Reference_{ind}")
                         custom_reference.authors = reference.authors
                         custom_reference.comment = reference.comment
@@ -274,19 +258,12 @@ class GenBank_SBOL3_Converter:
                             else:
                                 locs = sbol3.Range(sequence=seq, start=int(gb_loc.start), end=int(gb_loc.end), orientation=feat_loc_orientation)
                             custom_reference.location.append(locs)
-                        custom_reference.component = comp.display_id
-                        # comp.genbank_reference = [custom_reference]
+                        # link the parent component for each custom reference property objects
+                        if comp.display_id:
+                            custom_reference.component = comp.display_id
+                        # TODO: Raise error, no name for component
+                        # else:
                         doc.add(custom_reference)
-                    # if 'references' in record.annotations:
-                    for index in range(len(record.annotations['references'])):
-                        reference = record.annotations['references'][index]
-                        comp.genbank_reference_authors.append(f"{index+1}:" + reference.authors)
-                        comp.genbank_reference_comment.append(f"{index+1}:" + reference.comment)
-                        comp.genbank_reference_journal.append(f"{index+1}:" + reference.journal)
-                        comp.genbank_reference_title.append(f"{index+1}:" + reference.title)
-                        comp.genbank_reference_consrtm.append(f"{index+1}:" + reference.consrtm)
-                        comp.genbank_reference_medline_id.append(f"{index+1}:" + reference.medline_id)
-                        comp.genbank_reference_pubmed_id.append(f"{index+1}:" + reference.pubmed_id)
                 else:
                     raise ValueError(f"The annotation `{annotation}` in the GenBank record `{record.id}`\n \
                                         is not recognized as a standard annotation.")
@@ -449,52 +426,37 @@ class GenBank_SBOL3_Converter:
                     # 11. GenBank Sequence Version
                     seq_rec.annotations['sequnce_version'] = obj.genbank_seq_version
                     # 12. GenBank Record References
-                    record_references = []
-                    for reference in references[obj]:
-                        reference_object = Reference()
-                        reference_object.authors = reference.authors
-                        reference_object.comment = reference.comment
-                        reference_object.journal = reference.journal
-                        reference_object.title = reference.title
-                        reference_object.consrtm = reference.consrtm
-                        reference_object.medline_id = reference.medline_id
-                        reference_object.pubmed_id = reference.pubmed_id
-                        for obj_feat_loc in reference.location:
-                            feat_strand = self.BIO_STRAND_FORWARD
-                            # feature strand value which denotes orientation of the location of the feature
-                            # By default its 1 for SO_FORWARD orientation of sbol3 feature location, and -1 for SO_REVERSE
-                            if obj_feat_loc.orientation == sbol3.SO_REVERSE:
-                                feat_strand = self.BIO_STRAND_REVERSE
-                            # elif obj_feat_loc.orientation != sbol3.SO_FORWARD:
-                            #     raise ValueError(f"Location orientation: `{obj_feat_loc.orientation}` for feature: \n \
-                            #     `{obj_feat.name}` of component: `{obj.display_id}` is not a valid orientation.\n \
-                            #     Valid orientations are `{sbol3.SO_FORWARD}`, `{sbol3.SO_REVERSE}`")
-                            # TODO: Raise custom converter class ERROR for `else:`
-                            feat_loc_object = FeatureLocation(
-                                start=obj_feat_loc.start,
-                                end=obj_feat_loc.end,
-                                strand=feat_strand,
-                            )
-                            reference_object.location.append(feat_loc_object)
-                        record_references.append(reference_object)
-                    # list(obj.genbank_reference_authors).sort(key=lambda value: value.split(":", 1)[0])
-                    # list(obj.genbank_reference_comment).sort(key=lambda value: value.split(":", 1)[0])
-                    # list(obj.genbank_reference_title).sort(key=lambda value: value.split(":", 1)[0])
-                    # list(obj.genbank_reference_journal).sort(key=lambda value: value.split(":", 1)[0])
-                    # list(obj.genbank_reference_consrtm).sort(key=lambda value: value.split(":", 1)[0])
-                    # list(obj.genbank_reference_pubmed_id).sort(key=lambda value: value.split(":", 1)[0])
-                    # list(obj.genbank_reference_medline_id).sort(key=lambda value: value.split(":", 1)[0])
-                    # for index in range(len(obj.genbank_reference_journal)):
-                        # reference = Reference()
-                        # reference.authors = list(obj.genbank_reference_authors)[index].split(":", 1)[1]
-                        # reference.comment = list(obj.genbank_reference_comment)[index].split(":", 1)[1]
-                        # reference.journal = list(obj.genbank_reference_journal)[index].split(":", 1)[1]
-                        # reference.title = list(obj.genbank_reference_title)[index].split(":", 1)[1]
-                        # reference.consrtm = list(obj.genbank_reference_consrtm)[index].split(":", 1)[1]
-                        # reference.medline_id = list(obj.genbank_reference_medline_id)[index].split(":", 1)[1]
-                        # reference.pubmed_id = list(obj.genbank_reference_pubmed_id)[index].split(":", 1)[1]
-                        # record_references.append(reference)
-                    seq_rec.annotations['references'] = record_references
+                    if obj in references:
+                        # if sbol3 object has references
+                        record_references = []
+                        for reference in references[obj]:
+                            reference_object = Reference()
+                            reference_object.authors = reference.authors
+                            reference_object.comment = reference.comment
+                            reference_object.journal = reference.journal
+                            reference_object.title = reference.title
+                            reference_object.consrtm = reference.consrtm
+                            reference_object.medline_id = reference.medline_id
+                            reference_object.pubmed_id = reference.pubmed_id
+                            for obj_feat_loc in reference.location:
+                                feat_strand = self.BIO_STRAND_FORWARD
+                                # feature strand value which denotes orientation of the location of the feature
+                                # By default its 1 for SO_FORWARD orientation of sbol3 feature location, and -1 for SO_REVERSE
+                                if obj_feat_loc.orientation == sbol3.SO_REVERSE:
+                                    feat_strand = self.BIO_STRAND_REVERSE
+                                # elif obj_feat_loc.orientation != sbol3.SO_FORWARD:
+                                #     raise ValueError(f"Location orientation: `{obj_feat_loc.orientation}` for feature: \n \
+                                #     `{obj_feat.name}` of component: `{obj.display_id}` is not a valid orientation.\n \
+                                #     Valid orientations are `{sbol3.SO_FORWARD}`, `{sbol3.SO_REVERSE}`")
+                                # TODO: Raise custom converter class ERROR for `else:`
+                                feat_loc_object = FeatureLocation(
+                                    start=obj_feat_loc.start,
+                                    end=obj_feat_loc.end,
+                                    strand=feat_strand,
+                                )
+                                reference_object.location.append(feat_loc_object)
+                            record_references.append(reference_object)
+                        seq_rec.annotations['references'] = record_references
                 # TODO: No explicit way to set locus via BioPython?
                 # 13. GenBank Record Locus
 

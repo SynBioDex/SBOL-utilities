@@ -142,6 +142,15 @@ class TestGenBankSBOL3(unittest.TestCase):
         )
         self._test_round_trip_genbank(genbank_file)
 
+    def test_round_trip_extra_properties_with_references(self):
+        """Test ability to produce same genbank file on round trip when original genbank file has non standard
+        values for extraneous properties, along with references
+        """
+        genbank_file = (
+            Path(__file__).parent / "test_files" / "sbol3_genbank_conversion" / "test_extra_properties_with_references.gb"
+        )
+        self._test_round_trip_genbank(genbank_file)
+
     def test_round_trip_multiple_loc_feat(self):
         """Test ability to produce same genbank file on round trip when original genbank file has multiple 
         locations on a feature
