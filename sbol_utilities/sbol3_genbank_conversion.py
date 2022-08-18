@@ -72,6 +72,7 @@ class GenBank_SBOL3_Converter:
     class CustomReferenceProperty(sbol3.CustomTopLevel):
         """Serves to store information and annotations for 'Reference' objects in 
         GenBank file to SBOL3 while parsing so that it may be retrieved back in a round trip
+        :extends: sbol3.CustomTopLevel class
         """
         CUSTOM_REFERENCE_NS = "http://www.ncbi.nlm.nih.gov/genbank#reference"
         def __init__(self, type_uri=CUSTOM_REFERENCE_NS, identity="customReferenceProperty"):
@@ -459,7 +460,8 @@ class GenBank_SBOL3_Converter:
                 comp.genbank_source = record.annotations['source']
             # 7. GenBank Record Taxonomy
             elif annotation == 'taxonomy':
-                comp.genbank_taxonomy = sorted(record.annotations['taxonomy'])
+                # comp.genbank_taxonomy = sorted(record.annotations['taxonomy'])
+                comp.genbank_taxonomy = (record.annotations['taxonomy'])
             # 8. GenBank Record Topology
             elif annotation == 'topology':
                 comp.genbank_topology = record.annotations['topology']
@@ -535,7 +537,8 @@ class GenBank_SBOL3_Converter:
             # 7. GenBank Record taxonomy
             # FIXME: Even though component.genbank_taxonomy is stored in sorted order, it 
             #        becomes unsorted while retrieving from the sbol file
-            seq_rec.annotations['taxonomy'] = sorted(list(obj.genbank_taxonomy))
+            # seq_rec.annotations['taxonomy'] = sorted(list(obj.genbank_taxonomy))
+            seq_rec.annotations['taxonomy'] = (list(obj.genbank_taxonomy))
             # 8. GenBank Record Topology
             seq_rec.annotations['topology'] = obj.genbank_topology
             # 9. GenBank Record GI Property

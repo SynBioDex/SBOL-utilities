@@ -1,5 +1,6 @@
 LOCUS       AF165912                5485 bp    DNA     circular PLN 29-JUL-1999
-DEFINITION  Arabidopsis thaliana CTP:phosphocholine cytidylyltransferase (CCT)
+DEFINITION  (NOTE: This is a Modified version of the AF165912 GenBank File)
+            Arabidopsis thaliana CTP:phosphocholine cytidylyltransferase (CCT)
             gene, complete cds.
 ACCESSION   AF165912
 VERSION     AF165912.1  GI:5640000
