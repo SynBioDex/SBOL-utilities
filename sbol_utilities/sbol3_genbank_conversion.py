@@ -12,6 +12,7 @@ from Bio.SeqFeature import SeqFeature, FeatureLocation, Reference, CompoundLocat
 
 
 class GenBank_SBOL3_Converter:
+    """Main Converter class handling offline, direction conversion of files SBOL3 files to and from GenBank files"""
     # dictionaries to store feature lookups for terms in GenBank and SO ontologies
     gb2so_map = {}
     so2gb_map = {}
@@ -32,6 +33,7 @@ class GenBank_SBOL3_Converter:
     DEFAULT_GB_TERM = "misc_feature"
     # Namespace to be used be default if not provided, and also for all unit tests related to this converter
     TEST_NAMESPACE = "https://test.sbol3.genbank/"
+    CUSTOM_REFERENCE_PROPERTY_URI = "http://www.ncbi.nlm.nih.gov/genbank#reference"
     # File locations for required CSV data files which store the ontology term translations between GenBank and SO ontologies
     GB2SO_MAPPINGS_CSV = os.path.join(os.path.dirname(os.path.realpath(__file__)), "gb2so.csv")
     SO2GB_MAPPINGS_CSV = os.path.join(os.path.dirname(os.path.realpath(__file__)), "so2gb.csv")
@@ -66,7 +68,7 @@ class GenBank_SBOL3_Converter:
         # the SBOL3 parser to build objects with a Component type URI
         sbol3.Document.register_builder(sbol3.SBOL_COMPONENT, build_component_genbank_extension)
         # Register the buildre function for custom reference properties
-        sbol3.Document.register_builder("http://www.ncbi.nlm.nih.gov/genbank#reference", build_custom_reference_property)
+        sbol3.Document.register_builder(self.CUSTOM_REFERENCE_PROPERTY_URI, build_custom_reference_property)
 
 
     class CustomReferenceProperty(sbol3.CustomTopLevel):
@@ -111,8 +113,9 @@ class GenBank_SBOL3_Converter:
             self.genbank_topology      = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#topology"   , 0, 1)
             self.genbank_gi            = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#gi"         , 0, 1)
             self.genbank_record_id     = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#id"         , 0, 1)
-            # there can be multiple keywords, taxonomies and accessions, thus upper bound needs to be > 1 in order to use TextListProperty
-            self.genbank_taxonomy      = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#taxonomy"  , 0, math.inf)
+            # TODO : add note linking issue here
+            self.genbank_taxonomy      = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#taxonomy"   , 0, 1)
+            # there can be multiple keywords, and accessions, thus upper bound needs to be > 1 in order to use TextListProperty
             self.genbank_keywords      = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#keywords"  , 0, math.inf)
             self.genbank_accessions    = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#accessions", 0, math.inf)
 
@@ -288,7 +291,7 @@ class GenBank_SBOL3_Converter:
         # create dict to link component with their respective Reference property objects
         references: Dict[sbol3.Component, List[sbol3.CustomTopLevel]] = {}
         for obj in doc.objects:  
-            if isinstance(obj, sbol3.CustomTopLevel):
+            if isinstance(obj, sbol3.CustomTopLevel) and obj.type_uri == self.CUSTOM_REFERENCE_PROPERTY_URI:
                 component_object = doc.find(str(obj.component))
                 if component_object and isinstance(component_object, sbol3.Component):
                     references[component_object] = [obj] if component_object not in references else references[component_object] + [obj]
@@ -460,8 +463,7 @@ class GenBank_SBOL3_Converter:
                 comp.genbank_source = record.annotations['source']
             # 7. GenBank Record Taxonomy
             elif annotation == 'taxonomy':
-                # comp.genbank_taxonomy = sorted(record.annotations['taxonomy'])
-                comp.genbank_taxonomy = (record.annotations['taxonomy'])
+                comp.genbank_taxonomy = ",".join(record.annotations['taxonomy'])
             # 8. GenBank Record Topology
             elif annotation == 'topology':
                 comp.genbank_topology = record.annotations['topology']
@@ -535,10 +537,10 @@ class GenBank_SBOL3_Converter:
             #        simply prints "", whereas the default "." should have been printed
             if obj.genbank_source != "": seq_rec.annotations['source'] = obj.genbank_source
             # 7. GenBank Record taxonomy
+            # TODO : link gh issue for note below
             # FIXME: Even though component.genbank_taxonomy is stored in sorted order, it 
             #        becomes unsorted while retrieving from the sbol file
-            # seq_rec.annotations['taxonomy'] = sorted(list(obj.genbank_taxonomy))
-            seq_rec.annotations['taxonomy'] = (list(obj.genbank_taxonomy))
+            if obj.genbank_taxonomy: seq_rec.annotations['taxonomy'] = str(obj.genbank_taxonomy).split(",")
             # 8. GenBank Record Topology
             seq_rec.annotations['topology'] = obj.genbank_topology
             # 9. GenBank Record GI Property
