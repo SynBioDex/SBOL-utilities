@@ -34,6 +34,7 @@ class GenBank_SBOL3_Converter:
     # Namespace to be used be default if not provided, and also for all unit tests related to this converter
     TEST_NAMESPACE = "https://test.sbol3.genbank/"
     CUSTOM_REFERENCE_PROPERTY_URI = "http://www.ncbi.nlm.nih.gov/genbank#reference"
+    FEATURE_QUALIFIER_PROPERTY_URI = "http://www.ncbi.nlm.nih.gov/genbank#featureQualifier"
     # File locations for required CSV data files which store the ontology term translations between GenBank and SO ontologies
     GB2SO_MAPPINGS_CSV = os.path.join(os.path.dirname(os.path.realpath(__file__)), "gb2so.csv")
     SO2GB_MAPPINGS_CSV = os.path.join(os.path.dirname(os.path.realpath(__file__)), "so2gb.csv")
@@ -56,6 +57,19 @@ class GenBank_SBOL3_Converter:
             # Remove the placeholder value
             obj.clear_property(sbol3.SBOL_TYPE)
             return obj
+        # def build_feature_qualifiers_extension(locations, *, identity, type_uri) -> GenBank_SBOL3_Converter.Feature_GenBank_Extension:
+        #     """A builder function to be called by the SBOL3 parser
+        #     when it encounters a SequenceFeature in an SBOL file.
+        #     :param identity: identity for new sequence feature class instance to have
+        #     :param type_uri: type_uri for new sequence feature class instance to have
+        #     """
+        #     # `types` is required and not known at build time.
+        #     # Supply a missing value to the constructor, then clear
+        #     # the missing value before returning the built object.
+        #     obj = self.Feature_GenBank_Extension(locations=locations, identity=identity, type_uri=type_uri)
+        #     # Remove the placeholder value
+        #     obj.clear_property(sbol3.SBOL_TYPE)
+        #     return obj
         def build_custom_reference_property(*, identity, type_uri) -> GenBank_SBOL3_Converter.CustomReferenceProperty:
             """A builder function to be called by the SBOL3 parser
             when it encounters a CustomReferenceProperty Toplevel object in an SBOL file.
@@ -64,11 +78,24 @@ class GenBank_SBOL3_Converter:
             """
             obj = self.CustomReferenceProperty(identity=identity, type_uri=type_uri)
             return obj
+        def build_feature_qualifiers_extension(*, identity, type_uri) -> GenBank_SBOL3_Converter.FeatureQualifierProperty:
+            """A builder function to be called by the SBOL3 parser
+            when it encounters a FeatureQualifierProperty Toplevel object in an SBOL file.
+            :param identity: identity for custom feaure qualifier property instance to have
+            :param type_uri: type_uri for custom feature qualifier property instance to have
+            """
+            obj = self.FeatureQualifierProperty(identity=identity, type_uri=type_uri)
+            return obj
         # Register the builder function so it can be invoked by
         # the SBOL3 parser to build objects with a Component type URI
         sbol3.Document.register_builder(sbol3.SBOL_COMPONENT, build_component_genbank_extension)
         # Register the buildre function for custom reference properties
         sbol3.Document.register_builder(self.CUSTOM_REFERENCE_PROPERTY_URI, build_custom_reference_property)
+        # Register the buildre function for custom reference properties
+        sbol3.Document.register_builder(self.FEATURE_QUALIFIER_PROPERTY_URI, build_feature_qualifiers_extension)
+        # # Register the builder function so it can be invoked by
+        # # the SBOL3 parser to build objects with a SequenceFeature type URI
+        # sbol3.Document.register_builder(sbol3.SBOL_SEQUENCE_FEATURE, build_feature_qualifiers_extension)
 
 
     class CustomReferenceProperty(sbol3.CustomTopLevel):
@@ -91,6 +118,34 @@ class GenBank_SBOL3_Converter:
             # TODO: support cut locations?
             # there can be multiple locations described for a reference, thus upper bound needs to be > 1 in order to use ListProperty
             self.location = sbol3.OwnedObject(self, f"{self.CUSTOM_REFERENCE_NS}#location", 0, math.inf, type_constraint=sbol3.Range)
+
+
+    # class Feature_GenBank_Extension(sbol3.SequenceFeature):
+    #     """Overrides the sbol3 SequenceFeature class to include fields to directly read and write 
+    #     qualifiers of GenBank features not storeable in any SBOL3 datafield.
+    #     :extends: sbol3.SequenceFeature class
+    #     """
+    #     GENBANK_FEATURE_QUALIFIER_NS = "http://www.ncbi.nlm.nih.gov/genbank#featureQualifier"
+    #     def __init__(self, locations: List[sbol3.Location], **kwargs) -> None:
+    #         # instantiating sbol3 SequenceFeature object
+    #         super().__init__(locations=locations, **kwargs)
+    #         # Setting properties for GenBank's qualifiers not settable in any SBOL3 field.
+    #         self.qualifier_key      = sbol3.TextProperty(self, f"{self.GENBANK_FEATURE_QUALIFIER_NS}#key"  , 0, math.inf)
+    #         self.qualifier_value    = sbol3.TextProperty(self, f"{self.GENBANK_FEATURE_QUALIFIER_NS}#value", 0, math.inf)
+
+
+    class FeatureQualifierProperty(sbol3.CustomTopLevel):
+        """Serves to store qualifiers for genbank feature objects in 
+        GenBank file to SBOL3 while parsing so that it may be retrieved back in a round trip
+        :extends: sbol3.CustomTopLevel class
+        """
+        FEATURE_QUALIFIER_PROPERTY_NS = "http://www.ncbi.nlm.nih.gov/genbank#featureQualifier"
+        def __init__(self, type_uri=FEATURE_QUALIFIER_PROPERTY_NS, identity="featureQualifier"):
+            super().__init__(identity, type_uri)
+            self.qualifier_keys      = sbol3.TextProperty(self, f"{self.FEATURE_QUALIFIER_PROPERTY_NS}#key"  , 0, math.inf)
+            self.qualifier_values    = sbol3.TextProperty(self, f"{self.FEATURE_QUALIFIER_PROPERTY_NS}#value", 0, math.inf)
+            # stores the display id of parent feature for a particular featureQualifierProperty object
+            self.feature  = sbol3.TextProperty(self, f"{self.FEATURE_QUALIFIER_PROPERTY_NS}#feature" , 0, 1)
 
 
     class Component_GenBank_Extension(sbol3.Component):
@@ -188,7 +243,12 @@ class GenBank_SBOL3_Converter:
         for record in list(SeqIO.parse(gb_file, "genbank").records):
             # TODO: Currently we assume only linear or circular topology is possible
             logging.info(f"Parsing record - `{record.id}` in genbank file.")
-            if record.annotations["topology"] == "linear":
+            topology = "linear"
+            if "topology" in record.annotations:
+                topology = record.annotations["topology"]
+            elif record.annotations['data_file_division'] in ['circular', 'linear']:
+                topology = record.annotations['data_file_division']
+            if topology == "linear":
                 extra_comp_types = [sbol3.SO_LINEAR]
             else:
                 extra_comp_types = [sbol3.SO_CIRCULAR]
@@ -253,7 +313,8 @@ class GenBank_SBOL3_Converter:
                     feat_orientation = sbol3.SO_FORWARD
                     if gb_feat.strand == -1:
                         feat_orientation = sbol3.SO_REVERSE
-                    feat = sbol3.SequenceFeature(
+                    # feat = sbol3.SequenceFeature(
+                    feat = self.Feature_GenBank_Extension(
                         locations=feat_locations,
                         roles=[feat_role],
                         name=gb_feat.qualifiers["label"][0],
@@ -448,7 +509,10 @@ class GenBank_SBOL3_Converter:
                 comp.genbank_date = record.annotations['date']
             # 2. GenBank Record Division
             elif annotation == 'data_file_division':
-                comp.genbank_division = record.annotations['data_file_division']
+                # FIX for iGEM files not having data file division but topology stored in its key
+                if record.annotations['data_file_division'] in ['circular', 'linear']:
+                    comp.genbank_topology = record.annotations['data_file_division']
+                else: comp.genbank_division = record.annotations['data_file_division']
             # 3. GenBank Record Keywords
             elif annotation == 'keywords':
                 comp.genbank_keywords = sorted(record.annotations['keywords'])

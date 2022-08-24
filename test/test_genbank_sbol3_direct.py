@@ -74,9 +74,10 @@ class TestGenBankSBOL3(unittest.TestCase):
             sbol3_file=None, doc=test_output_sbol3, gb_file=outfile, write=True
         )
         comparison_file = str(sample_genbank_file)
-        assert filecmp.cmp(
+        file_diff = filecmp.cmp(
             outfile, comparison_file
         ), f"Converted GenBank file {outfile} is not identical to expected file {comparison_file}"
+        return bool(file_diff)
 
     def test_gbtosbol3_1(self):
         """Test conversion of a simple genbank file with a single sequence"""
@@ -189,6 +190,11 @@ class TestGenBankSBOL3(unittest.TestCase):
         for genbank_file in test_file_dir.glob('*.gb'):
             self._test_round_trip_genbank(genbank_file)
     
+    def test_round_trip_all_iGEM(self):
+        test_file_dir = Path(__file__).parent.parent / 'iGEM'
+        for genbank_file in test_file_dir.glob('*.gb'):
+            print(self._test_round_trip_genbank(genbank_file))
+        
 
 if __name__ == "__main__":
     unittest.main()
