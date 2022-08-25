@@ -7,10 +7,10 @@ VERSION     AF165912.1  GI:5640000
 KEYWORDS    test_keyword1; test_keyword2.
 SOURCE      Arabidopsis thaliana (thale cress)
   ORGANISM  Arabidopsis thaliana
-            Arabidopsis; Brassicaceae; Brassicales; Camelineae; Embryophyta;
-            Eukaryota; Gunneridae; Magnoliophyta; Pentapetalae; Spermatophyta;
-            Streptophyta; Tracheophyta; Viridiplantae; eudicotyledons; malvids;
-            rosids.
+            Eukaryota; Viridiplantae; Streptophyta; Embryophyta; Tracheophyta;
+            Spermatophyta; Magnoliophyta; eudicotyledons; Gunneridae;
+            Pentapetalae; rosids; malvids; Brassicales; Brassicaceae;
+            Camelineae; Arabidopsis.
 FEATURES             Location/Qualifiers
      regulatory      1..1602
                      /label="c3"

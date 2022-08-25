@@ -7,10 +7,10 @@ VERSION     AF165912.1  GI:5640000
 KEYWORDS    test_keyword1; test_keyword2.
 SOURCE      Arabidopsis thaliana (thale cress)
   ORGANISM  Arabidopsis thaliana
-            Arabidopsis; Brassicaceae; Brassicales; Camelineae; Embryophyta;
-            Eukaryota; Gunneridae; Magnoliophyta; Pentapetalae; Spermatophyta;
-            Streptophyta; Tracheophyta; Viridiplantae; eudicotyledons; malvids;
-            rosids.
+            Eukaryota; Viridiplantae; Streptophyta; Embryophyta; Tracheophyta;
+            Spermatophyta; Magnoliophyta; eudicotyledons; Gunneridae;
+            Pentapetalae; rosids; malvids; Brassicales; Brassicaceae;
+            Camelineae; Arabidopsis.
 REFERENCE   1  (bases 1 to 5485)
   AUTHORS   Choi,Y.H., Choi,S.B. and Cho,S.H.
   TITLE     Structure of a CTP:Phosphocholine Cytidylyltransferase Gene from
