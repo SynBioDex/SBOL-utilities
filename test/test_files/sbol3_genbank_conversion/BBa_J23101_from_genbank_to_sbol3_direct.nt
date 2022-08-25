@@ -16,6 +16,7 @@
 <https://test.sbol3.genbank/BBa_J23101> <http://www.ncbi.nlm.nih.gov/genbank#organism> "." .
 <https://test.sbol3.genbank/BBa_J23101> <http://www.ncbi.nlm.nih.gov/genbank#seq_version> "1"^^<http://www.w3.org/2001/XMLSchema#integer> .
 <https://test.sbol3.genbank/BBa_J23101> <http://www.ncbi.nlm.nih.gov/genbank#source> "" .
+<https://test.sbol3.genbank/BBa_J23101> <http://www.ncbi.nlm.nih.gov/genbank#taxonomy> "" .
 <https://test.sbol3.genbank/BBa_J23101> <http://www.ncbi.nlm.nih.gov/genbank#topology> "linear" .
 <https://test.sbol3.genbank/BBa_J23101> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://sbols.org/v3#Component> .
 <https://test.sbol3.genbank/BBa_J23101_sequence> <http://sbols.org/v3#displayId> "BBa_J23101_sequence" .

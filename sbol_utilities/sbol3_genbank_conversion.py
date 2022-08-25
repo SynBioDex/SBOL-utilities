@@ -9,32 +9,40 @@ from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from Bio.SeqFeature import SeqFeature, FeatureLocation, Reference, CompoundLocation
 
-# Conversion Constants (NOTE: most are placeholding and temporary for now)
-TEST_NAMESPACE = "https://test.sbol3.genbank/"
-# TODO: Temporarily assuming only dna components to be dealt with in genbank files
-COMP_TYPES = [sbol3.SBO_DNA]
-# TODO: Temporarily assuming components to only have the engineered_region role
-COMP_ROLES = [sbol3.SO_ENGINEERED_REGION]
-# TODO: Temporarily encoding sequnce objects in IUPUC mode only
-SEQUENCE_ENCODING = sbol3.IUPAC_DNA_ENCODING
-GB2SO_MAPPINGS_CSV = os.path.join(
-    os.path.dirname(os.path.realpath(__file__)), "gb2so.csv"
-)
-SO2GB_MAPPINGS_CSV = os.path.join(
-    os.path.dirname(os.path.realpath(__file__)), "so2gb.csv"
-)
 
 
 class GenBank_SBOL3_Converter:
+    """Main Converter class handling offline, direction conversion of files SBOL3 files to and from GenBank files"""
+    # dictionaries to store feature lookups for terms in GenBank and SO ontologies
     gb2so_map = {}
     so2gb_map = {}
-    DEFAULT_SO_TERM = "SO:0000110"
-    DEFAULT_GB_TERM = "misc_feature"
+    ## Conversion Constants :
+    # TODO: Temporarily assuming only dna components to be dealt with in genbank files
+    COMP_TYPES = [sbol3.SBO_DNA]
+    # TODO: Temporarily assuming components to only have the engineered_region role
+    COMP_ROLES = [sbol3.SO_ENGINEERED_REGION]
+    # TODO: Temporarily encoding sequnce objects in IUPUC mode only
+    SEQUENCE_ENCODING = sbol3.IUPAC_DNA_ENCODING
+    # BIO_STRAND constants, which server as the GenBank counterparts to SBOL3's inline and reverse orientations
     BIO_STRAND_FORWARD = 1
     BIO_STRAND_REVERSE = -1
+    # Default value for the "sequence_version" annotation in GenBank files
     DEFAULT_GB_SEQ_VERSION = 1
+    # Default terms for SBOL3 and GenBank in case the feature lookup from respective dictionaries does not yield any ontology term
+    DEFAULT_SO_TERM = "SO:0000110"
+    DEFAULT_GB_TERM = "misc_feature"
+    # Namespace to be used be default if not provided, and also for all unit tests related to this converter
+    TEST_NAMESPACE = "https://test.sbol3.genbank/"
+    CUSTOM_REFERENCE_PROPERTY_URI = "http://www.ncbi.nlm.nih.gov/genbank#reference"
+    # File locations for required CSV data files which store the ontology term translations between GenBank and SO ontologies
+    GB2SO_MAPPINGS_CSV = os.path.join(os.path.dirname(os.path.realpath(__file__)), "gb2so.csv")
+    SO2GB_MAPPINGS_CSV = os.path.join(os.path.dirname(os.path.realpath(__file__)), "so2gb.csv")
+
 
     def __init__(self) -> None:
+        """While instantiating an instance of the converter, required builders
+        must be registered in order to accurately parse modified or new SBOL3 class objects
+        """
         def build_component_genbank_extension(*, identity, type_uri) -> GenBank_SBOL3_Converter.Component_GenBank_Extension:
             """A builder function to be called by the SBOL3 parser
             when it encounters a Component in an SBOL file.
@@ -48,12 +56,42 @@ class GenBank_SBOL3_Converter:
             # Remove the placeholder value
             obj.clear_property(sbol3.SBOL_TYPE)
             return obj
-        # set up logging
-        log_level = logging.INFO
-        logging.getLogger().setLevel(level=log_level)
+        def build_custom_reference_property(*, identity, type_uri) -> GenBank_SBOL3_Converter.CustomReferenceProperty:
+            """A builder function to be called by the SBOL3 parser
+            when it encounters a CustomReferenceProperty Toplevel object in an SBOL file.
+            :param identity: identity for custom reference property instance to have
+            :param type_uri: type_uri for custom reference property instance to have
+            """
+            obj = self.CustomReferenceProperty(identity=identity, type_uri=type_uri)
+            return obj
         # Register the builder function so it can be invoked by
         # the SBOL3 parser to build objects with a Component type URI
         sbol3.Document.register_builder(sbol3.SBOL_COMPONENT, build_component_genbank_extension)
+        # Register the buildre function for custom reference properties
+        sbol3.Document.register_builder(self.CUSTOM_REFERENCE_PROPERTY_URI, build_custom_reference_property)
+
+
+    class CustomReferenceProperty(sbol3.CustomTopLevel):
+        """Serves to store information and annotations for 'Reference' objects in 
+        GenBank file to SBOL3 while parsing so that it may be retrieved back in a round trip
+        :extends: sbol3.CustomTopLevel class
+        """
+        CUSTOM_REFERENCE_NS = "http://www.ncbi.nlm.nih.gov/genbank#reference"
+        def __init__(self, type_uri=CUSTOM_REFERENCE_NS, identity="customReferenceProperty"):
+            super().__init__(identity, type_uri)
+            self.authors    = sbol3.TextProperty(self, f"{self.CUSTOM_REFERENCE_NS}#authors"   , 0, 1)
+            self.comment    = sbol3.TextProperty(self, f"{self.CUSTOM_REFERENCE_NS}#comment"   , 0, 1)
+            self.journal    = sbol3.TextProperty(self, f"{self.CUSTOM_REFERENCE_NS}#journal"   , 0, 1)
+            self.consrtm    = sbol3.TextProperty(self, f"{self.CUSTOM_REFERENCE_NS}#consrtm"   , 0, 1)
+            self.title      = sbol3.TextProperty(self, f"{self.CUSTOM_REFERENCE_NS}#title"     , 0, 1)
+            self.medline_id = sbol3.TextProperty(self, f"{self.CUSTOM_REFERENCE_NS}#medline_id", 0, 1)
+            self.pubmed_id  = sbol3.TextProperty(self, f"{self.CUSTOM_REFERENCE_NS}#pubmed_id" , 0, 1)
+            # stores the display id of parent component for a particular CustomReferenceProperty object
+            self.component  = sbol3.TextProperty(self, f"{self.CUSTOM_REFERENCE_NS}#component" , 0, 1)
+            # TODO: support cut locations?
+            # there can be multiple locations described for a reference, thus upper bound needs to be > 1 in order to use ListProperty
+            self.location = sbol3.OwnedObject(self, f"{self.CUSTOM_REFERENCE_NS}#location", 0, math.inf, type_constraint=sbol3.Range)
+
 
     class Component_GenBank_Extension(sbol3.Component):
         """Overrides the sbol3 Component class to include fields to directly read and write 
@@ -75,18 +113,11 @@ class GenBank_SBOL3_Converter:
             self.genbank_topology      = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#topology"   , 0, 1)
             self.genbank_gi            = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#gi"         , 0, 1)
             self.genbank_record_id     = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#id"         , 0, 1)
-            # there can be multiple keywords, taxonomies and accessions, thus upper bound needs to be > 1 in order to use TextListProperty
-            self.genbank_taxonomy      = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#taxonomy"  , 0, math.inf)
+            # TODO : add note linking issue here
+            self.genbank_taxonomy      = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#taxonomy"   , 0, 1)
+            # there can be multiple keywords, and accessions, thus upper bound needs to be > 1 in order to use TextListProperty
             self.genbank_keywords      = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#keywords"  , 0, math.inf)
             self.genbank_accessions    = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#accessions", 0, math.inf)
-            # Properties to store GenBank refereces:
-            self.genbank_reference_authors    = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#reference#authors"   , 0, math.inf)
-            self.genbank_reference_comment    = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#reference#comment"   , 0, math.inf)
-            self.genbank_reference_journal    = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#reference#journal"   , 0, math.inf)
-            self.genbank_reference_consrtm    = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#reference#consrtm"   , 0, math.inf)
-            self.genbank_reference_title      = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#reference#title"     , 0, math.inf)
-            self.genbank_reference_medline_id = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#reference#medline_id", 0, math.inf)
-            self.genbank_reference_pubmed_id  = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#reference#pubmed_id" , 0, math.inf)
 
 
     def create_GB_SO_role_mappings(self, gb2so_csv: str = GB2SO_MAPPINGS_CSV, so2gb_csv: str = SO2GB_MAPPINGS_CSV,
@@ -96,6 +127,7 @@ class GenBank_SBOL3_Converter:
         :param so2gb_csv: path to read so to genbank conversion csv file
         :param convert_gb2so: bool stating whether to read csv for gb2so mappings
         :param convert_so2gb: bool stating whether to read csv for so2gb mappings
+        :return: int 1 / 0 denoting the status of whether the mappings were created and stored in dictionaries
         """
         if convert_gb2so:
             logging.info(f"Parsing {gb2so_csv} for GenBank to SO ontology mappings.")
@@ -141,7 +173,7 @@ class GenBank_SBOL3_Converter:
             "Creating GenBank and SO ontologies mappings for sequence feature roles"
         )
         map_created = self.create_GB_SO_role_mappings(
-            gb2so_csv=GB2SO_MAPPINGS_CSV, convert_so2gb=False
+            gb2so_csv=self.GB2SO_MAPPINGS_CSV, convert_so2gb=False
         )
         if not map_created:
             # TODO: Need better SBOL3-GenBank specific error classes in future
@@ -163,79 +195,24 @@ class GenBank_SBOL3_Converter:
             # creating component extended Component class to include GenBank extraneous properties
             comp = self.Component_GenBank_Extension(
                 identity=record.name,
-                types=COMP_TYPES + extra_comp_types,
-                roles=COMP_ROLES,
+                types=self.COMP_TYPES + extra_comp_types,
+                roles=self.COMP_ROLES,
                 description=record.description,
             )
             doc.add(comp)
-            # Setting properties for GenBank's extraneous properties not settable in any SBOL3 field.
-            comp.genbank_record_id = record.id
-            for annotation in record.annotations:
-                # Sending out warnings for genbank info not storeable in sbol3
-                logging.warning(
-                    f"Extraneous information not storeable in SBOL3 - {annotation}: {record.annotations[annotation]}"
-                )
-                # 1. GenBank Record Date
-                # TODO: Let it be able to accept date into sbol3.DateTimeProperty() instead
-                if annotation == 'date':
-                    comp.genbank_date = record.annotations['date']
-                # 2. GenBank Record Division
-                elif annotation == 'data_file_division':
-                    comp.genbank_division = record.annotations['data_file_division']
-                # 3. GenBank Record Keywords
-                elif annotation == 'keywords':
-                    comp.genbank_keywords = sorted(record.annotations['keywords'])
-                # 4. GenBank Record Molecule Type
-                elif annotation == 'molecule_type':
-                    comp.genbank_molecule_type = record.annotations['molecule_type']
-                # 5. GenBank Record Organism
-                elif annotation == 'organism':
-                    comp.genbank_organism = record.annotations['organism']
-                # 6. GenBank Record Source
-                elif annotation == 'source':
-                    comp.genbank_source = record.annotations['source']
-                # 7. GenBank Record Taxonomy
-                elif annotation == 'taxonomy':
-                    comp.genbank_taxonomy = sorted(record.annotations['taxonomy'])
-                # 8. GenBank Record Topology
-                elif annotation == 'topology':
-                    comp.genbank_topology = record.annotations['topology']
-                # 9. GenBank Record GI Property
-                elif annotation == 'gi':
-                    comp.genbank_gi = record.annotations['gi']
-                # 10. GenBank Record Accessions
-                elif annotation == 'accessions':
-                    comp.genbank_accessions = sorted(record.annotations['accessions'])
-                # 11. GenBank Sequence Version
-                elif annotation == 'sequence_version':
-                    comp.genbank_seq_version = record.annotations['sequence_version']
-                # 12. GenBank Record References
-                elif annotation == 'references':
-                    # if 'references' in record.annotations:
-                    for index in range(len(record.annotations['references'])):
-                        reference = record.annotations['references'][index]
-                        comp.genbank_reference_authors.append(f"{index+1}:" + reference.authors)
-                        comp.genbank_reference_comment.append(f"{index+1}:" + reference.comment)
-                        comp.genbank_reference_journal.append(f"{index+1}:" + reference.journal)
-                        comp.genbank_reference_title.append(f"{index+1}:" + reference.title)
-                        comp.genbank_reference_consrtm.append(f"{index+1}:" + reference.consrtm)
-                        comp.genbank_reference_medline_id.append(f"{index+1}:" + reference.medline_id)
-                        comp.genbank_reference_pubmed_id.append(f"{index+1}:" + reference.pubmed_id)
-                else:
-                    raise ValueError(f"The annotation `{annotation}` in the GenBank record `{record.id}`\n \
-                                        is not recognized as a standard annotation.")
-            # TODO: BioPython's parsing doesn't explicitly place a "locus" datafield?
-            # 13. GenBank Record Locus
 
-            comp.genbank_locus = record.name
             # TODO: Currently we use a fixed method of encoding (IUPAC)
             seq = sbol3.Sequence(
                 identity=record.name + "_sequence",
                 elements=str(record.seq.lower()),
-                encoding=SEQUENCE_ENCODING,
+                encoding=self.SEQUENCE_ENCODING,
             )
             doc.add(seq)
             comp.sequences = [seq]
+
+            # Setting properties for GenBank's extraneous properties not settable in any SBOL3 field.
+            self._store_extra_properties_in_sbol3(doc, comp, seq, record)
+
             if record.features:
                 comp.features = []
                 for gb_feat in record.features:
@@ -311,9 +288,18 @@ class GenBank_SBOL3_Converter:
         )
         # create logs dict to be returned as conversion status of the SBOL3 file provided
         logs: Dict[sbol3.TopLevel, bool] = {}
+        # create dict to link component with their respective Reference property objects
+        references: Dict[sbol3.Component, List[sbol3.CustomTopLevel]] = {}
+        for obj in doc.objects:  
+            if isinstance(obj, sbol3.CustomTopLevel) and obj.type_uri == self.CUSTOM_REFERENCE_PROPERTY_URI:
+                component_object = doc.find(str(obj.component))
+                if component_object and isinstance(component_object, sbol3.Component):
+                    references[component_object] = [obj] if component_object not in references else references[component_object] + [obj]
+                # TODO: Raise error here
+                # else:
         # create updated py dict to store mappings between gb and so ontologies
         map_created = self.create_GB_SO_role_mappings(
-            so2gb_csv=SO2GB_MAPPINGS_CSV, convert_gb2so=False
+            so2gb_csv=self.SO2GB_MAPPINGS_CSV, convert_gb2so=False
         )
         if not map_created:
             # TODO: Need better SBOL3-GenBank specific error classes in future
@@ -350,63 +336,8 @@ class GenBank_SBOL3_Converter:
                     name=obj.display_id,
                 )
                 # Resetting extraneous genbank properties from extended component-genbank class
-                # TODO: check if these fields are actually getting reset; apparently they are still using defaults
-                if isinstance(obj, self.Component_GenBank_Extension):
-                    seq_rec.id = obj.genbank_record_id
-                    # 1. GenBank Record Date
-                    seq_rec.annotations['date'] = obj.genbank_date
-                    # 2. GenBank Record Division
-                    seq_rec.annotations['data_file_division'] = obj.genbank_division
-                    # 3. GenBank Record Keywords
-                    seq_rec.annotations['keywords'] = sorted(list(obj.genbank_keywords))
-                    # 4. GenBank Record Molecule Type
-                    seq_rec.annotations['molecule_type'] = obj.genbank_molecule_type
-                    # 5. GenBank Record Organism
-                    seq_rec.annotations['organism'] = obj.genbank_organism
-                    # 6. GenBank Record Source
-                    # FIXME: Apparently, if a default source was used during in the GenBank file
-                    #        during conversion of GenBank -> SBOL, component.genbank_source is "", 
-                    #        and while plugging it back in during conversion of SBOL -> GenBank, it
-                    #        simply prints "", whereas the default "." should have been printed
-                    if obj.genbank_source != "": seq_rec.annotations['source'] = obj.genbank_source
-                    # 7. GenBank Record taxonomy
-                    # FIXME: Even though component.genbank_taxonomy is stored in sorted order, it 
-                    #        becomes unsorted while retrieving from the sbol file
-                    seq_rec.annotations['taxonomy'] = sorted(list(obj.genbank_taxonomy))
-                    # 8. GenBank Record Topology
-                    seq_rec.annotations['topology'] = obj.genbank_topology
-                    # 9. GenBank Record GI Property
-                    if obj.genbank_gi: seq_rec.annotations['gi'] = obj.genbank_gi
-                    # 10. GenBank Record Accessions
-                    seq_rec.annotations['accessions'] = sorted(list(obj.genbank_accessions))
-                    # 11. GenBank Sequence Version
-                    seq_rec.annotations['sequnce_version'] = obj.genbank_seq_version
-                    # 12. GenBank Record References
-                    record_references = []
-                    list(obj.genbank_reference_authors).sort(key=lambda value: value.split(":", 1)[0])
-                    list(obj.genbank_reference_comment).sort(key=lambda value: value.split(":", 1)[0])
-                    list(obj.genbank_reference_title).sort(key=lambda value: value.split(":", 1)[0])
-                    list(obj.genbank_reference_journal).sort(key=lambda value: value.split(":", 1)[0])
-                    list(obj.genbank_reference_consrtm).sort(key=lambda value: value.split(":", 1)[0])
-                    list(obj.genbank_reference_pubmed_id).sort(key=lambda value: value.split(":", 1)[0])
-                    list(obj.genbank_reference_medline_id).sort(key=lambda value: value.split(":", 1)[0])
-                    for index in range(len(obj.genbank_reference_journal)):
-                        reference = Reference()
-                        reference.authors = list(obj.genbank_reference_authors)[index].split(":", 1)[1]
-                        reference.comment = list(obj.genbank_reference_comment)[index].split(":", 1)[1]
-                        reference.journal = list(obj.genbank_reference_journal)[index].split(":", 1)[1]
-                        reference.title = list(obj.genbank_reference_title)[index].split(":", 1)[1]
-                        reference.consrtm = list(obj.genbank_reference_consrtm)[index].split(":", 1)[1]
-                        reference.medline_id = list(obj.genbank_reference_medline_id)[index].split(":", 1)[1]
-                        reference.pubmed_id = list(obj.genbank_reference_pubmed_id)[index].split(":", 1)[1]
-                        record_references.append(reference)
-                    seq_rec.annotations['references'] = record_references
-                # TODO: No explicit way to set locus via BioPython?
-                # 13. GenBank Record Locus
+                self._reset_extra_properties_in_genbank(obj, seq_rec, references)
 
-                # TODO: temporalily hardcoding version as "1"
-                # FIXME: Version still not being displayed on record's VERSION
-                seq_rec.annotations["sequence_version"] = self.DEFAULT_GB_SEQ_VERSION
                 seq_rec_features = []
                 if obj.features:
                     feat_order = {}
@@ -495,4 +426,163 @@ class GenBank_SBOL3_Converter:
             )
             SeqIO.write(seq_records, gb_file, "genbank")
         return {"status": logs, "seqrecords": seq_records}
+
+
+    def _store_extra_properties_in_sbol3(self, doc: sbol3.Document, comp: Component_GenBank_Extension, 
+                                       seq: sbol3.Sequence, record: SeqRecord) -> None:
+        """Helper function for setting properties for GenBank's extraneous properties not directly settable in any SBOL3 field,
+        by using a modified, extended SBOL3 Component class, and a new CustomReferenceProperty TopLevel class.
+        :param doc: The sbol3 document to store the contents in
+        :param comp: Instance of the extended SBOL3 Component class (Component_GenBank_Extension)
+        :param seq: The Sequence used in the GenBank record corresponding to sbol3 comp
+        :param record: GenBank SeqRecord instance for the record which contains extra properties
+        """
+        comp.genbank_record_id = record.id
+        for annotation in record.annotations:
+            # Sending out warnings for genbank info not storeable in sbol3
+            logging.warning(
+                f"Extraneous information not directly storeable in SBOL3 - {annotation}: {record.annotations[annotation]}"
+            )
+            # 1. GenBank Record Date
+            if annotation == 'date':
+                comp.genbank_date = record.annotations['date']
+            # 2. GenBank Record Division
+            elif annotation == 'data_file_division':
+                comp.genbank_division = record.annotations['data_file_division']
+            # 3. GenBank Record Keywords
+            elif annotation == 'keywords':
+                comp.genbank_keywords = sorted(record.annotations['keywords'])
+            # 4. GenBank Record Molecule Type
+            elif annotation == 'molecule_type':
+                comp.genbank_molecule_type = record.annotations['molecule_type']
+            # 5. GenBank Record Organism
+            elif annotation == 'organism':
+                comp.genbank_organism = record.annotations['organism']
+            # 6. GenBank Record Source
+            elif annotation == 'source':
+                comp.genbank_source = record.annotations['source']
+            # 7. GenBank Record Taxonomy
+            elif annotation == 'taxonomy':
+                comp.genbank_taxonomy = ",".join(record.annotations['taxonomy'])
+            # 8. GenBank Record Topology
+            elif annotation == 'topology':
+                comp.genbank_topology = record.annotations['topology']
+            # 9. GenBank Record GI Property
+            elif annotation == 'gi':
+                comp.genbank_gi = record.annotations['gi']
+            # 10. GenBank Record Accessions
+            elif annotation == 'accessions':
+                comp.genbank_accessions = sorted(record.annotations['accessions'])
+            # 11. GenBank Sequence Version
+            elif annotation == 'sequence_version':
+                comp.genbank_seq_version = record.annotations['sequence_version']
+            # 12. GenBank Record References
+            elif annotation == 'references':
+                for ind, reference in enumerate(record.annotations['references']):
+                    # create a custom reference property instance for each reference
+                    custom_reference = self.CustomReferenceProperty(identity = comp.identity + f"/Reference_{ind}")
+                    custom_reference.authors = reference.authors
+                    custom_reference.comment = reference.comment
+                    custom_reference.journal = reference.journal
+                    custom_reference.title = reference.title
+                    custom_reference.consrtm = reference.consrtm
+                    custom_reference.medline_id = reference.medline_id
+                    custom_reference.pubmed_id = reference.pubmed_id
+                    for gb_loc in reference.location:
+                        feat_loc_orientation = sbol3.SO_FORWARD
+                        if gb_loc.strand == -1:
+                            feat_loc_orientation = sbol3.SO_REVERSE
+                        if gb_loc.start == gb_loc.end:
+                            locs = sbol3.Cut(sequence=seq, at=int(gb_loc.start), orientation=feat_loc_orientation)
+                        else:
+                            locs = sbol3.Range(sequence=seq, start=int(gb_loc.start), end=int(gb_loc.end), orientation=feat_loc_orientation)
+                        custom_reference.location.append(locs)
+                    # link the parent component for each custom reference property objects
+                    if comp.display_id:
+                        custom_reference.component = comp.display_id
+                    # TODO: Raise error, no name for component
+                    # else:
+                    doc.add(custom_reference)
+            else:
+                raise ValueError(f"The annotation `{annotation}` in the GenBank record `{record.id}`\n \
+                                    is not recognized as a standard annotation.")
+        # TODO: BioPython's parsing doesn't explicitly place a "locus" datafield?
+        # 13. GenBank Record Locus
+        comp.genbank_locus = record.name
+
+
+    def _reset_extra_properties_in_genbank(self, obj: sbol3.Component, seq_rec: SeqRecord, references: Dict[sbol3.Component, List[sbol3.CustomTopLevel]]) -> None:
+        """Helper function for resetting properties for GenBank's extraneous properties from SBOL3 Document's properties,
+        by using a modified, extended SBOL3 Component class, and a new CustomReferenceProperty TopLevel class.
+        :param obj: SBOL3 component, extra properties would be stored within it if its an instance of the extended SBOL3 Component class
+        :param seq_rec: GenBank SeqRecord instance for the record in which to reset extra properties
+        :param references: Dictionary linking SBOL3 components to their respective list of CustomReferenceProperty objects
+        """
+        if isinstance(obj, self.Component_GenBank_Extension):
+            seq_rec.id = obj.genbank_record_id
+            # 1. GenBank Record Date
+            seq_rec.annotations['date'] = obj.genbank_date
+            # 2. GenBank Record Division
+            seq_rec.annotations['data_file_division'] = obj.genbank_division
+            # 3. GenBank Record Keywords
+            seq_rec.annotations['keywords'] = sorted(list(obj.genbank_keywords))
+            # 4. GenBank Record Molecule Type
+            seq_rec.annotations['molecule_type'] = obj.genbank_molecule_type
+            # 5. GenBank Record Organism
+            seq_rec.annotations['organism'] = obj.genbank_organism
+            # 6. GenBank Record Source
+            # FIXME: Apparently, if a default source was used during in the GenBank file
+            #        during conversion of GenBank -> SBOL, component.genbank_source is "", 
+            #        and while plugging it back in during conversion of SBOL -> GenBank, it
+            #        simply prints "", whereas the default "." should have been printed
+            if obj.genbank_source != "": seq_rec.annotations['source'] = obj.genbank_source
+            # 7. GenBank Record taxonomy
+            # TODO : link gh issue for note below
+            # FIXME: Even though component.genbank_taxonomy is stored in sorted order, it 
+            #        becomes unsorted while retrieving from the sbol file
+            if obj.genbank_taxonomy: seq_rec.annotations['taxonomy'] = str(obj.genbank_taxonomy).split(",")
+            # 8. GenBank Record Topology
+            seq_rec.annotations['topology'] = obj.genbank_topology
+            # 9. GenBank Record GI Property
+            if obj.genbank_gi: seq_rec.annotations['gi'] = obj.genbank_gi
+            # 10. GenBank Record Accessions
+            seq_rec.annotations['accessions'] = sorted(list(obj.genbank_accessions))
+            # 11. GenBank Sequence Version
+            seq_rec.annotations['sequnce_version'] = obj.genbank_seq_version
+            # 12. GenBank Record References
+            if obj in references:
+                # if sbol3 object has references
+                record_references = []
+                for reference in references[obj]:
+                    reference_object = Reference()
+                    reference_object.authors = reference.authors
+                    reference_object.comment = reference.comment
+                    reference_object.journal = reference.journal
+                    reference_object.title = reference.title
+                    reference_object.consrtm = reference.consrtm
+                    reference_object.medline_id = reference.medline_id
+                    reference_object.pubmed_id = reference.pubmed_id
+                    for obj_feat_loc in reference.location:
+                        feat_strand = self.BIO_STRAND_FORWARD
+                        # feature strand value which denotes orientation of the location of the feature
+                        # By default its 1 for SO_FORWARD orientation of sbol3 feature location, and -1 for SO_REVERSE
+                        if obj_feat_loc.orientation == sbol3.SO_REVERSE:
+                            feat_strand = self.BIO_STRAND_REVERSE
+                        # elif obj_feat_loc.orientation != sbol3.SO_FORWARD:
+                        #     raise ValueError(f"Location orientation: `{obj_feat_loc.orientation}` for feature: \n \
+                        #     `{obj_feat.name}` of component: `{obj.display_id}` is not a valid orientation.\n \
+                        #     Valid orientations are `{sbol3.SO_FORWARD}`, `{sbol3.SO_REVERSE}`")
+                        # TODO: Raise custom converter class ERROR for `else:`
+                        feat_loc_object = FeatureLocation(
+                            start=obj_feat_loc.start,
+                            end=obj_feat_loc.end,
+                            strand=feat_strand,
+                        )
+                        reference_object.location.append(feat_loc_object)
+                    record_references.append(reference_object)
+                seq_rec.annotations['references'] = record_references
+        # TODO: No explicit way to set locus via BioPython?
+        # 13. GenBank Record Locus
+        # TODO: temporalily hardcoding version as "1"
+        seq_rec.annotations["sequence_version"] = self.DEFAULT_GB_SEQ_VERSION
 
