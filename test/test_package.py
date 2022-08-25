@@ -8,6 +8,7 @@ import sbol3
 
 from sbol_utilities import package
 from sbol_utilities.helper_functions import sbol3_namespace
+from sbol_utilities.package import PackageError
 from sbol_utilities.sbol_diff import doc_diff, file_diff
 
 TEST_FILES = Path(__file__).parent / 'test_files'
@@ -229,24 +230,40 @@ class TestPackage(unittest.TestCase):
             self.assertEqual((tempdir / 'e9325cfb11264f3c300f592e33c97c04.nt').as_uri(),
                              p.attachments[0].lookup().source)
 
-    def test_package_loader(self):
+    def test_package_validation(self):
         """Test that package system can load packages and verify integrity of the load"""
 
         # Does not contain specified package
-        with self.assertRaises(ValueError) as cm:
+        with self.assertRaises(PackageError) as cm:
             package.load_package('https://synbiohub.org/public/', TEST_FILES / 'BBa_J23101_package.nt')
         self.assertTrue(str(cm.exception).startswith('Cannot find package https://synbiohub.org/public/package'))
+
         # object isn't a package
-        with self.assertRaises(ValueError) as cm:
+        with self.assertRaises(PackageError) as cm:
             package.load_package('https://synbiohub.org/public/BBa_J23101', TEST_FILES / 'BBa_J23101_bad_package.nt')
         msg = 'Object <Component https://synbiohub.org/public/BBa_J23101/package> is not a Package'
         self.assertTrue(str(cm.exception).startswith(msg))
+
         # Package has the wrong namespace
-        with self.assertRaises(ValueError) as cm:
+        with self.assertRaises(PackageError) as cm:
             package.load_package('https://synbiohub.org/public/igem', TEST_FILES / 'BBa_J23101_bad_package.nt')
-        print(str(cm.exception))
-        msg = 'Object <Package https://synbiohub.org/public/igem/package> should have namespace ' \
+        msg = 'Package https://synbiohub.org/public/igem/package should have namespace ' \
               'https://synbiohub.org/public/igem but found https://synbiohub.org'
+        self.assertTrue(str(cm.exception).startswith(msg))
+
+        # Package is missing members
+        with self.assertRaises(PackageError) as cm:
+            package.load_package('https://synbiohub.org/public/igem2', TEST_FILES / 'BBa_J23101_bad_package.nt')
+        msg = 'Package https://synbiohub.org/public/igem2 was missing listed members: ' \
+              '[\'https://synbiohub.org/public/igem/BBa_J23101_not_here\']'
+        self.assertTrue(str(cm.exception).startswith(msg))
+
+        # Package has unaccounted for objects
+        with self.assertRaises(PackageError) as cm:
+            package.load_package('https://synbiohub.org/public/igem3', TEST_FILES / 'BBa_J23101_bad_package.nt')
+        msg = 'Package https://synbiohub.org/public/igem3 contains unexpected members: ' \
+              '[\'https://synbiohub.org/public/BBa_J23101/package\', \'https://synbiohub.org/public/igem/package\', ' \
+              '\'https://synbiohub.org/public/igem2/package\']'
         self.assertTrue(str(cm.exception).startswith(msg))
 
     def test_cross_document_lookup(self):
