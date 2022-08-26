@@ -9,6 +9,7 @@ import openpyxl
 import tyto
 
 from .helper_functions import toplevel_named, strip_sbol2_version, is_plasmid, url_to_identity, strip_filetype_suffix
+from .package import package_id, sep_054
 from .workarounds import type_to_standard_extension
 
 BASIC_PARTS_COLLECTION = 'BasicParts'
@@ -26,6 +27,8 @@ def expand_configuration(values: dict) -> dict:
     # set up the default values
     default_values = {
         'basic_sheet': 'Basic Parts',
+        'package_namespace': 'B8',
+        'package_imports': 'B9',
         'basic_parts_name': 'B1',
         'basic_parts_description': 'A11',
         'basic_first_row': 20,
@@ -76,12 +79,14 @@ def read_metadata(wb: openpyxl.Workbook, doc: sbol3.Document, config: dict):
     :param wb: Excel workbook to extract material from
     :param doc: SBOL document to build collections in
     :param config: dictionary of sheet parsing configuration variables
-    :return: Tuple of SBOL collections for basic, composite, linear, and final parts
+    :return: Tuple of SBOL collections for basic, composite, linear, and final parts, plus sources and package
     """
     # Read the metadata
     ws_b = wb[config['basic_sheet']]
     bp_name = ws_b[config['basic_parts_name']].value
     bp_description = ws_b[config['basic_parts_description']].value
+    package_namespace = ws_b[config['package_namespace']].value
+    package_imports = ws_b[config['package_imports']].value
 
     ws_c = wb[config['composite_sheet']]
     if config['composite_parts_name']:
@@ -90,6 +95,13 @@ def read_metadata(wb: openpyxl.Workbook, doc: sbol3.Document, config: dict):
     else:
         cp_name = bp_name
         cp_description = bp_description
+
+    # Make the stub package - must be done first to set namespace
+    package = None
+    if package_namespace:
+        package = sep_054.Package(package_id(package_namespace), conversion=False)
+        sbol3.set_namespace(package_namespace)
+        # TODO: parse and add package imports
 
     # Make the collections
     basic_parts = sbol3.Collection(BASIC_PARTS_COLLECTION, name=bp_name, description=bp_description)
@@ -112,7 +124,7 @@ def read_metadata(wb: openpyxl.Workbook, doc: sbol3.Document, config: dict):
                     if row[config['source_literal_col']].value}
 
     # return the set of created collections
-    return basic_parts, composite_parts, linear_products, final_products, source_table
+    return basic_parts, composite_parts, linear_products, final_products, source_table, package
 
 
 def row_to_basic_part(doc: sbol3.Document, row, basic_parts: sbol3.Collection, linear_products: sbol3.Collection,
@@ -431,7 +443,8 @@ def excel_to_sbol(wb: openpyxl.Workbook, config: dict = None) -> sbol3.Document:
     doc = sbol3.Document()
 
     logging.info('Reading metadata for collections')
-    basic_parts, composite_parts, linear_products, final_products, source_table = read_metadata(wb, doc, config)
+    basic_parts, composite_parts, linear_products, final_products, source_table, package \
+        = read_metadata(wb, doc, config)
 
     logging.info('Reading basic parts')
     for row in wb[config['basic_sheet']].iter_rows(min_row=config['basic_first_row']):
@@ -455,6 +468,13 @@ def excel_to_sbol(wb: openpyxl.Workbook, config: dict = None) -> sbol3.Document:
     logging.info(f'Created {len(composite_parts.members)} composite parts or libraries')
 
     logging.info(f'Count {len(basic_parts.members)} basic parts, {len(composite_parts.members)} composites/libraries')
+    # Add all parts as members of the document package
+    if package:
+        # TODO: separate out dissociated package imports
+        package.members = doc.objects
+        doc.add(package)
+
+    # Final step: validate the document
     report = doc.validate()
     logging.info(f'Validation of document found {len(report.errors)} errors and {len(report.warnings)} warnings')
     return doc
@@ -466,10 +486,11 @@ def main():
     """
     parser = argparse.ArgumentParser()
     parser.add_argument('excel_file', help="Excel file used as input")
+    # TODO: remove deprecated arguments when package system is fully implemented
     parser.add_argument('-n', '--namespace', dest='namespace',
-                        help="Namespace for Components in output file")
+                        help="Namespace for Components in output file; DEPRECATED in favor of package system")
     parser.add_argument('-l', '--local', dest='local', default=None,
-                        help="Local path for Components in output file")
+                        help="Local path for Components in output file; DEPRECATED in favor of package system")
     parser.add_argument('-o', '--output', dest='output_file', default='out',
                         help="Name of SBOL file to be written")
     parser.add_argument('-t', '--file-type', dest='file_type', default=sbol3.SORTED_NTRIPLES,
@@ -487,8 +508,8 @@ def main():
     excel_file = args_dict['excel_file']
     extension = type_to_standard_extension[file_type]
     outfile_name = output_file if output_file.endswith(extension) else output_file+extension
+    # TODO: remove namespace settings when package system is fully implemented
     sbol3.set_namespace(args_dict['namespace'])
-    # TODO: unkludge after resolution of https://github.com/SynBioDex/pySBOL3/issues/288
     if args_dict['local']:
         sbol3.set_namespace(f"{args_dict['namespace']}/{args_dict['local']}")
 

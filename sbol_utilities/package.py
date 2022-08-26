@@ -214,7 +214,7 @@ def doc_to_package(doc: sbol3.Document) -> sep_054.Package:
 
     # Create and return the Package object
     with sbol3_namespace(package_namespace):
-        return sep_054.Package('package', members=doc.objects)
+        return sep_054.Package('package', members=doc.objects, conversion=False)
 
 
 def check_prefix(root_package: sep_054.Package, sub_package: sep_054.Package):
@@ -311,6 +311,15 @@ def get_prefix(package_list):
     return prefix
 
 
+def package_id(namespace: str) -> str:
+    """Get the standard identity for a Package object from the package's namespace
+
+    :param namespace: URI for the namespace
+    :return: URI for the package object
+    """
+    return urljoin(f'{namespace}/', 'package')
+
+
 # TODO: consider moving this to an SEP 054 class
 @dataclass
 class LoadedPackage:
@@ -382,7 +391,7 @@ class PackageManager:
         # TODO: extract validation as a separate function
 
         # Make sure there is a copy of the package object in the package:
-        package_object_uri = urljoin(f'{namespace}/', 'package')
+        package_object_uri = package_id(namespace)
         package = doc.find(package_object_uri)
         if not package:
             raise PackageError(f'Cannot find package {package_object_uri} in SBOL document {from_path}')

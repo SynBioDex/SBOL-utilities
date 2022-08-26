@@ -4,9 +4,10 @@ from pathlib import Path
 import tempfile
 import shutil
 
+import openpyxl
 import sbol3
 
-from sbol_utilities import package
+from sbol_utilities import package, excel_to_sbol
 from sbol_utilities.helper_functions import sbol3_namespace
 from sbol_utilities.package import PackageError
 from sbol_utilities.sbol_diff import doc_diff, file_diff
@@ -25,6 +26,7 @@ class TestPackage(unittest.TestCase):
         out_doc = sbol3.Document()
         out_01 = package.doc_to_package(doc_01)
         out_doc.add(out_01)
+        self.assertTrue(not out_doc.validate().errors and not out_doc.validate().warnings)
 
         # Compare it to the saved results file, make sure they are the same
         expected = sbol3.Document()
@@ -51,6 +53,7 @@ class TestPackage(unittest.TestCase):
         # Write a temporary file
         doc = sbol3.Document()
         doc.add(out_02)
+        self.assertTrue(not doc.validate().errors and not doc.validate().warnings)
         tmp_out = tempfile.mkstemp(suffix='.nt')[1]
         doc.write(tmp_out, sbol3.SORTED_NTRIPLES)
 
@@ -282,6 +285,21 @@ class TestPackage(unittest.TestCase):
 
         c = doc.find('qux')
         self.assertEqual('https://synbiohub.org/public/igem/BBa_J23101_sequence', c.sequences[0].lookup().identity)
+
+    def test_packaged_excel(self):
+        """Basic smoke test of Excel to SBOL3 conversion"""
+        wb = openpyxl.load_workbook(os.path.join(TEST_FILES, 'packaged_library_no_dissociated.xlsx'), data_only=True)
+        doc = excel_to_sbol.excel_to_sbol(wb)
+        # Make sure package is valid
+        self.assertTrue(not doc.validate().errors and not doc.validate().warnings)
+        # check that the package has all the expected members
+        # 17 basic parts + 15 sequences + 1 composites + 1x4 CombDev/BB (4)c + 4 product collections = 41
+        self.assertEqual(41, len(doc.find('package').members))
+
+        # Write it out and make sure we can import as a package
+        temp_name = tempfile.mkstemp(suffix='.nt')[1]
+        doc.write(temp_name, sbol3.SORTED_NTRIPLES)
+        package.load_package('https://test.org/mypackage', temp_name)
 
 
 if __name__ == '__main__':
