@@ -669,6 +669,8 @@ def digestion(reactant:sbol3.Component, restriction_enzymes:List[sbol3.Externall
         # check digested_reactant
         prefix, part_extract, suffix = digested_reactant
     else: raise NotImplementedError('The reactant has no valid topology type')
+    # Compute the lenth of single strand sticky ends or fusion sites
+    digested_reactant_5_prime_ss_strand, digested_reactant_5_prime_ss_end = digested_reactant.five_prime_end()
     # Extracting roles from features
     reactant_features_roles = []
     for f in reactant.features:
@@ -676,16 +678,22 @@ def digestion(reactant:sbol3.Component, restriction_enzymes:List[sbol3.Externall
              reactant_features_roles.append(r)
     # if part
     if any(n==tyto.SO.engineered_insert for n in reactant_features_roles):
-        product_sequence = part_extract.seq
-        prod_comp, prod_seq = dna_component_with_sequence(identity=f'{reactant.name}_part_extract', sequence=str(product_sequence))
+        product_sequence = str(part_extract.seq)
+        prod_comp, prod_seq = dna_component_with_sequence(identity=f'{reactant.name}_part_extract', sequence=product_sequence) #str(product_sequence))
         # add sticky ends features
+        five_prime_fusion_site_location = sbol3.Range(sequence=product_sequence, start=1, end=dropout_location[0]+fusion_site_length, order=1)
+        three_prime_fusion_site_location = sbol3.Range(sequence=product_sequence, start=dropout_location[1]-fusion_site_length, end=dropout_location[1], order=3)
+        insertion_sites_feature = sbol3.SequenceFeature(locations=[insertion_site_location1, insertion_site_location2], roles=[tyto.SO.insertion_site])
+    
     # if backbone
     elif any(n==tyto.SO.deletion for n in reactant_features_roles):
-        product_sequence = backbone.seq
-        prod_comp, prod_seq = dna_component_with_sequence(identity=f'{reactant.name}_backbone', sequence=str(product_sequence))
+        product_sequence = str(backbone.seq)
+        prod_comp, prod_seq = dna_component_with_sequence(identity=f'{reactant.name}_backbone', sequence=product_sequence) #str(product_sequence))
         # add sticky ends features
         # add recognition site features
     else: raise NotImplementedError('The reactant has no valid roles')
+
+    #
 
     # Create reactant Participation.
     react_subcomp = sbol3.SubComponent(reactant)
@@ -702,4 +710,92 @@ def digestion(reactant:sbol3.Component, restriction_enzymes:List[sbol3.Externall
     interaction = sbol3.Interaction(types=[tyto.SBO.cleavage], participations=participations)
     assembly_plan.interactions.append(interaction)
                     
+    return prod_comp, prod_seq
+
+def ligation(reactants:List[sbol3.Component], assembly_plan:sbol3.Component)-> Tuple[sbol3.Component, sbol3.Sequence]:
+    """Ligates Components using base complementarity and creates a product Component and a ligation Interaction.
+
+    :param reactant: DNA to be ligated as SBOL Component. 
+    :return: A tuple of Component and Interaction.
+    """
+    five_prime_overhangs = []
+    three_prime_overhangs = []
+    for reactant in reactants:
+        flank_control = [0,0]
+        for feature in reactant.features:
+            if feature.role == sbol3.SO.restriction_enzyme_five_prime_single_strand_overhang:
+                five_prime_overhangs.append(feature)
+                flank_control[0] = 1
+            elif feature.role == sbol3.SO.restriction_enzyme_three_prime_single_strand_overhang:
+                three_prime_overhangs.append(feature)
+                flank_control[1] = 1
+
+        if flank_control == [1,1]:
+            pass
+        elif flank_control == [0,0]:
+            raise ValueError(f"No flanking single strand found in reactant {reactant.identity}")
+        elif flank_control == [1,0]:
+            raise ValueError(f"No flanking single strand found in 3 prime end on reactant {reactant.identity}")
+        elif flank_control == [0,1]:
+            raise ValueError(f"No flanking single strand found in 5 prime end on reactant {reactant.identity}")
+        else:
+            raise ValueError(f"Flanking single strand does not match recognized format on reactant {reactant.identity}")
+    
+    fusion_site_length = 4 # placeholder, get from reactant information
+    # TODO: build graph and fing all different paths or using structural pattern matching    
+    # build graph
+    assembly_graph = nx.Graph()
+    for reactant in reactants:
+        assembly_graph.add_node(reactant)
+    for a,b in itertools.combinations(reactants,2):
+        reactant_a_sequence = a.sequences[0].lookup().elements
+        reactant_b_sequence = b.sequences[0].lookup().elements
+        if reactant_a_sequence[-fusion_site_length:] == reactant_b_sequence[:fusion_site_length]:
+            assembly_graph.add_edge(a,b, {'fusion_site':reactant_a_sequence[-fusion_site_length:]})
+        if reactant_a_sequence[:fusion_site_length-1] == reactant_b_sequence[-fusion_site_length:]:
+            assembly_graph.add_edge(a,b, {'fusion_site':reactant_b_sequence[:fusion_site_length-1]})
+    # find all paths that leads to an assembly product
+
+
+    # TODO: breadth search for all paths
+    '''
+    parts_to_combine = {reactants}
+    terminal_parts = set()
+    while parts_to_combine:
+        next_part = parts_to_combine.pop()
+        new_parts = find all combinations that can be made with elements in parts_to_combine
+        if new_parts:
+            add new_parts to parts_to_combine
+        else:
+            terminal_parts.add(next_part)
+    '''
+    pending_reactants= {reactants}
+    alignments = []
+    closed = False
+    five_prime_end = False
+    three_prime_end = False
+
+    while pending_reactants:
+        if not alignments:
+            alignments.append([pending_reactants.pop()])
+
+        for alignment in alignments:
+            #5 prime end
+            for reactant in reactants:
+                if alignment[0].sequences[0].lookup().elements[:fusion_site_length-1] == reactant.sequences[0].lookup().elements[-fusion_site_length:]:
+                # repleace alignment with an uppdated version of the form [reactant, alignment[0]]
+                    pass
+                if alignment[0].sequences[0].lookup().elements[-fusion_site_length:] == reactant.sequences[0].lookup().elements[:fusion_site_length-1]:
+                # repleace alignment with an uppdated version of the form [alignment[0], reactant]    
+                    pass
+                # if no match mark as terminal part
+                # if start fusion site == end fusion site mark as closed
+            # remove used reactants from pending_reactants
+
+    #create preceed constrain
+    #create composite part or part in backbone
+    #add interactions to assembly_plan
+
+    prod_comp = 'to do'
+    prod_seq = 'to do'
     return prod_comp, prod_seq

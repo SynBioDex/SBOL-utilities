@@ -364,3 +364,10 @@ def is_circular(obj: Union[sbol3.Component, sbol3.LocalSubComponent, sbol3.Exter
     :return: true if circular
     """    
     return any(n==sbol3.SO_CIRCULAR for n in obj.types)
+
+def is_linear(obj: Union[sbol3.Component, sbol3.LocalSubComponent, sbol3.ExternallyDefined]) -> bool:
+    """Check if an SBOL Component or Feature is linear.
+    :param obj: design to be checked
+    :return: true if linear
+    """    
+    return any(n==sbol3.SO_LINEAR for n in obj.types)    
