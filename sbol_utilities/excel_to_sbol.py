@@ -3,13 +3,14 @@ import warnings
 import logging
 import re
 import argparse
+from urllib.parse import urlparse
 
 import sbol3
 import openpyxl
 import tyto
 
 from .helper_functions import toplevel_named, strip_sbol2_version, is_plasmid, url_to_identity, strip_filetype_suffix
-from .package import package_id, sep_054
+from .package import package_id, sep_054, load_package, lookup
 from .workarounds import type_to_standard_extension
 
 BASIC_PARTS_COLLECTION = 'BasicParts'
@@ -86,7 +87,11 @@ def read_metadata(wb: openpyxl.Workbook, doc: sbol3.Document, config: dict):
     bp_name = ws_b[config['basic_parts_name']].value
     bp_description = ws_b[config['basic_parts_description']].value
     package_namespace = ws_b[config['package_namespace']].value
-    package_imports = ws_b[config['package_imports']].value
+    raw_package_imports = ws_b[config['package_imports']].value
+    # TODO: change imports to include relative imports and aliasing
+    package_imports = list()
+    if raw_package_imports:
+        package_imports = [s.strip() for s in str(raw_package_imports).split(',')]
 
     ws_c = wb[config['composite_sheet']]
     if config['composite_parts_name']:
@@ -101,7 +106,11 @@ def read_metadata(wb: openpyxl.Workbook, doc: sbol3.Document, config: dict):
     if package_namespace:
         package = sep_054.Package(package_id(package_namespace), conversion=False)
         sbol3.set_namespace(package_namespace)
-        # TODO: parse and add package imports
+        # TODO: nicknames for package imports, versions
+        for p in package_imports:
+            loaded = load_package(p)
+            # TODO: identify subpackage dependencies from the difference in import vs. loaded namespace
+            package.dependencies.append(sep_054.Dependency(package=p))
 
     # Make the collections
     basic_parts = sbol3.Collection(BASIC_PARTS_COLLECTION, name=bp_name, description=bp_description)
@@ -238,14 +247,19 @@ def unresolved_subparts(doc: sbol3.Document, row, config):
 # get the part specifications until they stop
 def part_specifications(row, config):
     return (cell.value for cell in row[config['composite_first_part_col']:] if cell.value)
+
 def partname_to_part(doc: sbol3.Document, name_or_display_id: str):
-    """Look up a part by its displayID or its name, searching first by displayID, then by name
+    """Look up a part by its URI, displayID, or name, searching first by URI, then displayID, then name
+    URIs may be cross-package references. A displayID or name must be local
 
     :param doc: SBOL document to search
     :param name_or_display_id: string to look up
     :return: object if found, None if not
     """
-    return doc.find(name_or_display_id) or toplevel_named(doc,name_or_display_id)
+    if urlparse(name_or_display_id).scheme:
+        # TODO: add aliases to allow name-based lookup as well as URI-based lookup
+        return lookup(name_or_display_id)
+    return doc.find(name_or_display_id) or toplevel_named(doc, name_or_display_id)
 
 ###############################################################
 # Functions for making composites, combinatorials, and libraries
@@ -301,7 +315,7 @@ def make_combinatorial_derivation(document, display_id,part_lists,reverse_comple
     for part_list,rc in zip(part_lists,reverse_complements):
         # it's a variable if there are multiple values or if there's a single value that's a combinatorial derivation
         if len(part_list)>1 or not isinstance(part_list[0],sbol3.Component):
-            sub = sbol3.LocalSubComponent({sbol3.SBO_DNA}) # make a template variable
+            sub = sbol3.LocalSubComponent([sbol3.SBO_DNA]) # make a template variable
             sub.name = "Part "+str(len(template_part_list)+1)
             template.features.append(sub)
             var = sbol3.VariableFeature(cardinality=sbol3.SBOL_ONE, variable=sub)

@@ -341,7 +341,9 @@ class PackageManager:
          from namespace to the collection of loaded information"""
         self._catalog_file = self._catalog_directory / PACKAGE_CATALOG_NAME
         # Catalog of available packages, and document it was drawn from
-        self.package_catalog, self._package_catalog_doc = PackageManager._load_package_catalog(self._catalog_file)
+        package_catalog, self._package_catalog_doc = PackageManager._load_package_catalog(self._catalog_file)
+        self.package_catalog = package_catalog
+        """Dictionary mapping namespace strings to Package objects, each with its file as an Attachment"""
 
     @staticmethod
     def _load_package_catalog(catalog_file: Path) -> tuple[dict[str, sep_054.Package], sbol3.Document]:
@@ -375,14 +377,37 @@ class PackageManager:
         # Add the package and save the catalog
         self._package_catalog_doc.add([package, attachment])
         self._save_package_catalog()
+        self.package_catalog[package.namespace] = package
         logging.info('Successfully installed package %s', package.identity)
 
-    def load_package(self, namespace, from_path):
-        doc = sbol3.Document()
-        # TODO: switch to trying to get the path from the catalog, converting file URI to path per the following:
-        # from urllib.parse import unquote, urlparse
-        # from_path = unquote(urlparse(uri).path)
-        doc.read(str(from_path))
+    def load_package(self, namespace: str, from_path: Optional[Union[Path, str]] = None,
+                     doc: Optional[sbol3.Document] = None) -> sep_054.Package:
+        """Ensure that the package with the designated URI is loaded.
+        By default, attempts to load from the package catalog, overridden if from_path or doc is provided.
+        If the package is already loaded, it will not be reloaded.
+        TODO: load subpackage from package
+
+        :param namespace: namespace for package
+        :param from_path: if set and package is not loaded, load from the provided path. doc must be None.
+        :param doc: if set, use doc as a source for a not-loaded package
+        :return: Package object that satisfies the load request
+        :raises PackageError: if the package cannot be loaded or does not validate
+        """
+        # If already loaded, return package
+        if namespace in self.loaded_packages:
+            return self.loaded_packages[namespace].package
+        # If not loaded, determine and/or load document for package:
+        if from_path and doc:
+            raise PackageError('load_package must not be given both a path and a Document')
+        if from_path:
+            doc = sbol3.Document()
+            doc.read(str(from_path))
+        elif not doc:
+            raise NotImplementedError('load_package is not yet accessing catalog')
+            # TODO: switch to trying to get the path from the catalog, converting file URI to path per the following:
+            # from urllib.parse import unquote, urlparse
+            # from_path = unquote(urlparse(uri).path)
+
         # TODO: get the package object too - URI should come from package
         # Per SEP 054, a package build artifact should include its Package object, Package contents, and any
         # dissociated dependencies
@@ -412,9 +437,10 @@ class PackageManager:
         if object_ids:
             raise PackageError(f'Package {namespace} contains unexpected members: {sorted(object_ids.keys())}')
 
-        self.loaded_packages[namespace] = LoadedPackage(None, doc)
+        self.loaded_packages[namespace] = LoadedPackage(package, doc, Path(from_path))
+        return self.loaded_packages[namespace].package
 
-    def find_package_doc(self, uri: ReferencedURI) -> Optional[sbol3.Document]:
+    def find_package_doc(self, uri: Union[ReferencedURI, str]) -> Optional[sbol3.Document]:
         last_uri = None
         uri = str(uri)
         while uri and uri != last_uri:
@@ -424,29 +450,50 @@ class PackageManager:
             uri = uri.rsplit('/', maxsplit=1)[0]
         return None
 
-    def lookup(self, uri: ReferencedURI):
+    def lookup(self, uri: Union[ReferencedURI, str]) -> Optional[sbol3.Identified]:
+        """Look up an SBOL object by querying the loaded package with the matching prefix
+
+        :param uri: identity to look up
+        :return: SBOL object, if found
+        """
         # TODO: figure out how lookup will work for dissociated packages
         package_doc = self.find_package_doc(uri)
         if package_doc:
             return package_doc.find(str(uri))
         else:
-            return None
+            raise PackageError(f'No loaded package has a namespace that contains {uri}')
 
 
 ACTIVE_PACKAGE_MANAGER = PackageManager()
 """Package manager in use, initialized with default settings"""
 
 
-def load_package(uri, from_path):
-    ACTIVE_PACKAGE_MANAGER.load_package(uri, from_path)
+def load_package(namespace: str, from_path: Optional[Union[Path, str]] = None, doc: Optional[sbol3.Document] = None) \
+        -> sep_054.Package:
+    """Ensure that the package with the designated URI is loaded.
+    By default, attempts to load from the package catalog, overridden if from_path or doc is provided.
+    If the package is already loaded, it will not be reloaded.
+    TODO: load subpackage from package
+
+    :param namespace: Identity of package
+    :param from_path: if set and package is not loaded, load from the provided path. doc must be None.
+    :param doc: if set, use doc as a source for a not-loaded package
+    :return: Package object that satisfies the load request
+    :raises PackageError: if the package cannot be loaded or does not validate
+    """
+    return ACTIVE_PACKAGE_MANAGER.load_package(namespace, from_path, doc)
 
 
 def install_package(package: sep_054.Package, doc: sbol3.Document):
     ACTIVE_PACKAGE_MANAGER.install_package(package, doc)
 
 
+def lookup(uri: Union[ReferencedURI, str]):
+    return ACTIVE_PACKAGE_MANAGER.lookup(uri)
+
+
 #################
-# Replace ReferencedURI lookup function with package-aware lookup:
+# Replace ReferencedURI lookup function and Document find functions with package-aware lookup:
 original_referenced_uri_lookup = sbol3.refobj_property.ReferencedURI.lookup
 
 

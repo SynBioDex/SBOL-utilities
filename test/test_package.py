@@ -1,5 +1,6 @@
 import unittest
 import os
+from contextlib import contextmanager
 from pathlib import Path
 import tempfile
 import shutil
@@ -13,6 +14,18 @@ from sbol_utilities.package import PackageError
 from sbol_utilities.sbol_diff import doc_diff, file_diff
 
 TEST_FILES = Path(__file__).parent / 'test_files'
+
+
+@contextmanager
+def temporary_package_manager(**kwargs) -> package.PackageManager:
+    """For ease of testing, create a context manager for clean package loading environments
+
+    :return: temporary package manager
+    """
+    saved = package.ACTIVE_PACKAGE_MANAGER
+    package.ACTIVE_PACKAGE_MANAGER = package.PackageManager(**kwargs)
+    yield package.ACTIVE_PACKAGE_MANAGER
+    package.ACTIVE_PACKAGE_MANAGER = saved
 
 
 class TestPackage(unittest.TestCase):
@@ -217,57 +230,62 @@ class TestPackage(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir_name:
             tempdir = Path(temp_dir_name)
             # create a temporary package manager for testing
-            package.ACTIVE_PACKAGE_MANAGER = package.PackageManager(tempdir)
-            # make and install a miniature package
-            doc = sbol3.Document()
-            doc.read(str(TEST_FILES / 'BBa_J23101.nt'))
-            p = package.doc_to_package(doc)
-            package.install_package(p, doc)
-            # check that the files that are created look like what is expected
-            self.assertEqual(2, len(list(tempdir.iterdir())))
-            self.assertFalse(file_diff(TEST_FILES / 'BBa_J23101.nt', tempdir / 'e9325cfb11264f3c300f592e33c97c04.nt'))
-            catalog_doc = sbol3.Document()
-            catalog_doc.read(str(tempdir / 'package-catalog.nt'))
-            self.assertEqual(2, len(catalog_doc.objects))
-            p = catalog_doc.find('https://synbiohub.org/package')
-            self.assertEqual((tempdir / 'e9325cfb11264f3c300f592e33c97c04.nt').as_uri(),
-                             p.attachments[0].lookup().source)
+            with temporary_package_manager(catalog_directory=tempdir) as pm:
+                # make and install a miniature package
+                doc = sbol3.Document()
+                doc.read(str(TEST_FILES / 'BBa_J23101.nt'))
+                p = package.doc_to_package(doc)
+                package.install_package(p, doc)
+                # check that package manager has the right contents
+                self.assertEqual(len(pm.package_catalog), 1)
+                self.assertTrue('https://synbiohub.org' in pm.package_catalog)
+                # check that the files that are created look like what is expected
+                self.assertEqual(2, len(list(tempdir.iterdir())))
+                self.assertFalse(file_diff(TEST_FILES / 'BBa_J23101.nt',
+                                           tempdir / 'e9325cfb11264f3c300f592e33c97c04.nt'))
+                catalog_doc = sbol3.Document()
+                catalog_doc.read(str(tempdir / 'package-catalog.nt'))
+                self.assertEqual(2, len(catalog_doc.objects))
+                p = catalog_doc.find('https://synbiohub.org/package')
+                self.assertEqual((tempdir / 'e9325cfb11264f3c300f592e33c97c04.nt').as_uri(),
+                                 p.attachments[0].lookup().source)
 
     def test_package_validation(self):
         """Test that package system can load packages and verify integrity of the load"""
+        with temporary_package_manager():
+            # Does not contain specified package
+            with self.assertRaises(PackageError) as cm:
+                package.load_package('https://synbiohub.org/public/', TEST_FILES / 'BBa_J23101_package.nt')
+            self.assertTrue(str(cm.exception).startswith('Cannot find package https://synbiohub.org/public/package'))
 
-        # Does not contain specified package
-        with self.assertRaises(PackageError) as cm:
-            package.load_package('https://synbiohub.org/public/', TEST_FILES / 'BBa_J23101_package.nt')
-        self.assertTrue(str(cm.exception).startswith('Cannot find package https://synbiohub.org/public/package'))
+            # object isn't a package
+            with self.assertRaises(PackageError) as cm:
+                package.load_package('https://synbiohub.org/public/BBa_J23101', TEST_FILES/'BBa_J23101_bad_package.nt')
+            msg = 'Object <Component https://synbiohub.org/public/BBa_J23101/package> is not a Package'
+            self.assertTrue(str(cm.exception).startswith(msg))
 
-        # object isn't a package
-        with self.assertRaises(PackageError) as cm:
-            package.load_package('https://synbiohub.org/public/BBa_J23101', TEST_FILES / 'BBa_J23101_bad_package.nt')
-        msg = 'Object <Component https://synbiohub.org/public/BBa_J23101/package> is not a Package'
-        self.assertTrue(str(cm.exception).startswith(msg))
+            # Package has the wrong namespace
+            with self.assertRaises(PackageError) as cm:
+                package.load_package('https://synbiohub.org/public/igem', TEST_FILES / 'BBa_J23101_bad_package.nt')
+            msg = 'Package https://synbiohub.org/public/igem/package should have namespace ' \
+                  'https://synbiohub.org/public/igem but found https://synbiohub.org'
+            self.assertTrue(str(cm.exception).startswith(msg))
 
-        # Package has the wrong namespace
-        with self.assertRaises(PackageError) as cm:
-            package.load_package('https://synbiohub.org/public/igem', TEST_FILES / 'BBa_J23101_bad_package.nt')
-        msg = 'Package https://synbiohub.org/public/igem/package should have namespace ' \
-              'https://synbiohub.org/public/igem but found https://synbiohub.org'
-        self.assertTrue(str(cm.exception).startswith(msg))
+            # Package is missing members
+            with self.assertRaises(PackageError) as cm:
+                package.load_package('https://synbiohub.org/public/igem2', TEST_FILES / 'BBa_J23101_bad_package.nt')
+            msg = 'Package https://synbiohub.org/public/igem2 was missing listed members: ' \
+                  '[\'https://synbiohub.org/public/igem/BBa_J23101_not_here\']'
+            self.assertTrue(str(cm.exception).startswith(msg))
 
-        # Package is missing members
-        with self.assertRaises(PackageError) as cm:
-            package.load_package('https://synbiohub.org/public/igem2', TEST_FILES / 'BBa_J23101_bad_package.nt')
-        msg = 'Package https://synbiohub.org/public/igem2 was missing listed members: ' \
-              '[\'https://synbiohub.org/public/igem/BBa_J23101_not_here\']'
-        self.assertTrue(str(cm.exception).startswith(msg))
-
-        # Package has unaccounted for objects
-        with self.assertRaises(PackageError) as cm:
-            package.load_package('https://synbiohub.org/public/igem3', TEST_FILES / 'BBa_J23101_bad_package.nt')
-        msg = 'Package https://synbiohub.org/public/igem3 contains unexpected members: ' \
-              '[\'https://synbiohub.org/public/BBa_J23101/package\', \'https://synbiohub.org/public/igem/package\', ' \
-              '\'https://synbiohub.org/public/igem2/package\']'
-        self.assertTrue(str(cm.exception).startswith(msg))
+            # Package has unaccounted for objects
+            with self.assertRaises(PackageError) as cm:
+                package.load_package('https://synbiohub.org/public/igem3', TEST_FILES / 'BBa_J23101_bad_package.nt')
+            msg = 'Package https://synbiohub.org/public/igem3 contains unexpected members: ' \
+                  '[\'https://synbiohub.org/public/BBa_J23101/package\', ' \
+                  '\'https://synbiohub.org/public/igem/package\', ' \
+                  '\'https://synbiohub.org/public/igem2/package\']'
+            self.assertTrue(str(cm.exception).startswith(msg))
 
     def test_cross_document_lookup(self):
         """Test that package system correctly overrides the document lookup function to enable cross-package lookups"""
@@ -277,18 +295,34 @@ class TestPackage(unittest.TestCase):
         # A catalog is stored in Path.home() / ".sip" / "installed-packages.nt"
         # iGEM materials are stored in Path.home() / ".sip" / "igem"
         # sbol_utilities.package.load_package('igem')
-        package.load_package('https://synbiohub.org/public/igem', TEST_FILES / 'BBa_J23101_package.nt')
-        doc = sbol3.Document()
-        with sbol3_namespace('http://foo.bar/baz'):
-            doc.add(sbol3.Component('qux', sbol3.SBO_DNA,
-                                    sequences=['https://synbiohub.org/public/igem/BBa_J23101_sequence']))
+        with temporary_package_manager():
+            p = package.load_package('https://synbiohub.org/public/igem', TEST_FILES / 'BBa_J23101_package.nt')
+            # make sure loading is idempotent
+            self.assertEqual(p, package.load_package('https://synbiohub.org/public/igem'))
+            doc = sbol3.Document()
+            good_id = 'https://synbiohub.org/public/igem/BBa_J23101_sequence'
+            bad_id = 'https://synbiohub.org/public/igem/BBa_J23101_notexist'
+            bad_package = 'https://badpackage/not_exist'
+            with sbol3_namespace('http://foo.bar/baz'):
+                doc.add(sbol3.Component('qux', sbol3.SBO_DNA, sequences=[good_id, bad_id, bad_package]))
 
-        c = doc.find('qux')
-        self.assertEqual('https://synbiohub.org/public/igem/BBa_J23101_sequence', c.sequences[0].lookup().identity)
+            c = doc.find('qux')
+            # check for successful cross-document lookup
+            self.assertEqual(good_id, c.sequences[0].lookup().identity)
+            self.assertEqual(good_id, package.lookup(c.sequences[0]).identity)
+            # check for appropriate handling of failed lookups
+            self.assertEqual(None, c.sequences[1].lookup())
+            self.assertEqual(None, package.lookup(bad_id))
+            with self.assertRaises(PackageError) as cm:
+                c.sequences[2].lookup()
+            self.assertTrue(str(cm.exception).startswith('No loaded package has a namespace that contains'))
+        # make sure temporary package manager operated cleanly
+        p2 = package.load_package('https://synbiohub.org/public/igem', TEST_FILES / 'BBa_J23101_package.nt')
+        self.assertNotEqual(p, p2)
 
     def test_packaged_excel(self):
-        """Basic smoke test of Excel to SBOL3 conversion"""
-        wb = openpyxl.load_workbook(os.path.join(TEST_FILES, 'packaged_library_no_dissociated.xlsx'), data_only=True)
+        """Basic smoke test of Excel to SBOL3 conversion with a package"""
+        wb = openpyxl.load_workbook(TEST_FILES / 'packaged_library_no_dissociated.xlsx', data_only=True)
         doc = excel_to_sbol.excel_to_sbol(wb)
         # Make sure package is valid
         self.assertTrue(not doc.validate().errors and not doc.validate().warnings)
@@ -299,7 +333,34 @@ class TestPackage(unittest.TestCase):
         # Write it out and make sure we can import as a package
         temp_name = tempfile.mkstemp(suffix='.nt')[1]
         doc.write(temp_name, sbol3.SORTED_NTRIPLES)
-        package.load_package('https://test.org/mypackage', temp_name)
+        with temporary_package_manager():
+            package.load_package('https://test.org/mypackage', temp_name)
+
+    def test_excel_imports(self):
+        """Excel to SBOL3 conversion including a package dependency"""
+        with temporary_package_manager():
+            # convert base package:
+            wb = openpyxl.load_workbook(TEST_FILES / 'packaged_library_no_dissociated.xlsx', data_only=True)
+            doc = excel_to_sbol.excel_to_sbol(wb)
+            temp_name = tempfile.mkstemp(suffix='.nt')[1]
+            doc.write(temp_name, sbol3.SORTED_NTRIPLES)
+            package.load_package('https://test.org/mypackage', temp_name)
+
+            # convert package with dependency
+            wb = openpyxl.load_workbook(TEST_FILES / 'second_library.xlsx', data_only=True)
+            doc = excel_to_sbol.excel_to_sbol(wb)
+            # Make sure package is valid
+            self.assertTrue(not doc.validate().errors and not doc.validate().warnings)
+            # check that the package has all the expected members
+            # 7 basic parts + 7 sequences + 1x2 CombDev + 4 product collections = 20
+            self.assertEqual(20, len(doc.find('package').members))
+            # Check that the package has the expected dependency
+            self.assertEqual(['https://test.org/mypackage'], [str(d.package) for d in doc.find('package').dependencies])
+
+            # Write it out and make sure we can import as a package
+            temp_name = tempfile.mkstemp(suffix='.nt')[1]
+            doc.write(temp_name, sbol3.SORTED_NTRIPLES)
+            package.load_package('https://test.org/second_library', temp_name)
 
 
 if __name__ == '__main__':
