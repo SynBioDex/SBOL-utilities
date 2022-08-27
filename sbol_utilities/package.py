@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from hashlib import sha256
 from pathlib import Path
 from typing import Union, Optional
-from urllib.parse import urlparse, urljoin
+from urllib.parse import urlparse, urljoin, unquote
 
 from sbol3.refobj_property import ReferencedURI
 from sbol_factory import SBOLFactory
@@ -403,10 +403,21 @@ class PackageManager:
             doc = sbol3.Document()
             doc.read(str(from_path))
         elif not doc:
-            raise NotImplementedError('load_package is not yet accessing catalog')
+            try:
+                package = self.package_catalog[namespace]
+                if len(package.attachments) != 1:
+                    raise PackageError(f'Catalog links package {namespace} to {len(package.attachments)} files, not 1')
+                file_uri = package.attachments[0].lookup().source
+                from_path = unquote(urlparse(file_uri).path)
+                doc = sbol3.Document()
+                try:
+                    doc.read(str(from_path))
+                except Exception as e:
+                    raise PackageError(f'Unable to read package document {from_path}') from e
+            except KeyError:
+                raise PackageError(f'Cannot find package {namespace} in catalog')
             # TODO: switch to trying to get the path from the catalog, converting file URI to path per the following:
             # from urllib.parse import unquote, urlparse
-            # from_path = unquote(urlparse(uri).path)
 
         # TODO: get the package object too - URI should come from package
         # Per SEP 054, a package build artifact should include its Package object, Package contents, and any

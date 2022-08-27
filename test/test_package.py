@@ -17,14 +17,16 @@ TEST_FILES = Path(__file__).parent / 'test_files'
 
 
 @contextmanager
-def temporary_package_manager(**kwargs) -> package.PackageManager:
+def temporary_package_manager() -> package.PackageManager:
     """For ease of testing, create a context manager for clean package loading environments
 
     :return: temporary package manager
     """
     saved = package.ACTIVE_PACKAGE_MANAGER
-    package.ACTIVE_PACKAGE_MANAGER = package.PackageManager(**kwargs)
-    yield package.ACTIVE_PACKAGE_MANAGER
+    with tempfile.TemporaryDirectory() as temp_dir_name:
+        tempdir = Path(temp_dir_name)
+        package.ACTIVE_PACKAGE_MANAGER = package.PackageManager(catalog_directory=tempdir)
+        yield package.ACTIVE_PACKAGE_MANAGER
     package.ACTIVE_PACKAGE_MANAGER = saved
 
 
@@ -230,7 +232,7 @@ class TestPackage(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir_name:
             tempdir = Path(temp_dir_name)
             # create a temporary package manager for testing
-            with temporary_package_manager(catalog_directory=tempdir) as pm:
+            with temporary_package_manager() as pm:
                 # make and install a miniature package
                 doc = sbol3.Document()
                 doc.read(str(TEST_FILES / 'BBa_J23101.nt'))
@@ -342,9 +344,9 @@ class TestPackage(unittest.TestCase):
             # convert base package:
             wb = openpyxl.load_workbook(TEST_FILES / 'packaged_library_no_dissociated.xlsx', data_only=True)
             doc = excel_to_sbol.excel_to_sbol(wb)
-            temp_name = tempfile.mkstemp(suffix='.nt')[1]
-            doc.write(temp_name, sbol3.SORTED_NTRIPLES)
-            package.load_package('https://test.org/mypackage', temp_name)
+            # Install package, allowing it to be implicitly loaded
+            # TODO: change install package to pull package from doc instead? Or namespace?
+            package.install_package(doc.find('https://test.org/mypackage/package'), doc)
 
             # convert package with dependency
             wb = openpyxl.load_workbook(TEST_FILES / 'second_library.xlsx', data_only=True)
