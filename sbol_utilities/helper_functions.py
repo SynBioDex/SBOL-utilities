@@ -115,6 +115,7 @@ def cached_references(doc: sbol3.Document) -> Generator[dict[str, sbol3.Identifi
 
 def find_child(ref: ReferencedURI, cache: Optional[dict[str, sbol3.Identified]] = None):
     """Look up a child object; if it is not found, raise an exception
+    This explicitly does not include package-aware cross-document references, which should not apply to child objects
 
     :param ref: reference to look up
     :param cache: optional cache of identities to speed lookup
@@ -140,7 +141,8 @@ def find_child(ref: ReferencedURI, cache: Optional[dict[str, sbol3.Identified]] 
         # TypeError probably means the cache object is not subscriptable.
         # Ignore the error and fall through to a lookup below.
         pass
-    child = ref.lookup()
+    # Check only within the current document, i.e., not a package-aware lookup
+    child = ref.parent.document.find(str(ref))
     if not child:
         raise ChildNotFound(f'Could not find child object in document: {ref}')
     elif isinstance(child, sbol3.TopLevel):
@@ -149,7 +151,8 @@ def find_child(ref: ReferencedURI, cache: Optional[dict[str, sbol3.Identified]] 
 
 
 def find_top_level(ref: ReferencedURI, cache: Optional[dict[str, sbol3.Identified]] = None):
-    """Look up a top-level object; if it is not found, raise an exception
+    """Look up a top-level object in the local document; if it is not found, raise an exception
+    This explicitly does not include package-aware cross-document references
 
     :param ref: reference to look up
     :param cache: optional cache of identities to speed lookup
@@ -175,7 +178,8 @@ def find_top_level(ref: ReferencedURI, cache: Optional[dict[str, sbol3.Identifie
         # TypeError probably means the cache object is not subscriptable.
         # Ignore the error and fall through to a lookup below.
         pass
-    top_level = ref.lookup()
+    # Check only within the current document, i.e., not a package-aware lookup
+    top_level = ref.parent.document.find(str(ref))
     if not top_level:
         raise TopLevelNotFound(f'Could not find top-level object in document: {ref}')
     elif not isinstance(top_level, sbol3.TopLevel):

@@ -229,28 +229,27 @@ class TestPackage(unittest.TestCase):
             shutil.rmtree(out_path, ignore_errors=True)
 
     def test_install_package(self):
-        with tempfile.TemporaryDirectory() as temp_dir_name:
-            tempdir = Path(temp_dir_name)
-            # create a temporary package manager for testing
-            with temporary_package_manager() as pm:
-                # make and install a miniature package
-                doc = sbol3.Document()
-                doc.read(str(TEST_FILES / 'BBa_J23101.nt'))
-                p = package.doc_to_package(doc)
-                package.install_package(p, doc)
-                # check that package manager has the right contents
-                self.assertEqual(len(pm.package_catalog), 1)
-                self.assertTrue('https://synbiohub.org' in pm.package_catalog)
-                # check that the files that are created look like what is expected
-                self.assertEqual(2, len(list(tempdir.iterdir())))
-                self.assertFalse(file_diff(TEST_FILES / 'BBa_J23101.nt',
-                                           tempdir / 'e9325cfb11264f3c300f592e33c97c04.nt'))
-                catalog_doc = sbol3.Document()
-                catalog_doc.read(str(tempdir / 'package-catalog.nt'))
-                self.assertEqual(2, len(catalog_doc.objects))
-                p = catalog_doc.find('https://synbiohub.org/package')
-                self.assertEqual((tempdir / 'e9325cfb11264f3c300f592e33c97c04.nt').as_uri(),
-                                 p.attachments[0].lookup().source)
+        # create a temporary package manager for testing
+        with temporary_package_manager() as pm:
+            # make and install a miniature package
+            doc = sbol3.Document()
+            doc.read(str(TEST_FILES / 'BBa_J23101.nt'))
+            p = package.doc_to_package(doc)
+            package.install_package(p, doc)
+            # check that package manager has the right contents
+            self.assertEqual(len(pm.package_catalog), 1)
+            self.assertTrue('https://synbiohub.org' in pm.package_catalog)
+            # check that the files that are created look like what is expected
+            catalog_dir = pm._catalog_directory
+            self.assertEqual(2, len(list(catalog_dir.iterdir())))
+            self.assertFalse(file_diff(TEST_FILES / 'BBa_J23101.nt',
+                                       catalog_dir / 'e9325cfb11264f3c300f592e33c97c04.nt'))
+            catalog_doc = sbol3.Document()
+            catalog_doc.read(str(catalog_dir / 'package-catalog.nt'))
+            self.assertEqual(2, len(catalog_doc.objects))
+            p = catalog_doc.find('https://synbiohub.org/package')
+            self.assertEqual((catalog_dir / 'e9325cfb11264f3c300f592e33c97c04.nt').as_uri(),
+                             p.attachments[0].lookup().source)
 
     def test_package_validation(self):
         """Test that package system can load packages and verify integrity of the load"""
