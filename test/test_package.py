@@ -254,7 +254,7 @@ class TestPackage(unittest.TestCase):
     def test_fat_package(self):
         """Test installation, loading, and validation of a package that contains sub-packages"""
         # create a temporary package manager for testing
-        with temporary_package_manager() as pm:
+        with temporary_package_manager():
             # make and install a package with a sub-package
             doc = sbol3.Document()
             doc.read(str(TEST_FILES / 'MyPackage' / 'package_in_01.nt'))
@@ -263,6 +263,7 @@ class TestPackage(unittest.TestCase):
             doc2.read(str(TEST_FILES / 'MyPackage' / 'promoters' / 'package_in_02.nt'))
             p2 = package.doc_to_package(doc2)
             sbol3.copy(doc2.objects, into_document=doc)  # fatten the package with included sub-package
+            # TODO: add a dependency witha  different namespace
             p.subpackages.append(p2)
             package.install_package(p.namespace, doc)
 
@@ -313,22 +314,23 @@ class TestPackage(unittest.TestCase):
 
             # Package has unaccounted for objects
             with self.assertRaises(PackageError) as cm:
-                package.load_package('https://synbiohub.org/public/igem3', TEST_FILES / 'BBa_J23101_bad_package.nt')
+                package.load_package('https://synbiohub.org/public/igem3', TEST_FILES / 'BBa_J23101_bad_package2.nt')
             self.assertTrue(str(cm.exception).startswith(wrap_msg))
             msg = 'Package https://synbiohub.org/public/igem3 contains unexpected TopLevel objects: ' \
-                  '[\'https://synbiohub.org/public/BBa_J23101/package\', ' \
-                  '\'https://synbiohub.org/public/igem/package\', ' \
-                  '\'https://synbiohub.org/public/igem2/package\']'
+                  '[\'https://synbiohub.org/public/BBa_J23101\']'
             self.assertTrue(str(cm.exception.__context__).startswith(msg))
+
+            # Package document has unexpected embedded packages
+            with self.assertRaises(PackageError) as cm:
+                package.load_package('https://synbiohub.org/public/igem2', TEST_FILES / 'BBa_J23101_bad_package3.nt')
+            self.assertTrue(str(cm.exception).startswith(wrap_msg))
+            msg = 'Document embeds packages not referred to from root: [\'https://synbiohub.org/public/igem/package\', ' \
+                  '\'https://synbiohub.org/public/igem3/package\']'
+            self.assertTrue(str(cm.exception.__context__).startswith(msg))
+
 
     def test_cross_document_lookup(self):
         """Test that package system correctly overrides the document lookup function to enable cross-package lookups"""
-        # What I want for a load pattern:
-        # sip install root-package-dir
-        # Materials will be stored in Path.home() / ".sip"
-        # A catalog is stored in Path.home() / ".sip" / "installed-packages.nt"
-        # iGEM materials are stored in Path.home() / ".sip" / "igem"
-        # sbol_utilities.package.load_package('igem')
         with temporary_package_manager():
             p = package.load_package('https://synbiohub.org/public/igem', TEST_FILES / 'BBa_J23101_package.nt')
             # make sure loading is idempotent
@@ -393,7 +395,6 @@ class TestPackage(unittest.TestCase):
             wb = openpyxl.load_workbook(TEST_FILES / 'packaged_library_no_dissociated.xlsx', data_only=True)
             doc = excel_to_sbol.excel_to_sbol(wb)
             # Install package, allowing it to be implicitly loaded
-            # TODO: change install package to pull package from doc instead? Or namespace?
             package.install_package('https://test.org/mypackage/', doc)
 
             # convert package with dependency
@@ -410,6 +411,7 @@ class TestPackage(unittest.TestCase):
             # Write it out and make sure we can import as a package
             temp_name = tempfile.mkstemp(suffix='.nt')[1]
             doc.write(temp_name, sbol3.SORTED_NTRIPLES)
+            print(temp_name)
             package.load_package('https://test.org/second_library', temp_name)
 
 
