@@ -4,6 +4,7 @@ import itertools
 from collections.abc import Generator
 from contextlib import contextmanager
 from typing import Iterable, Union, Optional, Callable
+from urllib.parse import urlparse
 
 import sbol3
 from rdflib import URIRef
@@ -39,6 +40,17 @@ def flatten(collection: Iterable[list]) -> list:
 def id_sort(i: iter):
     """Sort a collection of SBOL objects and/or URIs by identity URI"""
     return sorted(i, key=lambda x: x.identity if isinstance(x, sbol3.Identified) else x)
+
+
+def same_namespace(namespace1: str, namespace2: str) -> bool:
+    """Check whether two namespaces are the equivalent
+
+    :param namespace1:
+    :param namespace2:
+    :return: true if identities are equivalent
+    """
+    # Namespaces are equivalent if they are the same except a possible ending path separator
+    return namespace1.rstrip('/') == namespace2.rstrip('/')
 
 
 def build_reference_cache(doc: sbol3.Document) -> dict[str, sbol3.Identified]:
