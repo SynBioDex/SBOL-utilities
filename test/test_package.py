@@ -10,7 +10,7 @@ import sbol3
 
 from sbol_utilities import package, excel_to_sbol
 from sbol_utilities.helper_functions import sbol3_namespace
-from sbol_utilities.package import PackageError
+from sbol_utilities.package import PackageError, sep_054
 from sbol_utilities.sbol_diff import doc_diff, file_diff
 
 TEST_FILES = Path(__file__).parent / 'test_files'
@@ -252,25 +252,48 @@ class TestPackage(unittest.TestCase):
             self.assertEqual((catalog_dir / _HASH_NAME).as_uri(), p.attachments[0].lookup().source)
 
     def test_fat_package(self):
-        """Test installation, loading, and validation of a package that contains sub-packages"""
-        # create a temporary package manager for testing
-        with temporary_package_manager():
-            # make and install a package with a sub-package
+        """Test installation, loading, and validation of a package that contains sub-packages and dependencies"""
+        with temporary_package_manager():  # create a temporary package manager for testing
+            # make and install a package with a sub-package & dependency
             doc = sbol3.Document()
             doc.read(str(TEST_FILES / 'MyPackage' / 'package_in_01.nt'))
             p = package.doc_to_package(doc)
+            # add the sub-package
             doc2 = sbol3.Document()
             doc2.read(str(TEST_FILES / 'MyPackage' / 'promoters' / 'package_in_02.nt'))
             p2 = package.doc_to_package(doc2)
-            sbol3.copy(doc2.objects, into_document=doc)  # fatten the package with included sub-package
-            # TODO: add a dependency witha  different namespace
             p.subpackages.append(p2)
+            sbol3.copy(doc2.objects, into_document=doc)  # fatten the package with included sub-package
+            # add a dependency with a different namespace
+            doc3 = sbol3.Document()
+            doc3.read(str(TEST_FILES / 'BBa_J23101_package_namespace.nt'))
+            p3 = package.doc_to_package(doc3)
+            p.dependencies.append(sep_054.Dependency(package=p3))
+            sbol3.copy(doc3.objects, into_document=doc)  # fatten the package with included dependency
             package.install_package(p.namespace, doc)
 
             # check that we can load the package and get materials from both package and subpackage
             package.load_package(p.namespace)
             self.assertIsNotNone(package.lookup('https://example.org/MyPackage/E0040'))
             self.assertIsNotNone(package.lookup('https://example.org/MyPackage/promoters/J364007'))
+            self.assertIsNotNone(package.lookup('https://synbiohub.org/public/igem/BBa_J23101'))
+
+            # Make sure we catch embedded package conflicts
+            doc4 = sbol3.Document()
+            doc4.read(str(TEST_FILES / 'MyPackage' / 'repressors' / 'package_in_03.nt'))
+            p4 = package.doc_to_package(doc4)
+            # add the same dependency
+            p4.dependencies.append(sep_054.Dependency(package=p3))
+            sbol3.copy(doc3.objects, into_document=doc4)  # fatten the package with duplicate dependency
+            package.install_package(p4.namespace, doc4)
+
+            with self.assertRaises(PackageError) as cm:
+                package.load_package(p4.namespace)
+            print(cm.exception)
+            msg = 'Embedded package would override already-loaded package: https://synbiohub.org/public/igem'
+            self.assertTrue(str(cm.exception).startswith(msg))
+
+
 
     def test_package_validation(self):
         """Test that package system can load packages and verify integrity of the load"""

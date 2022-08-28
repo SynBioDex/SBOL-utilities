@@ -479,8 +479,7 @@ class PackageManager:
         """Ensure that the package with the designated URI is loaded.
         By default, attempts to load from the package catalog, overridden if from_path or doc is provided.
         If the package is already loaded, it will not be reloaded.
-        Note that this will also load implicitly load any sub-packages that are embedded with the package
-        TODO: load dependencies from package
+        Note that this will also load implicitly load any embedded sub-packages and dependencies
 
         :param namespace: namespace for package
         :param from_path: if set and package is not loaded, load from the provided path. doc must be None.
@@ -515,13 +514,20 @@ class PackageManager:
             except KeyError:
                 raise PackageError(f'Cannot find package {namespace} in catalog')
 
-        # TODO: get the package object too - URI should come from package
+        # Validate package and collect its root Package object
         try:
             package = validate_package_document(namespace, doc)
         except PackageError as e:
             raise PackageError(f'Validation error while loading package {namespace} from file {from_path}') from e
 
-        self.loaded_packages[namespace] = LoadedPackage(package, doc, Path(from_path))
+        # add all embedded packages (including the root package) to the loaded package collect:
+        for p in _embedded_packages(package, doc):
+            if p.namespace in self.loaded_packages:
+                # TODO: allow multiple loading for dissociated packages
+                raise PackageError(f'Embedded package would override already-loaded package: {p.namespace} with root '
+                                   f'{namespace} from {from_path}')
+            self.loaded_packages[p.namespace] = LoadedPackage(p, doc, Path(from_path))
+        # return the root package:
         return self.loaded_packages[namespace].package
 
     def find_package_doc(self, uri: Union[ReferencedURI, str]) -> Optional[sbol3.Document]:
