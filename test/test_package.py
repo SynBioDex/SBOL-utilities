@@ -236,7 +236,6 @@ class TestPackage(unittest.TestCase):
             doc = sbol3.Document()
             doc.read(str(TEST_FILES / 'BBa_J23101_package_namespace.nt'))
             p = package.doc_to_package(doc)
-            doc.add(p)
             package.install_package(p.namespace, doc)
             # check that package manager has the right contents
             self.assertEqual(len(pm.package_catalog), 1)
@@ -252,6 +251,25 @@ class TestPackage(unittest.TestCase):
             p = catalog_doc.find('https://synbiohub.org/public/igem/package')
             self.assertEqual((catalog_dir / _HASH_NAME).as_uri(), p.attachments[0].lookup().source)
 
+    def test_fat_package(self):
+        """Test installation, loading, and validation of a package that contains sub-packages"""
+        # create a temporary package manager for testing
+        with temporary_package_manager() as pm:
+            # make and install a package with a sub-package
+            doc = sbol3.Document()
+            doc.read(str(TEST_FILES / 'MyPackage' / 'package_in_01.nt'))
+            p = package.doc_to_package(doc)
+            doc2 = sbol3.Document()
+            doc2.read(str(TEST_FILES / 'MyPackage' / 'promoters' / 'package_in_02.nt'))
+            p2 = package.doc_to_package(doc2)
+            sbol3.copy(doc2.objects, into_document=doc)  # fatten the package with included sub-package
+            p.subpackages.append(p2)
+            package.install_package(p.namespace, doc)
+
+            # check that we can load the package and get materials from both package and subpackage
+            package.load_package(p.namespace)
+            self.assertIsNotNone(package.lookup('https://example.org/MyPackage/E0040'))
+            self.assertIsNotNone(package.lookup('https://example.org/MyPackage/promoters/J364007'))
 
     def test_package_validation(self):
         """Test that package system can load packages and verify integrity of the load"""
@@ -282,14 +300,14 @@ class TestPackage(unittest.TestCase):
                 package.load_package('https://synbiohub.org/public/igem', TEST_FILES / 'BBa_J23101_bad_package.nt')
             self.assertTrue(str(cm.exception).startswith(wrap_msg))
             msg = 'Package https://synbiohub.org/public/igem/package should have namespace ' \
-                  'https://synbiohub.org/public/igem but found https://synbiohub.org'
+                  'https://synbiohub.org/public/igem but was https://synbiohub.org'
             self.assertTrue(str(cm.exception.__context__).startswith(msg))
 
             # Package is missing members
             with self.assertRaises(PackageError) as cm:
                 package.load_package('https://synbiohub.org/public/igem2', TEST_FILES / 'BBa_J23101_bad_package.nt')
             self.assertTrue(str(cm.exception).startswith(wrap_msg))
-            msg = 'Package https://synbiohub.org/public/igem2 was missing listed members: ' \
+            msg = 'Package https://synbiohub.org/public/igem2 missing listed members: ' \
                   '[\'https://synbiohub.org/public/igem/BBa_J23101_not_here\']'
             self.assertTrue(str(cm.exception.__context__).startswith(msg))
 
@@ -297,7 +315,7 @@ class TestPackage(unittest.TestCase):
             with self.assertRaises(PackageError) as cm:
                 package.load_package('https://synbiohub.org/public/igem3', TEST_FILES / 'BBa_J23101_bad_package.nt')
             self.assertTrue(str(cm.exception).startswith(wrap_msg))
-            msg = 'Package https://synbiohub.org/public/igem3 contains unexpected members: ' \
+            msg = 'Package https://synbiohub.org/public/igem3 contains unexpected TopLevel objects: ' \
                   '[\'https://synbiohub.org/public/BBa_J23101/package\', ' \
                   '\'https://synbiohub.org/public/igem/package\', ' \
                   '\'https://synbiohub.org/public/igem2/package\']'

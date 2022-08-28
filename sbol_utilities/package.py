@@ -66,6 +66,55 @@ class PackageError(Exception):
     """An error has occurred in the package system"""
 
 
+def validate_package_document(namespace: str, doc: sbol3.Document) -> sep_054.Package:
+    """Check that an SBOL Document is a valid representation of the named package. Specifically:
+    - The document must contain a Package object for the namespace
+    - Every member of the Package must be in the Document
+    - The Package objects for subpackages MAY be in the document; if they are, their members must be too.
+    - The Package objects for dependencies MAY be in the document; if they are, their members must be too.
+    - Every TopLevel object in the document MUST be part of this subpackage/dependency/member tree
+
+    :param namespace: namespace for the package represented by the document
+    :param doc: Document to be validated
+    :returns: Package object for the namespace, as found in document
+    :raises PackageError if validation fails
+    """
+    # TODO: allow raising of multiple exceptions, for better debugging
+    # Make sure there is a copy of the package object in the package:
+    package_object_uri = package_id(namespace)
+    package = doc.find(package_object_uri)
+    if not package:
+        raise PackageError(f'Cannot find Package in SBOL document: {package_object_uri}')
+    elif not isinstance(package, sep_054.Package):
+        raise PackageError(f'Object should be a Package, but is not: {package}')
+    elif not same_namespace(namespace, package.namespace):
+        raise PackageError(f'Package {package.identity} should have namespace {namespace} but was {package.namespace}')
+
+    # Make sure all package members and document contents are identical, following subpackage/dependency tree as needed
+    object_ids = {o.identity: o for o in doc.objects}
+    pending_packages = [package]
+    while pending_packages:
+        check_package = pending_packages.pop()
+        # check if any members are missing:
+        missing_members = {str(m) for m in check_package.members} - object_ids.keys()
+        if missing_members:
+            raise PackageError(f'Package {check_package.namespace} missing listed members: {sorted(missing_members)}')
+        # remove contents from less of objects to account for
+        del object_ids[check_package.identity]
+        for m in check_package.members:
+            del object_ids[str(m)]
+        # Look for sub-packages and dependencies, if included in document
+        for p in list(check_package.subpackages) + [d.package for d in check_package.dependencies]:
+            if str(p) in object_ids:  # if it's in the IDs, then it's in the document and not yet checked
+                pending_packages.append(object_ids[str(p)])
+
+    # if anything was left after walking tree, it's an unexpected member error:
+    if object_ids:
+        raise PackageError(f'Package {namespace} contains unexpected TopLevel objects: {sorted(object_ids.keys())}')
+
+    return package
+
+
 def get_package_directory(directory: Union[Path, str]) -> Path:
     """Return path to package directory, after ensuring it exists and has no subdirectories of its own.
 
@@ -97,15 +146,15 @@ def _ensure_leaf_subdirectory(directory: Path, leaf_name: str) -> Path:
     # Ensure that the package directory has no subdirectories
     leaf_sub_dirs = [s for s in os.scandir(leaf_path) if s.is_dir()]
     if len(leaf_sub_dirs):
-        raise ValueError(f'Package {directory}: {leaf_name} subdirectory should have no subdirectories, but found '
-                         f'{leaf_sub_dirs}')
+        raise PackageError(f'In package directory {directory}, subdirectory {leaf_name} should have no further '
+                           f'subdirectories, but found {leaf_sub_dirs}')
     return leaf_path
 
 
 def directory_to_package(directory: Union[Path, str]):
     # Check it is a package directory
     # Check that there is NOT a package directory
-    # TODO:
+    # TODO: consider refactor based on how catalog work turns out
 
     # Walk the tree from the bottom up
     for root, dirs, files in os.walk(directory, topdown=False):
@@ -197,10 +246,12 @@ def aggregate_subpackages(root_package: sep_054.Package, sub_package_list: list[
                              f'namespace {root_package.namespace}.')
 
 
-def doc_to_package(doc: sbol3.Document) -> sep_054.Package:
-    """Generate a package from the contents of a single SBOL document (ignoring  subpackages)
+def doc_to_package(doc: sbol3.Document, validate: bool = True) -> sep_054.Package:
+    """Transform an SBOL document into a package with no subpackages, adding Package to document
+    Requires that all TopLevel objects in the Document share the same namespace
 
     :param doc: SBOL document from which package should be generated
+    :param validate: if true, validate the document
     :returns: Package object
     """
     # Collect TopLevel object namespaces: if all are the same, that is the package namespace
@@ -215,7 +266,11 @@ def doc_to_package(doc: sbol3.Document) -> sep_054.Package:
 
     # Create and return the Package object
     with sbol3_namespace(package_namespace):
-        return sep_054.Package('package', members=doc.objects, conversion=False)
+        package = sep_054.Package('package', members=doc.objects, conversion=False)
+        doc.add(package)
+        if validate:
+            validate_package_document(package_namespace, doc)
+        return package
 
 
 def check_prefix(root_package: sep_054.Package, sub_package: sep_054.Package):
@@ -366,45 +421,6 @@ class PackageManager:
         hash_name = sha256(identity.encode()).hexdigest()[:PACKAGE_HASH_NAME_LENGTH]
         return f'{hash_name}.nt'
 
-    @staticmethod
-    def validate_package_document(namespace: str, doc: sbol3.Document) -> sep_054.Package:
-        """Check that an SBOL Document is a valid representation of the named package. Specifically:
-        - The document must contain a Package object for the namespace
-        - Every member of the Package must be in the Document
-        - The Package objects for subpackages MAY be in the document; if they are, their members must be too.
-        - The Package objects for dependencies MAY be in the document; if they are, their members must be too.
-        - Every TopLevel object in the document MUST be part of this subpackage/dependency/member tree
-
-        :param namespace: namespace for the package represented by the document
-        :param doc: Document to be validated
-        :returns: Package object for the namespace, as found in document
-        :raises PackageError if validation fails
-        """
-        # TODO: allow raising of multiple exceptions, for better debugging
-        # Make sure there is a copy of the package object in the package:
-        package_object_uri = package_id(namespace)
-        package = doc.find(package_object_uri)
-        if not package:
-            raise PackageError(f'Cannot find Package in SBOL document: {package_object_uri}')
-        elif not isinstance(package, sep_054.Package):
-            raise PackageError(f'Object should be a Package, but is not: {package}')
-        elif not same_namespace(namespace, package.namespace):
-            raise PackageError(f'Package {package.identity} should have namespace {namespace} but found {package.namespace}')
-
-        # Make sure all package members and document contents are identical
-        object_ids = {o.identity: o for o in doc.objects}
-        missing_members = {str(m) for m in package.members} - object_ids.keys()
-        if missing_members:
-            raise PackageError(f'Package {namespace} was missing listed members: {sorted(missing_members)}')
-        del object_ids[package.identity]
-        for m in package.members:
-            del object_ids[str(m)]
-        # TODO: subpackages may optionally be included in document - include this in validation
-        if object_ids:
-            raise PackageError(f'Package {namespace} contains unexpected members: {sorted(object_ids.keys())}')
-
-        return package
-
     def install_package(self, namespace: str, doc: sbol3.Document) -> sep_054.Package:
         """Install a package into the package catalog
 
@@ -416,7 +432,7 @@ class PackageManager:
         logging.info('Installing package %s', namespace)
         # First validate package document, making sure it will be OK for loading
         try:
-            package = self.validate_package_document(namespace, doc)
+            package = validate_package_document(namespace, doc)
         except PackageError as e:
             raise PackageError(f'Validation error while attempting to install package {namespace}') from e
 
@@ -487,7 +503,7 @@ class PackageManager:
         # TODO: extract validation as a separate function
 
         try:
-            package = self.validate_package_document(namespace, doc)
+            package = validate_package_document(namespace, doc)
         except PackageError as e:
             raise PackageError(f'Validation error while loading package {namespace} from file {from_path}') from e
 
