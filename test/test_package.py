@@ -388,8 +388,9 @@ class TestPackage(unittest.TestCase):
         """Test that package system correctly overrides the document lookup function to enable cross-package lookups"""
         with temporary_package_manager():
             p = package.load_package('https://synbiohub.org/public/igem', TEST_FILES / 'BBa_J23101_package.nt')
-            # make sure loading is idempotent
-            self.assertEqual(p, package.load_package('https://synbiohub.org/public/igem'))
+            # make sure loading is idempotent (i.e., it returns the existing load rather than reloading)
+            p2 = package.load_package('https://synbiohub.org/public/igem', TEST_FILES / 'BBa_J23101_package.nt')
+            self.assertEqual(p, p2)
             doc = sbol3.Document()
             good_id = 'https://synbiohub.org/public/igem/BBa_J23101_sequence'
             bad_id = 'https://synbiohub.org/public/igem/BBa_J23101_notexist'
