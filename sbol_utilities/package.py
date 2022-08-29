@@ -414,7 +414,7 @@ class PackageManager:
         # ensure catalog directory exists
         self._catalog_directory.mkdir(parents=True, exist_ok=True)
         # Track set of loaded packages
-        self.loaded_packages: dict[str, LoadedPackage] = dict()
+        self.loaded_packages: dict[str, Union[LoadedPackage, list[LoadedPackage]]] = dict()
         """Tracks the set of currently loaded packages (initially empty). It is a dictionary mapping
          from namespace to the collection of loaded information"""
         self._catalog_file = self._catalog_directory / PACKAGE_CATALOG_NAME
@@ -487,32 +487,42 @@ class PackageManager:
         :return: Package object that satisfies the load request
         :raises PackageError: if the package cannot be loaded or does not validate
         """
-        # If already loaded, return package
-        if namespace in self.loaded_packages:
-            return self.loaded_packages[namespace].package
-        # If not loaded, determine and/or load document for package:
         if from_path and doc:
             raise PackageError('load_package must not be given both a path and a Document')
+        elif from_path:  # convert str to Path if needed
+            from_path = Path(from_path)
+        elif not doc:  # get Path from catalog
+            try:
+                package = self.package_catalog[namespace]
+                if len(package.attachments) != 1:
+                    raise PackageError(f'Catalog links package {namespace} to {len(package.attachments)} files, not 1')
+                file_uri = package.attachments[0].lookup().source
+                from_path = Path(unquote(urlparse(file_uri).path))
+            except KeyError:
+                raise PackageError(f'Cannot find package {namespace} in catalog')
+
+        # If already loaded, return package
+        if namespace in self.loaded_packages:
+            loaded = self.loaded_packages[namespace]
+            if not isinstance(loaded, list):  # if not dissociated, there is just one
+                return loaded.package
+            else:  # for a dissociated package, check if there's already a copy from the same file/doc
+                matches = [lp for lp in loaded
+                           if (from_path and from_path == lp.source_file) or (doc and doc == lp.document)]
+                if len(matches):
+                    if len(matches) > 1:  # should never happen, since it should be prevented by other checks
+                        raise PackageError('Internal error: multiple matching dissociated packages for {namespace}')
+                    else:
+                        return matches[0].package
+                    # otherwise, this is a new dissociated fragment, and can be returned independently
+
+        # If being obtained from a path, load document:
         if from_path:
             try:
                 doc = sbol3.Document()
                 doc.read(str(from_path))
             except OSError as e:
                 raise PackageError(f'Could not read package {namespace} from {str(from_path)}') from e
-        elif not doc:
-            try:
-                package = self.package_catalog[namespace]
-                if len(package.attachments) != 1:
-                    raise PackageError(f'Catalog links package {namespace} to {len(package.attachments)} files, not 1')
-                file_uri = package.attachments[0].lookup().source
-                from_path = unquote(urlparse(file_uri).path)
-                doc = sbol3.Document()
-                try:
-                    doc.read(str(from_path))
-                except Exception as e:
-                    raise PackageError(f'Unable to read package document {from_path}') from e
-            except KeyError:
-                raise PackageError(f'Cannot find package {namespace} in catalog')
 
         # Validate package and collect its root Package object
         try:
@@ -522,20 +532,38 @@ class PackageManager:
 
         # add all embedded packages (including the root package) to the loaded package collect:
         for p in _embedded_packages(package, doc):
-            if p.namespace in self.loaded_packages:
-                # TODO: allow multiple loading for dissociated packages
-                raise PackageError(f'Embedded package would override already-loaded package: {p.namespace} with root '
-                                   f'{namespace} from {from_path}')
-            self.loaded_packages[p.namespace] = LoadedPackage(p, doc, Path(from_path))
+            if p.dissociated:  # dissociated packages can have multiple fragments loaded, track as a list
+                if p.namespace not in self.loaded_packages:
+                    self.loaded_packages[p.namespace] = list()
+                elif not isinstance(self.loaded_packages[p.namespace], list):
+                    raise PackageError(f'Cannot combine dissociated and non-dissociated packages for {p.namespace}')
+                # TODO: check for conflicts between loaded fragments
+                # add to the list of dissociated package fragments
+                self.loaded_packages[p.namespace].append(LoadedPackage(p, doc, Path(from_path)))
+            else:  # non-dissociated packages can only be loaded once
+                if p.namespace in self.loaded_packages:
+                    raise PackageError(f'Embedded package would override already-loaded package: {p.namespace} with '
+                                       f'root {namespace} from {from_path}')
+                self.loaded_packages[p.namespace] = LoadedPackage(p, doc, Path(from_path))
         # return the root package:
-        return self.loaded_packages[namespace].package
+        return package
 
-    def find_package_doc(self, uri: Union[ReferencedURI, str]) -> Optional[sbol3.Document]:
+    def find_package_docs(self, uri: Union[ReferencedURI, str]) -> Optional[list[sbol3.Document]]:
+        """Find which documents to check for a given URI by searching the loaded packages for a matching prefix
+        If multiple prefixes match, use the longest one
+
+        :param uri: URI to be searched for
+        :returns list of Document objects to search
+        """
         last_uri = None
         uri = str(uri)
         while uri and uri != last_uri:
             if uri in self.loaded_packages:
-                return self.loaded_packages[uri].document
+                loaded = self.loaded_packages[uri]
+                if isinstance(loaded, LoadedPackage):
+                    return [loaded.document]  # wrap non-dissociated into a list
+                else:
+                    return [lp.document for lp in loaded]  # for dissociated, map documents from list
             last_uri = uri
             uri = uri.rsplit('/', maxsplit=1)[0]
         return None
@@ -547,9 +575,13 @@ class PackageManager:
         :return: SBOL object, if found
         """
         # TODO: figure out how lookup will work for embedded dependencies (including dissociated packages)
-        package_doc = self.find_package_doc(uri)
-        if package_doc:
-            return package_doc.find(str(uri))
+        package_docs = self.find_package_docs(uri)
+        if package_docs:
+            for doc in package_docs:
+                found = doc.find(str(uri))
+                if found:
+                    return found
+            return None
         else:
             raise PackageError(f'No loaded package has a namespace that contains {uri}')
 

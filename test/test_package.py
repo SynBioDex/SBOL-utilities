@@ -289,11 +289,44 @@ class TestPackage(unittest.TestCase):
 
             with self.assertRaises(PackageError) as cm:
                 package.load_package(p4.namespace)
-            print(cm.exception)
             msg = 'Embedded package would override already-loaded package: https://synbiohub.org/public/igem'
             self.assertTrue(str(cm.exception).startswith(msg))
 
+    def test_dissociated_packages(self):
+        """Test installation, loading, and validation of dissociated packages"""
+        with temporary_package_manager() as pm:  # create a temporary package manager for testing
+            # install two packages containing dissociated fragments
+            doc = sbol3.Document()
+            doc.read(str(TEST_FILES / 'BBa_J23101_package_dissociated.nt'))
+            package.install_package('https://synbiohub.org/public/igem', doc)
+            doc.read(str(TEST_FILES / 'dissociated_dependencies.nt'))
+            package.install_package('https://test.org/dissociated', doc)
 
+            # check that package manager has the right contents (i.e., roots only)
+            self.assertEqual(len(pm.package_catalog), 2)
+            self.assertTrue('https://synbiohub.org/public/igem' in pm.package_catalog)
+            self.assertTrue('https://test.org/dissociated' in pm.package_catalog)
+            # load the packages to make sure they can enter as expected
+            p1 = package.load_package('https://test.org/dissociated')
+            self.assertIsNone(package.lookup('https://synbiohub.org/public/igem/BBa_J23101'))  # in the second fragment
+            c1 = package.lookup('https://www.ncbi.nlm.nih.gov/nuccore/ATP07149_1')
+            self.assertEqual(type(c1), sbol3.Component)
+            self.assertEqual(c1.document, p1.document)
+            c2 = package.lookup('https://synbiohub.org/public/igem/E0040')
+            self.assertEqual(type(c2), sbol3.Component)
+            self.assertEqual(c2.document, p1.document)
+            p2 = package.load_package('https://synbiohub.org/public/igem')
+            self.assertNotEqual(p1, p2)  # should have loaded a new fragment
+            c3 = package.lookup('https://synbiohub.org/public/igem/BBa_J23101')
+            self.assertEqual(type(c3), sbol3.Component)
+            self.assertEqual(c3.document, p2.document)
+            self.assertEqual(c1, package.lookup('https://www.ncbi.nlm.nih.gov/nuccore/ATP07149_1'))
+            self.assertEqual(c2, package.lookup('https://synbiohub.org/public/igem/E0040'))
+            # check idempotence of loading
+            self.assertEqual(p1, package.load_package('https://test.org/dissociated'))
+            self.assertEqual(p2, package.load_package('https://synbiohub.org/public/igem'))
+            p3 = package.load_package('https://synbiohub.org/public/igem', doc=p1.document)  # embedded reload
+            self.assertEqual(p3.document, p1.document)  # should get the existing embedded package
 
     def test_package_validation(self):
         """Test that package system can load packages and verify integrity of the load"""
@@ -347,10 +380,9 @@ class TestPackage(unittest.TestCase):
             with self.assertRaises(PackageError) as cm:
                 package.load_package('https://synbiohub.org/public/igem2', TEST_FILES / 'BBa_J23101_bad_package3.nt')
             self.assertTrue(str(cm.exception).startswith(wrap_msg))
-            msg = 'Document embeds packages not referred to from root: [\'https://synbiohub.org/public/igem/package\', ' \
-                  '\'https://synbiohub.org/public/igem3/package\']'
+            msg = 'Document embeds packages not referred to from root: [\'https://synbiohub.org/public/igem/package\'' \
+                  ', \'https://synbiohub.org/public/igem3/package\']'
             self.assertTrue(str(cm.exception.__context__).startswith(msg))
-
 
     def test_cross_document_lookup(self):
         """Test that package system correctly overrides the document lookup function to enable cross-package lookups"""
@@ -434,7 +466,6 @@ class TestPackage(unittest.TestCase):
             # Write it out and make sure we can import as a package
             temp_name = tempfile.mkstemp(suffix='.nt')[1]
             doc.write(temp_name, sbol3.SORTED_NTRIPLES)
-            print(temp_name)
             package.load_package('https://test.org/second_library', temp_name)
 
 
