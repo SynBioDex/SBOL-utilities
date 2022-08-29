@@ -389,8 +389,7 @@ class TestPackage(unittest.TestCase):
         with temporary_package_manager():
             p = package.load_package('https://synbiohub.org/public/igem', TEST_FILES / 'BBa_J23101_package.nt')
             # make sure loading is idempotent (i.e., it returns the existing load rather than reloading)
-            p2 = package.load_package('https://synbiohub.org/public/igem', TEST_FILES / 'BBa_J23101_package.nt')
-            self.assertEqual(p, p2)
+            self.assertEqual(p, package.load_package('https://synbiohub.org/public/igem'))
             doc = sbol3.Document()
             good_id = 'https://synbiohub.org/public/igem/BBa_J23101_sequence'
             bad_id = 'https://synbiohub.org/public/igem/BBa_J23101_notexist'

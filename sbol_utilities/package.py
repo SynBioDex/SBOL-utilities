@@ -487,6 +487,10 @@ class PackageManager:
         :return: Package object that satisfies the load request
         :raises PackageError: if the package cannot be loaded or does not validate
         """
+        # If already loaded and not dissociated, return package - dissociated requires more information
+        if namespace in self.loaded_packages and not isinstance(self.loaded_packages[namespace], list):
+            return self.loaded_packages[namespace].package
+
         if from_path and doc:
             raise PackageError('load_package must not be given both a path and a Document')
         elif from_path:  # convert str to Path if needed
@@ -501,20 +505,17 @@ class PackageManager:
             except KeyError:
                 raise PackageError(f'Cannot find package {namespace} in catalog')
 
-        # If already loaded, return package
-        if namespace in self.loaded_packages:
+        # Now check if already loaded and dissociated:
+        if namespace in self.loaded_packages and isinstance(self.loaded_packages[namespace], list):
             loaded = self.loaded_packages[namespace]
-            if not isinstance(loaded, list):  # if not dissociated, there is just one
-                return loaded.package
-            else:  # for a dissociated package, check if there's already a copy from the same file/doc
-                matches = [lp for lp in loaded
-                           if (from_path and from_path == lp.source_file) or (doc and doc == lp.document)]
-                if len(matches):
-                    if len(matches) > 1:  # should never happen, since it should be prevented by other checks
-                        raise PackageError('Internal error: multiple matching dissociated packages for {namespace}')
-                    else:
-                        return matches[0].package
-                    # otherwise, this is a new dissociated fragment, and can be returned independently
+            matches = [lp for lp in loaded
+                       if (from_path and from_path == lp.source_file) or (doc and doc == lp.document)]
+            if len(matches):
+                if len(matches) > 1:  # should never happen, since it should be prevented by other checks
+                    raise PackageError('Internal error: multiple matching dissociated packages for {namespace}')
+                else:
+                    return matches[0].package
+                # otherwise, this is a new dissociated fragment, and can be returned independently
 
         # If being obtained from a path, load document:
         if from_path:
