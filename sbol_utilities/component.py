@@ -822,7 +822,19 @@ def ligation(reactants:List[sbol3.Component], assembly_plan:sbol3.Component)-> T
             else: alignments = working_alignment + alignments       
             
             # use final products to build assembly product somponent
-
+        product_component_list = []
+        for composite in final_products: # a composite of the form [A,B,C]
+            composite_number = 1
+            # calculate sequence
+            composite_sequence_str = ""
+            for part in composite:
+                composite_sequence_str = composite_sequence_str + part.sequences[0].lookup().elements[:-fusion_site_length]
+            # create dna componente and sequence
+            composite_component, composite_seq = dna_component_with_sequence(f'composite_{composite_number}', composite_sequence_str) # **kwarads use 
+            composite_component.types.append()
+            composite_component.roles.append()
+            composite_component.features = composite
+            composite_number += 1
     #create preceed constrain
     #create composite part or part in backbone
     #add interactions to assembly_plan
