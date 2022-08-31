@@ -769,28 +769,59 @@ def ligation(reactants:List[sbol3.Component], assembly_plan:sbol3.Component)-> T
         else:
             terminal_parts.add(next_part)
     '''
-    pending_reactants= {reactants}
-    alignments = []
-    closed = False
-    five_prime_end = False
-    three_prime_end = False
-
-    while pending_reactants:
-        if not alignments:
-            alignments.append([pending_reactants.pop()])
-
+    alignments = [[r] for r in reactants] # like [[A],[B1],[B2],[C]]] and [[A,B1,C],[B1],[B2],[C]]
+    used_fusion_sites = set()
+    final_products = [] # [[A,B1,C]]
+    while alignments:
+        closed = False
+        five_prime_end = False
+        three_prime_end = False
+        # get the first item and remove it from the list
+        working_alignment = alignments[0]
+        alignments.pop(0)
+        # compare to all other alignments
         for alignment in alignments:
-            #5 prime end
-            for reactant in reactants:
-                if alignment[0].sequences[0].lookup().elements[:fusion_site_length-1] == reactant.sequences[0].lookup().elements[-fusion_site_length:]:
-                # repleace alignment with an uppdated version of the form [reactant, alignment[0]]
-                    pass
-                if alignment[0].sequences[0].lookup().elements[-fusion_site_length:] == reactant.sequences[0].lookup().elements[:fusion_site_length-1]:
-                # repleace alignment with an uppdated version of the form [alignment[0], reactant]    
-                    pass
-                # if no match mark as terminal part
-                # if start fusion site == end fusion site mark as closed
-            # remove used reactants from pending_reactants
+            # if working alignment 5' end matches a alignment 3' end
+            if working_alignment[0].sequences[0].lookup().elements[:fusion_site_length-1] == alignment.sequences[0].lookup().elements[-fusion_site_length:]:
+                # if in used_fusion_sites, skip
+                if working_alignment[0].sequences[0].lookup().elements[:fusion_site_length-1] in used_fusion_sites:
+                    raise ValueError(f"Fusion site {working_alignment[0].sequences[0].lookup().elements[:fusion_site_length-1]} already used")                
+                # if repeated elements pass
+                if(all(x in working_alignment for x in alignment)):
+                    raise ValueError(f"Repeated elements in alignment {alignment}")
+
+                working_alignment = alignment + working_alignment
+            else:
+                five_prime_end = True
+            # if working_alignment is closed, add to final_products
+            if working_alignment[0].sequences[0].lookup().elements[:fusion_site_length-1] == working_alignment.sequences[0].lookup().elements[-fusion_site_length:]:
+                final_products.append(working_alignment)
+                closed = True
+                break
+            ################################################
+            # if alignment 3' end matches a reactant 5' end
+            if working_alignment[-1].sequences[0].lookup().elements[-fusion_site_length:] == alignment.sequences[0].lookup().elements[:fusion_site_length-1]: 
+                # if in used_fusion_sites, raise error
+                if working_alignment[-1].sequences[0].lookup().elements[-fusion_site_length:] in used_fusion_sites:
+                    raise ValueError(f"Fusion site {working_alignment[0].sequences[0].lookup().elements[:fusion_site_length-1]} already used")                
+                # if repeated elements, raise error
+                if(all(x in working_alignment for x in alignment)):
+                    raise ValueError(f"Repeated elements in alignment {alignment}")
+    
+                working_alignment = working_alignment + alignment
+            else:
+                three_prime_end = True
+            # if working_alignment is closed, add to final_products
+            if working_alignment[0].sequences[0].lookup().elements[:fusion_site_length-1] == working_alignment.sequences[0].lookup().elements[-fusion_site_length:]:
+                final_products.append(working_alignment)
+                closed = True
+                break 
+            elif five_prime_end and three_prime_end:
+                final_products.append(working_alignment)
+                break    
+            else: alignments = working_alignment + alignments       
+            
+            # use final products to build assembly product somponent
 
     #create preceed constrain
     #create composite part or part in backbone
