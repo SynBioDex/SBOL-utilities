@@ -712,7 +712,7 @@ def digestion(reactant:sbol3.Component, restriction_enzymes:List[sbol3.Externall
                     
     return prod_comp, prod_seq
 
-def ligation(reactants:List[sbol3.Component], assembly_plan:sbol3.Component)-> Tuple[sbol3.Component, sbol3.Sequence]:
+def ligation(reactants:List[sbol3.Component], assembly_plan:sbol3.Component)-> List[Tuple[sbol3.Component, sbol3.Sequence]]:
     """Ligates Components using base complementarity and creates a product Component and a ligation Interaction.
 
     :param reactant: DNA to be ligated as SBOL Component. 
@@ -822,23 +822,36 @@ def ligation(reactants:List[sbol3.Component], assembly_plan:sbol3.Component)-> T
             else: alignments = working_alignment + alignments       
             
             # use final products to build assembly product somponent
-        product_component_list = []
+        products_list = []
+        participations = []
         for composite in final_products: # a composite of the form [A,B,C]
             composite_number = 1
             # calculate sequence
             composite_sequence_str = ""
             for part in composite:
-                composite_sequence_str = composite_sequence_str + part.sequences[0].lookup().elements[:-fusion_site_length]
+                composite_sequence_str = composite_sequence_str + part.sequences[0].lookup().elements[:-fusion_site_length] #needs a version for linear
+                # create participations
+                part_subcomponent = sbol3.SubComponent(part) # LocalSubComponent??
+                # if not in assemblye plan?
+                assembly_plan.features.append(part_subcomponent)
+                part_participation = sbol3.Participation(roles=[sbol3.SBO_REACTANT], participant=part_subcomponent)
+                participations.append(part_participation)
             # create dna componente and sequence
-            composite_component, composite_seq = dna_component_with_sequence(f'composite_{composite_number}', composite_sequence_str) # **kwarads use 
+            composite_component, composite_seq = dna_component_with_sequence(f'composite_{composite_number}', composite_sequence_str) # **kwarads use in future?
             composite_component.types.append()
-            composite_component.roles.append()
+            composite_component.roles.append(sbol3.SO_ENGINEERED_REGION)
             composite_component.features = composite
+            # fix order of features
+            composite_component.constraints.append(sbol3.Constraint(sbol3.SBOL_MEETS, composite_component.features[composite_number-1], composite_component.features[composite_number]))
+            # add product participation 
+            composite_subcomponent = sbol3.SubComponent(composite_component)
+            participations.append(sbol3.Participation(roles=[sbol3.SBO_PRODUCT], participant=composite_subcomponent))
+            # create interactions
+            assembly_plan.interactions.append(sbol3.Interaction(types=[tyto.SBO.conversion], participations=participations))
+            products_list.append([composite_component, composite_seq])
             composite_number += 1
     #create preceed constrain
     #create composite part or part in backbone
     #add interactions to assembly_plan
 
-    prod_comp = 'to do'
-    prod_seq = 'to do'
-    return prod_comp, prod_seq
+    return products_list
