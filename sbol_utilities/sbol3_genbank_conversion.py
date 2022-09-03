@@ -3,6 +3,7 @@ import csv
 import math
 import sbol3
 import logging
+from collections import OrderedDict
 from typing import Dict, List, Sequence, Union, Optional
 from Bio import SeqIO
 from Bio.Seq import Seq
@@ -57,19 +58,19 @@ class GenBank_SBOL3_Converter:
             # Remove the placeholder value
             obj.clear_property(sbol3.SBOL_TYPE)
             return obj
-        # def build_feature_qualifiers_extension(locations, *, identity, type_uri) -> GenBank_SBOL3_Converter.Feature_GenBank_Extension:
-        #     """A builder function to be called by the SBOL3 parser
-        #     when it encounters a SequenceFeature in an SBOL file.
-        #     :param identity: identity for new sequence feature class instance to have
-        #     :param type_uri: type_uri for new sequence feature class instance to have
-        #     """
-        #     # `types` is required and not known at build time.
-        #     # Supply a missing value to the constructor, then clear
-        #     # the missing value before returning the built object.
-        #     obj = self.Feature_GenBank_Extension(locations=locations, identity=identity, type_uri=type_uri)
-        #     # Remove the placeholder value
-        #     obj.clear_property(sbol3.SBOL_TYPE)
-        #     return obj
+        def build_feature_qualifiers_extension(*, identity, type_uri) -> GenBank_SBOL3_Converter.Feature_GenBank_Extension:
+            """A builder function to be called by the SBOL3 parser
+            when it encounters a SequenceFeature in an SBOL file.
+            :param identity: identity for new sequence feature class instance to have
+            :param type_uri: type_uri for new sequence feature class instance to have
+            """
+            # `types` is required and not known at build time.
+            # Supply a missing value to the constructor, then clear
+            # the missing value before returning the built object.
+            obj = self.Feature_GenBank_Extension(identity=identity, type_uri=type_uri)
+            # Remove the placeholder value
+            obj.clear_property(sbol3.SBOL_TYPE)
+            return obj
         def build_custom_reference_property(*, identity, type_uri) -> GenBank_SBOL3_Converter.CustomReferenceProperty:
             """A builder function to be called by the SBOL3 parser
             when it encounters a CustomReferenceProperty Toplevel object in an SBOL file.
@@ -78,21 +79,21 @@ class GenBank_SBOL3_Converter:
             """
             obj = self.CustomReferenceProperty(identity=identity, type_uri=type_uri)
             return obj
-        def build_feature_qualifiers_extension(*, identity, type_uri) -> GenBank_SBOL3_Converter.FeatureQualifierProperty:
-            """A builder function to be called by the SBOL3 parser
-            when it encounters a FeatureQualifierProperty Toplevel object in an SBOL file.
-            :param identity: identity for custom feaure qualifier property instance to have
-            :param type_uri: type_uri for custom feature qualifier property instance to have
-            """
-            obj = self.FeatureQualifierProperty(identity=identity, type_uri=type_uri)
-            return obj
+        # def build_feature_qualifiers_extension(*, identity, type_uri) -> GenBank_SBOL3_Converter.FeatureQualifierProperty:
+        #     """A builder function to be called by the SBOL3 parser
+        #     when it encounters a FeatureQualifierProperty Toplevel object in an SBOL file.
+        #     :param identity: identity for custom feaure qualifier property instance to have
+        #     :param type_uri: type_uri for custom feature qualifier property instance to have
+        #     """
+        #     obj = self.FeatureQualifierProperty(identity=identity, type_uri=type_uri)
+        #     return obj
         # Register the builder function so it can be invoked by
         # the SBOL3 parser to build objects with a Component type URI
         sbol3.Document.register_builder(sbol3.SBOL_COMPONENT, build_component_genbank_extension)
         # Register the buildre function for custom reference properties
         sbol3.Document.register_builder(self.CUSTOM_REFERENCE_PROPERTY_URI, build_custom_reference_property)
         # Register the buildre function for custom reference properties
-        sbol3.Document.register_builder(self.FEATURE_QUALIFIER_PROPERTY_URI, build_feature_qualifiers_extension)
+        sbol3.Document.register_builder(sbol3.SBOL_SEQUENCE_FEATURE, build_feature_qualifiers_extension)
         # # Register the builder function so it can be invoked by
         # # the SBOL3 parser to build objects with a SequenceFeature type URI
         # sbol3.Document.register_builder(sbol3.SBOL_SEQUENCE_FEATURE, build_feature_qualifiers_extension)
@@ -120,32 +121,32 @@ class GenBank_SBOL3_Converter:
             self.location = sbol3.OwnedObject(self, f"{self.CUSTOM_REFERENCE_NS}#location", 0, math.inf, type_constraint=sbol3.Range)
 
 
-    # class Feature_GenBank_Extension(sbol3.SequenceFeature):
-    #     """Overrides the sbol3 SequenceFeature class to include fields to directly read and write 
-    #     qualifiers of GenBank features not storeable in any SBOL3 datafield.
-    #     :extends: sbol3.SequenceFeature class
-    #     """
-    #     GENBANK_FEATURE_QUALIFIER_NS = "http://www.ncbi.nlm.nih.gov/genbank#featureQualifier"
-    #     def __init__(self, locations: List[sbol3.Location], **kwargs) -> None:
-    #         # instantiating sbol3 SequenceFeature object
-    #         super().__init__(locations=locations, **kwargs)
-    #         # Setting properties for GenBank's qualifiers not settable in any SBOL3 field.
-    #         self.qualifier_key      = sbol3.TextProperty(self, f"{self.GENBANK_FEATURE_QUALIFIER_NS}#key"  , 0, math.inf)
-    #         self.qualifier_value    = sbol3.TextProperty(self, f"{self.GENBANK_FEATURE_QUALIFIER_NS}#value", 0, math.inf)
-
-
-    class FeatureQualifierProperty(sbol3.CustomTopLevel):
-        """Serves to store qualifiers for genbank feature objects in 
-        GenBank file to SBOL3 while parsing so that it may be retrieved back in a round trip
-        :extends: sbol3.CustomTopLevel class
+    class Feature_GenBank_Extension(sbol3.SequenceFeature):
+        """Overrides the sbol3 SequenceFeature class to include fields to directly read and write 
+        qualifiers of GenBank features not storeable in any SBOL3 datafield.
+        :extends: sbol3.SequenceFeature class
         """
-        FEATURE_QUALIFIER_PROPERTY_NS = "http://www.ncbi.nlm.nih.gov/genbank#featureQualifier"
-        def __init__(self, type_uri=FEATURE_QUALIFIER_PROPERTY_NS, identity="featureQualifier"):
-            super().__init__(identity, type_uri)
-            self.qualifier_keys      = sbol3.TextProperty(self, f"{self.FEATURE_QUALIFIER_PROPERTY_NS}#key"  , 0, math.inf)
-            self.qualifier_values    = sbol3.TextProperty(self, f"{self.FEATURE_QUALIFIER_PROPERTY_NS}#value", 0, math.inf)
-            # stores the display id of parent feature for a particular featureQualifierProperty object
-            self.feature  = sbol3.TextProperty(self, f"{self.FEATURE_QUALIFIER_PROPERTY_NS}#feature" , 0, 1)
+        GENBANK_FEATURE_QUALIFIER_NS = "http://www.ncbi.nlm.nih.gov/genbank#featureQualifier"
+        def __init__(self, locations: List[sbol3.Location] = [], **kwargs) -> None:
+            # instantiating sbol3 SequenceFeature object
+            super().__init__(locations=locations, **kwargs)
+            # Setting properties for GenBank's qualifiers not settable in any SBOL3 field.
+            self.qualifier_key      = sbol3.TextProperty(self, f"{self.GENBANK_FEATURE_QUALIFIER_NS}#key"  , 0, math.inf)
+            self.qualifier_value    = sbol3.TextProperty(self, f"{self.GENBANK_FEATURE_QUALIFIER_NS}#value", 0, math.inf)
+
+
+    # class FeatureQualifierProperty(sbol3.CustomTopLevel):
+    #     """Serves to store qualifiers for genbank feature objects in 
+    #     GenBank file to SBOL3 while parsing so that it may be retrieved back in a round trip
+    #     :extends: sbol3.CustomTopLevel class
+    #     """
+    #     FEATURE_QUALIFIER_PROPERTY_NS = "http://www.ncbi.nlm.nih.gov/genbank#featureQualifier"
+    #     def __init__(self, type_uri=FEATURE_QUALIFIER_PROPERTY_NS, identity="featureQualifier"):
+    #         super().__init__(identity, type_uri)
+    #         self.qualifier_keys      = sbol3.TextProperty(self, f"{self.FEATURE_QUALIFIER_PROPERTY_NS}#key"  , 0, math.inf)
+    #         self.qualifier_values    = sbol3.TextProperty(self, f"{self.FEATURE_QUALIFIER_PROPERTY_NS}#value", 0, math.inf)
+    #         # stores the display id of parent feature for a particular featureQualifierProperty object
+    #         self.feature  = sbol3.TextProperty(self, f"{self.FEATURE_QUALIFIER_PROPERTY_NS}#feature" , 0, 1)
 
 
     class Component_GenBank_Extension(sbol3.Component):
@@ -275,7 +276,7 @@ class GenBank_SBOL3_Converter:
 
             if record.features:
                 comp.features = []
-                for gb_feat in record.features:
+                for gb_feat_ind, gb_feat in enumerate(record.features):
                     feat_locations = []
                     logging.info(
                         f"Parsing feature `{gb_feat.qualifiers['label'][0]}` for record `{record.id}`"
@@ -314,12 +315,26 @@ class GenBank_SBOL3_Converter:
                     if gb_feat.strand == -1:
                         feat_orientation = sbol3.SO_REVERSE
                     # feat = sbol3.SequenceFeature(
+                    # feat = self.FeatureQualifierProperty(
                     feat = self.Feature_GenBank_Extension(
                         locations=feat_locations,
                         roles=[feat_role],
                         name=gb_feat.qualifiers["label"][0],
                         orientation=feat_orientation
                     )
+                    for ind, qualifier in enumerate(gb_feat.qualifiers):
+                        print(f"key {qualifier} val {gb_feat.qualifiers[qualifier]}")
+                        feat.qualifier_key.append(f"{ind}:" + qualifier)
+                        feat.qualifier_value.append(f"{ind}:" + gb_feat.qualifiers[qualifier][0])
+                    # feat_qualifiers = self.FeatureQualifierProperty(identity=self.FEATURE_QUALIFIER_PROPERTY_URI+f"#{gb_feat_ind}")
+                    # feat_qualifiers.feature = feat.type_uri
+                    # for q in gb_feat.qualifiers:
+                    #     print(str(q))
+                    #     print(str(gb_feat.qualifiers[q]))
+                    #     feat_qualifiers.qualifier_keys.append(str(q))
+                    #     feat_qualifiers.qualifier_values.append(str(gb_feat.qualifiers[q][0]))
+                    # print(feat_qualifiers)
+                    # doc.add(feat_qualifiers)
                     comp.features.append(feat)
         if write:
             logging.info(
@@ -470,8 +485,16 @@ class GenBank_SBOL3_Converter:
                                 location=feat_loc_object, strand=feat_strand, type=feat_role
                             )
                             feat_order[feat] = feat_loc_positions
-                            if obj_feat.name:
-                                feat.qualifiers["label"] = obj_feat.name
+                            if isinstance(obj_feat, self.Feature_GenBank_Extension):
+                                keys = sorted(obj_feat.qualifier_key, key=lambda x: int(x.split(":", 1)[0]))
+                                values = sorted(obj_feat.qualifier_value, key=lambda x: int(x.split(":", 1)[0]))
+                                print(keys)
+                                print(values)
+                                print("")
+                                for qualifier_ind in range(len(keys)):
+                                    feat.qualifiers[keys[qualifier_ind].split(":", 1)[1]] = values[qualifier_ind].split(":", 1)[1]
+                            # if obj_feat.name:
+                            #     feat.qualifiers["label"] = obj_feat.name
                             # add feature to list of features
                             seq_rec_features.append(feat)
                 # Sort features based on feature location start/end, lexicographically

@@ -194,6 +194,13 @@ class TestGenBankSBOL3(unittest.TestCase):
         test_file_dir = Path(__file__).parent.parent / 'iGEM'
         for genbank_file in test_file_dir.glob('*.gb'):
             print(self._test_round_trip_genbank(genbank_file))
+
+    def test_round_trip_feature_qualifiers(self):
+        """"""
+        genbank_file = (
+            Path(__file__).parent / "test_files" / "sbol3_genbank_conversion" / "feature_qualifier_storage.gb"
+        )
+        self._test_round_trip_genbank(genbank_file)
         
 
 if __name__ == "__main__":
