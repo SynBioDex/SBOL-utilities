@@ -521,10 +521,13 @@ class GenBank_SBOL3_Converter:
         # parse if genbank record has any features
         if record.features:
             comp.features = []
-            for gb_feat in record.features:
+            for ind, gb_feat in enumerate(record.features):
                 feat_locations = []
+                feat_name = f"_converted_feature_{ind}"
+                if "label" in gb_feat.qualifiers:
+                    feat_name = gb_feat.qualifiers["label"][0]
                 logging.info(
-                    f"Parsing feature `{gb_feat.qualifiers['label'][0]}` for record `{record.id}`"
+                    f"Parsing feature `{feat_name}` for record `{record.id}`"
                 )
                 for gb_loc in gb_feat.location.parts:
                     # Default orientation is "inline" except if complement is specified via strand
@@ -563,7 +566,8 @@ class GenBank_SBOL3_Converter:
                 feat = self.Feature_GenBank_Extension(
                     locations=feat_locations,
                     roles=[feat_role],
-                    name=gb_feat.qualifiers["label"][0],
+                    # name=gb_feat.qualifiers["label"][0],
+                    name=feat_name,
                     orientation=feat_orientation
                 )
                 # store qualifiers key value pairs
