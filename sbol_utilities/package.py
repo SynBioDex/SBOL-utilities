@@ -6,14 +6,15 @@ from dataclasses import dataclass
 from hashlib import sha256
 from pathlib import Path
 from typing import Union, Optional
-from urllib.parse import urlparse, urljoin
+from urllib.parse import urlparse, urljoin, unquote
 
+import tyto
 from sbol3.refobj_property import ReferencedURI
 from sbol_factory import SBOLFactory
 import sbol3
 
 # Create SEP054 Python classes from definition file
-from sbol_utilities.helper_functions import sbol3_namespace
+from sbol_utilities.helper_functions import sbol3_namespace, same_namespace, id_sort
 
 sep_054 = SBOLFactory('sep_054', Path(__file__).parent / 'sep_054_extension.ttl', 'http://sbols.org/SEP054#')
 
@@ -65,6 +66,77 @@ class PackageError(Exception):
     """An error has occurred in the package system"""
 
 
+def _embedded_packages(root: sep_054.Package, doc: sbol3.Document) -> list[sep_054.Package]:
+    """Find a list of packages embedded in a possibly "fat" package document, ensuring all are referred to
+    from the root (possibly recursively) as subpackages or dependencies, walking the tree in a predictable order
+
+    :param root: Package for the document, which may refer to other packages embedded or elsewhere
+    :param doc: Document to search
+    :return: list of embedded Package objects, in traversal order
+    :raises PackageError if there are packages not part of the expected tree
+    """
+    package_dict = {p.identity: p for p in doc.objects if isinstance(p, sep_054.Package)}
+    try:
+        pending_packages = [package_dict.pop(root.identity)]
+    except KeyError:
+        raise PackageError(f'Package document does not include expected root Package: {root.identity}')
+
+    embedded_packages = list()
+    while pending_packages:
+        next_package = pending_packages.pop()
+        embedded_packages.append(next_package)
+        # Look for sub-packages and dependencies
+        for p in list(id_sort(next_package.subpackages)) + id_sort(d.package for d in next_package.dependencies):
+            if str(p) in package_dict:  # if it's in the IDs, then it's in the document and not yet checked
+                pending_packages.append(package_dict.pop(str(p)))
+    if package_dict:
+        raise PackageError(f'Document embeds packages not referred to from root: {list(package_dict.keys())}')
+    return embedded_packages
+
+
+def validate_package_document(namespace: str, doc: sbol3.Document) -> sep_054.Package:
+    """Check that an SBOL Document is a valid representation of the named package. Specifically:
+    - The document must contain a Package object for the namespace
+    - Every member of the Package must be in the Document
+    - The Package objects for subpackages MAY be in the document; if they are, their members must be too.
+    - The Package objects for dependencies MAY be in the document; if they are, their members must be too.
+    - Every TopLevel object in the document MUST be part of this subpackage/dependency/member tree
+
+    :param namespace: namespace for the package represented by the document
+    :param doc: Document to be validated
+    :returns: Package object for the namespace, as found in document
+    :raises PackageError if validation fails
+    """
+    # TODO: allow raising of multiple exceptions, for better debugging
+    # Make sure there is a copy of the package object in the package:
+    package_object_uri = package_id(namespace)
+    package = doc.find(package_object_uri)
+    if not package:
+        raise PackageError(f'Cannot find Package in SBOL document: {package_object_uri}')
+    elif not isinstance(package, sep_054.Package):
+        raise PackageError(f'Object should be a Package, but is not: {package}')
+    elif not same_namespace(namespace, package.namespace):
+        raise PackageError(f'Package {package.identity} should have namespace {namespace} but was {package.namespace}')
+
+    # Make sure all package members and document contents are identical, following subpackage/dependency tree as needed
+    object_ids = {o.identity: o for o in doc.objects}
+    for check_package in _embedded_packages(package, doc):
+        # check if any members are missing:
+        missing_members = {str(m) for m in check_package.members} - object_ids.keys()
+        if missing_members:
+            raise PackageError(f'Package {check_package.namespace} missing listed members: {sorted(missing_members)}')
+        # remove contents from less of objects to account for
+        del object_ids[check_package.identity]
+        for m in check_package.members:
+            del object_ids[str(m)]
+
+    # if anything was left after walking tree, it's an unexpected member error:
+    if object_ids:
+        raise PackageError(f'Package {namespace} contains unexpected TopLevel objects: {sorted(object_ids.keys())}')
+
+    return package
+
+
 def get_package_directory(directory: Union[Path, str]) -> Path:
     """Return path to package directory, after ensuring it exists and has no subdirectories of its own.
 
@@ -96,15 +168,15 @@ def _ensure_leaf_subdirectory(directory: Path, leaf_name: str) -> Path:
     # Ensure that the package directory has no subdirectories
     leaf_sub_dirs = [s for s in os.scandir(leaf_path) if s.is_dir()]
     if len(leaf_sub_dirs):
-        raise ValueError(f'Package {directory}: {leaf_name} subdirectory should have no subdirectories, but found '
-                         f'{leaf_sub_dirs}')
+        raise PackageError(f'In package directory {directory}, subdirectory {leaf_name} should have no further '
+                           f'subdirectories, but found {leaf_sub_dirs}')
     return leaf_path
 
 
 def directory_to_package(directory: Union[Path, str]):
     # Check it is a package directory
     # Check that there is NOT a package directory
-    # TODO:
+    # TODO: consider refactor based on how catalog work turns out
 
     # Walk the tree from the bottom up
     for root, dirs, files in os.walk(directory, topdown=False):
@@ -196,10 +268,12 @@ def aggregate_subpackages(root_package: sep_054.Package, sub_package_list: list[
                              f'namespace {root_package.namespace}.')
 
 
-def doc_to_package(doc: sbol3.Document) -> sep_054.Package:
-    """Generate a package from the contents of a single SBOL document (ignoring  subpackages)
+def doc_to_package(doc: sbol3.Document, validate: bool = True) -> sep_054.Package:
+    """Transform an SBOL document into a package with no subpackages, adding Package to document
+    Requires that all TopLevel objects in the Document share the same namespace
 
     :param doc: SBOL document from which package should be generated
+    :param validate: if true, validate the document
     :returns: Package object
     """
     # Collect TopLevel object namespaces: if all are the same, that is the package namespace
@@ -214,7 +288,11 @@ def doc_to_package(doc: sbol3.Document) -> sep_054.Package:
 
     # Create and return the Package object
     with sbol3_namespace(package_namespace):
-        return sep_054.Package('package', members=doc.objects)
+        package = sep_054.Package('package', members=doc.objects, conversion=False)
+        doc.add(package)
+        if validate:
+            validate_package_document(package_namespace, doc)
+        return package
 
 
 def check_prefix(root_package: sep_054.Package, sub_package: sep_054.Package):
@@ -311,6 +389,15 @@ def get_prefix(package_list):
     return prefix
 
 
+def package_id(namespace: str) -> str:
+    """Get the standard identity for a Package object from the package's namespace
+
+    :param namespace: URI for the namespace
+    :return: URI for the package object
+    """
+    return urljoin(f'{namespace}/', 'package')
+
+
 # TODO: consider moving this to an SEP 054 class
 @dataclass
 class LoadedPackage:
@@ -327,12 +414,15 @@ class PackageManager:
         # ensure catalog directory exists
         self._catalog_directory.mkdir(parents=True, exist_ok=True)
         # Track set of loaded packages
-        self.loaded_packages: dict[str, LoadedPackage] = dict()
+        self.loaded_packages: dict[str, Union[LoadedPackage, list[LoadedPackage]]] = dict()
         """Tracks the set of currently loaded packages (initially empty). It is a dictionary mapping
          from namespace to the collection of loaded information"""
         self._catalog_file = self._catalog_directory / PACKAGE_CATALOG_NAME
         # Catalog of available packages, and document it was drawn from
-        self.package_catalog, self._package_catalog_doc = PackageManager._load_package_catalog(self._catalog_file)
+        package_catalog, self._package_catalog_doc = PackageManager._load_package_catalog(self._catalog_file)
+        # TODO: consider how to handle existence of multiple versions of packages. Likely just 1 in catalog, but caches?
+        self.package_catalog = package_catalog
+        """Dictionary mapping namespace strings to Package objects, each with its file as an Attachment"""
 
     @staticmethod
     def _load_package_catalog(catalog_file: Path) -> tuple[dict[str, sep_054.Package], sbol3.Document]:
@@ -353,91 +443,181 @@ class PackageManager:
         hash_name = sha256(identity.encode()).hexdigest()[:PACKAGE_HASH_NAME_LENGTH]
         return f'{hash_name}.nt'
 
-    def install_package(self, package: sep_054.Package, doc: sbol3.Document):
-        # TODO: validate package against document before installation
-        logging.info('Installing package %s', package.identity)
-        # Write package document to collection
+    def install_package(self, namespace: str, doc: sbol3.Document) -> sep_054.Package:
+        """Install a package into the package catalog
+
+        :param namespace: namespace of the package being installed
+        :param doc: Document containing the package and any bundled subpackages and dependencies
+        :return: Package object for package that was just installed
+        :raises PackageError: if the package does not validate or a file error occurs
+        """
+        logging.info('Installing package %s', namespace)
+        # First validate package document, making sure it will be OK for loading
+        try:
+            package = validate_package_document(namespace, doc)
+        except PackageError as e:
+            raise PackageError(f'Validation error while attempting to install package {namespace}') from e
+
+        # Write package document to catalog directory
         file_path = self._catalog_directory / PackageManager._identity_to_filename(package.identity)
-        doc.write(str(file_path), sbol3.SORTED_NTRIPLES)
+        try:
+            doc.write(str(file_path), sbol3.SORTED_NTRIPLES)
+        except OSError as e:
+            raise PackageError(f'Could not write package {namespace} to {str(file_path)}') from e
+
         # Create an attachment for the newly written file
-        # TODO: fill out the rest of the attachment fields correctly
-        attachment = sbol3.Attachment(f'{package.identity}_file', source=file_path.as_uri())
+        attachment = sbol3.Attachment(f'{package.identity}_file', source=file_path.as_uri(), format=tyto.EDAM.n_triples)
         package.attachments.append(attachment)
         # Add the package and save the catalog
         self._package_catalog_doc.add([package, attachment])
         self._save_package_catalog()
+        self.package_catalog[package.namespace] = package
         logging.info('Successfully installed package %s', package.identity)
 
-    def load_package(self, namespace, from_path):
-        doc = sbol3.Document()
-        # TODO: switch to trying to get the path from the catalog, converting file URI to path per the following:
-        # from urllib.parse import unquote, urlparse
-        # from_path = unquote(urlparse(uri).path)
-        doc.read(str(from_path))
-        # TODO: get the package object too - URI should come from package
-        # Per SEP 054, a package build artifact should include its Package object, Package contents, and any
-        # dissociated dependencies
-        # The document may also include non-dissociated dependencies, for which the same is true recursively
-        # Validation of a package document should thus be a comparison of the package contents and document contents
-        # TODO: extract validation as a separate function
+    def load_package(self, namespace: str, from_path: Optional[Union[Path, str]] = None,
+                     doc: Optional[sbol3.Document] = None) -> sep_054.Package:
+        """Ensure that the package with the designated URI is loaded.
+        By default, attempts to load from the package catalog, overridden if from_path or doc is provided.
+        If the package is already loaded, it will not be reloaded.
+        Note that this will also load implicitly load any embedded sub-packages and dependencies
 
-        # Make sure there is a copy of the package object in the package:
-        package_object_uri = urljoin(f'{namespace}/', 'package')
-        package = doc.find(package_object_uri)
-        if not package:
-            raise PackageError(f'Cannot find package {package_object_uri} in SBOL document {from_path}')
-        elif not isinstance(package, sep_054.Package):
-            raise PackageError(f'Object {package} is not a Package in {from_path}')
-        elif not namespace == package.namespace:
-            raise PackageError(f'Package {package.identity} should have namespace {namespace} but found {package.namespace}')
+        :param namespace: namespace for package
+        :param from_path: if set and package is not loaded, load from the provided path. doc must be None.
+        :param doc: if set, use doc as a source for a not-loaded package
+        :return: Package object that satisfies the load request
+        :raises PackageError: if the package cannot be loaded or does not validate
+        """
+        # If already loaded and not dissociated, return package - dissociated requires more information
+        if namespace in self.loaded_packages and not isinstance(self.loaded_packages[namespace], list):
+            return self.loaded_packages[namespace].package
 
-        # Make sure all package members and document contents are identical
-        object_ids = {o.identity: o for o in doc.objects}
-        missing_members = {str(m) for m in package.members} - object_ids.keys()
-        if missing_members:
-            raise PackageError(f'Package {namespace} was missing listed members: {sorted(missing_members)}')
-        del object_ids[package.identity]
-        for m in package.members:
-            del object_ids[str(m)]
-        # TODO: subpackages may optionally be included in document - include this in validation
-        if object_ids:
-            raise PackageError(f'Package {namespace} contains unexpected members: {sorted(object_ids.keys())}')
+        if from_path and doc:
+            raise PackageError('load_package must not be given both a path and a Document')
+        elif from_path:  # convert str to Path if needed
+            from_path = Path(from_path)
+        elif not doc:  # get Path from catalog
+            try:
+                package = self.package_catalog[namespace]
+                if len(package.attachments) != 1:
+                    raise PackageError(f'Catalog links package {namespace} to {len(package.attachments)} files, not 1')
+                file_uri = package.attachments[0].lookup().source
+                from_path = Path(unquote(urlparse(file_uri).path))
+            except KeyError:
+                raise PackageError(f'Cannot find package {namespace} in catalog')
 
-        self.loaded_packages[namespace] = LoadedPackage(None, doc)
+        # Now check if already loaded and dissociated:
+        if namespace in self.loaded_packages and isinstance(self.loaded_packages[namespace], list):
+            loaded = self.loaded_packages[namespace]
+            matches = [lp for lp in loaded
+                       if (from_path and from_path == lp.source_file) or (doc and doc == lp.document)]
+            if len(matches):
+                if len(matches) > 1:  # should never happen, since it should be prevented by other checks
+                    raise PackageError('Internal error: multiple matching dissociated packages for {namespace}')
+                else:
+                    return matches[0].package
+                # otherwise, this is a new dissociated fragment, and can be returned independently
 
-    def find_package_doc(self, uri: ReferencedURI) -> Optional[sbol3.Document]:
+        # If being obtained from a path, load document:
+        if from_path:
+            try:
+                doc = sbol3.Document()
+                doc.read(str(from_path))
+            except OSError as e:
+                raise PackageError(f'Could not read package {namespace} from {str(from_path)}') from e
+
+        # Validate package and collect its root Package object
+        try:
+            package = validate_package_document(namespace, doc)
+        except PackageError as e:
+            raise PackageError(f'Validation error while loading package {namespace} from file {from_path}') from e
+
+        # add all embedded packages (including the root package) to the loaded package collect:
+        for p in _embedded_packages(package, doc):
+            if p.dissociated:  # dissociated packages can have multiple fragments loaded, track as a list
+                if p.namespace not in self.loaded_packages:
+                    self.loaded_packages[p.namespace] = list()
+                elif not isinstance(self.loaded_packages[p.namespace], list):
+                    raise PackageError(f'Cannot combine dissociated and non-dissociated packages for {p.namespace}')
+                # TODO: check for conflicts between loaded fragments
+                # add to the list of dissociated package fragments
+                self.loaded_packages[p.namespace].append(LoadedPackage(p, doc, Path(from_path)))
+            else:  # non-dissociated packages can only be loaded once
+                if p.namespace in self.loaded_packages:
+                    raise PackageError(f'Embedded package would override already-loaded package: {p.namespace} with '
+                                       f'root {namespace} from {from_path}')
+                self.loaded_packages[p.namespace] = LoadedPackage(p, doc, Path(from_path))
+        # return the root package:
+        return package
+
+    def find_package_docs(self, uri: Union[ReferencedURI, str]) -> Optional[list[sbol3.Document]]:
+        """Find which documents to check for a given URI by searching the loaded packages for a matching prefix
+        If multiple prefixes match, use the longest one
+
+        :param uri: URI to be searched for
+        :returns list of Document objects to search
+        """
         last_uri = None
         uri = str(uri)
         while uri and uri != last_uri:
             if uri in self.loaded_packages:
-                return self.loaded_packages[uri].document
+                loaded = self.loaded_packages[uri]
+                if isinstance(loaded, LoadedPackage):
+                    return [loaded.document]  # wrap non-dissociated into a list
+                else:
+                    return [lp.document for lp in loaded]  # for dissociated, map documents from list
             last_uri = uri
             uri = uri.rsplit('/', maxsplit=1)[0]
         return None
 
-    def lookup(self, uri: ReferencedURI):
-        # TODO: figure out how lookup will work for dissociated packages
-        package_doc = self.find_package_doc(uri)
-        if package_doc:
-            return package_doc.find(str(uri))
-        else:
+    def lookup(self, uri: Union[ReferencedURI, str]) -> Optional[sbol3.Identified]:
+        """Look up an SBOL object by querying the loaded package with the matching prefix
+
+        :param uri: identity to look up
+        :return: SBOL object, if found
+        """
+        # TODO: figure out how lookup will work for embedded dependencies (including dissociated packages)
+        package_docs = self.find_package_docs(uri)
+        if package_docs:
+            for doc in package_docs:
+                found = doc.find(str(uri))
+                if found:
+                    return found
             return None
+        else:
+            raise PackageError(f'No loaded package has a namespace that contains {uri}')
 
 
 ACTIVE_PACKAGE_MANAGER = PackageManager()
 """Package manager in use, initialized with default settings"""
 
 
-def load_package(uri, from_path):
-    ACTIVE_PACKAGE_MANAGER.load_package(uri, from_path)
+def load_package(namespace: str, from_path: Optional[Union[Path, str]] = None, doc: Optional[sbol3.Document] = None) \
+        -> sep_054.Package:
+    """Ensure that the package with the designated URI is loaded.
+    By default, attempts to load from the package catalog, overridden if from_path or doc is provided.
+    If the package is already loaded, it will not be reloaded.
+    Note that this will also load implicitly load any sub-packages that are embedded with the package
+    TODO: load dependencies from package
+
+    :param namespace: namespace for package
+    :param from_path: if set and package is not loaded, load from the provided path. doc must be None.
+    :param doc: if set, use doc as a source for a not-loaded package
+    :return: Package object that satisfies the load request
+    :raises PackageError: if the package cannot be loaded or does not validate
+    """
+    return ACTIVE_PACKAGE_MANAGER.load_package(namespace, from_path, doc)
 
 
 def install_package(package: sep_054.Package, doc: sbol3.Document):
     ACTIVE_PACKAGE_MANAGER.install_package(package, doc)
 
 
+def lookup(uri: Union[ReferencedURI, str]):
+    return ACTIVE_PACKAGE_MANAGER.lookup(uri)
+
+
 #################
-# Replace ReferencedURI lookup function with package-aware lookup:
+# Replace ReferencedURI lookup function and Document find functions with package-aware lookup:
 original_referenced_uri_lookup = sbol3.refobj_property.ReferencedURI.lookup
 
 

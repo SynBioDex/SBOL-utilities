@@ -1,4 +1,3 @@
-
 <https://example.org/MyPackage/E0040> <http://sbols.org/v3#description> "Green FP (off patent)\nGFPmut3" .
 <https://example.org/MyPackage/E0040> <http://sbols.org/v3#displayId> "E0040" .
 <https://example.org/MyPackage/E0040> <http://sbols.org/v3#hasNamespace> <https://example.org/MyPackage> .

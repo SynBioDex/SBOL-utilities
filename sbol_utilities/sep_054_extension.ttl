@@ -4,6 +4,7 @@
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 @prefix sbol: <http://sbols.org/v3#> .
 @prefix sep054: <http://sbols.org/SEP054#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
 @base <http://sbols.org/SEP054#> .
 
 sep054: rdf:type owl:Ontology ;
@@ -107,20 +108,30 @@ sep054:Package rdf:type owl:Class ;
         of the Package object plus a local sub-path. For example `https://example.org/MyPackage/` might have
         `subPackage` values `https://example.org/MyPackage/promoters` and
         `https://example.org/MyPackage/regulatory/repressors`''' ;
-        rdfs:subClassOf sbol:Collection ,
+        # Should subclass sbol:Collection: workaround for https://github.com/SynBioDex/sbol_factory/issues/74
+        rdfs:subClassOf sbol:TopLevel ,
+    # member property is a workaround for https://github.com/SynBioDex/sbol_factory/issues/74
+    [ rdf:type owl:Restriction ; owl:allValuesFrom sbol:TopLevel  ; owl:onProperty sep054:member ] ,
     [ rdf:type owl:Restriction ; owl:allValuesFrom xsd:string ; owl:onProperty sep054:version ;
       owl:maxCardinality "1"^^xsd:nonNegativeInteger ; ] ,
     [ rdf:type owl:Restriction ; owl:allValuesFrom xsd:boolean ; owl:onProperty sep054:conversion ;
       owl:minCardinality "1"^^xsd:nonNegativeInteger ; owl:maxCardinality "1"^^xsd:nonNegativeInteger ; ] ,
     [ rdf:type owl:Restriction ; owl:allValuesFrom xsd:string ; owl:onProperty sep054:dissociated ;
       owl:maxCardinality "1"^^xsd:nonNegativeInteger ; ] ,
-    [ rdf:type owl:Restriction ; owl:allValuesFrom sep054:Dependency ; owl:onProperty sep054:hasDependency ; ] .
+    [ rdf:type owl:Restriction ; owl:allValuesFrom sep054:Dependency ; owl:onProperty sep054:hasDependency ; ] ,
     [ rdf:type owl:Restriction ; owl:allValuesFrom sep054:Package ; owl:onProperty sep054:subPackage ; ] .
+
+sep054:member rdf:type owl:ObjectProperty ;
+        rdfs:comment '''Workaround for https://github.com/SynBioDex/sbol_factory/issues/74''' ;
+              rdfs:domain sep054:Package  ;
+              rdfs:range sbol:TopLevel  ;
+              rdfs:label "members" .
+
 
 sep054:version rdf:type owl:DatatypeProperty ;
         rdfs:comment '''The value of this property SHOULD use SemVer to indicate the version of this package. This
         property SHOULD be set if and only if a package is a root package.''' ;
-              rdfs:domain sep054:Dependency ;
+              rdfs:domain sep054:Package ;
               rdfs:range xsd:string ;
               rdfs:label "version" .
 
