@@ -149,8 +149,8 @@ class GenBank_SBOL3_Converter:
             self.genbank_record_id     = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#id"         , 0, 1)
             # TODO : add note linking issue here
             self.genbank_taxonomy      = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#taxonomy"   , 0, 1)
-            # there can be multiple keywords, and accessions, thus upper bound needs to be > 1 in order to use TextListProperty
-            self.genbank_keywords      = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#keywords"  , 0, math.inf)
+            self.genbank_keywords      = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#keywords"   , 0, 1)
+            # there can be multiple accessions, thus upper bound needs to be > 1 in order to use TextListProperty
             self.genbank_accessions    = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#accessions", 0, math.inf)
 
 
@@ -375,7 +375,8 @@ class GenBank_SBOL3_Converter:
                 else: comp.genbank_division = record.annotations['data_file_division']
             # 3. GenBank Record Keywords
             elif annotation == 'keywords':
-                comp.genbank_keywords = sorted(record.annotations['keywords'])
+                # comp.genbank_keywords = sorted(record.annotations['keywords'])
+                comp.genbank_keywords = ",".join(record.annotations['keywords'])
             # 4. GenBank Record Molecule Type
             elif annotation == 'molecule_type':
                 comp.genbank_molecule_type = record.annotations['molecule_type']
@@ -449,7 +450,8 @@ class GenBank_SBOL3_Converter:
             # 2. GenBank Record Division
             seq_rec.annotations['data_file_division'] = obj.genbank_division
             # 3. GenBank Record Keywords
-            seq_rec.annotations['keywords'] = sorted(list(obj.genbank_keywords))
+            # seq_rec.annotations['keywords'] = sorted(list(obj.genbank_keywords))
+            if obj.genbank_keywords: seq_rec.annotations['keywords'] = str(obj.genbank_keywords).split(",")
             # 4. GenBank Record Molecule Type
             seq_rec.annotations['molecule_type'] = obj.genbank_molecule_type
             # 5. GenBank Record Organism
@@ -479,13 +481,13 @@ class GenBank_SBOL3_Converter:
                 record_references = []
                 for reference in references[obj]:
                     reference_object = Reference()
+                    reference_object.title = reference.title
                     reference_object.authors = reference.authors
                     reference_object.comment = reference.comment
                     reference_object.journal = reference.journal
-                    reference_object.title = reference.title
                     reference_object.consrtm = reference.consrtm
-                    reference_object.medline_id = reference.medline_id
                     reference_object.pubmed_id = reference.pubmed_id
+                    reference_object.medline_id = reference.medline_id
                     for obj_feat_loc in reference.location:
                         feat_strand = self.BIO_STRAND_FORWARD
                         # feature strand value which denotes orientation of the location of the feature
