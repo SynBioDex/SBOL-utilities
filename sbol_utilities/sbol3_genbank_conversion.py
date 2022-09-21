@@ -34,7 +34,6 @@ class GenBank_SBOL3_Converter:
     DEFAULT_GB_TERM = "misc_feature"
     # Namespace to be used be default if not provided, and also for all unit tests related to this converter
     TEST_NAMESPACE = "https://test.sbol3.genbank/"
-    CUSTOM_COMMENT_PROPERTY_URI = "http://www.ncbi.nlm.nih.gov/genbank#comment"
     CUSTOM_REFERENCE_PROPERTY_URI = "http://www.ncbi.nlm.nih.gov/genbank#reference"
     FEATURE_QUALIFIER_PROPERTY_URI = "http://www.ncbi.nlm.nih.gov/genbank#featureQualifier"
     CUSTOM_STRUCTURED_COMMENT_PROPERTY_URI = "http://www.ncbi.nlm.nih.gov/genbank#structured_comment"
@@ -84,15 +83,6 @@ class GenBank_SBOL3_Converter:
             obj = self.CustomReferenceProperty(identity=identity, type_uri=type_uri)
             return obj
 
-        def build_custom_comment_property(*, identity, type_uri) -> GenBank_SBOL3_Converter.CustomCommentProperty:
-            """A builder function to be called by the SBOL3 parser
-            when it encounters a CustomCommentProperty Toplevel object in an SBOL file.
-            :param identity: identity for custom comment property instance to have
-            :param type_uri: type_uri for custom comment property instance to have
-            """
-            obj = self.CustomCommentProperty(identity=identity, type_uri=type_uri)
-            return obj
-
         def build_custom_structured_comment_property(*, identity, type_uri) -> GenBank_SBOL3_Converter.CustomStructuredCommentProperty:
             """A builder function to be called by the SBOL3 parser
             when it encounters a CustomStructuredCommentProperty Toplevel object in an SBOL file.
@@ -105,8 +95,6 @@ class GenBank_SBOL3_Converter:
         # Register the builder function so it can be invoked by
         # the SBOL3 parser to build objects with a Component type URI
         sbol3.Document.register_builder(sbol3.SBOL_COMPONENT, build_component_genbank_extension)
-        # Register the buildre function for custom comment properties
-        sbol3.Document.register_builder(self.CUSTOM_COMMENT_PROPERTY_URI, build_custom_comment_property)
         # Register the buildre function for custom reference properties
         sbol3.Document.register_builder(self.CUSTOM_REFERENCE_PROPERTY_URI, build_custom_reference_property)
         # Register the buildre function for custom structured comment properties
@@ -136,22 +124,6 @@ class GenBank_SBOL3_Converter:
             # TODO: support cut locations?
             # there can be multiple locations described for a reference, thus upper bound needs to be > 1 in order to use ListProperty
             self.location = sbol3.OwnedObject(self, f"{self.CUSTOM_REFERENCE_NS}#location", 0, math.inf, type_constraint=sbol3.Range)
-
-
-    class CustomCommentProperty(sbol3.CustomTopLevel):
-        """Serves to store information and annotations for 'Comment' objects in 
-        GenBank file to SBOL3 while parsing so that it may be retrieved back in a round trip
-        :extends: sbol3.CustomTopLevel class
-        """
-        CUSTOM_COMMENT_NS = "http://www.ncbi.nlm.nih.gov/genbank#comment"
-        def __init__(self, type_uri=CUSTOM_COMMENT_NS, identity="customCommentProperty"):
-            super().__init__(identity, type_uri)
-            self.text       = sbol3.TextProperty(self, f"{self.CUSTOM_COMMENT_NS}#text"      , 0, 1)
-            # stores the display id of parent component for a particular CustomReferenceProperty object
-            self.component  = sbol3.TextProperty(self, f"{self.CUSTOM_COMMENT_NS}#component" , 0, 1)
-            # there can be multiple key/values described for a structured_comment, thus upper bound needs to be > 1 in order to use ListProperty
-            self.structured_keys   = sbol3.TextProperty(self, f"{self.CUSTOM_COMMENT_NS}#structuredKeys", 0, math.inf)
-            self.structured_values = sbol3.TextProperty(self, f"{self.CUSTOM_COMMENT_NS}#structuredValues", 0, math.inf)
 
 
     class CustomStructuredCommentProperty(sbol3.CustomTopLevel):
@@ -203,6 +175,7 @@ class GenBank_SBOL3_Converter:
             self.genbank_source        = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#source"     , 0, 1)
             self.genbank_topology      = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#topology"   , 0, 1)
             self.genbank_gi            = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#gi"         , 0, 1)
+            self.genbank_comment       = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#comment"    , 0, 1)
             self.genbank_record_id     = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#id"         , 0, 1)
             # TODO : add note linking issue here
             self.genbank_taxonomy      = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#taxonomy"   , 0, 1)
@@ -350,16 +323,6 @@ class GenBank_SBOL3_Converter:
                     references[component_object] = [obj] if component_object not in references else references[component_object] + [obj]
                 # TODO: Raise error here
                 # else:
-        # create dict to link component with their respective comment objects
-        comments: Dict[sbol3.Component, sbol3.CustomTopLevel] = {}
-        for obj in doc.objects:  
-            if isinstance(obj, sbol3.CustomTopLevel) and obj.type_uri == self.CUSTOM_COMMENT_PROPERTY_URI:
-                component_object = doc.find(str(obj.component))
-                if component_object and isinstance(component_object, sbol3.Component):
-                    comments[component_object] = obj
-                    # comments[component_object] = [obj] if component_object not in comments else references[component_object] + [obj]
-                # TODO: Raise error here
-                # else:
         # create dict to link component with their respective structured comment objects
         structured_comments: Dict[sbol3.Component, List[sbol3.CustomTopLevel]] = {}
         for obj in doc.objects:  
@@ -408,7 +371,7 @@ class GenBank_SBOL3_Converter:
                     name=obj.display_id,
                 )
                 # Resetting extraneous genbank properties from extended component-genbank class
-                self._reset_extra_properties_in_genbank(obj, seq_rec, references, comments, structured_comments)
+                self._reset_extra_properties_in_genbank(obj, seq_rec, references, structured_comments)
 
                 seq_rec_features = []
                 # recreate all sequence features, and tag all encountered feature qualifiers via extended Feature_GenBank_Extension class
@@ -506,11 +469,7 @@ class GenBank_SBOL3_Converter:
                     doc.add(custom_reference)
             # 14. GenBank Record Comment
             elif annotation == 'comment':
-                comment_object = self.CustomCommentProperty(identity = comp.identity + f"/Comment")
-                comment_object.text = record.annotations['comment']
-                if comp.display_id:
-                    comment_object.component = comp.display_id
-                doc.add(comment_object)
+                comp.genbank_comment = record.annotations['comment']
             # 15. GenBank Record Structured comments
             elif annotation == 'structured_comment':
                 identity_ind = 1
@@ -536,7 +495,7 @@ class GenBank_SBOL3_Converter:
         comp.genbank_locus = record.name
 
 
-    def _reset_extra_properties_in_genbank(self, obj: sbol3.Component, seq_rec: SeqRecord, references: Dict[sbol3.Component, List[sbol3.CustomTopLevel]], comments: Dict[sbol3.Component, sbol3.CustomTopLevel], structured_comments: Dict[sbol3.Component, List[sbol3.CustomTopLevel]]) -> None:
+    def _reset_extra_properties_in_genbank(self, obj: sbol3.Component, seq_rec: SeqRecord, references: Dict[sbol3.Component, List[sbol3.CustomTopLevel]], structured_comments: Dict[sbol3.Component, List[sbol3.CustomTopLevel]]) -> None:
         """Helper function for resetting properties for GenBank's extraneous properties from SBOL3 Document's properties,
         by using a modified, extended SBOL3 Component class, and a new CustomReferenceProperty TopLevel class.
         :param obj: SBOL3 component, extra properties would be stored within it if its an instance of the extended SBOL3 Component class
@@ -607,15 +566,9 @@ class GenBank_SBOL3_Converter:
                         reference_object.location.append(feat_loc_object)
                     record_references.append(reference_object)
                 seq_rec.annotations['references'] = record_references
-        # TODO: No explicit way to set locus via BioPython?
-        # 13. GenBank Record Locus
-        # TODO: temporalily hardcoding version as "1"
             # 14. GenBank Record Comments
-            if obj in comments:
-                # if sbol3 object has comment
-                record_comment = ""
-                record_comment = comments[obj].text
-                seq_rec.annotations['comment'] = record_comment
+            if obj.genbank_comment:
+                seq_rec.annotations['comment'] = obj.genbank_comment
             # 15. GenBank Record Structured Comments
             if obj in structured_comments:
                 comment_annotation = OrderedDict()
@@ -630,6 +583,9 @@ class GenBank_SBOL3_Converter:
                         structured_comment_object[key] = value
                     comment_annotation[structured_comment.heading] = structured_comment_object
                 seq_rec.annotations['structured_comment'] = comment_annotation
+        # TODO: No explicit way to set locus via BioPython?
+        # 13. GenBank Record Locus
+        # TODO: temporalily hardcoding version as "1"
         seq_rec.annotations["sequence_version"] = self.DEFAULT_GB_SEQ_VERSION
 
     
