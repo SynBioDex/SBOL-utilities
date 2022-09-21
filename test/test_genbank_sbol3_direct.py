@@ -74,9 +74,10 @@ class TestGenBankSBOL3(unittest.TestCase):
             sbol3_file=None, doc=test_output_sbol3, gb_file=outfile, write=True
         )
         comparison_file = str(sample_genbank_file)
-        assert filecmp.cmp(
+        file_diff = filecmp.cmp(
             outfile, comparison_file
         ), f"Converted GenBank file {outfile} is not identical to expected file {comparison_file}"
+        assert file_diff[0]
 
     def test_gbtosbol3_1(self):
         """Test conversion of a simple genbank file with a single sequence"""
@@ -139,21 +140,21 @@ class TestGenBankSBOL3(unittest.TestCase):
         )
         self._test_round_trip_genbank(genbank_file)
 
-    def test_round_trip_extra_properties_with_references(self):
-        """Test ability to produce same genbank file on round trip when original genbank file has non standard
-        values for extraneous properties, along with references
-        """
-        genbank_file = (
-            Path(__file__).parent / "test_files" / "sbol3_genbank_conversion" / "test_extra_properties_with_references.gb"
-        )
-        self._test_round_trip_genbank(genbank_file)
-
     def test_round_trip_multiple_loc_feat(self):
         """Test ability to produce same genbank file on round trip when original genbank file has multiple 
         locations on a feature
         """
         genbank_file = (
             Path(__file__).parent / "test_files" / "sbol3_genbank_conversion" / "multiple_feature_locations.gb"
+        )
+        self._test_round_trip_genbank(genbank_file)
+
+    def test_round_trip_extra_properties_with_references(self):
+        """Test ability to produce same genbank file on round trip when original genbank file has non standard
+        values for extraneous properties, along with references
+        """
+        genbank_file = (
+            Path(__file__).parent / "test_files" / "sbol3_genbank_conversion" / "test_extra_properties_with_references.gb"
         )
         self._test_round_trip_genbank(genbank_file)
 
@@ -184,11 +185,37 @@ class TestGenBankSBOL3(unittest.TestCase):
             else:
                 assert res["status"][top_level_object] == False
 
+    def test_round_trip_feature_qualifiers(self):
+        """Test ability to produce same genbank file on round trip when original genbank file has keys and
+        values for feature qualifiers
+        """
+        genbank_file = (
+            Path(__file__).parent / "test_files" / "sbol3_genbank_conversion" / "feature_qualifier_storage.gb"
+        )
+        self._test_round_trip_genbank(genbank_file)
+
     def test_round_trip_all_testfiles(self):
+        """Test ability to correctly round trip all genbank test files in this test suite"""
         test_file_dir = Path(__file__).parent / 'test_files'
         for genbank_file in test_file_dir.glob('*.gb'):
             self._test_round_trip_genbank(genbank_file)
+
+    def test_round_trip_iGEM_BBF10K(self):
+        """Test ability to correctly round trip genbank test files in the iGEM distribution of the form 
+        BBF10K_000***.gb ; these files mostly follow standard GenBank formatting, and don't have misplaced information
+        """
+        genbank_file = (
+            Path(__file__).parent / "test_files" / "sbol3_genbank_conversion" / "iGEM_BBF10K_000***.gb"
+        )
+        self._test_round_trip_genbank(genbank_file)
     
+    # def test_round_trip_all_iGEM(self):
+    #     test_file_dir = Path(__file__).parent.parent / 'iGEM'
+    #     for genbank_file in test_file_dir.glob('BBF10K_*.gb'):
+    #         print(f"file {genbank_file}")
+    #         x = self._test_round_trip_genbank(genbank_file)
+    #         print(f"result {x}")
+        
 
 if __name__ == "__main__":
     unittest.main()
