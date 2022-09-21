@@ -176,6 +176,7 @@ class GenBank_SBOL3_Converter:
             self.genbank_topology      = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#topology"   , 0, 1)
             self.genbank_gi            = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#gi"         , 0, 1)
             self.genbank_comment       = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#comment"    , 0, 1)
+            self.genbank_dblink        = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#dbxrefs"    , 0, 1)
             self.genbank_record_id     = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#id"         , 0, 1)
             # TODO : add note linking issue here
             self.genbank_taxonomy      = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#taxonomy"   , 0, 1)
@@ -399,6 +400,9 @@ class GenBank_SBOL3_Converter:
         :param record: GenBank SeqRecord instance for the record which contains extra properties
         """
         comp.genbank_record_id = record.id
+        # set dblinks from the dbxrefs property of biopython
+        if record.dbxrefs:
+            comp.genbank_dblink = "::".join(record.dbxrefs)
         for annotation in record.annotations:
             # Sending out warnings for genbank info not storeable in sbol3
             logging.warning(
@@ -504,6 +508,9 @@ class GenBank_SBOL3_Converter:
         """
         if isinstance(obj, self.Component_GenBank_Extension):
             seq_rec.id = obj.genbank_record_id
+            # set db links using dbxrefs property of biopython
+            if obj.genbank_dblink:
+                seq_rec.dbxrefs = str(obj.genbank_dblink).split("::")
             # 1. GenBank Record Date
             seq_rec.annotations['date'] = obj.genbank_date
             # 2. GenBank Record Division
