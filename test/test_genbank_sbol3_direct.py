@@ -209,6 +209,15 @@ class TestGenBankSBOL3(unittest.TestCase):
         )
         self._test_round_trip_genbank(genbank_file)
     
+    def test_round_trip_structured_comments(self):
+        """Test ability to correctly round trip genbank test files in the iGEM distribution which have 
+        comment and structured comment annotations.
+        """
+        genbank_file = (
+            Path(__file__).parent / "test_files" / "sbol3_genbank_conversion" / "test_structured_comments.gb"
+        )
+        self._test_round_trip_genbank(genbank_file)
+    
     # def test_round_trip_all_iGEM(self):
     #     test_file_dir = Path(__file__).parent.parent / 'iGEM'
     #     for genbank_file in test_file_dir.glob('BBF10K_*.gb'):
