@@ -8,7 +8,8 @@ from typing import Dict, List, Sequence, Union, Optional
 from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
-from Bio.SeqFeature import SeqFeature, FeatureLocation, Reference, CompoundLocation
+from Bio.SeqFeature import SeqFeature, FeatureLocation, Reference, \
+    CompoundLocation, BeforePosition, ExactPosition, AfterPosition
 
 
 
@@ -27,6 +28,9 @@ class GenBank_SBOL3_Converter:
     # BIO_STRAND constants, which server as the GenBank counterparts to SBOL3's inline and reverse orientations
     BIO_STRAND_FORWARD = 1
     BIO_STRAND_REVERSE = -1
+    # Mapping int types to types of locationPositions in GenBank (Before/After/Exact)
+    SBOL_LOCATION_POSITION = {BeforePosition: 0, ExactPosition: 1, AfterPosition: 2}
+    GENBANK_LOCATION_POSITION = {0: BeforePosition, 1: ExactPosition, 2: AfterPosition}
     # Default value for the "sequence_version" annotation in GenBank files
     DEFAULT_GB_SEQ_VERSION = 1
     # Default terms for SBOL3 and GenBank in case the feature lookup from respective dictionaries does not yield any ontology term
@@ -74,6 +78,20 @@ class GenBank_SBOL3_Converter:
             obj.clear_property(sbol3.SBOL_TYPE)
             return obj
 
+        def build_range_extension(*, identity, type_uri) -> GenBank_SBOL3_Converter.Range_GenBank_Extension:
+            """A builder function to be called by the SBOL3 parser
+            when it encounters a Range location in an SBOL file.
+            :param identity: identity for new sequence feature class instance to have
+            :param type_uri: type_uri for new sequence feature class instance to have
+            """
+            # `types` is required and not known at build time.
+            # Supply a missing value to the constructor, then clear
+            # the missing value before returning the built object.
+            obj = self.Range_GenBank_Extension(identity=identity, type_uri=type_uri)
+            # Remove the placeholder value
+            obj.clear_property(sbol3.SBOL_TYPE)
+            return obj
+
         def build_custom_reference_property(*, identity, type_uri) -> GenBank_SBOL3_Converter.CustomReferenceProperty:
             """A builder function to be called by the SBOL3 parser
             when it encounters a CustomReferenceProperty Toplevel object in an SBOL file.
@@ -102,6 +120,9 @@ class GenBank_SBOL3_Converter:
         # # Register the builder function so it can be invoked by
         # # the SBOL3 parser to build objects with a SequenceFeature type URI
         sbol3.Document.register_builder(sbol3.SBOL_SEQUENCE_FEATURE, build_feature_qualifiers_extension)
+        # # Register the builder function so it can be invoked by
+        # # the SBOL3 parser to build objects with a Range type URI
+        sbol3.Document.register_builder(sbol3.SBOL_RANGE, build_range_extension)
 
 
     class CustomReferenceProperty(sbol3.CustomTopLevel):
@@ -154,6 +175,20 @@ class GenBank_SBOL3_Converter:
             # Setting properties for GenBank's qualifiers not settable in any SBOL3 field.
             self.qualifier_key      = sbol3.TextProperty(self, f"{self.GENBANK_FEATURE_QUALIFIER_NS}#key"  , 0, math.inf)
             self.qualifier_value    = sbol3.TextProperty(self, f"{self.GENBANK_FEATURE_QUALIFIER_NS}#value", 0, math.inf)
+
+
+    class Range_GenBank_Extension(sbol3.Range):
+        """Overrides the sbol3 Range class to include fields to store the  
+        start and end position types (AfterPostion / BeforePosition / ExactPosition).
+        :extends: sbol3.Range class
+        """
+        GENBANK_RANGE_NS = "http://www.ncbi.nlm.nih.gov/genbank#locationPosition"
+        def __init__(self, sequence: sbol3.Sequence = sbol3.Sequence("autoCreatedSequence"), start: int = 0, end: int = 0, **kwargs) -> None:
+            # instantiating sbol3 SequenceFeature object
+            super().__init__(sequence = sequence, start = start, end = end, **kwargs)
+            # Setting properties for GenBank's location position not settable in any SBOL3 field.
+            self.start_position = sbol3.IntProperty(self, f"{self.GENBANK_RANGE_NS}#start", 0, 1)
+            self.end_position   = sbol3.IntProperty(self, f"{self.GENBANK_RANGE_NS}#end"  , 0, 1)
 
 
     class Component_GenBank_Extension(sbol3.Component):
@@ -630,12 +665,15 @@ class GenBank_SBOL3_Converter:
                         orientation=feat_loc_orientation,
                     )
                 else:
-                    locs = sbol3.Range(
+                    locs = self.Range_GenBank_Extension(
                         sequence=seq,
                         start=int(gb_loc.start),
                         end=int(gb_loc.end),
                         orientation=feat_loc_orientation,
                     )
+                    # storing location types in IntProperties of SBOL3
+                    locs.end_position = self.SBOL_LOCATION_POSITION[type(gb_loc.end)]
+                    locs.start_position = self.SBOL_LOCATION_POSITION[type(gb_loc.start)]
                 feat_locations.append(locs)
             # Obtain sequence feature role from gb2so mappings
             feat_role = sbol3.SO_NS[:-3]
@@ -700,18 +738,28 @@ class GenBank_SBOL3_Converter:
                         `{obj_feat.name}` of component: `{obj.display_id}` is not a valid orientation.\n \
                         Valid orientations are `{sbol3.SO_FORWARD}`, `{sbol3.SO_REVERSE}`")
                     # TODO: Raise custom converter class ERROR for `else:`
+                    # creating start and end Positions 
+                    endPosition = ExactPosition(obj_feat_loc.end)
+                    startPosition = ExactPosition(obj_feat_loc.start)
+                    # if range, check for position being Before / After Positions
+                    if isinstance(obj_feat_loc, sbol3.Range):
+                        # change end and start Positions only if user has made integer entries into them
+                        if obj_feat_loc.end_position != None:
+                            endPosition = self.GENBANK_LOCATION_POSITION[obj_feat_loc.end_position](obj_feat_loc.end)
+                        if obj_feat_loc.start_position != None:
+                            startPosition = self.GENBANK_LOCATION_POSITION[obj_feat_loc.start_position](obj_feat_loc.start)
                     feat_loc_object = FeatureLocation(
-                        start=obj_feat_loc.start,
-                        end=obj_feat_loc.end,
+                        start=startPosition,
+                        end=endPosition,
                         strand=feat_strand,
                     )
                     feat_loc_parts.append(feat_loc_object)
                 # sort feature locations lexicographically internally first
                 # NOTE: If the feature location has an outer "complement" location operator, the sort needs to be in reverse order
                 if obj_feat.orientation == sbol3.SO_REVERSE:
-                    feat_loc_parts.sort(key=lambda loc: (loc.start, loc.end), reverse=True)
+                    feat_loc_parts.sort(key=lambda loc: (loc.start, loc.end, loc.strand), reverse=True)
                 else:
-                    feat_loc_parts.sort(key=lambda loc: (loc.start, loc.end))
+                    feat_loc_parts.sort(key=lambda loc: (loc.start, loc.end, loc.strand))
                 for loc in feat_loc_parts:
                     feat_loc_positions += [loc.start, loc.end]
                 if len(feat_loc_parts) > 1:
@@ -749,6 +797,7 @@ class GenBank_SBOL3_Converter:
                     for qualifier_ind in range(len(keys)):
                         feat.qualifiers[keys[qualifier_ind].split(":", 1)[1]] = values[qualifier_ind].split(":", 1)[1]
                 seq_rec_features.append(feat)
-        # Sort features based on feature location start/end, lexicographically
-        seq_rec_features.sort(key=lambda feat: feat_order[feat])
+        # Sort features based on feature location start/end, lexicographically, and then by 
+        # strand / number of qualifiers / type of feature string comparison
+        seq_rec_features.sort(key=lambda feat: (feat_order[feat], feat.strand, len(feat.qualifiers), feat.type))
         seq_rec.features = seq_rec_features
