@@ -718,57 +718,13 @@ def ligation(reactants:List[sbol3.Component], assembly_plan:sbol3.Component)-> L
     :param reactant: DNA to be ligated as SBOL Component. 
     :return: A tuple of Component and Interaction.
     """
-    five_prime_overhangs = []
-    three_prime_overhangs = []
-    for reactant in reactants:
-        flank_control = [0,0]
-        for feature in reactant.features:
-            if feature.role == sbol3.SO.restriction_enzyme_five_prime_single_strand_overhang:
-                five_prime_overhangs.append(feature)
-                flank_control[0] = 1
-            elif feature.role == sbol3.SO.restriction_enzyme_three_prime_single_strand_overhang:
-                three_prime_overhangs.append(feature)
-                flank_control[1] = 1
+    # get all fusion sites
+    five_prime_fusion_sites = set()
+    three_prime_fusion_sites = set()
+    for r in reactants:
+        five_prime_fusion_sites.add(r.sequences[0].lookup().elements[:r.features[0].locations[0].end])
+        three_prime_fusion_sites.add(r.sequences[0].lookup().elements[r.features[0].locations[1].start:])
 
-        if flank_control == [1,1]:
-            pass
-        elif flank_control == [0,0]:
-            raise ValueError(f"No flanking single strand found in reactant {reactant.identity}")
-        elif flank_control == [1,0]:
-            raise ValueError(f"No flanking single strand found in 3 prime end on reactant {reactant.identity}")
-        elif flank_control == [0,1]:
-            raise ValueError(f"No flanking single strand found in 5 prime end on reactant {reactant.identity}")
-        else:
-            raise ValueError(f"Flanking single strand does not match recognized format on reactant {reactant.identity}")
-    
-    fusion_site_length = 4 # placeholder, get from reactant information
-    # TODO: build graph and fing all different paths or using structural pattern matching    
-    # build graph
-    assembly_graph = nx.Graph()
-    for reactant in reactants:
-        assembly_graph.add_node(reactant)
-    for a,b in itertools.combinations(reactants,2):
-        reactant_a_sequence = a.sequences[0].lookup().elements
-        reactant_b_sequence = b.sequences[0].lookup().elements
-        if reactant_a_sequence[-fusion_site_length:] == reactant_b_sequence[:fusion_site_length]:
-            assembly_graph.add_edge(a,b, {'fusion_site':reactant_a_sequence[-fusion_site_length:]})
-        if reactant_a_sequence[:fusion_site_length-1] == reactant_b_sequence[-fusion_site_length:]:
-            assembly_graph.add_edge(a,b, {'fusion_site':reactant_b_sequence[:fusion_site_length-1]})
-    # find all paths that leads to an assembly product
-
-
-    # TODO: breadth search for all paths
-    '''
-    parts_to_combine = {reactants}
-    terminal_parts = set()
-    while parts_to_combine:
-        next_part = parts_to_combine.pop()
-        new_parts = find all combinations that can be made with elements in parts_to_combine
-        if new_parts:
-            add new_parts to parts_to_combine
-        else:
-            terminal_parts.add(next_part)
-    '''
     alignments = [[r] for r in reactants] # like [[A],[B1],[B2],[C]]] and [[A,B1,C],[B1],[B2],[C]]
     used_fusion_sites = set()
     final_products = [] # [[A,B1,C]]
@@ -781,53 +737,78 @@ def ligation(reactants:List[sbol3.Component], assembly_plan:sbol3.Component)-> L
         alignments.pop(0)
         # compare to all other alignments
         for alignment in alignments:
+            #working_alignment_5_prime_fusion_site_length = working_alignment[0].features[0].locations[0].end
+            #alignment_3_prime_fusion_site_length = alignment[-1].features[0].locations[1].start
+            working_alignment_5_prime_fusion_site = working_alignment[0].sequences[0].lookup().elements[:working_alignment[0].features[0].locations[0].end]
+            working_alignment_3_prime_fusion_site = working_alignment[-1].sequences[0].lookup().elements[working_alignment[-1].features[0].locations[1].start:]
+            alignment_5_prime_fusion_site = alignment[0].sequences[0].lookup().elements[:alignment[0].features[0].locations[0].end]
+            alignment_3_prime_fusion_site = alignment[-1].sequences[0].lookup().elements[alignment[-1].features[0].locations[1].start:]
             # if working alignment 5' end matches a alignment 3' end
-            if working_alignment[0].sequences[0].lookup().elements[:fusion_site_length-1] == alignment.sequences[0].lookup().elements[-fusion_site_length:]:
+            if  working_alignment_5_prime_fusion_site == alignment_3_prime_fusion_site:
                 # if in used_fusion_sites, skip
-                if working_alignment[0].sequences[0].lookup().elements[:fusion_site_length-1] in used_fusion_sites:
+                if working_alignment_5_prime_fusion_site in used_fusion_sites:
                     raise ValueError(f"Fusion site {working_alignment[0].sequences[0].lookup().elements[:fusion_site_length-1]} already used")                
+                else: used_fusion_sites.add(working_alignment_5_prime_fusion_site)
                 # if repeated elements pass
-                if(all(x in working_alignment for x in alignment)):
-                    raise ValueError(f"Repeated elements in alignment {alignment}")
+                #if(all(x in working_alignment for x in alignment)):
+                #    raise ValueError(f"Repeated elements in alignment {alignment}")
 
                 working_alignment = alignment + working_alignment
-            else:
+
+            working_alignment_5_prime_fusion_site = working_alignment[0].sequences[0].lookup().elements[:working_alignment[0].features[0].locations[0].end]
+            working_alignment_3_prime_fusion_site = working_alignment[-1].sequences[0].lookup().elements[working_alignment[-1].features[0].locations[1].start:]
+            
+            # if working alignment 5' end does not matches any 3' fusion site    
+            if working_alignment_5_prime_fusion_site not in three_prime_fusion_sites:
                 five_prime_end = True
+            
             # if working_alignment is closed, add to final_products
-            if working_alignment[0].sequences[0].lookup().elements[:fusion_site_length-1] == working_alignment.sequences[0].lookup().elements[-fusion_site_length:]:
+            if working_alignment_5_prime_fusion_site == working_alignment_3_prime_fusion_site:
                 final_products.append(working_alignment)
                 closed = True
                 break
+            
             ################################################
-            # if alignment 3' end matches a reactant 5' end
-            if working_alignment[-1].sequences[0].lookup().elements[-fusion_site_length:] == alignment.sequences[0].lookup().elements[:fusion_site_length-1]: 
+            # if working alignment 3' end matches a alignment 5' end
+            if working_alignment_3_prime_fusion_site == alignment_5_prime_fusion_site: 
                 # if in used_fusion_sites, raise error
-                if working_alignment[-1].sequences[0].lookup().elements[-fusion_site_length:] in used_fusion_sites:
+                if working_alignment_3_prime_fusion_site in used_fusion_sites:
                     raise ValueError(f"Fusion site {working_alignment[0].sequences[0].lookup().elements[:fusion_site_length-1]} already used")                
                 # if repeated elements, raise error
-                if(all(x in working_alignment for x in alignment)):
-                    raise ValueError(f"Repeated elements in alignment {alignment}")
+                #if(all(x in working_alignment for x in alignment)):
+                #    raise ValueError(f"Repeated elements in alignment {alignment}")
     
                 working_alignment = working_alignment + alignment
-            else:
+
+            working_alignment_5_prime_fusion_site = working_alignment[0].sequences[0].lookup().elements[:working_alignment[0].features[0].locations[0].end]
+            working_alignment_3_prime_fusion_site = working_alignment[-1].sequences[0].lookup().elements[working_alignment[-1].features[0].locations[1].start:]
+            
+            # if working alignment 5' end does not matches any 3' fusion site    
+            if working_alignment_3_prime_fusion_site not in five_prime_fusion_sites:
                 three_prime_end = True
+            
             # if working_alignment is closed, add to final_products
-            if working_alignment[0].sequences[0].lookup().elements[:fusion_site_length-1] == working_alignment.sequences[0].lookup().elements[-fusion_site_length:]:
+            if working_alignment_5_prime_fusion_site == working_alignment_3_prime_fusion_site:
                 final_products.append(working_alignment)
                 closed = True
-                break 
-            elif five_prime_end and three_prime_end:
+                break      
+            # if no match, add to final products
+            if five_prime_end and three_prime_end:
                 final_products.append(working_alignment)
-                break    
-            else: alignments = working_alignment + alignments       
+                break
             
+            # TODO: feed working alignment to alignments
+            #alignments.insert(0, working_alignment)
+
             # use final products to build assembly product somponent
+        fusion_site_length = 4
         products_list = []
         participations = []
         for composite in final_products: # a composite of the form [A,B,C]
-            composite_number = 1
+            composite_number = 0
             # calculate sequence
             composite_sequence_str = ""
+            composite_name = ""
             for part in composite:
                 composite_sequence_str = composite_sequence_str + part.sequences[0].lookup().elements[:-fusion_site_length] #needs a version for linear
                 # create participations
@@ -836,23 +817,25 @@ def ligation(reactants:List[sbol3.Component], assembly_plan:sbol3.Component)-> L
                 assembly_plan.features.append(part_subcomponent)
                 part_participation = sbol3.Participation(roles=[sbol3.SBO_REACTANT], participant=part_subcomponent)
                 participations.append(part_participation)
+                composite_name = composite_name + part.name
             # create dna componente and sequence
-            composite_component, composite_seq = dna_component_with_sequence(f'composite_{composite_number}', composite_sequence_str) # **kwarads use in future?
-            composite_component.types.append()
+            composite_component, composite_seq = dna_component_with_sequence(f'composite_{composite_number}_{composite_name}', composite_sequence_str) # **kwarads use in future?
+            #composite_component.types.append()
             composite_component.roles.append(sbol3.SO_ENGINEERED_REGION)
-            composite_component.features = composite
-            # fix order of features
-            composite_component.constraints.append(sbol3.Constraint(sbol3.SBOL_MEETS, composite_component.features[composite_number-1], composite_component.features[composite_number]))
+            #composite_component.features = composite
+            # TODO fix order of features
+            #composite_component.constraints.append(sbol3.Constraint(sbol3.SBOL_MEETS, composite_component.features[composite_number-1], composite_component.features[composite_number]))
             # add product participation 
-            composite_subcomponent = sbol3.SubComponent(composite_component)
-            participations.append(sbol3.Participation(roles=[sbol3.SBO_PRODUCT], participant=composite_subcomponent))
+            #composite_subcomponent = sbol3.SubComponent(composite_component)
+            #participations.append(sbol3.Participation(roles=[sbol3.SBO_PRODUCT], participant=composite_subcomponent))
             # create interactions
-            assembly_plan.interactions.append(sbol3.Interaction(types=[tyto.SBO.conversion], participations=participations))
+            #assembly_plan.interactions.append(sbol3.Interaction(types=[tyto.SBO.conversion], participations=participations))
             products_list.append([composite_component, composite_seq])
             composite_number += 1
     #create preceed constrain
     #create composite part or part in backbone
     #add interactions to assembly_plan
+    #add participations to assembly_plan
 
     return products_list
 
