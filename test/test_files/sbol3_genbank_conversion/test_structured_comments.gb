@@ -20,12 +20,12 @@ COMMENT     ##Assembly-Data-START##
             Sequencing Technology :: Sanger dideoxy sequencing
             ##Assembly-Data-END##
 FEATURES             Location/Qualifiers
+     gene            1..720
+                     /gene="cpmCerulean3"
      source          1..720
                      /organism="synthetic construct"
                      /mol_type="other DNA"
                      /db_xref="taxon:32630"
-     gene            1..720
-                     /gene="cpmCerulean3"
      CDS             1..720
                      /gene="cpmCerulean3"
                      /note="enhanced cyan fluorescent protein; codon-optimized

@@ -709,9 +709,9 @@ class GenBank_SBOL3_Converter:
                 # sort feature locations lexicographically internally first
                 # NOTE: If the feature location has an outer "complement" location operator, the sort needs to be in reverse order
                 if obj_feat.orientation == sbol3.SO_REVERSE:
-                    feat_loc_parts.sort(key=lambda loc: (loc.start, loc.end), reverse=True)
+                    feat_loc_parts.sort(key=lambda loc: (loc.start, loc.end, loc.strand), reverse=True)
                 else:
-                    feat_loc_parts.sort(key=lambda loc: (loc.start, loc.end))
+                    feat_loc_parts.sort(key=lambda loc: (loc.start, loc.end, loc.strand))
                 for loc in feat_loc_parts:
                     feat_loc_positions += [loc.start, loc.end]
                 if len(feat_loc_parts) > 1:
@@ -750,5 +750,5 @@ class GenBank_SBOL3_Converter:
                         feat.qualifiers[keys[qualifier_ind].split(":", 1)[1]] = values[qualifier_ind].split(":", 1)[1]
                 seq_rec_features.append(feat)
         # Sort features based on feature location start/end, lexicographically
-        seq_rec_features.sort(key=lambda feat: feat_order[feat])
+        seq_rec_features.sort(key=lambda feat: (feat_order[feat], feat.strand, len(feat.qualifiers), feat.type))
         seq_rec.features = seq_rec_features
