@@ -218,6 +218,7 @@ class GenBank_SBOL3_Converter:
             self.genbank_keywords      = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#keywords"   , 0, 1)
             # there can be multiple accessions, thus upper bound needs to be > 1 in order to use TextListProperty
             self.genbank_accessions    = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#accessions", 0, math.inf)
+            self.fuzzy_features        = sbol3.OwnedObject(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#fuzzyFeatures", 0, math.inf, type_constraint=sbol3.SequenceFeature)
 
 
     def create_GB_SO_role_mappings(self, gb2so_csv: str = GB2SO_MAPPINGS_CSV, so2gb_csv: str = SO2GB_MAPPINGS_CSV,
@@ -631,7 +632,7 @@ class GenBank_SBOL3_Converter:
         seq_rec.annotations["sequence_version"] = self.DEFAULT_GB_SEQ_VERSION
 
     
-    def _handle_features_gb_to_sbol(self, record: SeqRecord, comp: sbol3.Component, seq: sbol3.Sequence) -> None:
+    def _handle_features_gb_to_sbol(self, record: SeqRecord, comp: Component_GenBank_Extension, seq: sbol3.Sequence) -> None:
         """Helper function for setting sequence features and their qualifiers to SBOL,
         by using a modified, extended SBOL3 Sequence Feature class - Feature_GenBank_Extension.
         :param record: GenBank SeqRecord instance for the record which contains sequnce features
@@ -644,6 +645,7 @@ class GenBank_SBOL3_Converter:
         comp.features = []
         for ind, gb_feat in enumerate(record.features):
             feat_locations = []
+            fuzzy_feature = False
             feat_name = f"_converted_feature_{ind}"
             if "label" in gb_feat.qualifiers:
                 feat_name = gb_feat.qualifiers["label"][0]
@@ -674,6 +676,11 @@ class GenBank_SBOL3_Converter:
                     # storing location types in IntProperties of SBOL3
                     locs.end_position = self.SBOL_LOCATION_POSITION[type(gb_loc.end)]
                     locs.start_position = self.SBOL_LOCATION_POSITION[type(gb_loc.start)]
+                    # if any of the location endpoints of a feature (start/end) has a fuzzy end
+                    # (i.e not Exact position) like BeforePosition/AfterPostion, we mark the 
+                    # feature as a 'fuzzy_feature' which decides whether to store the feature or not
+                    if not fuzzy_feature and locs.end_position != 1 or locs.start_position != 1:
+                        fuzzy_feature = True
                 feat_locations.append(locs)
             # Obtain sequence feature role from gb2so mappings
             feat_role = sbol3.SO_NS[:-3]
@@ -698,7 +705,16 @@ class GenBank_SBOL3_Converter:
             for ind, qualifier in enumerate(gb_feat.qualifiers):
                 feat.qualifier_key.append(f"{ind}:" + qualifier)
                 feat.qualifier_value.append(f"{ind}:" + gb_feat.qualifiers[qualifier][0])
-            comp.features.append(feat)
+            # if feature has any fuzzy location, since SBOL does not support storing such location endpoints,
+            # instead of presenting incomplete/incorrect information to users, we would store the feature assume
+            # a property of the Extended GenBank Component class, instead as a feature of the component.
+            # See: issue -> 
+            # Once the above issue gets addressed, we can remove the 'fuzzy_feature' property and simply add the
+            # concerned feature to the features of the component.
+            if not fuzzy_feature:
+                comp.features.append(feat)
+            else:
+                comp.fuzzy_features.append(feat)
 
 
     def _handle_features_sbol_to_gb(self, seq_rec: SeqRecord, obj: sbol3.Component, seq_rec_features: List) -> None:
