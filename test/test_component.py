@@ -8,7 +8,7 @@ import sbol3
 import tyto
 
 from sbol_utilities.component import contained_components, contains, add_feature, add_interaction, constitutive, \
-    regulate, order, in_role, all_in_role, ensure_singleton_feature, by_roles, by_types, is_dna_part, ed_restriction_enzyme,
+    regulate, order, in_role, all_in_role, ensure_singleton_feature, by_roles, by_types, is_dna_part, ed_restriction_enzyme
 from sbol_utilities.helper_functions import filter_top_level
 from sbol_utilities.component import dna_component_with_sequence, rna_component_with_sequence, \
     protein_component_with_sequence, media, functional_component, promoter, rbs, cds, terminator, \
