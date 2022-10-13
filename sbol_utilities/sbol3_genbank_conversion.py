@@ -717,7 +717,7 @@ class GenBank_SBOL3_Converter:
                 comp.fuzzy_features.append(feat)
 
 
-    def _handle_features_sbol_to_gb(self, seq_rec: SeqRecord, obj: sbol3.Component, seq_rec_features: List) -> None:
+    def _handle_features_sbol_to_gb(self, seq_rec: SeqRecord, obj: Component_GenBank_Extension, seq_rec_features: List) -> None:
         """Helper function for resetting sequence features and their qualifiers to GenBank,
         by using a modified, extended SBOL3 Sequence Feature class - Feature_GenBank_Extension.
         :param seq_rec: GenBank SeqRecord instance for the record which contains sequnce features
@@ -729,8 +729,12 @@ class GenBank_SBOL3_Converter:
             return
         feat_order = {}
         seq_rec_features = []
+        # for round trip conversion, consider all features - exact and fuzzy ones too
+        all_features = list(obj.features)
+        if isinstance(obj, self.Component_GenBank_Extension):
+            all_features += list(obj.fuzzy_features)
         # converting all sequence features
-        for obj_feat in obj.features:
+        for obj_feat in all_features:
             # TODO: Also add ability to parse subcomponent feature type
             # Note: Currently we only parse sequence features from sbol3 to genbank
             if isinstance(obj_feat, sbol3.SequenceFeature):
@@ -817,3 +821,4 @@ class GenBank_SBOL3_Converter:
         # strand / number of qualifiers / type of feature string comparison
         seq_rec_features.sort(key=lambda feat: (feat_order[feat], feat.strand, len(feat.qualifiers), feat.type))
         seq_rec.features = seq_rec_features
+
