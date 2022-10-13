@@ -38,9 +38,6 @@ class GenBank_SBOL3_Converter:
     DEFAULT_GB_TERM = "misc_feature"
     # Namespace to be used be default if not provided, and also for all unit tests related to this converter
     TEST_NAMESPACE = "https://test.sbol3.genbank/"
-    CUSTOM_REFERENCE_PROPERTY_URI = "http://www.ncbi.nlm.nih.gov/genbank#reference"
-    FEATURE_QUALIFIER_PROPERTY_URI = "http://www.ncbi.nlm.nih.gov/genbank#featureQualifier"
-    CUSTOM_STRUCTURED_COMMENT_PROPERTY_URI = "http://www.ncbi.nlm.nih.gov/genbank#structured_comment"
     # File locations for required CSV data files which store the ontology term translations between GenBank and SO ontologies
     GB2SO_MAPPINGS_CSV = os.path.join(os.path.dirname(os.path.realpath(__file__)), "gb2so.csv")
     SO2GB_MAPPINGS_CSV = os.path.join(os.path.dirname(os.path.realpath(__file__)), "so2gb.csv")
@@ -114,9 +111,9 @@ class GenBank_SBOL3_Converter:
         # the SBOL3 parser to build objects with a Component type URI
         sbol3.Document.register_builder(sbol3.SBOL_COMPONENT, build_component_genbank_extension)
         # Register the buildre function for custom reference properties
-        sbol3.Document.register_builder(self.CUSTOM_REFERENCE_PROPERTY_URI, build_custom_reference_property)
+        sbol3.Document.register_builder(self.CustomReferenceProperty.CUSTOM_REFERENCE_NS, build_custom_reference_property)
         # Register the buildre function for custom structured comment properties
-        sbol3.Document.register_builder(self.CUSTOM_STRUCTURED_COMMENT_PROPERTY_URI, build_custom_structured_comment_property)
+        sbol3.Document.register_builder(self.CustomStructuredCommentProperty.CUSTOM_STRUCTURED_COMMENT_NS, build_custom_structured_comment_property)
         # # Register the builder function so it can be invoked by
         # # the SBOL3 parser to build objects with a SequenceFeature type URI
         sbol3.Document.register_builder(sbol3.SBOL_SEQUENCE_FEATURE, build_feature_qualifiers_extension)
@@ -150,6 +147,7 @@ class GenBank_SBOL3_Converter:
     class CustomStructuredCommentProperty(sbol3.CustomTopLevel):
         """Serves to store information and annotations for 'Structured_Comment' objects in 
         GenBank file to SBOL3 while parsing so that it may be retrieved back in a round trip
+        Complete reference available at: https://www.ncbi.nlm.nih.gov/genbank/structuredcomment/
         :extends: sbol3.CustomTopLevel class
         """
         CUSTOM_STRUCTURED_COMMENT_NS = "http://www.ncbi.nlm.nih.gov/genbank#structured_comment"
@@ -354,7 +352,7 @@ class GenBank_SBOL3_Converter:
         # create dict to link component with their respective Reference property objects
         references: Dict[sbol3.Component, List[sbol3.CustomTopLevel]] = {}
         for obj in doc.objects:  
-            if isinstance(obj, sbol3.CustomTopLevel) and obj.type_uri == self.CUSTOM_REFERENCE_PROPERTY_URI:
+            if isinstance(obj, sbol3.CustomTopLevel) and obj.type_uri == self.CustomReferenceProperty.CUSTOM_REFERENCE_NS:
                 component_object = doc.find(str(obj.component))
                 if component_object and isinstance(component_object, sbol3.Component):
                     references[component_object] = [obj] if component_object not in references else references[component_object] + [obj]
@@ -363,7 +361,7 @@ class GenBank_SBOL3_Converter:
         # create dict to link component with their respective structured comment objects
         structured_comments: Dict[sbol3.Component, List[sbol3.CustomTopLevel]] = {}
         for obj in doc.objects:  
-            if isinstance(obj, sbol3.CustomTopLevel) and obj.type_uri == self.CUSTOM_STRUCTURED_COMMENT_PROPERTY_URI:
+            if isinstance(obj, sbol3.CustomTopLevel) and obj.type_uri == self.CustomStructuredCommentProperty.CUSTOM_STRUCTURED_COMMENT_NS:
                 component_object = doc.find(str(obj.component))
                 if component_object and isinstance(component_object, sbol3.Component):
                     structured_comments[component_object] = [obj] if component_object not in structured_comments else structured_comments[component_object] + [obj]
@@ -438,6 +436,9 @@ class GenBank_SBOL3_Converter:
         comp.genbank_record_id = record.id
         # set dblinks from the dbxrefs property of biopython
         if record.dbxrefs:
+            # dbxrefs are parsed in a list by biopython from `record.dbxrefs`; we are storing them as a flat string
+            # so as to maintain order. Thus, we are creating a custom delimetere of `::`, by which we shall seperate
+            # individual dbxrefs in the string and later split them to a list while resetting them in genbank
             comp.genbank_dblink = "::".join(record.dbxrefs)
         for annotation in record.annotations:
             # Sending out warnings for genbank info not storeable in sbol3
@@ -546,6 +547,9 @@ class GenBank_SBOL3_Converter:
             seq_rec.id = obj.genbank_record_id
             # set db links using dbxrefs property of biopython
             if obj.genbank_dblink:
+                # NOTE: see comment on `_store_extra_properties_in_sbol3`'s dbxrefs section, wherein we describe how '::' 
+                # is used as a delimeter to store the dbxrefs list as a string to maintain order. Here, we split the string 
+                # by the same delimeter to restore the list in resetting GenBank properties.
                 seq_rec.dbxrefs = str(obj.genbank_dblink).split("::")
             # 1. GenBank Record Date
             seq_rec.annotations['date'] = obj.genbank_date
@@ -813,6 +817,7 @@ class GenBank_SBOL3_Converter:
                     for qualifier_ind in range(len(keys)):
                         feat.qualifiers[keys[qualifier_ind].split(":", 1)[1]] = values[qualifier_ind].split(":", 1)[1]
                 seq_rec_features.append(feat)
+
         # Sort features based on feature location start/end, lexicographically, and then by 
         # strand / number of qualifiers / type of feature string comparison
         seq_rec_features.sort(key=lambda feat: (feat_order[feat], feat.strand, len(feat.qualifiers), feat.type))
