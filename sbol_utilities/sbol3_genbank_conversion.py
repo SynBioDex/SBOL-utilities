@@ -3,6 +3,7 @@ import csv
 import math
 import sbol3
 import logging
+from collections import OrderedDict
 from typing import Dict, List, Sequence, Union, Optional
 from Bio import SeqIO
 from Bio.Seq import Seq
@@ -33,8 +34,6 @@ class GenBank_SBOL3_Converter:
     DEFAULT_GB_TERM = "misc_feature"
     # Namespace to be used be default if not provided, and also for all unit tests related to this converter
     TEST_NAMESPACE = "https://test.sbol3.genbank/"
-    CUSTOM_REFERENCE_PROPERTY_URI = "http://www.ncbi.nlm.nih.gov/genbank#reference"
-    FEATURE_QUALIFIER_PROPERTY_URI = "http://www.ncbi.nlm.nih.gov/genbank#featureQualifier"
     # File locations for required CSV data files which store the ontology term translations between GenBank and SO ontologies
     GB2SO_MAPPINGS_CSV = os.path.join(os.path.dirname(os.path.realpath(__file__)), "gb2so.csv")
     SO2GB_MAPPINGS_CSV = os.path.join(os.path.dirname(os.path.realpath(__file__)), "so2gb.csv")
@@ -81,11 +80,22 @@ class GenBank_SBOL3_Converter:
             obj = self.CustomReferenceProperty(identity=identity, type_uri=type_uri)
             return obj
 
+        def build_custom_structured_comment_property(*, identity, type_uri) -> GenBank_SBOL3_Converter.CustomStructuredCommentProperty:
+            """A builder function to be called by the SBOL3 parser
+            when it encounters a CustomStructuredCommentProperty Toplevel object in an SBOL file.
+            :param identity: identity for custom comment property instance to have
+            :param type_uri: type_uri for custom comment property instance to have
+            """
+            obj = self.CustomStructuredCommentProperty(identity=identity, type_uri=type_uri)
+            return obj
+
         # Register the builder function so it can be invoked by
         # the SBOL3 parser to build objects with a Component type URI
         sbol3.Document.register_builder(sbol3.SBOL_COMPONENT, build_component_genbank_extension)
         # Register the buildre function for custom reference properties
-        sbol3.Document.register_builder(self.CUSTOM_REFERENCE_PROPERTY_URI, build_custom_reference_property)
+        sbol3.Document.register_builder(self.CustomReferenceProperty.CUSTOM_REFERENCE_NS, build_custom_reference_property)
+        # Register the buildre function for custom structured comment properties
+        sbol3.Document.register_builder(self.CustomStructuredCommentProperty.CUSTOM_STRUCTURED_COMMENT_NS, build_custom_structured_comment_property)
         # # Register the builder function so it can be invoked by
         # # the SBOL3 parser to build objects with a SequenceFeature type URI
         sbol3.Document.register_builder(sbol3.SBOL_SEQUENCE_FEATURE, build_feature_qualifiers_extension)
@@ -111,6 +121,23 @@ class GenBank_SBOL3_Converter:
             # TODO: support cut locations?
             # there can be multiple locations described for a reference, thus upper bound needs to be > 1 in order to use ListProperty
             self.location = sbol3.OwnedObject(self, f"{self.CUSTOM_REFERENCE_NS}#location", 0, math.inf, type_constraint=sbol3.Range)
+
+
+    class CustomStructuredCommentProperty(sbol3.CustomTopLevel):
+        """Serves to store information and annotations for 'Structured_Comment' objects in 
+        GenBank file to SBOL3 while parsing so that it may be retrieved back in a round trip
+        Complete reference available at: https://www.ncbi.nlm.nih.gov/genbank/structuredcomment/
+        :extends: sbol3.CustomTopLevel class
+        """
+        CUSTOM_STRUCTURED_COMMENT_NS = "http://www.ncbi.nlm.nih.gov/genbank#structured_comment"
+        def __init__(self, type_uri=CUSTOM_STRUCTURED_COMMENT_NS, identity="customStructuredCommentProperty"):
+            super().__init__(identity, type_uri)
+            self.heading    = sbol3.TextProperty(self, f"{self.CUSTOM_STRUCTURED_COMMENT_NS}#heading"   , 0, 1)
+            # stores the display id of parent component for a particular CustomReferenceProperty object
+            self.component  = sbol3.TextProperty(self, f"{self.CUSTOM_STRUCTURED_COMMENT_NS}#component" , 0, 1)
+            # there can be multiple key/values described for a structured_comment, thus upper bound needs to be > 1 in order to use ListProperty
+            self.structured_keys   = sbol3.TextProperty(self, f"{self.CUSTOM_STRUCTURED_COMMENT_NS}#structuredKeys", 0, math.inf)
+            self.structured_values = sbol3.TextProperty(self, f"{self.CUSTOM_STRUCTURED_COMMENT_NS}#structuredValues", 0, math.inf)
 
 
     class Feature_GenBank_Extension(sbol3.SequenceFeature):
@@ -146,6 +173,8 @@ class GenBank_SBOL3_Converter:
             self.genbank_source        = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#source"     , 0, 1)
             self.genbank_topology      = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#topology"   , 0, 1)
             self.genbank_gi            = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#gi"         , 0, 1)
+            self.genbank_comment       = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#comment"    , 0, 1)
+            self.genbank_dblink        = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#dbxrefs"    , 0, 1)
             self.genbank_record_id     = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#id"         , 0, 1)
             # TODO : add note linking issue here
             self.genbank_taxonomy      = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#taxonomy"   , 0, 1)
@@ -287,12 +316,22 @@ class GenBank_SBOL3_Converter:
         # create dict to link component with their respective Reference property objects
         references: Dict[sbol3.Component, List[sbol3.CustomTopLevel]] = {}
         for obj in doc.objects:  
-            if isinstance(obj, sbol3.CustomTopLevel) and obj.type_uri == self.CUSTOM_REFERENCE_PROPERTY_URI:
+            if isinstance(obj, sbol3.CustomTopLevel) and obj.type_uri == self.CustomReferenceProperty.CUSTOM_REFERENCE_NS:
                 component_object = doc.find(str(obj.component))
                 if component_object and isinstance(component_object, sbol3.Component):
                     references[component_object] = [obj] if component_object not in references else references[component_object] + [obj]
                 # TODO: Raise error here
                 # else:
+        # create dict to link component with their respective structured comment objects
+        structured_comments: Dict[sbol3.Component, List[sbol3.CustomTopLevel]] = {}
+        for obj in doc.objects:  
+            if isinstance(obj, sbol3.CustomTopLevel) and obj.type_uri == self.CustomStructuredCommentProperty.CUSTOM_STRUCTURED_COMMENT_NS:
+                component_object = doc.find(str(obj.component))
+                if component_object and isinstance(component_object, sbol3.Component):
+                    structured_comments[component_object] = [obj] if component_object not in structured_comments else structured_comments[component_object] + [obj]
+                # TODO: Raise error here
+                # else:
+
         # create updated py dict to store mappings between gb and so ontologies
         map_created = self.create_GB_SO_role_mappings(
             so2gb_csv=self.SO2GB_MAPPINGS_CSV, convert_gb2so=False
@@ -331,7 +370,7 @@ class GenBank_SBOL3_Converter:
                     name=obj.display_id,
                 )
                 # Resetting extraneous genbank properties from extended component-genbank class
-                self._reset_extra_properties_in_genbank(obj, seq_rec, references)
+                self._reset_extra_properties_in_genbank(obj, seq_rec, references, structured_comments)
 
                 seq_rec_features = []
                 # recreate all sequence features, and tag all encountered feature qualifiers via extended Feature_GenBank_Extension class
@@ -359,6 +398,12 @@ class GenBank_SBOL3_Converter:
         :param record: GenBank SeqRecord instance for the record which contains extra properties
         """
         comp.genbank_record_id = record.id
+        # set dblinks from the dbxrefs property of biopython
+        if record.dbxrefs:
+            # dbxrefs are parsed in a list by biopython from `record.dbxrefs`; we are storing them as a flat string
+            # so as to maintain order. Thus, we are creating a custom delimetere of `::`, by which we shall seperate
+            # individual dbxrefs in the string and later split them to a list while resetting them in genbank
+            comp.genbank_dblink = "::".join(record.dbxrefs)
         for annotation in record.annotations:
             # Sending out warnings for genbank info not storeable in sbol3
             logging.warning(
@@ -375,7 +420,6 @@ class GenBank_SBOL3_Converter:
                 else: comp.genbank_division = record.annotations['data_file_division']
             # 3. GenBank Record Keywords
             elif annotation == 'keywords':
-                # comp.genbank_keywords = sorted(record.annotations['keywords'])
                 comp.genbank_keywords = ",".join(record.annotations['keywords'])
             # 4. GenBank Record Molecule Type
             elif annotation == 'molecule_type':
@@ -428,6 +472,26 @@ class GenBank_SBOL3_Converter:
                     # TODO: Raise error, no name for component
                     # else:
                     doc.add(custom_reference)
+            # 14. GenBank Record Comment
+            elif annotation == 'comment':
+                comp.genbank_comment = record.annotations['comment']
+            # 15. GenBank Record Structured comments
+            elif annotation == 'structured_comment':
+                identity_ind = 1
+                for heading in record.annotations['structured_comment']:
+                    structured_comment_object = self.CustomStructuredCommentProperty(identity = comp.identity + f"/StructuredComment_{identity_ind}") 
+                    identity_ind += 1
+                    if comp.display_id:
+                        structured_comment_object.component = comp.display_id
+                    structured_comment_object.heading = heading
+                    structured_dict = record.annotations['structured_comment'][heading]
+                    key_value_ind = 1
+                    for key in structured_dict:
+                        # NOTE: if storing list as string for keys and values both, have a check of them having same length user uses our delimeter while writing
+                        structured_comment_object.structured_keys.append(f"{key_value_ind}::{key}")
+                        structured_comment_object.structured_values.append(f"{key_value_ind}::{structured_dict[key]}")
+                        key_value_ind += 1
+                    doc.add(structured_comment_object)
             else:
                 raise ValueError(f"The annotation `{annotation}` in the GenBank record `{record.id}`\n \
                                     is not recognized as a standard annotation.")
@@ -436,7 +500,7 @@ class GenBank_SBOL3_Converter:
         comp.genbank_locus = record.name
 
 
-    def _reset_extra_properties_in_genbank(self, obj: sbol3.Component, seq_rec: SeqRecord, references: Dict[sbol3.Component, List[sbol3.CustomTopLevel]]) -> None:
+    def _reset_extra_properties_in_genbank(self, obj: sbol3.Component, seq_rec: SeqRecord, references: Dict[sbol3.Component, List[sbol3.CustomTopLevel]], structured_comments: Dict[sbol3.Component, List[sbol3.CustomTopLevel]]) -> None:
         """Helper function for resetting properties for GenBank's extraneous properties from SBOL3 Document's properties,
         by using a modified, extended SBOL3 Component class, and a new CustomReferenceProperty TopLevel class.
         :param obj: SBOL3 component, extra properties would be stored within it if its an instance of the extended SBOL3 Component class
@@ -445,6 +509,12 @@ class GenBank_SBOL3_Converter:
         """
         if isinstance(obj, self.Component_GenBank_Extension):
             seq_rec.id = obj.genbank_record_id
+            # set db links using dbxrefs property of biopython
+            if obj.genbank_dblink:
+                # NOTE: see comment on `_store_extra_properties_in_sbol3`'s dbxrefs section, wherein we describe how '::' 
+                # is used as a delimeter to store the dbxrefs list as a string to maintain order. Here, we split the string 
+                # by the same delimeter to restore the list in resetting GenBank properties.
+                seq_rec.dbxrefs = str(obj.genbank_dblink).split("::")
             # 1. GenBank Record Date
             seq_rec.annotations['date'] = obj.genbank_date
             # 2. GenBank Record Division
@@ -507,6 +577,23 @@ class GenBank_SBOL3_Converter:
                         reference_object.location.append(feat_loc_object)
                     record_references.append(reference_object)
                 seq_rec.annotations['references'] = record_references
+            # 14. GenBank Record Comments
+            if obj.genbank_comment:
+                seq_rec.annotations['comment'] = obj.genbank_comment
+            # 15. GenBank Record Structured Comments
+            if obj in structured_comments:
+                comment_annotation = OrderedDict()
+                for structured_comment in structured_comments[obj]:
+                    structured_comment_object = OrderedDict()
+                    total_keys = len(structured_comment.structured_keys)
+                    structured_keys = sorted(list(structured_comment.structured_keys), key = lambda t: int(t.split("::", 1)[0]))
+                    structured_values = sorted(list(structured_comment.structured_values), key = lambda t: int(t.split("::", 1)[0]))
+                    for ind in range(total_keys):
+                        key = structured_keys[ind].split("::", 1)[1]
+                        value = structured_values[ind].split("::", 1)[1]
+                        structured_comment_object[key] = value
+                    comment_annotation[structured_comment.heading] = structured_comment_object
+                seq_rec.annotations['structured_comment'] = comment_annotation
         # TODO: No explicit way to set locus via BioPython?
         # 13. GenBank Record Locus
         # TODO: temporalily hardcoding version as "1"
@@ -626,9 +713,9 @@ class GenBank_SBOL3_Converter:
                 # sort feature locations lexicographically internally first
                 # NOTE: If the feature location has an outer "complement" location operator, the sort needs to be in reverse order
                 if obj_feat.orientation == sbol3.SO_REVERSE:
-                    feat_loc_parts.sort(key=lambda loc: (loc.start, loc.end), reverse=True)
+                    feat_loc_parts.sort(key=lambda loc: (loc.start, loc.end, loc.strand), reverse=True)
                 else:
-                    feat_loc_parts.sort(key=lambda loc: (loc.start, loc.end))
+                    feat_loc_parts.sort(key=lambda loc: (loc.start, loc.end, loc.strand))
                 for loc in feat_loc_parts:
                     feat_loc_positions += [loc.start, loc.end]
                 if len(feat_loc_parts) > 1:
@@ -667,5 +754,5 @@ class GenBank_SBOL3_Converter:
                         feat.qualifiers[keys[qualifier_ind].split(":", 1)[1]] = values[qualifier_ind].split(":", 1)[1]
                 seq_rec_features.append(feat)
         # Sort features based on feature location start/end, lexicographically
-        seq_rec_features.sort(key=lambda feat: feat_order[feat])
+        seq_rec_features.sort(key=lambda feat: (feat_order[feat], feat.strand, len(feat.qualifiers), feat.type))
         seq_rec.features = seq_rec_features
