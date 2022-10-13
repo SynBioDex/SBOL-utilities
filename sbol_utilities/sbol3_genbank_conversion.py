@@ -93,7 +93,7 @@ class GenBank_SBOL3_Converter:
         # the SBOL3 parser to build objects with a Component type URI
         sbol3.Document.register_builder(sbol3.SBOL_COMPONENT, build_component_genbank_extension)
         # Register the buildre function for custom reference properties
-        sbol3.Document.register_builder(self.Feature_GenBank_Extension.GENBANK_FEATURE_QUALIFIER_NS, build_custom_reference_property)
+        sbol3.Document.register_builder(self.CustomReferenceProperty.CUSTOM_REFERENCE_NS, build_custom_reference_property)
         # Register the buildre function for custom structured comment properties
         sbol3.Document.register_builder(self.CustomStructuredCommentProperty.CUSTOM_STRUCTURED_COMMENT_NS, build_custom_structured_comment_property)
         # # Register the builder function so it can be invoked by
@@ -126,6 +126,7 @@ class GenBank_SBOL3_Converter:
     class CustomStructuredCommentProperty(sbol3.CustomTopLevel):
         """Serves to store information and annotations for 'Structured_Comment' objects in 
         GenBank file to SBOL3 while parsing so that it may be retrieved back in a round trip
+        Complete reference available at: https://www.ncbi.nlm.nih.gov/genbank/structuredcomment/
         :extends: sbol3.CustomTopLevel class
         """
         CUSTOM_STRUCTURED_COMMENT_NS = "http://www.ncbi.nlm.nih.gov/genbank#structured_comment"
@@ -399,6 +400,9 @@ class GenBank_SBOL3_Converter:
         comp.genbank_record_id = record.id
         # set dblinks from the dbxrefs property of biopython
         if record.dbxrefs:
+            # dbxrefs are parsed in a list by biopython from `record.dbxrefs`; we are storing them as a flat string
+            # so as to maintain order. Thus, we are creating a custom delimetere of `::`, by which we shall seperate
+            # individual dbxrefs in the string and later split them to a list while resetting them in genbank
             comp.genbank_dblink = "::".join(record.dbxrefs)
         for annotation in record.annotations:
             # Sending out warnings for genbank info not storeable in sbol3
@@ -507,6 +511,9 @@ class GenBank_SBOL3_Converter:
             seq_rec.id = obj.genbank_record_id
             # set db links using dbxrefs property of biopython
             if obj.genbank_dblink:
+                # NOTE: see comment on `_store_extra_properties_in_sbol3`'s dbxrefs section, wherein we describe how '::' 
+                # is used as a delimeter to store the dbxrefs list as a string to maintain order. Here, we split the string 
+                # by the same delimeter to restore the list in resetting GenBank properties.
                 seq_rec.dbxrefs = str(obj.genbank_dblink).split("::")
             # 1. GenBank Record Date
             seq_rec.annotations['date'] = obj.genbank_date
