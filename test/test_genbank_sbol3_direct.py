@@ -240,6 +240,15 @@ class TestGenBankSBOL3(unittest.TestCase):
         )
         self._test_round_trip_genbank(genbank_file)
     
+    def test_locus_name_and_display_id(self):
+        """Test ability to correctly round trip genbank test files in the iGEM distribution which have 
+        the DB_LINK (or 'dbxrefs' in biopython) property.
+        """
+        genbank_file = (
+            Path(__file__).parent / "test_files" / "sbol3_genbank_conversion" / "test_locus_name_display_id.gb"
+        )
+        self._test_round_trip_genbank(genbank_file)
+    
     def test_feature_location_types_round_trip_fuzzy(self):
         """Test ability to correctly round trip genbank test files in the iGEM distribution which have 
         different FeatureLocation types like BeforePosition / AfterPosition / ExactPosition.

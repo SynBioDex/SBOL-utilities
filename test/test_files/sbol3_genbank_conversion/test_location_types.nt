@@ -467,6 +467,7 @@
 <https://test.sbol3.genbank/JWYZ01000115> <http://www.ncbi.nlm.nih.gov/genbank#keywords> "WGS" .
 <https://test.sbol3.genbank/JWYZ01000115> <http://www.ncbi.nlm.nih.gov/genbank#locus> "JWYZ01000115" .
 <https://test.sbol3.genbank/JWYZ01000115> <http://www.ncbi.nlm.nih.gov/genbank#molecule> "DNA" .
+<https://test.sbol3.genbank/JWYZ01000115> <http://www.ncbi.nlm.nih.gov/genbank#name> "JWYZ01000115" .
 <https://test.sbol3.genbank/JWYZ01000115> <http://www.ncbi.nlm.nih.gov/genbank#organism> "Escherichia coli" .
 <https://test.sbol3.genbank/JWYZ01000115> <http://www.ncbi.nlm.nih.gov/genbank#seq_version> "1"^^<http://www.w3.org/2001/XMLSchema#integer> .
 <https://test.sbol3.genbank/JWYZ01000115> <http://www.ncbi.nlm.nih.gov/genbank#source> "Escherichia coli" .

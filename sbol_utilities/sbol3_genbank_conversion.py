@@ -199,7 +199,8 @@ class GenBank_SBOL3_Converter:
             # instantiating sbol3 component object
             super().__init__(identity=identity, types=types, **kwargs)
             # Setting properties for GenBank's extraneous properties not settable in any SBOL3 field.
-            self.genbank_seq_version   = sbol3.IntProperty(self,  f"{self.GENBANK_EXTRA_PROPERTY_NS}#seq_version", 0, 1)
+            self.genbank_seq_version   = sbol3.IntProperty(self , f"{self.GENBANK_EXTRA_PROPERTY_NS}#seq_version", 0, 1)
+            self.genbank_name          = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#name"       , 0, 1)
             self.genbank_date          = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#date"       , 0, 1)
             self.genbank_division      = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#division"   , 0, 1)
             self.genbank_locus         = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#locus"      , 0, 1)
@@ -299,16 +300,21 @@ class GenBank_SBOL3_Converter:
                 extra_comp_types = [sbol3.SO_CIRCULAR]
             # creating component extended Component class to include GenBank extraneous properties
             comp = self.Component_GenBank_Extension(
-                identity=record.name,
+                identity=sbol3.string_to_display_id(record.name),
                 types=self.COMP_TYPES + extra_comp_types,
                 roles=self.COMP_ROLES,
                 description=record.description,
             )
+            # since SBOL3 requires display_id to have only alphanumeric characters and start not with a number;
+            # and these constraints are not present in GenBank, we pass the GenBank locus name through a filter
+            # helper method ('string_to_display_id'), which conforms it to SBOL's standard, and also store the 
+            # original name in an extraneous property field 'genbank_name' which is reset later on during round trips.
+            comp.genbank_name = record.name
             doc.add(comp)
 
             # TODO: Currently we use a fixed method of encoding (IUPAC)
             seq = sbol3.Sequence(
-                identity=record.name + "_sequence",
+                identity=str(comp.display_id) + "_sequence",
                 elements=str(record.seq.lower()),
                 encoding=self.SEQUENCE_ENCODING,
             )
@@ -399,11 +405,16 @@ class GenBank_SBOL3_Converter:
                 elif len(obj.sequences) > 1:
                     raise ValueError(f"Component `{obj.display_id}` of given SBOL3 document has more than 1 sequnces \n \
                     (`{len(obj.sequences)}`). This is invalid; a component may only have 1 or 0 sequences.")
+                # Locus name for the sequence record is just the display id if SBOL3 component was not extended
+                # to include extraneous properties (in which case, we use the directly stored 'genbank_name' field)
+                locus_name = obj.display_id
+                if isinstance(obj, self.Component_GenBank_Extension) and obj.genbank_name:
+                    locus_name = obj.genbank_name
                 seq_rec = SeqRecord(
                     seq=seq,
                     id=obj.display_id,
                     description=obj.description,
-                    name=obj.display_id,
+                    name=locus_name,
                 )
                 # Resetting extraneous genbank properties from extended component-genbank class
                 self._reset_extra_properties_in_genbank(obj, seq_rec, references, structured_comments)
