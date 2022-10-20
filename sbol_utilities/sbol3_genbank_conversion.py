@@ -212,16 +212,24 @@ class GenBank_SBOL3_Converter:
         start and end position types (AfterPostion / BeforePosition / ExactPosition).
         :extends: sbol3.Location class
         """
-        GENBANK_RANGE_NS = "http://www.ncbi.nlm.nih.gov/genbank#locationPosition"
-        def __init__(self, sequence: sbol3.Sequence = sbol3.Sequence("autoCreatedSequence"), **kwargs) -> None:
+        # Use the SBOL3 namespace for the type URI as a workaround for
+        # a bug in pySBOL3.
+        # TODO: use genbank namespace when the pySBOL3 bug is fixed
+        # GENBANK_RANGE_NS = "http://www.ncbi.nlm.nih.gov/genbank#locationPosition"
+        GENBANK_RANGE_NS = sbol3.SBOL3_NS + "locationPosition"
+
+        def __init__(self, sequence: sbol3.Sequence = sbol3.Sequence("autoCreatedSequence"),
+                     *, identity: str = None,
+                     type_uri: str = GENBANK_RANGE_NS,
+                     **kwargs) -> None:
             # instantiating sbol3 SequenceFeature object
             # super().__init__(sequence = sequence, identity = None, type_uri = self.GENBANK_RANGE_NS, **kwargs)
-            super().__init__(sequence = sequence, identity = None, type_uri = self.GENBANK_RANGE_NS, **kwargs)
+            super().__init__(sequence = sequence, identity=identity, type_uri = self.GENBANK_RANGE_NS, **kwargs)
             self.start          = sbol3.IntProperty(self, f"{self.GENBANK_RANGE_NS}#start", 0, 1)
             self.end            = sbol3.IntProperty(self, f"{self.GENBANK_RANGE_NS}#end"  , 0, 1)
             # Setting properties for GenBank's location position not settable in any SBOL3 field.
-            self.start_position = sbol3.IntProperty(self, f"{self.GENBANK_RANGE_NS}#start", 0, 1)
-            self.end_position   = sbol3.IntProperty(self, f"{self.GENBANK_RANGE_NS}#end"  , 0, 1)
+            self.start_position = sbol3.IntProperty(self, f"{self.GENBANK_RANGE_NS}#startp", 0, 1)
+            self.end_position   = sbol3.IntProperty(self, f"{self.GENBANK_RANGE_NS}#endp"  , 0, 1)
 
         def accept(self, visitor: Any) -> Any:
             """Invokes `visit_range` on `visitor` with `self` as the only

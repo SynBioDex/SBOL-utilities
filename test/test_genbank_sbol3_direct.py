@@ -255,7 +255,19 @@ class TestGenBankSBOL3(unittest.TestCase):
     #         print(f"file {genbank_file}")
     #         x = self._test_round_trip_genbank(genbank_file)
     #         print(f"result {x}")
-        
+
+    def test_location_genbank_extension(self):
+        """Test that the Location_GenBank_Extension can be converted
+        from GenBank into SBOL3, and that the resulting SBOL3 file can
+        be loaded.
+        """
+        genbank_file = (
+                Path(__file__).parent / "test_files" / "sbol3_genbank_conversion" / "test_location_types.gb"
+        )
+        self.converter.convert_genbank_to_sbol3(str(genbank_file), write=True)
+        doc = sbol3.Document()
+        doc.read('sbol3.nt', file_format=sbol3.NTRIPLES)
+
 
 if __name__ == "__main__":
     unittest.main()
