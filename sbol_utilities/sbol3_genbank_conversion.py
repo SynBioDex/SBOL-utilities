@@ -4,7 +4,7 @@ import math
 import sbol3
 import logging
 from collections import OrderedDict
-from typing import Dict, List, Sequence, Union, Optional
+from typing import Dict, List, Sequence, Union, Optional, Any
 from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
@@ -64,8 +64,8 @@ class GenBank_SBOL3_Converter:
         def build_feature_qualifiers_extension(*, identity, type_uri) -> GenBank_SBOL3_Converter.Feature_GenBank_Extension:
             """A builder function to be called by the SBOL3 parser
             when it encounters a SequenceFeature in an SBOL file.
-            :param identity: identity for new sequence feature class instance to have
-            :param type_uri: type_uri for new sequence feature class instance to have
+            :param identity: identity for new feature qualifier class instance to have
+            :param type_uri: type_uri for new feature qualifier class instance to have
             """
             # `types` is required and not known at build time.
             # Supply a missing value to the constructor, then clear
@@ -75,18 +75,32 @@ class GenBank_SBOL3_Converter:
             obj.clear_property(sbol3.SBOL_TYPE)
             return obj
 
-        def build_range_extension(*, identity, type_uri) -> GenBank_SBOL3_Converter.Range_GenBank_Extension:
+        # def build_range_extension(*, identity, type_uri) -> GenBank_SBOL3_Converter.Range_GenBank_Extension:
+        #     """A builder function to be called by the SBOL3 parser
+        #     when it encounters a Range location in an SBOL file.
+        #     :param identity: identity for new range class instance to have
+        #     :param type_uri: type_uri for new range class instance to have
+        #     """
+        #     # `types` is required and not known at build time.
+        #     # Supply a missing value to the constructor, then clear
+        #     # the missing value before returning the built object.
+        #     obj = self.Range_GenBank_Extension(identity=identity, type_uri=type_uri)
+        #     # Remove the placeholder value
+        #     obj.clear_property(sbol3.SBOL_TYPE)
+        #     return obj
+
+        def build_location_extension(*, identity, type_uri) -> GenBank_SBOL3_Converter.Location_GenBank_Extension:
             """A builder function to be called by the SBOL3 parser
-            when it encounters a Range location in an SBOL file.
-            :param identity: identity for new sequence feature class instance to have
-            :param type_uri: type_uri for new sequence feature class instance to have
+            when it encounters a Custom location in an SBOL file.
+            :param identity: identity for new Location class instance to have
+            :param type_uri: type_uri for new Location class instance to have
             """
             # `types` is required and not known at build time.
             # Supply a missing value to the constructor, then clear
             # the missing value before returning the built object.
-            obj = self.Range_GenBank_Extension(identity=identity, type_uri=type_uri)
+            obj = self.Location_GenBank_Extension(identity=identity, type_uri=type_uri)
             # Remove the placeholder value
-            obj.clear_property(sbol3.SBOL_TYPE)
+            # obj.clear_property(sbol3.SBOL_TYPE)
             return obj
 
         def build_custom_reference_property(*, identity, type_uri) -> GenBank_SBOL3_Converter.CustomReferenceProperty:
@@ -117,9 +131,13 @@ class GenBank_SBOL3_Converter:
         # # Register the builder function so it can be invoked by
         # # the SBOL3 parser to build objects with a SequenceFeature type URI
         sbol3.Document.register_builder(sbol3.SBOL_SEQUENCE_FEATURE, build_feature_qualifiers_extension)
+        # # # Register the builder function so it can be invoked by
+        # # # the SBOL3 parser to build objects with a Range type URI
+        # sbol3.Document.register_builder(sbol3.SBOL_RANGE, build_range_extension)
         # # Register the builder function so it can be invoked by
-        # # the SBOL3 parser to build objects with a Range type URI
-        sbol3.Document.register_builder(sbol3.SBOL_RANGE, build_range_extension)
+        # # the SBOL3 parser to build objects with a Location type URI
+        # sbol3.Document.register_builder(sbol3.SBOL_LOCATION, build_location_extension)
+        sbol3.Document.register_builder(self.Location_GenBank_Extension.GENBANK_RANGE_NS, build_location_extension)
 
 
     class CustomReferenceProperty(sbol3.CustomTopLevel):
@@ -175,18 +193,41 @@ class GenBank_SBOL3_Converter:
             self.qualifier_value    = sbol3.TextProperty(self, f"{self.GENBANK_FEATURE_QUALIFIER_NS}#value", 0, math.inf)
 
 
-    class Range_GenBank_Extension(sbol3.Range):
-        """Overrides the sbol3 Range class to include fields to store the  
+    # class Range_GenBank_Extension(sbol3.Range):
+    #     """Overrides the sbol3 Range class to include fields to store the  
+    #     start and end position types (AfterPostion / BeforePosition / ExactPosition).
+    #     :extends: sbol3.Range class
+    #     """
+    #     GENBANK_RANGE_NS = "http://www.ncbi.nlm.nih.gov/genbank#locationPosition"
+    #     def __init__(self, sequence: sbol3.Sequence = sbol3.Sequence("autoCreatedSequence"), start: int = 0, end: int = 0, **kwargs) -> None:
+    #         # instantiating sbol3 SequenceFeature object
+    #         super().__init__(sequence = sequence, start = start, end = end, **kwargs)
+    #         # Setting properties for GenBank's location position not settable in any SBOL3 field.
+    #         self.start_position = sbol3.IntProperty(self, f"{self.GENBANK_RANGE_NS}#start", 0, 1)
+    #         self.end_position   = sbol3.IntProperty(self, f"{self.GENBANK_RANGE_NS}#end"  , 0, 1)
+
+
+    class Location_GenBank_Extension(sbol3.Location):
+        """Overrides the sbol3 Location class to include fields to store the  
         start and end position types (AfterPostion / BeforePosition / ExactPosition).
-        :extends: sbol3.Range class
+        :extends: sbol3.Location class
         """
-        GENBANK_RANGE_NS = "http://www.ncbi.nlm.nih.gov/genbank#locationPosition"
-        def __init__(self, sequence: sbol3.Sequence = sbol3.Sequence("autoCreatedSequence"), start: int = 0, end: int = 0, **kwargs) -> None:
-            # instantiating sbol3 SequenceFeature object
-            super().__init__(sequence = sequence, start = start, end = end, **kwargs)
+        # Use the SBOL3 namespace for the type URI as a workaround for
+        # a bug in pySBOL3.
+        # TODO: use genbank namespace when the pySBOL3 bug is fixed
+        # NOTE: pySBOL3 BUG REPORT: https://github.com/SynBioDex/pySBOL3/issues/414
+        # NOTE: pySBOL3 BUG FIX   : https://github.com/SynBioDex/pySBOL3/pull/415
+        # GENBANK_RANGE_NS = "http://www.ncbi.nlm.nih.gov/genbank#locationPosition"
+        GENBANK_RANGE_NS = sbol3.SBOL3_NS + "locationPosition"
+        def __init__(self, sequence: sbol3.Sequence = sbol3.Sequence("autoCreatedSequence"),
+                     *, identity: str = None, type_uri: str = GENBANK_RANGE_NS,
+                     **kwargs) -> None:
+            super().__init__(sequence = sequence, identity = identity, type_uri = type_uri, **kwargs)
+            self.start          = sbol3.IntProperty(self, f"{self.GENBANK_RANGE_NS}#start", 0, 1)
+            self.end            = sbol3.IntProperty(self, f"{self.GENBANK_RANGE_NS}#end"  , 0, 1)
             # Setting properties for GenBank's location position not settable in any SBOL3 field.
-            self.start_position = sbol3.IntProperty(self, f"{self.GENBANK_RANGE_NS}#start", 0, 1)
-            self.end_position   = sbol3.IntProperty(self, f"{self.GENBANK_RANGE_NS}#end"  , 0, 1)
+            self.start_position = sbol3.IntProperty(self, f"{self.GENBANK_RANGE_NS}#start_position", 0, 1)
+            self.end_position   = sbol3.IntProperty(self, f"{self.GENBANK_RANGE_NS}#end_position"  , 0, 1)
 
 
     class Component_GenBank_Extension(sbol3.Component):
@@ -682,20 +723,38 @@ class GenBank_SBOL3_Converter:
                         orientation=feat_loc_orientation,
                     )
                 else:
-                    locs = self.Range_GenBank_Extension(
-                        sequence=seq,
-                        start=int(gb_loc.start),
-                        end=int(gb_loc.end),
-                        orientation=feat_loc_orientation,
-                    )
-                    # storing location types in IntProperties of SBOL3
-                    locs.end_position = self.SBOL_LOCATION_POSITION[type(gb_loc.end)]
-                    locs.start_position = self.SBOL_LOCATION_POSITION[type(gb_loc.start)]
-                    # if any of the location endpoints of a feature (start/end) has a fuzzy end
-                    # (i.e not Exact position) like BeforePosition/AfterPostion, we mark the 
-                    # feature as a 'fuzzy_feature' which decides whether to store the feature or not
-                    if not fuzzy_feature and locs.end_position != 1 or locs.start_position != 1:
-                        fuzzy_feature = True
+                    # find int mappings for positions of start and end locations, 
+                    # as defined in the static class variable 'SBOL_LOCATION_POSITION'
+                    # 0->BeforePosition, 1->ExactPosition, 2->AfterPostion
+                    end_position     = self.SBOL_LOCATION_POSITION[type(gb_loc.end)]
+                    start_position   = self.SBOL_LOCATION_POSITION[type(gb_loc.start)]
+                    # If both start and end positions are exact positions, the 
+                    # feature location can be created simply as a range object
+                    if start_position == 1 and end_position == 1:
+                        locs = sbol3.Range(
+                            sequence=seq,
+                            orientation=feat_loc_orientation,
+                            end = int(gb_loc.end),
+                            start = int(gb_loc.start)
+                        )
+                    # If either or both of start and end locations are fuzzy, then
+                    # the location object needs to be of the custom class 'Location_GenBank_Extension'
+                    else:
+                        locs = self.Location_GenBank_Extension(
+                            sequence=seq,
+                            orientation=feat_loc_orientation,
+                        )
+                        # start start and end int positions specified
+                        locs.end = int(gb_loc.end)
+                        locs.start = int(gb_loc.start)
+                        # storing location types in IntProperties of SBOL3
+                        locs.end_position = end_position
+                        locs.start_position = start_position
+                        # if any of the location endpoints of a feature (start/end) has a fuzzy end
+                        # (i.e not Exact position) like BeforePosition/AfterPostion, we mark the 
+                        # feature as a 'fuzzy_feature' which decides whether to store the feature or not
+                        if not fuzzy_feature and locs.end_position != 1 or locs.start_position != 1:
+                            fuzzy_feature = True
                 feat_locations.append(locs)
             # Obtain sequence feature role from gb2so mappings
             feat_role = sbol3.SO_NS[:-3]
@@ -776,8 +835,8 @@ class GenBank_SBOL3_Converter:
                     # creating start and end Positions 
                     endPosition = ExactPosition(obj_feat_loc.end)
                     startPosition = ExactPosition(obj_feat_loc.start)
-                    # if range, check for position being Before / After Positions
-                    if isinstance(obj_feat_loc, sbol3.Range):
+                    # if custom range object, check for position being Before / After Positions
+                    if isinstance(obj_feat_loc, self.Location_GenBank_Extension):
                         # change end and start Positions only if user has made integer entries into them
                         if obj_feat_loc.end_position != None:
                             endPosition = self.GENBANK_LOCATION_POSITION[obj_feat_loc.end_position](obj_feat_loc.end)
