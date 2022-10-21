@@ -218,6 +218,38 @@ class TestGenBankSBOL3(unittest.TestCase):
         )
         self._test_round_trip_genbank(genbank_file)
     
+    def test_dblink_property(self):
+        """Test ability to correctly round trip genbank test files in the iGEM distribution which have 
+        the DB_LINK (or 'dbxrefs' in biopython) property.
+        """
+        genbank_file = (
+            Path(__file__).parent / "test_files" / "sbol3_genbank_conversion" / "test_dblink_property.gb"
+        )
+        self._test_round_trip_genbank(genbank_file)
+    
+    def test_location_genbank_extension(self):
+        """Test that the Location_GenBank_Extension can be converted
+        from GenBank into SBOL3, and that the resulting SBOL3 file can
+        be loaded.
+        NOTE: This unit test can be removed once pySBOL3 makes a new release fixing the following bug
+        ISSUE: https://github.com/SynBioDex/pySBOL3/issues/414
+        """
+        genbank_file = (
+            Path(__file__).parent / "test_files" / "sbol3_genbank_conversion" / "test_location_types.gb"
+        )
+        self.converter.convert_genbank_to_sbol3(str(genbank_file), write=True)
+        doc = sbol3.Document()
+        doc.read('sbol3.nt', file_format=sbol3.NTRIPLES)
+
+    def test_locus_name_and_display_id(self):
+        """Test ability to correctly round trip genbank test files in the iGEM distribution which have 
+        the DB_LINK (or 'dbxrefs' in biopython) property.
+        """
+        genbank_file = (
+            Path(__file__).parent / "test_files" / "sbol3_genbank_conversion" / "test_locus_name_display_id.gb"
+        )
+        self._test_round_trip_genbank(genbank_file)
+    
     def test_feature_location_types_ignore_fuzzy(self):
         """Test ability to correctly convert genbank test files in the iGEM distribution which have 
         different FeatureLocation types like BeforePosition / AfterPosition / ExactPosition.
@@ -231,24 +263,6 @@ class TestGenBankSBOL3(unittest.TestCase):
         sbol3.set_namespace(self.converter.TEST_NAMESPACE)
         self._test_genbank_to_sbol3(sample_sbol3_file=sbol3_file, sample_genbank_file=genbank_file)
 
-    def test_dblink_property(self):
-        """Test ability to correctly round trip genbank test files in the iGEM distribution which have 
-        the DB_LINK (or 'dbxrefs' in biopython) property.
-        """
-        genbank_file = (
-            Path(__file__).parent / "test_files" / "sbol3_genbank_conversion" / "test_dblink_property.gb"
-        )
-        self._test_round_trip_genbank(genbank_file)
-    
-    def test_locus_name_and_display_id(self):
-        """Test ability to correctly round trip genbank test files in the iGEM distribution which have 
-        the DB_LINK (or 'dbxrefs' in biopython) property.
-        """
-        genbank_file = (
-            Path(__file__).parent / "test_files" / "sbol3_genbank_conversion" / "test_locus_name_display_id.gb"
-        )
-        self._test_round_trip_genbank(genbank_file)
-    
     def test_feature_location_types_round_trip_fuzzy(self):
         """Test ability to correctly round trip genbank test files in the iGEM distribution which have 
         different FeatureLocation types like BeforePosition / AfterPosition / ExactPosition.
