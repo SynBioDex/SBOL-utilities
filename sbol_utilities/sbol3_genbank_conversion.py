@@ -75,20 +75,6 @@ class GenBank_SBOL3_Converter:
             obj.clear_property(sbol3.SBOL_TYPE)
             return obj
 
-        # def build_range_extension(*, identity, type_uri) -> GenBank_SBOL3_Converter.Range_GenBank_Extension:
-        #     """A builder function to be called by the SBOL3 parser
-        #     when it encounters a Range location in an SBOL file.
-        #     :param identity: identity for new range class instance to have
-        #     :param type_uri: type_uri for new range class instance to have
-        #     """
-        #     # `types` is required and not known at build time.
-        #     # Supply a missing value to the constructor, then clear
-        #     # the missing value before returning the built object.
-        #     obj = self.Range_GenBank_Extension(identity=identity, type_uri=type_uri)
-        #     # Remove the placeholder value
-        #     obj.clear_property(sbol3.SBOL_TYPE)
-        #     return obj
-
         def build_location_extension(*, identity, type_uri) -> GenBank_SBOL3_Converter.Location_GenBank_Extension:
             """A builder function to be called by the SBOL3 parser
             when it encounters a Custom location in an SBOL file.
@@ -128,15 +114,11 @@ class GenBank_SBOL3_Converter:
         sbol3.Document.register_builder(self.CustomReferenceProperty.CUSTOM_REFERENCE_NS, build_custom_reference_property)
         # Register the buildre function for custom structured comment properties
         sbol3.Document.register_builder(self.CustomStructuredCommentProperty.CUSTOM_STRUCTURED_COMMENT_NS, build_custom_structured_comment_property)
-        # # Register the builder function so it can be invoked by
-        # # the SBOL3 parser to build objects with a SequenceFeature type URI
+        # Register the builder function so it can be invoked by
+        # the SBOL3 parser to build objects with a SequenceFeature type URI
         sbol3.Document.register_builder(sbol3.SBOL_SEQUENCE_FEATURE, build_feature_qualifiers_extension)
-        # # # Register the builder function so it can be invoked by
-        # # # the SBOL3 parser to build objects with a Range type URI
-        # sbol3.Document.register_builder(sbol3.SBOL_RANGE, build_range_extension)
-        # # Register the builder function so it can be invoked by
-        # # the SBOL3 parser to build objects with a Location type URI
-        # sbol3.Document.register_builder(sbol3.SBOL_LOCATION, build_location_extension)
+        # Register the builder function so it can be invoked by
+        # the SBOL3 parser to build objects with a Location type URI
         sbol3.Document.register_builder(self.Location_GenBank_Extension.GENBANK_RANGE_NS, build_location_extension)
 
 
@@ -191,20 +173,6 @@ class GenBank_SBOL3_Converter:
             # Setting properties for GenBank's qualifiers not settable in any SBOL3 field.
             self.qualifier_key      = sbol3.TextProperty(self, f"{self.GENBANK_FEATURE_QUALIFIER_NS}#key"  , 0, math.inf)
             self.qualifier_value    = sbol3.TextProperty(self, f"{self.GENBANK_FEATURE_QUALIFIER_NS}#value", 0, math.inf)
-
-
-    # class Range_GenBank_Extension(sbol3.Range):
-    #     """Overrides the sbol3 Range class to include fields to store the  
-    #     start and end position types (AfterPostion / BeforePosition / ExactPosition).
-    #     :extends: sbol3.Range class
-    #     """
-    #     GENBANK_RANGE_NS = "http://www.ncbi.nlm.nih.gov/genbank#locationPosition"
-    #     def __init__(self, sequence: sbol3.Sequence = sbol3.Sequence("autoCreatedSequence"), start: int = 0, end: int = 0, **kwargs) -> None:
-    #         # instantiating sbol3 SequenceFeature object
-    #         super().__init__(sequence = sequence, start = start, end = end, **kwargs)
-    #         # Setting properties for GenBank's location position not settable in any SBOL3 field.
-    #         self.start_position = sbol3.IntProperty(self, f"{self.GENBANK_RANGE_NS}#start", 0, 1)
-    #         self.end_position   = sbol3.IntProperty(self, f"{self.GENBANK_RANGE_NS}#end"  , 0, 1)
 
 
     class Location_GenBank_Extension(sbol3.Location):
