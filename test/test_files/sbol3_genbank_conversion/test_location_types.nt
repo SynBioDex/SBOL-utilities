@@ -1,0 +1,459 @@
+<https://test.sbol3.genbank/JWYZ01000115/Reference_0/Range1> <http://sbols.org/v3#displayId> "Range1" .
+<https://test.sbol3.genbank/JWYZ01000115/Reference_0/Range1> <http://sbols.org/v3#end> "3242"^^<http://www.w3.org/2001/XMLSchema#integer> .
+<https://test.sbol3.genbank/JWYZ01000115/Reference_0/Range1> <http://sbols.org/v3#hasSequence> <https://test.sbol3.genbank/JWYZ01000115_sequence> .
+<https://test.sbol3.genbank/JWYZ01000115/Reference_0/Range1> <http://sbols.org/v3#orientation> <https://identifiers.org/SO:0001030> .
+<https://test.sbol3.genbank/JWYZ01000115/Reference_0/Range1> <http://sbols.org/v3#start> "0"^^<http://www.w3.org/2001/XMLSchema#integer> .
+<https://test.sbol3.genbank/JWYZ01000115/Reference_0/Range1> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://sbols.org/v3#Range> .
+<https://test.sbol3.genbank/JWYZ01000115/Reference_0> <http://sbols.org/v3#displayId> "Reference_0" .
+<https://test.sbol3.genbank/JWYZ01000115/Reference_0> <http://sbols.org/v3#hasNamespace> <https://test.sbol3.genbank/> .
+<https://test.sbol3.genbank/JWYZ01000115/Reference_0> <http://www.ncbi.nlm.nih.gov/genbank#reference#authors> "Tyson,G.H., McDermott,P.F., Li,C., Chen,Y., Tadesse,D.A., Mukherjee,S., Bodeis-Jones,S., Kabera,C., Gaines,S.A., Loneragan,G.H., Edrington,T.S., Torrence,M., Harhay,D.M. and Zhao,S." .
+<https://test.sbol3.genbank/JWYZ01000115/Reference_0> <http://www.ncbi.nlm.nih.gov/genbank#reference#comment> "" .
+<https://test.sbol3.genbank/JWYZ01000115/Reference_0> <http://www.ncbi.nlm.nih.gov/genbank#reference#component> "JWYZ01000115" .
+<https://test.sbol3.genbank/JWYZ01000115/Reference_0> <http://www.ncbi.nlm.nih.gov/genbank#reference#consrtm> "" .
+<https://test.sbol3.genbank/JWYZ01000115/Reference_0> <http://www.ncbi.nlm.nih.gov/genbank#reference#journal> "J. Antimicrob. Chemother. 70 (10), 2763-2769 (2015)" .
+<https://test.sbol3.genbank/JWYZ01000115/Reference_0> <http://www.ncbi.nlm.nih.gov/genbank#reference#location> <https://test.sbol3.genbank/JWYZ01000115/Reference_0/Range1> .
+<https://test.sbol3.genbank/JWYZ01000115/Reference_0> <http://www.ncbi.nlm.nih.gov/genbank#reference#medline_id> "" .
+<https://test.sbol3.genbank/JWYZ01000115/Reference_0> <http://www.ncbi.nlm.nih.gov/genbank#reference#pubmed_id> "26142410" .
+<https://test.sbol3.genbank/JWYZ01000115/Reference_0> <http://www.ncbi.nlm.nih.gov/genbank#reference#title> "WGS accurately predicts antimicrobial resistance in Escherichia coli" .
+<https://test.sbol3.genbank/JWYZ01000115/Reference_0> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://sbols.org/v3#TopLevel> .
+<https://test.sbol3.genbank/JWYZ01000115/Reference_0> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.ncbi.nlm.nih.gov/genbank#reference> .
+<https://test.sbol3.genbank/JWYZ01000115/Reference_1/Range1> <http://sbols.org/v3#displayId> "Range1" .
+<https://test.sbol3.genbank/JWYZ01000115/Reference_1/Range1> <http://sbols.org/v3#end> "3242"^^<http://www.w3.org/2001/XMLSchema#integer> .
+<https://test.sbol3.genbank/JWYZ01000115/Reference_1/Range1> <http://sbols.org/v3#hasSequence> <https://test.sbol3.genbank/JWYZ01000115_sequence> .
+<https://test.sbol3.genbank/JWYZ01000115/Reference_1/Range1> <http://sbols.org/v3#orientation> <https://identifiers.org/SO:0001030> .
+<https://test.sbol3.genbank/JWYZ01000115/Reference_1/Range1> <http://sbols.org/v3#start> "0"^^<http://www.w3.org/2001/XMLSchema#integer> .
+<https://test.sbol3.genbank/JWYZ01000115/Reference_1/Range1> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://sbols.org/v3#Range> .
+<https://test.sbol3.genbank/JWYZ01000115/Reference_1> <http://sbols.org/v3#displayId> "Reference_1" .
+<https://test.sbol3.genbank/JWYZ01000115/Reference_1> <http://sbols.org/v3#hasNamespace> <https://test.sbol3.genbank/> .
+<https://test.sbol3.genbank/JWYZ01000115/Reference_1> <http://www.ncbi.nlm.nih.gov/genbank#reference#authors> "Tyson,G.H., McDermott,P.F., Li,C., Tadesse,D.A., Mukherjee,S., Bodeis-Jones,S., Kabera,C., Gaines,S.A., Loneragan,G.H., Edrington,T.S., Torrence,M., Harhay,D.M. and Zhao,S." .
+<https://test.sbol3.genbank/JWYZ01000115/Reference_1> <http://www.ncbi.nlm.nih.gov/genbank#reference#comment> "" .
+<https://test.sbol3.genbank/JWYZ01000115/Reference_1> <http://www.ncbi.nlm.nih.gov/genbank#reference#component> "JWYZ01000115" .
+<https://test.sbol3.genbank/JWYZ01000115/Reference_1> <http://www.ncbi.nlm.nih.gov/genbank#reference#consrtm> "" .
+<https://test.sbol3.genbank/JWYZ01000115/Reference_1> <http://www.ncbi.nlm.nih.gov/genbank#reference#journal> "Submitted (17-NOV-2014) CVM, FDA, 8401 Muirkirk Rd, Laurel, MD 20708, USA" .
+<https://test.sbol3.genbank/JWYZ01000115/Reference_1> <http://www.ncbi.nlm.nih.gov/genbank#reference#location> <https://test.sbol3.genbank/JWYZ01000115/Reference_1/Range1> .
+<https://test.sbol3.genbank/JWYZ01000115/Reference_1> <http://www.ncbi.nlm.nih.gov/genbank#reference#medline_id> "" .
+<https://test.sbol3.genbank/JWYZ01000115/Reference_1> <http://www.ncbi.nlm.nih.gov/genbank#reference#pubmed_id> "" .
+<https://test.sbol3.genbank/JWYZ01000115/Reference_1> <http://www.ncbi.nlm.nih.gov/genbank#reference#title> "Direct Submission" .
+<https://test.sbol3.genbank/JWYZ01000115/Reference_1> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://sbols.org/v3#TopLevel> .
+<https://test.sbol3.genbank/JWYZ01000115/Reference_1> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.ncbi.nlm.nih.gov/genbank#reference> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature1/locationPosition1> <http://sbols.org/v3#displayId> "locationPosition1" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature1/locationPosition1> <http://sbols.org/v3#hasSequence> <https://test.sbol3.genbank/JWYZ01000115_sequence> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature1/locationPosition1> <http://sbols.org/v3#locationPosition#end> "115"^^<http://www.w3.org/2001/XMLSchema#integer> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature1/locationPosition1> <http://sbols.org/v3#locationPosition#end_position> "1"^^<http://www.w3.org/2001/XMLSchema#integer> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature1/locationPosition1> <http://sbols.org/v3#locationPosition#start> "0"^^<http://www.w3.org/2001/XMLSchema#integer> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature1/locationPosition1> <http://sbols.org/v3#locationPosition#start_position> "0"^^<http://www.w3.org/2001/XMLSchema#integer> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature1/locationPosition1> <http://sbols.org/v3#orientation> <https://identifiers.org/SO:0001031> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature1/locationPosition1> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://sbols.org/v3#locationPosition> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature10/Range1> <http://sbols.org/v3#displayId> "Range1" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature10/Range1> <http://sbols.org/v3#end> "2299"^^<http://www.w3.org/2001/XMLSchema#integer> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature10/Range1> <http://sbols.org/v3#hasSequence> <https://test.sbol3.genbank/JWYZ01000115_sequence> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature10/Range1> <http://sbols.org/v3#orientation> <https://identifiers.org/SO:0001030> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature10/Range1> <http://sbols.org/v3#start> "1705"^^<http://www.w3.org/2001/XMLSchema#integer> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature10/Range1> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://sbols.org/v3#Range> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature10> <http://sbols.org/v3#displayId> "SequenceFeature10" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature10> <http://sbols.org/v3#hasLocation> <https://test.sbol3.genbank/JWYZ01000115/SequenceFeature10/Range1> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature10> <http://sbols.org/v3#name> "_converted_feature_9" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature10> <http://sbols.org/v3#orientation> <https://identifiers.org/SO:0001030> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature10> <http://sbols.org/v3#role> <https://identifiers.org/SO:0000704> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature10> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#key> "0:locus_tag" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature10> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#value> "0:PU64_23680" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature10> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://sbols.org/v3#SequenceFeature> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature11/Range1> <http://sbols.org/v3#displayId> "Range1" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature11/Range1> <http://sbols.org/v3#end> "2299"^^<http://www.w3.org/2001/XMLSchema#integer> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature11/Range1> <http://sbols.org/v3#hasSequence> <https://test.sbol3.genbank/JWYZ01000115_sequence> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature11/Range1> <http://sbols.org/v3#orientation> <https://identifiers.org/SO:0001030> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature11/Range1> <http://sbols.org/v3#start> "1705"^^<http://www.w3.org/2001/XMLSchema#integer> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature11/Range1> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://sbols.org/v3#Range> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature11> <http://sbols.org/v3#displayId> "SequenceFeature11" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature11> <http://sbols.org/v3#hasLocation> <https://test.sbol3.genbank/JWYZ01000115/SequenceFeature11/Range1> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature11> <http://sbols.org/v3#name> "_converted_feature_10" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature11> <http://sbols.org/v3#orientation> <https://identifiers.org/SO:0001030> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature11> <http://sbols.org/v3#role> <https://identifiers.org/SO:0000316> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature11> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#key> "0:locus_tag" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature11> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#key> "1:inference" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature11> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#key> "2:note" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature11> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#key> "3:codon_start" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature11> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#key> "4:transl_table" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature11> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#key> "5:product" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature11> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#key> "6:protein_id" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature11> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#key> "7:translation" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature11> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#value> "0:PU64_23680" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature11> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#value> "1:EXISTENCE: similar to AA sequence:RefSeq:WP_001544295.1" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature11> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#value> "2:Derived by automated computational analysis using gene prediction method: Protein Homology." .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature11> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#value> "3:1" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature11> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#value> "4:11" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature11> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#value> "5:TetR family transcriptional regulator" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature11> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#value> "6:KIG36582.1" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature11> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#value> "7:MVTKKQSRVPGRPRRFAPEQAISAAKVLFHQKGFDAVSVAEVTDYLGINPPSLYAAFGSKAGLFSRVLNEYVGTEAIPLADILRDDRPVGECLVEVLKEAARRYSQNGGCAGCMVLEGIHSHDPLARDIAVQYYHAAETTIYDYIARRHPQSAQCVTDFMSTVMSGLSAKAREGHSIEQLCATAALAGEAIKTLLKE" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature11> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://sbols.org/v3#SequenceFeature> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature12/Range1> <http://sbols.org/v3#displayId> "Range1" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature12/Range1> <http://sbols.org/v3#end> "2896"^^<http://www.w3.org/2001/XMLSchema#integer> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature12/Range1> <http://sbols.org/v3#hasSequence> <https://test.sbol3.genbank/JWYZ01000115_sequence> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature12/Range1> <http://sbols.org/v3#orientation> <https://identifiers.org/SO:0001030> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature12/Range1> <http://sbols.org/v3#start> "2443"^^<http://www.w3.org/2001/XMLSchema#integer> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature12/Range1> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://sbols.org/v3#Range> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature12> <http://sbols.org/v3#displayId> "SequenceFeature12" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature12> <http://sbols.org/v3#hasLocation> <https://test.sbol3.genbank/JWYZ01000115/SequenceFeature12/Range1> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature12> <http://sbols.org/v3#name> "_converted_feature_11" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature12> <http://sbols.org/v3#orientation> <https://identifiers.org/SO:0001030> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature12> <http://sbols.org/v3#role> <https://identifiers.org/SO:0000704> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature12> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#key> "0:locus_tag" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature12> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#value> "0:PU64_23685" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature12> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://sbols.org/v3#SequenceFeature> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature13/Range1> <http://sbols.org/v3#displayId> "Range1" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature13/Range1> <http://sbols.org/v3#end> "2896"^^<http://www.w3.org/2001/XMLSchema#integer> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature13/Range1> <http://sbols.org/v3#hasSequence> <https://test.sbol3.genbank/JWYZ01000115_sequence> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature13/Range1> <http://sbols.org/v3#orientation> <https://identifiers.org/SO:0001030> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature13/Range1> <http://sbols.org/v3#start> "2443"^^<http://www.w3.org/2001/XMLSchema#integer> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature13/Range1> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://sbols.org/v3#Range> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature13> <http://sbols.org/v3#displayId> "SequenceFeature13" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature13> <http://sbols.org/v3#hasLocation> <https://test.sbol3.genbank/JWYZ01000115/SequenceFeature13/Range1> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature13> <http://sbols.org/v3#name> "_converted_feature_12" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature13> <http://sbols.org/v3#orientation> <https://identifiers.org/SO:0001030> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature13> <http://sbols.org/v3#role> <https://identifiers.org/SO:0000316> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature13> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#key> "0:locus_tag" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature13> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#key> "1:inference" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature13> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#key> "2:note" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature13> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#key> "3:codon_start" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature13> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#key> "4:transl_table" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature13> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#key> "5:product" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature13> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#key> "6:protein_id" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature13> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#key> "7:translation" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature13> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#value> "0:PU64_23685" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature13> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#value> "1:EXISTENCE: similar to AA sequence:RefSeq:WP_001570607.1" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature13> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#value> "2:Derived by automated computational analysis using gene prediction method: Protein Homology." .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature13> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#value> "3:1" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature13> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#value> "4:11" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature13> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#value> "5:toxin-antitoxin biofilm protein TabA" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature13> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#value> "6:KIG36583.1" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature13> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#value> "7:MIIGNIHNLQPWLPQELRQAIEHIKAHVTAETPKGKHDIEGNHLFYLISEDMTEPYEARRAEYHARYLDIQIVLKGQEGMTFSTQPAGTPDTDWLADKDIAFLPEGVDEKTVILNEGDFVVFYPGEVHKPLCAVGAPAQVRKAVVKMLMA" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature13> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://sbols.org/v3#SequenceFeature> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature14/locationPosition1> <http://sbols.org/v3#displayId> "locationPosition1" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature14/locationPosition1> <http://sbols.org/v3#hasSequence> <https://test.sbol3.genbank/JWYZ01000115_sequence> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature14/locationPosition1> <http://sbols.org/v3#locationPosition#end> "3242"^^<http://www.w3.org/2001/XMLSchema#integer> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature14/locationPosition1> <http://sbols.org/v3#locationPosition#end_position> "2"^^<http://www.w3.org/2001/XMLSchema#integer> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature14/locationPosition1> <http://sbols.org/v3#locationPosition#start> "3018"^^<http://www.w3.org/2001/XMLSchema#integer> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature14/locationPosition1> <http://sbols.org/v3#locationPosition#start_position> "1"^^<http://www.w3.org/2001/XMLSchema#integer> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature14/locationPosition1> <http://sbols.org/v3#orientation> <https://identifiers.org/SO:0001030> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature14/locationPosition1> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://sbols.org/v3#locationPosition> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature14> <http://sbols.org/v3#displayId> "SequenceFeature14" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature14> <http://sbols.org/v3#hasLocation> <https://test.sbol3.genbank/JWYZ01000115/SequenceFeature14/locationPosition1> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature14> <http://sbols.org/v3#name> "_converted_feature_13" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature14> <http://sbols.org/v3#orientation> <https://identifiers.org/SO:0001030> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature14> <http://sbols.org/v3#role> <https://identifiers.org/SO:0000704> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature14> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#key> "0:locus_tag" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature14> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#value> "0:PU64_23690" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature14> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://sbols.org/v3#SequenceFeature> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature15/locationPosition1> <http://sbols.org/v3#displayId> "locationPosition1" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature15/locationPosition1> <http://sbols.org/v3#hasSequence> <https://test.sbol3.genbank/JWYZ01000115_sequence> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature15/locationPosition1> <http://sbols.org/v3#locationPosition#end> "3242"^^<http://www.w3.org/2001/XMLSchema#integer> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature15/locationPosition1> <http://sbols.org/v3#locationPosition#end_position> "2"^^<http://www.w3.org/2001/XMLSchema#integer> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature15/locationPosition1> <http://sbols.org/v3#locationPosition#start> "3018"^^<http://www.w3.org/2001/XMLSchema#integer> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature15/locationPosition1> <http://sbols.org/v3#locationPosition#start_position> "1"^^<http://www.w3.org/2001/XMLSchema#integer> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature15/locationPosition1> <http://sbols.org/v3#orientation> <https://identifiers.org/SO:0001030> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature15/locationPosition1> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://sbols.org/v3#locationPosition> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature15> <http://sbols.org/v3#displayId> "SequenceFeature15" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature15> <http://sbols.org/v3#hasLocation> <https://test.sbol3.genbank/JWYZ01000115/SequenceFeature15/locationPosition1> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature15> <http://sbols.org/v3#name> "_converted_feature_14" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature15> <http://sbols.org/v3#orientation> <https://identifiers.org/SO:0001030> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature15> <http://sbols.org/v3#role> <https://identifiers.org/SO:0000316> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature15> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#key> "0:locus_tag" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature15> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#key> "1:inference" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature15> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#key> "2:note" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature15> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#key> "3:codon_start" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature15> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#key> "4:transl_table" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature15> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#key> "5:product" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature15> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#key> "6:protein_id" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature15> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#key> "7:translation" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature15> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#value> "0:PU64_23690" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature15> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#value> "1:EXISTENCE: similar to AA sequence:RefSeq:WP_000036524.1" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature15> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#value> "2:Derived by automated computational analysis using gene prediction method: Protein Homology." .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature15> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#value> "3:1" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature15> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#value> "4:11" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature15> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#value> "5:DNA-binding protein" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature15> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#value> "6:KIG36584.1" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature15> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#value> "7:MSKISGWNFSQNITSADNCKQKNEDLDTWYVGMNDFARIAGGQNSRSNILSPRAFLEFLAKIFTLGYVDFSKRS" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature15> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://sbols.org/v3#SequenceFeature> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature1> <http://sbols.org/v3#displayId> "SequenceFeature1" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature1> <http://sbols.org/v3#hasLocation> <https://test.sbol3.genbank/JWYZ01000115/SequenceFeature1/locationPosition1> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature1> <http://sbols.org/v3#name> "_converted_feature_0" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature1> <http://sbols.org/v3#orientation> <https://identifiers.org/SO:0001031> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature1> <http://sbols.org/v3#role> <https://identifiers.org/SO:0000704> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature1> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#key> "0:locus_tag" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature1> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#value> "0:PU64_23660" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature1> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://sbols.org/v3#SequenceFeature> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature2/locationPosition1> <http://sbols.org/v3#displayId> "locationPosition1" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature2/locationPosition1> <http://sbols.org/v3#hasSequence> <https://test.sbol3.genbank/JWYZ01000115_sequence> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature2/locationPosition1> <http://sbols.org/v3#locationPosition#end> "115"^^<http://www.w3.org/2001/XMLSchema#integer> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature2/locationPosition1> <http://sbols.org/v3#locationPosition#end_position> "1"^^<http://www.w3.org/2001/XMLSchema#integer> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature2/locationPosition1> <http://sbols.org/v3#locationPosition#start> "0"^^<http://www.w3.org/2001/XMLSchema#integer> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature2/locationPosition1> <http://sbols.org/v3#locationPosition#start_position> "0"^^<http://www.w3.org/2001/XMLSchema#integer> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature2/locationPosition1> <http://sbols.org/v3#orientation> <https://identifiers.org/SO:0001031> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature2/locationPosition1> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://sbols.org/v3#locationPosition> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature2> <http://sbols.org/v3#displayId> "SequenceFeature2" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature2> <http://sbols.org/v3#hasLocation> <https://test.sbol3.genbank/JWYZ01000115/SequenceFeature2/locationPosition1> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature2> <http://sbols.org/v3#name> "_converted_feature_1" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature2> <http://sbols.org/v3#orientation> <https://identifiers.org/SO:0001031> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature2> <http://sbols.org/v3#role> <https://identifiers.org/SO:0000316> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature2> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#key> "0:locus_tag" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature2> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#key> "1:inference" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature2> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#key> "2:note" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature2> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#key> "3:codon_start" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature2> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#key> "4:transl_table" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature2> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#key> "5:product" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature2> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#key> "6:protein_id" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature2> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#key> "7:translation" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature2> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#value> "0:PU64_23660" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature2> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#value> "1:EXISTENCE: similar to AA sequence:RefSeq:WP_005059815.1" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature2> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#value> "2:Derived by automated computational analysis using gene prediction method: Protein Homology." .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature2> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#value> "3:1" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature2> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#value> "4:11" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature2> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#value> "5:pyrBI operon leader peptide" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature2> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#value> "6:KIG36579.1" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature2> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#value> "7:MVQCVRHFVLPRLKKDAGLPFFFPLITHSQPLNRGAFF" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature2> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://sbols.org/v3#SequenceFeature> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature3/Range1> <http://sbols.org/v3#displayId> "Range1" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature3/Range1> <http://sbols.org/v3#end> "3242"^^<http://www.w3.org/2001/XMLSchema#integer> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature3/Range1> <http://sbols.org/v3#hasSequence> <https://test.sbol3.genbank/JWYZ01000115_sequence> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature3/Range1> <http://sbols.org/v3#orientation> <https://identifiers.org/SO:0001030> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature3/Range1> <http://sbols.org/v3#start> "0"^^<http://www.w3.org/2001/XMLSchema#integer> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature3/Range1> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://sbols.org/v3#Range> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature3> <http://sbols.org/v3#displayId> "SequenceFeature3" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature3> <http://sbols.org/v3#hasLocation> <https://test.sbol3.genbank/JWYZ01000115/SequenceFeature3/Range1> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature3> <http://sbols.org/v3#name> "_converted_feature_2" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature3> <http://sbols.org/v3#orientation> <https://identifiers.org/SO:0001030> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature3> <http://sbols.org/v3#role> <https://identifiers.org/SO:0000149> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature3> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#key> "0:organism" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature3> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#key> "1:mol_type" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature3> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#key> "2:submitter_seqid" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature3> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#key> "3:strain" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature3> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#key> "4:isolation_source" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature3> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#key> "5:db_xref" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature3> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#key> "6:country" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature3> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#key> "7:collection_date" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature3> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#value> "0:Escherichia coli" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature3> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#value> "1:genomic DNA" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature3> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#value> "2:N37069PS_contig_115" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature3> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#value> "3:CVM N37069PS" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature3> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#value> "4:Farm" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature3> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#value> "5:taxon:562" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature3> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#value> "6:USA" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature3> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#value> "7:20-Jan-2012" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature3> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://sbols.org/v3#SequenceFeature> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature4/Range1> <http://sbols.org/v3#displayId> "Range1" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature4/Range1> <http://sbols.org/v3#end> "427"^^<http://www.w3.org/2001/XMLSchema#integer> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature4/Range1> <http://sbols.org/v3#hasSequence> <https://test.sbol3.genbank/JWYZ01000115_sequence> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature4/Range1> <http://sbols.org/v3#orientation> <https://identifiers.org/SO:0001030> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature4/Range1> <http://sbols.org/v3#start> "94"^^<http://www.w3.org/2001/XMLSchema#integer> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature4/Range1> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://sbols.org/v3#Range> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature4> <http://sbols.org/v3#displayId> "SequenceFeature4" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature4> <http://sbols.org/v3#hasLocation> <https://test.sbol3.genbank/JWYZ01000115/SequenceFeature4/Range1> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature4> <http://sbols.org/v3#name> "_converted_feature_3" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature4> <http://sbols.org/v3#orientation> <https://identifiers.org/SO:0001030> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature4> <http://sbols.org/v3#role> <https://identifiers.org/SO:0000704> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature4> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#key> "0:locus_tag" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature4> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#value> "0:PU64_23665" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature4> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://sbols.org/v3#SequenceFeature> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature5/Range1> <http://sbols.org/v3#displayId> "Range1" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature5/Range1> <http://sbols.org/v3#end> "427"^^<http://www.w3.org/2001/XMLSchema#integer> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature5/Range1> <http://sbols.org/v3#hasSequence> <https://test.sbol3.genbank/JWYZ01000115_sequence> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature5/Range1> <http://sbols.org/v3#orientation> <https://identifiers.org/SO:0001030> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature5/Range1> <http://sbols.org/v3#start> "94"^^<http://www.w3.org/2001/XMLSchema#integer> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature5/Range1> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://sbols.org/v3#Range> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature5> <http://sbols.org/v3#displayId> "SequenceFeature5" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature5> <http://sbols.org/v3#hasLocation> <https://test.sbol3.genbank/JWYZ01000115/SequenceFeature5/Range1> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature5> <http://sbols.org/v3#name> "_converted_feature_4" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature5> <http://sbols.org/v3#orientation> <https://identifiers.org/SO:0001030> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature5> <http://sbols.org/v3#role> <https://identifiers.org/SO:0000316> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature5> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#key> "0:locus_tag" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature5> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#key> "1:inference" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature5> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#key> "2:note" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature5> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#key> "3:codon_start" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature5> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#key> "4:transl_table" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature5> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#key> "5:product" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature5> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#key> "6:protein_id" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature5> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#key> "7:translation" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature5> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#value> "0:PU64_23665" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature5> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#value> "1:EXISTENCE: similar to AA sequence:RefSeq:WP_001349257.1" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature5> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#value> "2:Derived by automated computational analysis using gene prediction method: Protein Homology." .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature5> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#value> "3:1" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature5> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#value> "4:11" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature5> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#value> "5:hypothetical protein" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature5> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#value> "6:KIG36585.1" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature5> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#value> "7:MSNTLNHTSSRQIVRHYTHRQKRRKHLMQYFVSANGLFELKVKVYAFLFDVILQGNCPSVSIIADIPCFFLFHFHAIRYAFYSIHPTYRAECESERLTLLLTAQGCALSL" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature5> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://sbols.org/v3#SequenceFeature> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature6/Range1> <http://sbols.org/v3#displayId> "Range1" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature6/Range1> <http://sbols.org/v3#end> "791"^^<http://www.w3.org/2001/XMLSchema#integer> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature6/Range1> <http://sbols.org/v3#hasSequence> <https://test.sbol3.genbank/JWYZ01000115_sequence> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature6/Range1> <http://sbols.org/v3#orientation> <https://identifiers.org/SO:0001031> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature6/Range1> <http://sbols.org/v3#start> "395"^^<http://www.w3.org/2001/XMLSchema#integer> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature6/Range1> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://sbols.org/v3#Range> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature6> <http://sbols.org/v3#displayId> "SequenceFeature6" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature6> <http://sbols.org/v3#hasLocation> <https://test.sbol3.genbank/JWYZ01000115/SequenceFeature6/Range1> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature6> <http://sbols.org/v3#name> "_converted_feature_5" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature6> <http://sbols.org/v3#orientation> <https://identifiers.org/SO:0001031> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature6> <http://sbols.org/v3#role> <https://identifiers.org/SO:0000704> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature6> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#key> "0:locus_tag" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature6> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#value> "0:PU64_23670" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature6> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://sbols.org/v3#SequenceFeature> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature7/Range1> <http://sbols.org/v3#displayId> "Range1" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature7/Range1> <http://sbols.org/v3#end> "791"^^<http://www.w3.org/2001/XMLSchema#integer> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature7/Range1> <http://sbols.org/v3#hasSequence> <https://test.sbol3.genbank/JWYZ01000115_sequence> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature7/Range1> <http://sbols.org/v3#orientation> <https://identifiers.org/SO:0001031> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature7/Range1> <http://sbols.org/v3#start> "395"^^<http://www.w3.org/2001/XMLSchema#integer> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature7/Range1> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://sbols.org/v3#Range> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature7> <http://sbols.org/v3#displayId> "SequenceFeature7" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature7> <http://sbols.org/v3#hasLocation> <https://test.sbol3.genbank/JWYZ01000115/SequenceFeature7/Range1> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature7> <http://sbols.org/v3#name> "_converted_feature_6" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature7> <http://sbols.org/v3#orientation> <https://identifiers.org/SO:0001031> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature7> <http://sbols.org/v3#role> <https://identifiers.org/SO:0000316> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature7> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#key> "0:locus_tag" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature7> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#key> "1:inference" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature7> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#key> "2:note" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature7> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#key> "3:codon_start" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature7> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#key> "4:transl_table" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature7> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#key> "5:product" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature7> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#key> "6:protein_id" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature7> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#key> "7:translation" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature7> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#value> "0:PU64_23670" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature7> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#value> "1:EXISTENCE: similar to AA sequence:RefSeq:WP_001701843.1" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature7> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#value> "2:Derived by automated computational analysis using gene prediction method: Protein Homology." .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature7> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#value> "3:1" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature7> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#value> "4:11" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature7> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#value> "5:mRNA endoribonuclease" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature7> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#value> "6:KIG36580.1" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature7> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#value> "7:MVERTAVFPAGRHSLYAEHRYSAAIRSGDLLFVSGQVGSREDGTPEPDFQQQVRLAFDNLHATLAAAGCTFDDIIDVTSFHTDPENQFEDIMTVKNEIFSAPPYPNWTAVGVTWLAGFDFEIKVIARIPEQ" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature7> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://sbols.org/v3#SequenceFeature> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature8/Range1> <http://sbols.org/v3#displayId> "Range1" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature8/Range1> <http://sbols.org/v3#end> "1635"^^<http://www.w3.org/2001/XMLSchema#integer> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature8/Range1> <http://sbols.org/v3#hasSequence> <https://test.sbol3.genbank/JWYZ01000115_sequence> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature8/Range1> <http://sbols.org/v3#orientation> <https://identifiers.org/SO:0001031> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature8/Range1> <http://sbols.org/v3#start> "921"^^<http://www.w3.org/2001/XMLSchema#integer> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature8/Range1> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://sbols.org/v3#Range> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature8> <http://sbols.org/v3#displayId> "SequenceFeature8" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature8> <http://sbols.org/v3#hasLocation> <https://test.sbol3.genbank/JWYZ01000115/SequenceFeature8/Range1> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature8> <http://sbols.org/v3#name> "_converted_feature_7" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature8> <http://sbols.org/v3#orientation> <https://identifiers.org/SO:0001031> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature8> <http://sbols.org/v3#role> <https://identifiers.org/SO:0000704> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature8> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#key> "0:locus_tag" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature8> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#value> "0:PU64_23675" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature8> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://sbols.org/v3#SequenceFeature> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature9/Range1> <http://sbols.org/v3#displayId> "Range1" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature9/Range1> <http://sbols.org/v3#end> "1635"^^<http://www.w3.org/2001/XMLSchema#integer> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature9/Range1> <http://sbols.org/v3#hasSequence> <https://test.sbol3.genbank/JWYZ01000115_sequence> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature9/Range1> <http://sbols.org/v3#orientation> <https://identifiers.org/SO:0001031> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature9/Range1> <http://sbols.org/v3#start> "921"^^<http://www.w3.org/2001/XMLSchema#integer> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature9/Range1> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://sbols.org/v3#Range> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature9> <http://sbols.org/v3#displayId> "SequenceFeature9" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature9> <http://sbols.org/v3#hasLocation> <https://test.sbol3.genbank/JWYZ01000115/SequenceFeature9/Range1> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature9> <http://sbols.org/v3#name> "_converted_feature_8" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature9> <http://sbols.org/v3#orientation> <https://identifiers.org/SO:0001031> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature9> <http://sbols.org/v3#role> <https://identifiers.org/SO:0000316> .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature9> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#key> "0:locus_tag" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature9> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#key> "1:inference" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature9> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#key> "2:note" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature9> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#key> "3:codon_start" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature9> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#key> "4:transl_table" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature9> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#key> "5:product" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature9> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#key> "6:protein_id" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature9> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#key> "7:translation" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature9> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#value> "0:PU64_23675" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature9> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#value> "1:EXISTENCE: similar to AA sequence:SwissProt:P39333.2" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature9> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#value> "2:Derived by automated computational analysis using gene prediction method: Protein Homology." .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature9> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#value> "3:1" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature9> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#value> "4:11" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature9> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#value> "5:oxidoreductase" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature9> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#value> "6:KIG36581.1" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature9> <http://www.ncbi.nlm.nih.gov/genbank#featureQualifier#value> "7:MGAFTGKTVLILGGSRGIGAAIVRRFVTDGANVRFTYAGSKDAAKRLAQETGATAVFTDSADRDAVIDVVRKSGALDILVVNAGIGVFGEALELNADDIDRLFKINIHAPYHASVEAARQMPEGGRILIIGSVNGDRMPVAGMAAYAASKSALQGMARGLARDFGPRGITINVVQPGPIDTDANPANGPMRDMLHSLMAIKRHGQPEEVAGMVAWLAGPEASFVTGAMHTIDGAFGA" .
+<https://test.sbol3.genbank/JWYZ01000115/SequenceFeature9> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://sbols.org/v3#SequenceFeature> .
+<https://test.sbol3.genbank/JWYZ01000115/StructuredComment_1> <http://sbols.org/v3#displayId> "StructuredComment_1" .
+<https://test.sbol3.genbank/JWYZ01000115/StructuredComment_1> <http://sbols.org/v3#hasNamespace> <https://test.sbol3.genbank/> .
+<https://test.sbol3.genbank/JWYZ01000115/StructuredComment_1> <http://www.ncbi.nlm.nih.gov/genbank#structured_comment#component> "JWYZ01000115" .
+<https://test.sbol3.genbank/JWYZ01000115/StructuredComment_1> <http://www.ncbi.nlm.nih.gov/genbank#structured_comment#heading> "Genome-Assembly-Data" .
+<https://test.sbol3.genbank/JWYZ01000115/StructuredComment_1> <http://www.ncbi.nlm.nih.gov/genbank#structured_comment#structuredKeys> "1::Assembly Method" .
+<https://test.sbol3.genbank/JWYZ01000115/StructuredComment_1> <http://www.ncbi.nlm.nih.gov/genbank#structured_comment#structuredKeys> "2::Assembly Name" .
+<https://test.sbol3.genbank/JWYZ01000115/StructuredComment_1> <http://www.ncbi.nlm.nih.gov/genbank#structured_comment#structuredKeys> "3::Genome Coverage" .
+<https://test.sbol3.genbank/JWYZ01000115/StructuredComment_1> <http://www.ncbi.nlm.nih.gov/genbank#structured_comment#structuredKeys> "4::Sequencing Technology" .
+<https://test.sbol3.genbank/JWYZ01000115/StructuredComment_1> <http://www.ncbi.nlm.nih.gov/genbank#structured_comment#structuredValues> "1::CLC Genomics Workbench v. 7.5" .
+<https://test.sbol3.genbank/JWYZ01000115/StructuredComment_1> <http://www.ncbi.nlm.nih.gov/genbank#structured_comment#structuredValues> "2::Escherichia coli CVM N37069PS v1.0" .
+<https://test.sbol3.genbank/JWYZ01000115/StructuredComment_1> <http://www.ncbi.nlm.nih.gov/genbank#structured_comment#structuredValues> "3::48.5x" .
+<https://test.sbol3.genbank/JWYZ01000115/StructuredComment_1> <http://www.ncbi.nlm.nih.gov/genbank#structured_comment#structuredValues> "4::Illumina MiSeq" .
+<https://test.sbol3.genbank/JWYZ01000115/StructuredComment_1> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://sbols.org/v3#TopLevel> .
+<https://test.sbol3.genbank/JWYZ01000115/StructuredComment_1> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.ncbi.nlm.nih.gov/genbank#structured_comment> .
+<https://test.sbol3.genbank/JWYZ01000115/StructuredComment_2> <http://sbols.org/v3#displayId> "StructuredComment_2" .
+<https://test.sbol3.genbank/JWYZ01000115/StructuredComment_2> <http://sbols.org/v3#hasNamespace> <https://test.sbol3.genbank/> .
+<https://test.sbol3.genbank/JWYZ01000115/StructuredComment_2> <http://www.ncbi.nlm.nih.gov/genbank#structured_comment#component> "JWYZ01000115" .
+<https://test.sbol3.genbank/JWYZ01000115/StructuredComment_2> <http://www.ncbi.nlm.nih.gov/genbank#structured_comment#heading> "Genome-Annotation-Data" .
+<https://test.sbol3.genbank/JWYZ01000115/StructuredComment_2> <http://www.ncbi.nlm.nih.gov/genbank#structured_comment#structuredKeys> "10::CRISPR Arrays" .
+<https://test.sbol3.genbank/JWYZ01000115/StructuredComment_2> <http://www.ncbi.nlm.nih.gov/genbank#structured_comment#structuredKeys> "11::rRNAs" .
+<https://test.sbol3.genbank/JWYZ01000115/StructuredComment_2> <http://www.ncbi.nlm.nih.gov/genbank#structured_comment#structuredKeys> "12::tRNAs" .
+<https://test.sbol3.genbank/JWYZ01000115/StructuredComment_2> <http://www.ncbi.nlm.nih.gov/genbank#structured_comment#structuredKeys> "13::ncRNA" .
+<https://test.sbol3.genbank/JWYZ01000115/StructuredComment_2> <http://www.ncbi.nlm.nih.gov/genbank#structured_comment#structuredKeys> "14::Frameshifted Genes" .
+<https://test.sbol3.genbank/JWYZ01000115/StructuredComment_2> <http://www.ncbi.nlm.nih.gov/genbank#structured_comment#structuredKeys> "1::Annotation Provider" .
+<https://test.sbol3.genbank/JWYZ01000115/StructuredComment_2> <http://www.ncbi.nlm.nih.gov/genbank#structured_comment#structuredKeys> "2::Annotation Date" .
+<https://test.sbol3.genbank/JWYZ01000115/StructuredComment_2> <http://www.ncbi.nlm.nih.gov/genbank#structured_comment#structuredKeys> "3::Annotation Pipeline" .
+<https://test.sbol3.genbank/JWYZ01000115/StructuredComment_2> <http://www.ncbi.nlm.nih.gov/genbank#structured_comment#structuredKeys> "4::Annotation Method" .
+<https://test.sbol3.genbank/JWYZ01000115/StructuredComment_2> <http://www.ncbi.nlm.nih.gov/genbank#structured_comment#structuredKeys> "5::Annotation Software revision" .
+<https://test.sbol3.genbank/JWYZ01000115/StructuredComment_2> <http://www.ncbi.nlm.nih.gov/genbank#structured_comment#structuredKeys> "6::Features Annotated" .
+<https://test.sbol3.genbank/JWYZ01000115/StructuredComment_2> <http://www.ncbi.nlm.nih.gov/genbank#structured_comment#structuredKeys> "7::Genes" .
+<https://test.sbol3.genbank/JWYZ01000115/StructuredComment_2> <http://www.ncbi.nlm.nih.gov/genbank#structured_comment#structuredKeys> "8::CDS" .
+<https://test.sbol3.genbank/JWYZ01000115/StructuredComment_2> <http://www.ncbi.nlm.nih.gov/genbank#structured_comment#structuredKeys> "9::Pseudo Genes" .
+<https://test.sbol3.genbank/JWYZ01000115/StructuredComment_2> <http://www.ncbi.nlm.nih.gov/genbank#structured_comment#structuredValues> "10::2" .
+<https://test.sbol3.genbank/JWYZ01000115/StructuredComment_2> <http://www.ncbi.nlm.nih.gov/genbank#structured_comment#structuredValues> "11::11 (5S, 16S, 23S)" .
+<https://test.sbol3.genbank/JWYZ01000115/StructuredComment_2> <http://www.ncbi.nlm.nih.gov/genbank#structured_comment#structuredValues> "12::78" .
+<https://test.sbol3.genbank/JWYZ01000115/StructuredComment_2> <http://www.ncbi.nlm.nih.gov/genbank#structured_comment#structuredValues> "13::17" .
+<https://test.sbol3.genbank/JWYZ01000115/StructuredComment_2> <http://www.ncbi.nlm.nih.gov/genbank#structured_comment#structuredValues> "14::41" .
+<https://test.sbol3.genbank/JWYZ01000115/StructuredComment_2> <http://www.ncbi.nlm.nih.gov/genbank#structured_comment#structuredValues> "1::NCBI" .
+<https://test.sbol3.genbank/JWYZ01000115/StructuredComment_2> <http://www.ncbi.nlm.nih.gov/genbank#structured_comment#structuredValues> "2::12/29/2014 14:07:05" .
+<https://test.sbol3.genbank/JWYZ01000115/StructuredComment_2> <http://www.ncbi.nlm.nih.gov/genbank#structured_comment#structuredValues> "3::NCBI Prokaryotic Genome Annotation Pipeline" .
+<https://test.sbol3.genbank/JWYZ01000115/StructuredComment_2> <http://www.ncbi.nlm.nih.gov/genbank#structured_comment#structuredValues> "4::Best-placed reference protein set; GeneMarkS+" .
+<https://test.sbol3.genbank/JWYZ01000115/StructuredComment_2> <http://www.ncbi.nlm.nih.gov/genbank#structured_comment#structuredValues> "5::2.9 (rev. 455303)" .
+<https://test.sbol3.genbank/JWYZ01000115/StructuredComment_2> <http://www.ncbi.nlm.nih.gov/genbank#structured_comment#structuredValues> "6::Gene; CDS; rRNA; tRNA; ncRNA; repeat_region" .
+<https://test.sbol3.genbank/JWYZ01000115/StructuredComment_2> <http://www.ncbi.nlm.nih.gov/genbank#structured_comment#structuredValues> "7::4,855" .
+<https://test.sbol3.genbank/JWYZ01000115/StructuredComment_2> <http://www.ncbi.nlm.nih.gov/genbank#structured_comment#structuredValues> "8::4,642" .
+<https://test.sbol3.genbank/JWYZ01000115/StructuredComment_2> <http://www.ncbi.nlm.nih.gov/genbank#structured_comment#structuredValues> "9::107" .
+<https://test.sbol3.genbank/JWYZ01000115/StructuredComment_2> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://sbols.org/v3#TopLevel> .
+<https://test.sbol3.genbank/JWYZ01000115/StructuredComment_2> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.ncbi.nlm.nih.gov/genbank#structured_comment> .
+<https://test.sbol3.genbank/JWYZ01000115> <http://sbols.org/v3#description> "Escherichia coli strain CVM N37069PS N37069PS_contig_115, whole genome shotgun sequence" .
+<https://test.sbol3.genbank/JWYZ01000115> <http://sbols.org/v3#displayId> "JWYZ01000115" .
+<https://test.sbol3.genbank/JWYZ01000115> <http://sbols.org/v3#hasFeature> <https://test.sbol3.genbank/JWYZ01000115/SequenceFeature10> .
+<https://test.sbol3.genbank/JWYZ01000115> <http://sbols.org/v3#hasFeature> <https://test.sbol3.genbank/JWYZ01000115/SequenceFeature11> .
+<https://test.sbol3.genbank/JWYZ01000115> <http://sbols.org/v3#hasFeature> <https://test.sbol3.genbank/JWYZ01000115/SequenceFeature12> .
+<https://test.sbol3.genbank/JWYZ01000115> <http://sbols.org/v3#hasFeature> <https://test.sbol3.genbank/JWYZ01000115/SequenceFeature13> .
+<https://test.sbol3.genbank/JWYZ01000115> <http://sbols.org/v3#hasFeature> <https://test.sbol3.genbank/JWYZ01000115/SequenceFeature3> .
+<https://test.sbol3.genbank/JWYZ01000115> <http://sbols.org/v3#hasFeature> <https://test.sbol3.genbank/JWYZ01000115/SequenceFeature4> .
+<https://test.sbol3.genbank/JWYZ01000115> <http://sbols.org/v3#hasFeature> <https://test.sbol3.genbank/JWYZ01000115/SequenceFeature5> .
+<https://test.sbol3.genbank/JWYZ01000115> <http://sbols.org/v3#hasFeature> <https://test.sbol3.genbank/JWYZ01000115/SequenceFeature6> .
+<https://test.sbol3.genbank/JWYZ01000115> <http://sbols.org/v3#hasFeature> <https://test.sbol3.genbank/JWYZ01000115/SequenceFeature7> .
+<https://test.sbol3.genbank/JWYZ01000115> <http://sbols.org/v3#hasFeature> <https://test.sbol3.genbank/JWYZ01000115/SequenceFeature8> .
+<https://test.sbol3.genbank/JWYZ01000115> <http://sbols.org/v3#hasFeature> <https://test.sbol3.genbank/JWYZ01000115/SequenceFeature9> .
+<https://test.sbol3.genbank/JWYZ01000115> <http://sbols.org/v3#hasNamespace> <https://test.sbol3.genbank/> .
+<https://test.sbol3.genbank/JWYZ01000115> <http://sbols.org/v3#hasSequence> <https://test.sbol3.genbank/JWYZ01000115_sequence> .
+<https://test.sbol3.genbank/JWYZ01000115> <http://sbols.org/v3#role> <https://identifiers.org/SO:0000804> .
+<https://test.sbol3.genbank/JWYZ01000115> <http://sbols.org/v3#type> <https://identifiers.org/SBO:0000251> .
+<https://test.sbol3.genbank/JWYZ01000115> <http://sbols.org/v3#type> <https://identifiers.org/SO:0000987> .
+<https://test.sbol3.genbank/JWYZ01000115> <http://www.ncbi.nlm.nih.gov/genbank#accessions> "JWYZ01000115" .
+<https://test.sbol3.genbank/JWYZ01000115> <http://www.ncbi.nlm.nih.gov/genbank#comment> "Annotation was added by the NCBI Prokaryotic Genome Annotation\nPipeline (released 2013). Information about the Pipeline can be\nfound here: http://www.ncbi.nlm.nih.gov/genome/annotation_prok/" .
+<https://test.sbol3.genbank/JWYZ01000115> <http://www.ncbi.nlm.nih.gov/genbank#date> "16-JAN-2015" .
+<https://test.sbol3.genbank/JWYZ01000115> <http://www.ncbi.nlm.nih.gov/genbank#dbxrefs> "BioProject:PRJNA266657::BioSample:SAMN03177677" .
+<https://test.sbol3.genbank/JWYZ01000115> <http://www.ncbi.nlm.nih.gov/genbank#division> "BCT" .
+<https://test.sbol3.genbank/JWYZ01000115> <http://www.ncbi.nlm.nih.gov/genbank#fuzzyFeatures> <https://test.sbol3.genbank/JWYZ01000115/SequenceFeature14> .
+<https://test.sbol3.genbank/JWYZ01000115> <http://www.ncbi.nlm.nih.gov/genbank#fuzzyFeatures> <https://test.sbol3.genbank/JWYZ01000115/SequenceFeature15> .
+<https://test.sbol3.genbank/JWYZ01000115> <http://www.ncbi.nlm.nih.gov/genbank#fuzzyFeatures> <https://test.sbol3.genbank/JWYZ01000115/SequenceFeature1> .
+<https://test.sbol3.genbank/JWYZ01000115> <http://www.ncbi.nlm.nih.gov/genbank#fuzzyFeatures> <https://test.sbol3.genbank/JWYZ01000115/SequenceFeature2> .
+<https://test.sbol3.genbank/JWYZ01000115> <http://www.ncbi.nlm.nih.gov/genbank#id> "JWYZ01000115.1" .
+<https://test.sbol3.genbank/JWYZ01000115> <http://www.ncbi.nlm.nih.gov/genbank#keywords> "WGS" .
+<https://test.sbol3.genbank/JWYZ01000115> <http://www.ncbi.nlm.nih.gov/genbank#locus> "JWYZ01000115" .
+<https://test.sbol3.genbank/JWYZ01000115> <http://www.ncbi.nlm.nih.gov/genbank#molecule> "DNA" .
+<https://test.sbol3.genbank/JWYZ01000115> <http://www.ncbi.nlm.nih.gov/genbank#name> "JWYZ01000115" .
+<https://test.sbol3.genbank/JWYZ01000115> <http://www.ncbi.nlm.nih.gov/genbank#organism> "Escherichia coli" .
+<https://test.sbol3.genbank/JWYZ01000115> <http://www.ncbi.nlm.nih.gov/genbank#seq_version> "1"^^<http://www.w3.org/2001/XMLSchema#integer> .
+<https://test.sbol3.genbank/JWYZ01000115> <http://www.ncbi.nlm.nih.gov/genbank#source> "Escherichia coli" .
+<https://test.sbol3.genbank/JWYZ01000115> <http://www.ncbi.nlm.nih.gov/genbank#taxonomy> "Bacteria,Proteobacteria,Gammaproteobacteria,Enterobacterales,Enterobacteriaceae,Escherichia" .
+<https://test.sbol3.genbank/JWYZ01000115> <http://www.ncbi.nlm.nih.gov/genbank#topology> "linear" .
+<https://test.sbol3.genbank/JWYZ01000115> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://sbols.org/v3#Component> .
+<https://test.sbol3.genbank/JWYZ01000115_sequence> <http://sbols.org/v3#displayId> "JWYZ01000115_sequence" .
+<https://test.sbol3.genbank/JWYZ01000115_sequence> <http://sbols.org/v3#elements> "aaaaaaaagcccctcgattgaggggctgggaatgggtgatcaacgggaagaaaaacggcaggccagcgtcttttttcagacgcggtaagacaaaatgtcgaacacactgaaccatacatcctcccggcaaattgtccggcattatactcatcgtcagaagcggcgcaagcatttgatgcaatattttgtcagcgcaaacggtttatttgaattaaaagtcaaggtatatgcatttttatttgatgtgattctgcaggggaactgtccttcggtatcaataattgcagacattccctgctttttcctttttcactttcacgcaatcagatatgcattttattccattcatccgacttatagggcggagtgtgaaagcgaacggctaacactattgcttactgctcagggatgcgcgctatcactttaatttcaaaatcaaagcctgccagccatgtaacacccaccgccgtccagtttggataaggtggggcgctaaatatttcatttttcaccgtcatgatgtcttcaaattggttttctggatcggtatggaagctcgtaacatcaatgatatcgtcaaaagtgcatcccgcagctgccagggtcgcatgcaaattatcaaatgccagtctgacttgttgctgaaaatcgggttctggtgttccgtcctctcgacttcctacttgcccggaaacaaacagcaaatcgccggaacgaatagccgcagaataacgatgctcagcatatagtgaatgtcggccagcagggaaaacagcggttctttctaccatttggttatcctcaagatttacgacatgaacagaagatttctctttaccgggagccgcttttagcggacgacgtgagtaaacaaaacccagacatcatggataatggctgggcttaattgagcgtagtcggttatgcgccaaacgcgccatcaatggtatgcattgcgccggtaacaaaactggcttctggccctgctaaccatgcgaccataccagcgacctcttccggttgcccatgtcttttgatagccatcaaactatgcaacatatcgcgcattggcccgttggcgggattagcgtcggtatcaattggccctggctggacgacgttaatggtgatcccacgcggtccaaaatcacgggccagcccgcgcgccatgccttgcagggcagatttgctggcggcataagcagccatgcctgcaacaggcatacgatcgccattcacggagccgatgattaagatgcgcccgccttcgggcatctgccgggcggcttcaacagaggcatgataaggagcatgaatattgattttgaaaaggcgatcaatatcgtcggcatttaattccagggcctcgccaaagacgccaatacctgcatttaccaccaggatatccaatgcgccgctcttacgaacgacatcaatgacagcgtctctgtcagcactatctgtgaatactgctgtcgctccagtctcttgtgccaggcgtttagcggcatctttcgaccccgcataggtgaatcgtacattggccccatcggtgacgaaacgacgtacgatagcggcaccgataccacgactgccaccgaggatgagaactgtcttacctgtaaaagcgcccataaggactccttgatttattatgtaacatgcattacaaaactgttttaactttctgtcaacatgttttgtaatggtcactaaaaaacaatctcgcgttccaggtcgtcccagacgtttcgctcctgagcaggcaatctctgcggcaaaagtgctttttcaccaaaaaggtttcgatgctgtcagtgttgctgaagttactgattatcttggtattaaccccccgagcctctacgcggcttttggcagtaaagctgggttatttagccgtgtactcaatgaatacgtcggtacggaagctattccgcttgccgatattcttcgtgatgatcgtccagtaggcgagtgcctggttgaggtattaaaagaagcggcgcgcagatatagccaaaacggcggctgcgctggctgtatggttcttgaaggtattcatagtcatgatccactagcgcgtgatattgccgttcaatattatcacgccgcagaaacgaccatttatgactatatcgccaggcggcatccacaaagcgcacaatgtgtgactgattttatgagtaccgtgatgtcagggctttctgcgaaggcacgggaggggcactcaatcgaacaactctgtgcaacagctgcactggcgggggaagcgataaaaactcttctcaaggagtgatgctggccttgatccgaaaggcgggaacgcgcctgccgataagttgtgataagacaataattcacgcattaaggctagcggaattgatcatcttttcgtataacgatagaaatgaaacgttgttttaattaaggagtggaaaagatgatcatcggaaatattcataatcttcagccgtggctaccccaggagttacgccaggcgattgagcatatcaaagcacacgttacggcagaaacgccaaagggcaagcacgatatcgaaggcaatcatctgttttatcttatctcggaagatatgaccgagccgtacgaagcccgccgtgcggagtaccatgcccgctatctcgacattcagattgtgttaaaaggtcaggaaggcatgaccttcagcacgcaacctgcaggcacgccggataccgactggttagctgataaagacatcgcatttttgccggaaggcgttgatgagaaaacagttatccttaatgaaggtgattttgttgtgttttatccgggggaagtgcataaaccgctgtgcgcagtgggtgcaccagcccaggttcgcaaagcagtagtgaagatgctgatggcgtgatgacttttcgccgtaaataactccaggtttacggcgagtttgtgaaaagagcgttttttgatatttttttgtgagtaaaatttgtaatgcttagacgttcttattaactcaaggagtccgtcatgagcaaaatatcaggttggaatttttctcaaaacattacatcagccgacaattgtaaacaaaaaaatgaagacttagatacctggtatgtgggaatgaatgattttgcccgaattgccggagggcagaatagcagaagcaatattctttctcccagagcatttttggagtttttggctaagatatttaccctgggttatgtggattttagcaaacgctccaa" .
+<https://test.sbol3.genbank/JWYZ01000115_sequence> <http://sbols.org/v3#encoding> <https://identifiers.org/edam:format_1207> .
+<https://test.sbol3.genbank/JWYZ01000115_sequence> <http://sbols.org/v3#hasNamespace> <https://test.sbol3.genbank/> .
+<https://test.sbol3.genbank/JWYZ01000115_sequence> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://sbols.org/v3#Sequence> .
