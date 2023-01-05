@@ -446,6 +446,11 @@ class TestPackage(unittest.TestCase):
     def test_excel_imports(self):
         """Excel to SBOL3 conversion including a package dependency"""
         with temporary_package_manager():
+            # make sure package with dependency will refuse to convert until dependency is installed
+            wb = openpyxl.load_workbook(TEST_FILES / 'second_library.xlsx', data_only=True)
+            with self.assertRaises(PackageError) as cm:
+                doc = excel_to_sbol.excel_to_sbol(wb)
+
             # convert base package:
             wb = openpyxl.load_workbook(TEST_FILES / 'packaged_library_no_dissociated.xlsx', data_only=True)
             doc = excel_to_sbol.excel_to_sbol(wb)
