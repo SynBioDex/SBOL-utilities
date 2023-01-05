@@ -4,8 +4,9 @@ import logging
 import os
 from dataclasses import dataclass
 from hashlib import sha256
+from itertools import chain
 from pathlib import Path
-from typing import Union, Optional
+from typing import Union, Optional, Callable
 from urllib.parse import urlparse, urljoin, unquote
 
 import tyto
@@ -586,6 +587,34 @@ class PackageManager:
         else:
             raise PackageError(f'No loaded package has a namespace that contains {uri}')
 
+    def traverse_dependencies(self, package: sep_054.Package, func: Callable[[sbol3.Identified], None]):
+        """Executes traverse on all the documents associated with the dependencies of a package, in order of listing
+
+        :param package: Package whose dependencies will be traversed
+        :param func: Function to be called in traverse on each document
+        """
+        chained = list(chain(*(self.find_package_docs(dependency.package) for dependency in package.dependencies)))
+        docs = filter(None, chained)
+        for doc in docs:
+            doc.traverse(func)
+
+    def find_all_in_dependencies(self, package: sep_054.Package, predicate: Callable[[sbol3.Identified], bool]) -> \
+            list[sbol3.Identified]:
+        """Executes "find_all" on all the documents associated with the dependencies of a package.
+
+        :param package: Package whose dependencies will be traversed
+        :param predicate: Predicate to apply to dependencies
+        :return: list of objects identified by find_all
+        """
+        result: list[sbol3.Identified] = []
+
+        def wrapped_filter(visited: sbol3.Identified):
+            if predicate(visited):
+                result.append(visited)
+
+        self.traverse_dependencies(package, wrapped_filter)
+        return result
+
 
 ACTIVE_PACKAGE_MANAGER = PackageManager()
 """Package manager in use, initialized with default settings"""
@@ -631,3 +660,22 @@ def package_aware_lookup(self: ReferencedURI) -> Optional[sbol3.Identified]:
 
 # Monkey-patch package-aware lookup function over base lookup function
 sbol3.refobj_property.ReferencedURI.lookup = package_aware_lookup
+
+
+def traverse_dependencies(package: sep_054.Package, func: Callable[[sbol3.Identified], None]):
+    """Executes traverse on all the documents associated with the dependencies of a package, in order of listing
+
+    :param package: Package whose dependencies will be traversed
+    :param func: Function to be called in traverse on each document
+    """
+    return ACTIVE_PACKAGE_MANAGER.traverse_dependencies(package, func)
+
+
+def find_all_in_dependencies(package: sep_054.Package, predicate: Callable[[sbol3.Identified], bool]) -> list[sbol3.Identified]:
+    """Executes "find_all" on all the documents associated with the dependencies of a package.
+
+    :param package: Package whose dependencies will be traversed
+    :param predicate: Predicate to apply to dependencies
+    :return: list of objects identified by find_all
+    """
+    return ACTIVE_PACKAGE_MANAGER.find_all_in_dependencies(package, predicate)

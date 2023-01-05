@@ -10,7 +10,7 @@ import openpyxl
 import tyto
 
 from .helper_functions import toplevel_named, strip_sbol2_version, is_plasmid, url_to_identity, strip_filetype_suffix
-from .package import package_id, sep_054, load_package, lookup
+from .package import package_id, sep_054, load_package, lookup, find_all_in_dependencies
 from .workarounds import type_to_standard_extension
 
 BASIC_PARTS_COLLECTION = 'BasicParts'
@@ -242,24 +242,31 @@ def is_RC(name):
 def part_names(specification):
     return [name.strip() for name in strip_RC(str(specification)).split(',')]
 # list all the parts in the row that aren't fully resolved
-def unresolved_subparts(doc: sbol3.Document, row, config):
-    return [name for spec in part_specifications(row, config) for name in part_names(spec) if not partname_to_part(doc,name)]
+def unresolved_subparts(doc: sbol3.Document, row, config, package):
+    return [name for spec in part_specifications(row, config) for name in part_names(spec) if not partname_to_part(doc,name,package)]
 # get the part specifications until they stop
 def part_specifications(row, config):
     return (cell.value for cell in row[config['composite_first_part_col']:] if cell.value)
 
-def partname_to_part(doc: sbol3.Document, name_or_display_id: str):
+
+def partname_to_part(doc: sbol3.Document, name_or_display_id: str, package: sep_054.Package):
     """Look up a part by its URI, displayID, or name, searching first by URI, then displayID, then name
     URIs may be cross-package references. A displayID or name must be local
 
     :param doc: SBOL document to search
     :param name_or_display_id: string to look up
+    :param package: containing dependencies to follow
     :return: object if found, None if not
     """
     if urlparse(name_or_display_id).scheme:
         # TODO: add aliases to allow name-based lookup as well as URI-based lookup
         return lookup(name_or_display_id)
-    return doc.find(name_or_display_id) or toplevel_named(doc, name_or_display_id)
+    # Make sure that search includes all imported packages
+    # TODO: use a more efficient search than find_all
+    return doc.find(name_or_display_id) or toplevel_named(doc, name_or_display_id) or \
+        package and \
+        next(iter(find_all_in_dependencies(package, lambda o: o.display_id == name_or_display_id) or \
+                  find_all_in_dependencies(package, lambda o: o.name == name_or_display_id) or []), None)
 
 ###############################################################
 # Functions for making composites, combinatorials, and libraries
@@ -340,7 +347,7 @@ def make_combinatorial_derivation(document, display_id,part_lists,reverse_comple
     return cd
 
 
-def make_composite_part(document, row, composite_parts, linear_products, final_products, config):
+def make_composite_part(document, row, composite_parts, linear_products, final_products, config, package):
     """
     Create a composite part from a row in the composites sheet
     :param document: Document to add parts to
@@ -367,7 +374,7 @@ def make_composite_part(document, row, composite_parts, linear_products, final_p
     constraints = row[config['composite_constraints_col']].value if config['composite_constraints_col'] else None
     reverse_complements = [is_RC(spec) for spec in part_specifications(row,config)]
     part_lists = \
-        [[partname_to_part(document, name) for name in part_names(spec)] for spec in part_specifications(row, config)]
+        [[partname_to_part(document, name, package) for name in part_names(spec)] for spec in part_specifications(row, config)]
     combinatorial = any(x for x in part_lists if len(x) > 1 or isinstance(x[0], sbol3.CombinatorialDerivation))
 
     # Build the composite
@@ -393,7 +400,7 @@ def make_composite_part(document, row, composite_parts, linear_products, final_p
         warnings.warn("Not yet handling strain information: "+transformed_strain)
     if backbone_or_locus:
         # TODO: handle integration locuses as well as plasmid backbones
-        backbones = [partname_to_part(document,name) for name in backbone_or_locus]
+        backbones = [partname_to_part(document,name,package) for name in backbone_or_locus]
         if any(b is None for b in backbones):
             raise ValueError(f'Could not find specified backbone(s) "{backbone_or_locus}"')
         if any(not is_plasmid(b) for b in backbones):
@@ -470,14 +477,14 @@ def excel_to_sbol(wb: openpyxl.Workbook, config: dict = None) -> sbol3.Document:
     pending_parts = [row for row in wb[config['composite_sheet']].iter_rows(min_row=config['composite_first_row'])
                      if row[config['composite_name_col']].value]
     while pending_parts:
-        ready = [row for row in pending_parts if not unresolved_subparts(doc, row, config)]
+        ready = [row for row in pending_parts if not unresolved_subparts(doc, row, config, package)]
         if not ready:
             raise ValueError("Could not resolve subparts" + ''.join(
                 (f"\n in '{row[config['composite_name_col']].value}':" +
-                 ''.join(f" '{x}'" for x in unresolved_subparts(doc, row, config)))
+                 ''.join(f" '{x}'" for x in unresolved_subparts(doc, row, config, package)))
                 for row in pending_parts))
         for row in ready:
-            make_composite_part(doc, row, composite_parts, linear_products, final_products, config)
+            make_composite_part(doc, row, composite_parts, linear_products, final_products, config, package)
         pending_parts = [p for p in pending_parts if p not in ready]  # subtract parts from stable list
     logging.info(f'Created {len(composite_parts.members)} composite parts or libraries')
 
