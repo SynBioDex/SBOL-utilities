@@ -4,7 +4,6 @@ import itertools
 from collections.abc import Generator
 from contextlib import contextmanager
 from typing import Iterable, Union, Optional, Callable
-from urllib.parse import urlparse
 
 import sbol3
 from rdflib import URIRef
@@ -199,6 +198,36 @@ def find_top_level(ref: ReferencedURI, cache: Optional[dict[str, sbol3.Identifie
     return top_level
 
 
+def _ensure_unique_optional(candidate_list: list) -> Optional[sbol3.Identified]:
+    """When searching for zero or one item matching a predicate, this function captures the reusable logic
+    of returning None for nothing, the item if unique, and raising an exception if not unique
+
+    :param candidate_list: number of candidates for the item to return
+    :return: object, if found, or None if not
+    :raises ValueError: if there are multiple candidates
+    """
+    if len(candidate_list) == 0:
+        return None
+    elif len(candidate_list) == 1:
+        return candidate_list[0]
+    else:
+        raise ValueError(f'Optional is not unique')
+
+
+def reference_named(references: sbol3.refobj_property.ReferencedObjectList, name: str) -> Optional[sbol3.Identified]:
+    """Find the unique member of a referenced object list with the given name (rather than displayID or URI)
+
+    :param references: property with referenced objects to search
+    :param name: name to look for
+    :return: object, if found, or None if not
+    :raises ValueError: if there are multiple objects with the given name
+    """
+    try:
+        return _ensure_unique_optional([o.lookup() for o in references if o.lookup().name == name])
+    except ValueError:
+        raise ValueError(f'Referenced name in list is not unique: {name}')
+
+
 def toplevel_named(doc: sbol3.Document, name: str) -> Optional[sbol3.TopLevel]:
     """Find the unique TopLevel document object with the given name (rather than displayID or URI)
 
@@ -207,13 +236,24 @@ def toplevel_named(doc: sbol3.Document, name: str) -> Optional[sbol3.TopLevel]:
     :return: object, if found, or None if not
     :raises ValueError: if there are multiple objects with the given name
     """
-    found = [o for o in doc.objects if o.name == name]
-    if len(found) == 0:
-        return None
-    elif len(found) == 1:
-        return found[0]
-    else:
-        raise ValueError(f'Name is not unique: {name}')
+    try:
+        return _ensure_unique_optional([o for o in doc.objects if o.name == name])
+    except ValueError:
+        raise ValueError(f'TopLevel name is not unique: {name}')
+
+
+def member_named(collection: sbol3.Collection, name: str) -> Optional[sbol3.TopLevel]:
+    """Find the unique member of a Collection with the given name (rather than displayID or URI)
+
+    :param collection: SBOL Collection to search
+    :param name: name to look for
+    :return: object, if found, ot None if not
+    :raises ValueError: if there are multiple objects with the given name
+    """
+    try:
+        return reference_named(collection.members, name)
+    except ValueError:
+        raise ValueError(f'Collection member name is not unique: {name}')
 
 
 def filter_top_level(doc: sbol3.Document, filter: Callable[[sbol3.TopLevel], bool]) -> Iterable[sbol3.TopLevel]:

@@ -9,7 +9,7 @@ import openpyxl
 import sbol3
 
 from sbol_utilities import package, excel_to_sbol
-from sbol_utilities.helper_functions import sbol3_namespace
+from sbol_utilities.helper_functions import sbol3_namespace, member_named, reference_named
 from sbol_utilities.package import PackageError, sep_054
 from sbol_utilities.sbol_diff import doc_diff, file_diff
 
@@ -466,7 +466,15 @@ class TestPackage(unittest.TestCase):
             # Write it out and make sure we can import as a package
             temp_name = tempfile.mkstemp(suffix='.nt')[1]
             doc.write(temp_name, sbol3.SORTED_NTRIPLES)
-            package.load_package('https://test.org/second_library', temp_name)
+            second_library = package.load_package('https://test.org/second_library', temp_name)
+
+            # Check that cross-document link works correctly
+            fp_collection = member_named(second_library, 'All FPs')
+            self.assertTrue(isinstance(fp_collection, sbol3.CombinatorialDerivation))
+            rfp_component = reference_named(fp_collection.variable_features[0].variants, 'mRFP1')
+            self.assertIsNotNone(rfp_component)
+            self.assertEqual(rfp_component.identity, 'https://test.org/mypackage/mRFP1')
+            self.assertEqual(rfp_component.description, 'Red FP (off patent)\nmRFP1')
 
 
 if __name__ == '__main__':
