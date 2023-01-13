@@ -9,7 +9,7 @@ import openpyxl
 import sbol3
 
 from sbol_utilities import package, excel_to_sbol
-from sbol_utilities.helper_functions import sbol3_namespace
+from sbol_utilities.helper_functions import sbol3_namespace, member_named, reference_named
 from sbol_utilities.package import PackageError, sep_054
 from sbol_utilities.sbol_diff import doc_diff, file_diff
 
@@ -441,11 +441,23 @@ class TestPackage(unittest.TestCase):
     #     temp_name = tempfile.mkstemp(suffix='.nt')[1]
     #     doc.write(temp_name, sbol3.SORTED_NTRIPLES)
     #     with temporary_package_manager():
-    #         package.load_package('https://test.org/mypackage', temp_name)
+    #         library = package.load_package('https://test.org/mypackage', temp_name)
+    #         # Make sure that the package depends on dissociated contents
+    #         self.assertEqual(len(library.dependencies), 2)
+    #         # make sure that we can reference the expected dissociated contents
+    #         gfp_component = member_named(library, 'GFPmut3')
+    #         self.assertTrue(isinstance(gfp_component, sbol3.Component))
+    #         self.assertEqual(gfp_component.identity, 'http://parts.igem.org/E0040')
+    #         self.assertEqual(gfp_component.description, 'Green FP (off patent)\nGFPmut3')
 
     def test_excel_imports(self):
         """Excel to SBOL3 conversion including a package dependency"""
         with temporary_package_manager():
+            # make sure package with dependency will refuse to convert until dependency is installed
+            wb = openpyxl.load_workbook(TEST_FILES / 'second_library.xlsx', data_only=True)
+            with self.assertRaises(PackageError):
+                excel_to_sbol.excel_to_sbol(wb)
+
             # convert base package:
             wb = openpyxl.load_workbook(TEST_FILES / 'packaged_library_no_dissociated.xlsx', data_only=True)
             doc = excel_to_sbol.excel_to_sbol(wb)
@@ -466,7 +478,19 @@ class TestPackage(unittest.TestCase):
             # Write it out and make sure we can import as a package
             temp_name = tempfile.mkstemp(suffix='.nt')[1]
             doc.write(temp_name, sbol3.SORTED_NTRIPLES)
-            package.load_package('https://test.org/second_library', temp_name)
+            second_library = package.load_package('https://test.org/second_library', temp_name)
+
+            # Check that cross-document link works correctly
+            fp_collection = member_named(second_library, 'All FPs')
+            self.assertTrue(isinstance(fp_collection, sbol3.CombinatorialDerivation))
+            rfp_component = reference_named(fp_collection.variable_features[0].variants, 'mRFP1')
+            self.assertIsNotNone(rfp_component)
+            self.assertEqual(rfp_component.identity, 'https://test.org/mypackage/mRFP1')
+            self.assertEqual(rfp_component.description, 'Red FP (off patent)\nmRFP1')
+            gfp_component = reference_named(fp_collection.variable_features[0].variants, 'GFPmut3')
+            self.assertIsNotNone(gfp_component)
+            self.assertEqual(gfp_component.identity, 'https://test.org/mypackage/GFPmut3')
+            self.assertEqual(gfp_component.description, 'Green FP (off patent)\nGFPmut3')
 
 
 if __name__ == '__main__':
