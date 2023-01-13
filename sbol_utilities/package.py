@@ -516,7 +516,7 @@ class PackageManager:
                     raise PackageError('Internal error: multiple matching dissociated packages for {namespace}')
                 else:
                     return matches[0].package
-                # otherwise, this is a new dissociated fragment, and can be returned independently
+                # otherwise, this is a new fragment of a dissociated package, and can be returned independently
 
         # If being obtained from a path, load document:
         if from_path:
@@ -671,7 +671,8 @@ def traverse_dependencies(package: sep_054.Package, func: Callable[[sbol3.Identi
     return ACTIVE_PACKAGE_MANAGER.traverse_dependencies(package, func)
 
 
-def find_all_in_dependencies(package: sep_054.Package, predicate: Callable[[sbol3.Identified], bool]) -> list[sbol3.Identified]:
+def find_all_in_dependencies(package: sep_054.Package, predicate: Callable[[sbol3.Identified], bool]) \
+        -> list[sbol3.Identified]:
     """Executes "find_all" on all the documents associated with the dependencies of a package.
 
     :param package: Package whose dependencies will be traversed
