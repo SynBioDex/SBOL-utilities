@@ -441,7 +441,14 @@ class TestPackage(unittest.TestCase):
     #     temp_name = tempfile.mkstemp(suffix='.nt')[1]
     #     doc.write(temp_name, sbol3.SORTED_NTRIPLES)
     #     with temporary_package_manager():
-    #         package.load_package('https://test.org/mypackage', temp_name)
+    #         library = package.load_package('https://test.org/mypackage', temp_name)
+    #         # Make sure that the package depends on dissociated contents
+    #         self.assertEqual(len(library.dependencies), 2)
+    #         # make sure that we can reference the expected dissociated contents
+    #         gfp_component = member_named(library, 'GFPmut3')
+    #         self.assertTrue(isinstance(gfp_component, sbol3.Component))
+    #         self.assertEqual(gfp_component.identity, 'http://parts.igem.org/E0040')
+    #         self.assertEqual(gfp_component.description, 'Green FP (off patent)\nGFPmut3')
 
     def test_excel_imports(self):
         """Excel to SBOL3 conversion including a package dependency"""
@@ -480,6 +487,10 @@ class TestPackage(unittest.TestCase):
             self.assertIsNotNone(rfp_component)
             self.assertEqual(rfp_component.identity, 'https://test.org/mypackage/mRFP1')
             self.assertEqual(rfp_component.description, 'Red FP (off patent)\nmRFP1')
+            gfp_component = reference_named(fp_collection.variable_features[0].variants, 'GFPmut3')
+            self.assertIsNotNone(gfp_component)
+            self.assertEqual(gfp_component.identity, 'https://test.org/mypackage/GFPmut3')
+            self.assertEqual(gfp_component.description, 'Green FP (off patent)\nGFPmut3')
 
 
 if __name__ == '__main__':
