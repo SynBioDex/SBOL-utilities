@@ -1,3 +1,4 @@
+import json
 import unicodedata
 import warnings
 import logging
@@ -516,6 +517,8 @@ def main():
                         help="Name of SBOL file to be written")
     parser.add_argument('-t', '--file-type', dest='file_type', default=sbol3.SORTED_NTRIPLES,
                         help="Name of SBOL file to output to (excluding type)")
+    parser.add_argument('-c', '--sheet-configuration', dest='config', default=None,
+                        help="JSON file containing a dictionary of sheet configuration values")
     parser.add_argument('--verbose', '-v', dest='verbose', action='count', default=0,
                         help="Print running explanation of conversion process")
     args_dict = vars(parser.parse_args())
@@ -533,10 +536,15 @@ def main():
     sbol3.set_namespace(args_dict['namespace'])
     if args_dict['local']:
         sbol3.set_namespace(f"{args_dict['namespace']}/{args_dict['local']}")
+    if args_dict['config']:
+        with open(args_dict['config']) as fp:
+            config = json.load(fp)
+    else:
+        config = None
 
     # Read file, convert, and write resulting document
     logging.info('Accessing Excel file '+excel_file)
-    sbol_document = excel_to_sbol(openpyxl.load_workbook(excel_file, data_only=True))
+    sbol_document = excel_to_sbol(openpyxl.load_workbook(excel_file, data_only=True), config)
     sbol_document.write(outfile_name, file_type)
     logging.info('SBOL file written to '+outfile_name)
 

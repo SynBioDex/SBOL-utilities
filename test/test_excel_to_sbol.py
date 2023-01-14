@@ -104,5 +104,14 @@ class TestExcel2SBOL(unittest.TestCase):
             sbol_utilities.excel_to_sbol.main()
         self.assertFalse(sbol_diff.file_diff(temp_name, os.path.join(TESTFILE_DIR, 'simple_library.nt')))
 
+    def test_commandline_config(self):
+        """Make sure function works correctly when run from the command line"""
+        temp_name = tempfile.mkstemp(suffix='.nt')[1]
+        test_args = ['excel-to-sbol', '-vv', os.path.join(TESTFILE_DIR, 'nonstandard_simple_library.xlsx'),
+                     '-o', temp_name, '-n', 'http://sbolstandard.org/testfiles', '-c', os.path.join(TESTFILE_DIR, 'config.json')]
+        with patch.object(sys, 'argv', test_args):
+            sbol_utilities.excel_to_sbol.main()
+        self.assertFalse(sbol_diff.file_diff(temp_name, os.path.join(TESTFILE_DIR, 'simple_library.nt')))
+
 if __name__ == '__main__':
     unittest.main()

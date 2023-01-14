@@ -1,0 +1,15 @@
+{
+  "basic_parts_name": "C2",
+  "basic_parts_description": "A12",
+  "basic_first_row": 21,
+  "basic_role_col": 2,
+  "basic_notes_col": 3,
+  "basic_description_col": 5,
+  "basic_source_prefix_col": 6,
+  "basic_source_id_col": 7,
+  "basic_final_col": 10,
+  "basic_circular_col": 11,
+  "basic_length_col": 12,
+  "basic_sequence_col": 13,
+  "composite_first_part_col": 8
+}
