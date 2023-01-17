@@ -15,7 +15,8 @@ from sbol_utilities.component import dna_component_with_sequence, rna_component_
     protein_stability_element, gene, operator, engineered_region, mrna, transcription_factor, \
     strain, ed_simple_chemical, ed_protein
 
-from sbol_utilities.component import ed_restriction_enzyme, backbone, part_in_backbone
+from sbol_utilities.component import ed_restriction_enzyme, backbone, part_in_backbone,  part_in_backbone2, \
+    digestion, ligation, Assembly_plan_composite_in_backbone_single_enzyme
 from sbol_utilities.helper_functions import find_top_level, toplevel_named, TopLevelNotFound, outgoing_links
 from sbol_utilities.sbol_diff import doc_diff    
 
@@ -373,9 +374,11 @@ class TestComponent(unittest.TestCase):
 
         hl_part_in_backbone_circular, hl_part_in_backbone_circular_sequence = part_in_backbone(identity_pib, part=test_promoter, backbone=test_backbone)
         hlc_doc.add([hl_part_in_backbone_circular, hl_part_in_backbone_circular_sequence])
+
         backbone_sequence = test_backbone.sequences[0].lookup().elements
         open_backbone_sequence_from_location1=backbone_sequence[test_backbone.features[-1].locations[0].start -1 : test_backbone.features[-1].locations[0].end]
         open_backbone_sequence_from_location2=backbone_sequence[test_backbone.features[-1].locations[1].start -1 : test_backbone.features[-1].locations[1].end]
+        
         part_sequence = test_promoter.sequences[0].lookup().elements
         part_in_backbone_seq_str = part_sequence + open_backbone_sequence_from_location2 + open_backbone_sequence_from_location1
         part_in_backbone_component, part_in_backbone_seq = dna_component_with_sequence(identity_pib, part_in_backbone_seq_str)
@@ -399,7 +402,6 @@ class TestComponent(unittest.TestCase):
         hlc_doc.add([test_promoter, test_promoter_seq, test_backbone, test_backbone_seq])
         doc.add([test_promoter, test_promoter_seq, test_backbone, test_backbone_seq])
 
-
         hl_part_in_backbone_linear, hl_part_in_backbone_linear_sequence = part_in_backbone(identity_pib, part=test_promoter, backbone=test_backbone, linear=True)
         hlc_doc.add([hl_part_in_backbone_linear, hl_part_in_backbone_linear_sequence])
 
@@ -417,6 +419,139 @@ class TestComponent(unittest.TestCase):
         part_in_backbone_component_linear.types.append(sbol3.SO_LINEAR)
         doc.add([part_in_backbone_component_linear, part_in_backbone_seq])
         assert doc_diff(doc, hlc_doc) == 0, f'Constructor Error: Linear {identity_pib}'
+
+        hlc_doc = sbol3.Document()
+        doc = sbol3.Document()
+        sbol3.set_namespace('http://sbolstandard.org/testfiles')
+
+        test_promoter, test_promoter_seq = promoter('pTest', 'aaTTaa')
+        part_location = [4,14]
+        fusion_site_length = 4
+        test_backbone, test_backbone_seq = backbone('test_bb','cccGGGGTTGGGGccc', dropout_location, fusion_site_length, linear=False)
+        identity_pib = 'part_in_backbone2'
+        sequence_str_pib = 'cccGGGGTTGGGGccc'
+        part_role = sbol3.SO_PROMOTER
+
+        hl_part_in_backbone_circular, hl_part_in_backbone_circular_sequence = part_in_backbone2(identity=identity_pib,  sequence=sequence_str_pib, 
+            part_location=part_location, part_roles=[part_role], fusion_site_length=fusion_site_length, linear=False)
+        hlc_doc.add([hl_part_in_backbone_circular, hl_part_in_backbone_circular_sequence])
+
+        part_in_backbone_component, part_in_backbone_seq = dna_component_with_sequence(identity=identity_pib, sequence=sequence_str_pib)
+        part_in_backbone_component.roles.append(sbol3.SO_DOUBLE_STRANDED)
+        part_in_backbone_component.roles.append(sbol3.SO_PROMOTER)
+        
+        part_location_comp = sbol3.Range(sequence=part_in_backbone_seq, start=part_location[0], end=part_location[1], order=2)
+        insertion_site_location1 = sbol3.Range(sequence=part_in_backbone_seq, start=part_location[0], end=part_location[0]+fusion_site_length, order=1)
+        insertion_site_location2 = sbol3.Range(sequence=part_in_backbone_seq, start=part_location[1]-fusion_site_length, end=part_location[1], order=3)
+        part_sequence_feature = sbol3.SequenceFeature(locations=[part_location_comp], roles=[part_role])
+        part_sequence_feature.roles.append(tyto.SO.engineered_insert)
+        insertion_sites_feature = sbol3.SequenceFeature(locations=[insertion_site_location1, insertion_site_location2], roles=[tyto.SO.insertion_site])
+        
+        #circular
+        part_in_backbone_component.types.append(sbol3.SO_CIRCULAR)
+        part_in_backbone_component.roles.append(tyto.SO.plasmid_vector)
+        open_backbone_location1 = sbol3.Range(sequence=part_in_backbone_seq, start=1, end=part_location[0]+fusion_site_length-1, order=2)
+        open_backbone_location2 = sbol3.Range(sequence=part_in_backbone_seq, start=part_location[1]-fusion_site_length, end=len(sequence), order=1)
+        open_backbone_feature = sbol3.SequenceFeature(locations=[open_backbone_location1, open_backbone_location2])
+        
+        part_in_backbone_component.features.append(part_sequence_feature)
+        part_in_backbone_component.features.append(insertion_sites_feature)
+        part_in_backbone_component.features.append(open_backbone_feature)
+        backbone_part_meets = sbol3.Constraint(restriction='http://sbols.org/v3#meets', subject=part_sequence_feature, object=open_backbone_feature)
+        part_in_backbone_component.constraints.append(backbone_part_meets)
+        doc.add([part_in_backbone_component, part_in_backbone_seq])
+        assert doc_diff(doc, hlc_doc) == 0, f'Constructor Error: Circular {identity_pib}'
+
+        hlc_doc = sbol3.Document()
+        doc = sbol3.Document()
+        sbol3.set_namespace('http://sbolstandard.org/testfiles')
+
+        hl_part_in_backbone_linear, hl_part_in_backbone_linear_sequence = part_in_backbone2(identity=identity_pib,  sequence=sequence_str_pib, 
+            part_location=part_location, part_roles=[part_role], fusion_site_length=fusion_site_length, linear=True)
+        hlc_doc.add([hl_part_in_backbone_linear, hl_part_in_backbone_linear_sequence])
+
+        part_in_backbone_component, part_in_backbone_seq = dna_component_with_sequence(identity=identity_pib, sequence=sequence_str_pib)
+        part_in_backbone_component.roles.append(sbol3.SO_DOUBLE_STRANDED)
+        part_in_backbone_component.roles.append(sbol3.SO_PROMOTER)
+        
+        part_location_comp = sbol3.Range(sequence=part_in_backbone_seq, start=part_location[0], end=part_location[1], order=2)
+        insertion_site_location1 = sbol3.Range(sequence=part_in_backbone_seq, start=part_location[0], end=part_location[0]+fusion_site_length, order=1)
+        insertion_site_location2 = sbol3.Range(sequence=part_in_backbone_seq, start=part_location[1]-fusion_site_length, end=part_location[1], order=3)
+        part_sequence_feature = sbol3.SequenceFeature(locations=[part_location_comp], roles=[part_role])
+        part_sequence_feature.roles.append(tyto.SO.engineered_insert)
+        insertion_sites_feature = sbol3.SequenceFeature(locations=[insertion_site_location1, insertion_site_location2], roles=[tyto.SO.insertion_site])
+        
+        #linear
+        part_in_backbone_component.types.append(sbol3.SO_LINEAR)
+        part_in_backbone_component.roles.append(sbol3.SO_ENGINEERED_REGION)
+        open_backbone_location1 = sbol3.Range(sequence=part_in_backbone_seq, start=1, end=part_location[0]+fusion_site_length-1, order=1)
+        open_backbone_location2 = sbol3.Range(sequence=part_in_backbone_seq, start=part_location[1]-fusion_site_length, end=len(sequence), order=3)
+        open_backbone_feature = sbol3.SequenceFeature(locations=[open_backbone_location1, open_backbone_location2])
+
+        part_in_backbone_component.features.append(part_sequence_feature)
+        part_in_backbone_component.features.append(insertion_sites_feature)
+        part_in_backbone_component.features.append(open_backbone_feature)
+        backbone_part_meets = sbol3.Constraint(restriction='http://sbols.org/v3#meets', subject=part_sequence_feature, object=open_backbone_feature)
+        part_in_backbone_component.constraints.append(backbone_part_meets)
+        doc.add([part_in_backbone_component, part_in_backbone_seq])
+        assert doc_diff(doc, hlc_doc) == 0, f'Constructor Error: Linear {identity_pib}'
+
+        hlc_doc = sbol3.Document()
+        doc = sbol3.Document()
+        sbol3.set_namespace('http://sbolstandard.org/testfiles')
+
+        bsai = ed_restriction_enzyme('BsaI')
+        #added by Assembly
+
+        #lvl1 acceptor
+        lvl1_pOdd_acceptor_seq = 'gctcgagtcccgtcaagtcagcgtaatgctctgccagtgttacaaccaattaaccaattctgattagaaaaactcatcgagcatcaaatgaaactgcaatttattcatatcaggattatcaataccatatttttgaaaaagccgtttctgtaatgaaggagaaaactcaccgaggcagttccataggatggcaagatcctggtatcggtctgcgattccgactcgtccaacatcaatacaacctattaatttcccctcgtcaaaaataaggttatcaagtgagaaatcaccatgagtgacgactgaatccggtgagaatggcaaaagcttatgcatttctttccagacttgttcaacaggccagccattacgctcgtcatcaaaatcactcgcatcaaccaaaccgttattcattcgtgattgcgcctgagcgagacgaaatacgcgatcgctgttaaaaggacaattacaaacaggaatcgaatgcaaccggcgcaggaacactgccagcgcatcaacaatattttcacctgaatcaggatattcttctaatacctggaatgctgttttcccggggatcgcagtggtgagtaaccatgcatcatcaggagtacggataaaatgcttgatggtcggaagaggcataaattccgtcagccagtttagtctgaccatctcatctgtaacatcattggcaacgctacctttgccatgtttcagaaacaactctggcgcatcgggcttcccatacaatcgatagattgtcgcacctgattgcccgacattatcgcgagcccatttatacccatataaatcagcatccatgttggaatttaatcgcggcctggagcaagacgtttcccgttgaatatggctcataacaccccttgtattactgtttatgtaagcagacagttttattgttcatgatgatatatttttatcttgtgcaatgtaacatcagagattttgagacacaacgtggctttgttgaataaatcgaacttttgctgagttgaaggatcagctcgagtgccacctgacgtctaagaaaccattattatcatgacattaacctataaaaataggcgtatcacgaggcagaatttcagataaaaaaaatccttagctttcgctaaggatgatttctggaattcgctcttcaatgggagtgagacccaatacgcaaaccgcctctccccgcgcgttggccgattcattaatgcagctggcacgacaggtttcccgactggaaagcgggcagtgagcgcaacgcaattaatgtgagttagctcactcattaggcaccccaggctttacactttatgcttccggctcgtatgttgtgtggaattgtgagcggataacaatttcacacatactagagaaagaggagaaatactagatggcttcctccgaagacgttatcaaagagttcatgcgtttcaaagttcgtatggaaggttccgttaacggtcacgagttcgaaatcgaaggtgaaggtgaaggtcgtccgtacgaaggtacccagaccgctaaactgaaagttaccaaaggtggtccgctgccgttcgcttgggacatcctgtccccgcagttccagtacggttccaaagcttacgttaaacacccggctgacatcccggactacctgaaactgtccttcccggaaggtttcaaatgggaacgtgttatgaacttcgaagacggtggtgttgttaccgttacccaggactcctccctgcaagacggtgagttcatctacaaagttaaactgcgtggtaccaacttcccgtccgacggtccggttatgcagaaaaaaaccatgggttgggaagcttccaccgaacgtatgtacccggaagacggtgctctgaaaggtgaaatcaaaatgcgtctgaaactgaaagacggtggtcactacgacgctgaagttaaaaccacctacatggctaaaaaaccggttcagctgccgggtgcttacaaaaccgacatcaaactggacatcacctcccacaacgaagactacaccatcgttgaacagtacgaacgtgctgaaggtcgtcactccaccggtgcttaataacgctgatagtgctagtgtagatcgctactagagccaggcatcaaataaaacgaaaggctcagtcgaaagactgggcctttcgttttatctgttgtttgtcggtgaacgctctctactagagtcacactggctcaccttcgggtgggcctttctgcgtttataggtctcaGCTTgcatgaagagcctgcagtccggcaaaaaagggcaaggtgtcaccaccctgccctttttctttaaaaccgaaaagattacttcgcgttatgcaggcttcctcgctcactgactcgctgcgctcggtcgttcggctgcggcgagcggtatcagctcactcaaaggcggtaatacggttatccacagaatcaggggataacgcaggaaagaacatgtgagcaaaaggccagcaaaaggccaggaaccgtaaaaaggccgcgttgctggcgtttttccacaggctccgcccccctgacgagcatcacaaaaatcgacgctcaagtcagaggtggcgaaacccgacaggactataaagataccaggcgtttccccctggaagctccctcgtgcgctctcctgttccgaccctgccgcttaccggatacctgtccgcctttctcccttcgggaagcgtggcgctttctcatagctcacgctgtaggtatctcagttcggtgtaggtcgttcgctccaagctgggctgtgtgcacgaaccccccgttcagcccgaccgctgcgccttatccggtaactatcgtcttgagtccaacccggtaagacacgacttatcgccactggcagcagccactggtaacaggattagcagagcgaggtatgtaggcggtgctacagagttcttgaagtggtggcctaactacggctacactagaagaacagtatttggtatctgcgctctgctgaagccagttaccttcggaaaaagagttggtagctcttgatccggcaaacaaaccaccgctggtagcggtggtttttttgtttgcaagcagcagattacgcgcagaaaaaaaggatctcaagaagatcctttgatcttttctacggggtctgacgctcagtggaacgaaaactcacgttaagggattttggtcatgagattatcaaaaaggatcttcacctagatccttttaaattaaaaatgaagttttaaatcaatctaaagtatatatgagtaaacttggtctgaca'
+        podd_backbone, podd_backbone_seq = backbone('pOdd_bb', lvl1_pOdd_acceptor_seq, [1169,2259], 4, False, name='pOdd_bb')
+        doc.add([podd_backbone,podd_backbone_seq])
+
+        #parts in backbone
+        j23100_b0034_ac_seq_str = 'ttcattgccatacgaaattccggatgagcattcatcaggcgggcaagaatgtgaataaaggccggataaaacttgtgcttatttttctttacggtctttaaaaaggccgtaatatccagctgaacggtctggttataggtacattgagcaactgactgaaatgcctcaaaatgttctttacgatgccattgggatatatcaacggtggtatatccagtgatttttttctccattttagcttccttagctcctgaaaatctcgataactcaaaaaatacgcccggtagtgatcttatttcattatggtgaaagttggaacctcttacgtgcccgatcaactcgagtgccacctgacgtctaagaaaccattattatcatgacattaacctataaaaataggcgtatcacgaggcagaatttcagataaaaaaaatccttagctttcgctaaggatgatttctggaattcggtctcgggagtctTTGACGGCTAGCTCAGTCCTAGGTACAGTGCTAGCCTAGAGAAAGAGGAGAAATACTAGaatgCGAGaccctgcagtccggcaaaaaagggcaaggtgtcaccaccctgccctttttctttaaaaccgaaaagattacttcgcgttatgcaggcttcctcgctcactgactcgctgcgctcggtcgttcggctgcggcgagcggtatcagctcactcaaaggcggtaatacggttatccacagaatcaggggataacgcaggaaagaacatgtgagcaaaaggccagcaaaaggccaggaaccgtaaaaaggccgcgttgctggcgtttttccacaggctccgcccccctgacgagcatcacaaaaatcgacgctcaagtcagaggtggcgaaacccgacaggactataaagataccaggcgtttccccctggaagctccctcgtgcgctctcctgttccgaccctgccgcttaccggatacctgtccgcctttctcccttcgggaagcgtggcgctttctcatagctcacgctgtaggtatctcagttcggtgtaggtcgttcgctccaagctgggctgtgtgcacgaaccccccgttcagcccgaccgctgcgccttatccggtaactatcgtcttgagtccaacccggtaagacacgacttatcgccactggcagcagccactggtaacaggattagcagagcgaggtatgtaggcggtgctacagagttcttgaagtggtggcctaactacggctacactagaagaacagtatttggtatctgcgctctgctgaagccagttaccttcggaaaaagagttggtagctcttgatccggcaaacaaaccaccgctggtagcggtggtttttttgtttgcaagcagcagattacgcgcagaaaaaaaggatctcaagaagatcctttgatcttttctacggggtctgacgctcagtggaacgaaaactcacgttaagggattttggtcatgagattatcaaaaaggatcttcacctagatccttttaaattaaaaatgaagttttaaatcaatctaaagtatatatgagtaaacttggtctgacagctcgaggcttggattctcaccaataaaaaacgcccggcggcaaccgagcgttctgaacaaatccagatggagttctgaggtcattactggatctatcaacaggagtccaagcgagctcgatatcaaattacgccccgccctgccactcatcgcagtactgttgtaattcattaagcattctgccgacatggaagccatcacaaacggcatgatgaacctgaatcgccagcggcatcagcaccttgtcgccttgcgtataatatttgcccatggtgaaaacgggggcgaagaagttgtccatattggccacgtttaaatcaaaactggtgaaactcacccagggattggctgagacgaaaaacatattctcaataaaccctttagggaaataggccaggttttcaccgtaacacgccacatcttgcgaatatatgtgtagaaactgccggaaatcgtcgtggtattcactccagagcgatgaaaacgtttcagtttgctcatggaaaacggtgtaacaagggtgaacactatcccatatcaccagctcaccgtct'
+        sfgfp_ce_seq_str = 'ccacctgacgtctaagaaaccattattatcatgacattaacctataaaaataggcgtatcacgaggcagaatttcagataaaaaaaatccttagctttcgctaaggatgatttctggaattcggtctcgaatgcgtaaaggcgaggaactgttcactggtgtcgtccctattctggtggaactggatggtgatgtcaacggtcataagttttccgtgcgtggcgagggtgaaggtgacgcaactaatggtaaactgacgctgaagttcatctgtactactggtaaactgccggtaccttggccgactctggtaacgacgctgacttatggtgttcagtgctttgctcgttatccggaccatatgaagcagcatgacttcttcaagtccgccatgccggaaggctatgtgcaggaacgcacgatttcctttaaggatgacggcacgtacaaaacgcgtgcggaagtgaaatttgaaggcgataccctggtaaaccgcattgagctgaaaggcattgactttaaagaagacggcaatatcctgggccataagctggaatacaattttaacagccacaatgtttacatcaccgccgataaacaaaaaaatggcattaaagcgaattttaaaattcgccacaacgtggaggatggcagcgtgcagctggctgatcactaccagcaaaacactccaatcggtgatggtcctgttctgctgccagacaatcactatctgagcacgcaaagcgttctgtctaaagatccgaacgagaaacgcgatcatatggttctgctggagttcgtaaccgcagcgggcatcacgcatggtatggatgaactgtacaaatgatgagcttCGAGaccctgcagtccggcaaaaaagggcaaggtgtcaccaccctgccctttttctttaaaaccgaaaagattacttcgcgttatgcaggcttcctcgctcactgactcgctgcgctcggtcgttcggctgcggcgagcggtatcagctcactcaaaggcggtaatacggttatccacagaatcaggggataacgcaggaaagaacatgtgagcaaaaggccagcaaaaggccaggaaccgtaaaaaggccgcgttgctggcgtttttccacaggctccgcccccctgacgagcatcacaaaaatcgacgctcaagtcagaggtggcgaaacccgacaggactataaagataccaggcgtttccccctggaagctccctcgtgcgctctcctgttccgaccctgccgcttaccggatacctgtccgcctttctcccttcgggaagcgtggcgctttctcatagctcacgctgtaggtatctcagttcggtgtaggtcgttcgctccaagctgggctgtgtgcacgaaccccccgttcagcccgaccgctgcgccttatccggtaactatcgtcttgagtccaacccggtaagacacgacttatcgccactggcagcagccactggtaacaggattagcagagcgaggtatgtaggcggtgctacagagttcttgaagtggtggcctaactacggctacactagaagaacagtatttggtatctgcgctctgctgaagccagttaccttcggaaaaagagttggtagctcttgatccggcaaacaaaccaccgctggtagcggtggtttttttgtttgcaagcagcagattacgcgcagaaaaaaaggatctcaagaagatcctttgatcttttctacggggtctgacgctcagtggaacgaaaactcacgttaagggattttggtcatgagattatcaaaaaggatcttcacctagatccttttaaattaaaaatgaagttttaaatcaatctaaagtatatatgagtaaacttggtctgacagctcgaggcttggattctcaccaataaaaaacgcccggcggcaaccgagcgttctgaacaaatccagatggagttctgaggtcattactggatctatcaacaggagtccaagcgagctcgatatcaaattacgccccgccctgccactcatcgcagtactgttgtaattcattaagcattctgccgacatggaagccatcacaaacggcatgatgaacctgaatcgccagcggcatcagcaccttgtcgccttgcgtataatatttgcccatggtgaaaacgggggcgaagaagttgtccatattggccacgtttaaatcaaaactggtgaaactcacccagggattggctgagacgaaaaacatattctcaataaaccctttagggaaataggccaggttttcaccgtaacacgccacatcttgcgaatatatgtgtagaaactgccggaaatcgtcgtggtattcactccagagcgatgaaaacgtttcagtttgctcatggaaaacggtgtaacaagggtgaacactatcccatatcaccagctcaccgtctttcattgccatacgaaattccggatgagcattcatcaggcgggcaagaatgtgaataaaggccggataaaacttgtgcttatttttctttacggtctttaaaaaggccgtaatatccagctgaacggtctggttataggtacattgagcaactgactgaaatgcctcaaaatgttctttacgatgccattgggatatatcaacggtggtatatccagtgatttttttctccattttagcttccttagctcctgaaaatctcgataactcaaaaaatacgcccggtagtgatcttatttcattatggtgaaagttggaacctcttacgtgcccgatcaactcgagtg'
+        b0015_ef_seq_str = 'aagggtgaacactatcccatatcaccagctcaccgtctttcattgccatacgaaattccggatgagcattcatcaggcgggcaagaatgtgaataaaggccggataaaacttgtgcttatttttctttacggtctttaaaaaggccgtaatatccagctgaacggtctggttataggtacattgagcaactgactgaaatgcctcaaaatgttctttacgatgccattgggatatatcaacggtggtatatccagtgatttttttctccattttagcttccttagctcctgaaaatctcgataactcaaaaaatacgcccggtagtgatcttatttcattatggtgaaagttggaacctcttacgtgcccgatcaactcgagtgccacctgacgtctaagaaaccattattatcatgacattaacctataaaaataggcgtatcacgaggcagaatttcagataaaaaaaatccttagctttcgctaaggatgatttctggaattcggtctcggcttccaggcatcaaataaaacgaaaggctcagtcgaaagactgggcctttcgttttatctgttgtttgtcggtgaacgctctctactagagtcacactggctcaccttcgggtgggcctttctgcgtttatacgctCGAGaccctgcagtccggcaaaaaagggcaaggtgtcaccaccctgccctttttctttaaaaccgaaaagattacttcgcgttatgcaggcttcctcgctcactgactcgctgcgctcggtcgttcggctgcggcgagcggtatcagctcactcaaaggcggtaatacggttatccacagaatcaggggataacgcaggaaagaacatgtgagcaaaaggccagcaaaaggccaggaaccgtaaaaaggccgcgttgctggcgtttttccacaggctccgcccccctgacgagcatcacaaaaatcgacgctcaagtcagaggtggcgaaacccgacaggactataaagataccaggcgtttccccctggaagctccctcgtgcgctctcctgttccgaccctgccgcttaccggatacctgtccgcctttctcccttcgggaagcgtggcgctttctcatagctcacgctgtaggtatctcagttcggtgtaggtcgttcgctccaagctgggctgtgtgcacgaaccccccgttcagcccgaccgctgcgccttatccggtaactatcgtcttgagtccaacccggtaagacacgacttatcgccactggcagcagccactggtaacaggattagcagagcgaggtatgtaggcggtgctacagagttcttgaagtggtggcctaactacggctacactagaagaacagtatttggtatctgcgctctgctgaagccagttaccttcggaaaaagagttggtagctcttgatccggcaaacaaaccaccgctggtagcggtggtttttttgtttgcaagcagcagattacgcgcagaaaaaaaggatctcaagaagatcctttgatcttttctacggggtctgacgctcagtggaacgaaaactcacgttaagggattttggtcatgagattatcaaaaaggatcttcacctagatccttttaaattaaaaatgaagttttaaatcaatctaaagtatatatgagtaaacttggtctgacagctcgaggcttggattctcaccaataaaaaacgcccggcggcaaccgagcgttctgaacaaatccagatggagttctgaggtcattactggatctatcaacaggagtccaagcgagctcgatatcaaattacgccccgccctgccactcatcgcagtactgttgtaattcattaagcattctgccgacatggaagccatcacaaacggcatgatgaacctgaatcgccagcggcatcagcaccttgtcgccttgcgtataatatttgcccatggtgaaaacgggggcgaagaagttgtccatattggccacgtttaaatcaaaactggtgaaactcacccagggattggctgagacgaaaaacatattctcaataaaccctttagggaaataggccaggttttcaccgtaacacgccacatcttgcgaatatatgtgtagaaactgccggaaatcgtcgtggtattcactccagagcgatgaaaacgtttcagtttgctcatggaaaacggtgtaac'
+
+        j23100_b0034_ac_in_bb, j23100_b0034_ac_in_bb_seq = part_in_backbone2('j23100_b0034_ac_in_bb', j23100_b0034_ac_seq_str, [476,545], [sbol3.SO_PROMOTER, sbol3.SO_RBS], 4, False, name='j23100_b0034_ac_in_bb')
+        doc.add([j23100_b0034_ac_in_bb, j23100_b0034_ac_in_bb_seq])
+
+        sfgfp_ce_in_bb, sfgfp_ce_in_bb_seq = part_in_backbone2('sfgfp_ce_in_bb', sfgfp_ce_seq_str, [130,854], [sbol3.SO_CDS], 4, False, name='sfgfp_ce_in_bb')
+        doc.add([sfgfp_ce_in_bb, sfgfp_ce_in_bb_seq])
+
+        b0015_ef_in_bb, b0015_ef_in_bb_seq = part_in_backbone2('b0015_ef_in_bb', b0015_ef_seq_str, [514,650], [sbol3.SO_TERMINATOR], 4, False, name='b0015_ef_in_bb')
+        doc.add([b0015_ef_in_bb, b0015_ef_in_bb_seq])
+
+        #Assembly plan
+        test_assembly_plan = Assembly_plan_composite_in_backbone_single_enzyme( 
+                            name='constitutive_gfp_tu',
+                            parts_in_backbone=[j23100_b0034_ac_in_bb, sfgfp_ce_in_bb, b0015_ef_in_bb], 
+                            acceptor_backbone=podd_backbone,
+                            restriction_enzyme=bsai,
+                            document=doc)
+
+        test_assembly_plan.run()
+
+        #Check assembly plan
+        expected_assembled_j23100_b0034_ac_seq_str = j23100_b0034_ac_seq_str[475:545]
+        assembled_j23100_b0034_ac_seq_str = test_assembly_plan.extracted_parts[0].sequences[0].lookup().elements
+        assert expected_assembled_j23100_b0034_ac_seq_str==assembled_j23100_b0034_ac_seq_str, 'Constructor Error: First extracted part sequence does not match expected sequence'
+
+        expected_assembled_sfgfp_ce_seq_str = sfgfp_ce_seq_str[129:854]
+        assembled_sfgfp_ce_seq_str = test_assembly_plan.extracted_parts[1].sequences[0].lookup().elements
+        assert expected_assembled_sfgfp_ce_seq_str==assembled_sfgfp_ce_seq_str, 'Constructor Error: Second extracted part sequence does not match expected sequence'
+
+        expected_assembled_b0015_ef_seq_str = b0015_ef_seq_str[513:650]
+        assembled_b0015_ef_seq_str = test_assembly_plan.extracted_parts[2].sequences[0].lookup().elements
+        assert expected_assembled_b0015_ef_seq_str==assembled_b0015_ef_seq_str, 'Constructor Error: Third extracted part sequence does not match expected sequence'
+
+        expected_assembled_open_backbone_seq_str = lvl1_pOdd_acceptor_seq[2255:] + lvl1_pOdd_acceptor_seq[:1172]
+        assembled_open_backbone_seq_str = test_assembly_plan.extracted_parts[-1].sequences[0].lookup().elements
+        assert expected_assembled_open_backbone_seq_str==assembled_open_backbone_seq_str, 'Constructor Error: Last extracted part (open backbone) sequence does not match expected sequence'
+
+        expected_composite_seq_str = expected_assembled_open_backbone_seq_str[:-4] + expected_assembled_j23100_b0034_ac_seq_str[:-4] + expected_assembled_sfgfp_ce_seq_str[:-4] + expected_assembled_b0015_ef_seq_str[:-4]
+        assembled_composite_seq_str = test_assembly_plan.composites[0][0].sequences[0].lookup().elements
+        assert expected_composite_seq_str==assembled_composite_seq_str, 'Constructor Error: Composite sequence does not match expected sequence'
 
 if __name__ == '__main__':
     unittest.main()
