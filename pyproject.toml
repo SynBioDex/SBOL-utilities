@@ -1,0 +1,25 @@
+[tool.interrogate]
+
+# custom docstring conventions
+ignore-init-method = true
+ignore-init-module = false
+ignore-magic = false
+ignore-semiprivate = false
+ignore-private = false
+ignore-property-decorators = false
+ignore-module = false
+ignore-nested-functions = false
+ignore-nested-classes = true
+ignore-setters = false
+# final covered percent must not be below this to pass
+fail-under = 50
+exclude = ["setup.py", "docs", "build"]
+ignore-regex = ["^get$", "^mock_.*", ".*BaseClass.*"]
+# options: 0 - only result %; 1 - results per file; 2 - results per method/class/function per file
+verbose = 1
+quiet = false
+whitelist-regex = []
+color = true
+omit-covered-files = false
+generate-badge = "."
+badge-format = "svg"

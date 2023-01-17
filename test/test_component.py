@@ -2,20 +2,39 @@ import filecmp
 import os
 import tempfile
 import unittest
+from pathlib import Path
 
 import sbol3
 import tyto
 
-from sbol_utilities.component import contained_components, contains, add_feature, add_interaction, constitutive, \
-    regulate, order, in_role, all_in_role, ensure_singleton_feature
+from sbol_utilities.component import contained_components, contains, add_feature, add_interaction, \
+    constitutive, ed_restriction_enzyme, \
+    regulate, order, in_role, all_in_role, ensure_singleton_feature, is_dna_part
 from sbol_utilities.component import dna_component_with_sequence, rna_component_with_sequence, \
     protein_component_with_sequence, media, functional_component, promoter, rbs, cds, terminator, \
     protein_stability_element, gene, operator, engineered_region, mrna, transcription_factor, \
     strain, ed_simple_chemical, ed_protein
+
+from sbol_utilities.component import ed_restriction_enzyme, backbone, part_in_backbone,  part_in_backbone2, \
+    digestion, ligation, Assembly_plan_composite_in_backbone_single_enzyme
+from sbol_utilities.helper_functions import find_top_level, toplevel_named, TopLevelNotFound, outgoing_links
 from sbol_utilities.sbol_diff import doc_diff    
 
 
 class TestComponent(unittest.TestCase):
+
+    def test_dna_part(self):
+        """Test the correctness of is_dna_part check"""
+        # create a test dna component
+        dna_identity = 'Test_dna_identity'
+        dna_sequence = 'Test_dna_sequence'
+        dna_description = 'Test_dna_description'
+        sbol3.set_namespace('http://sbolstandard.org/testfiles')
+        # we don't need dna_sequence object
+        test_dna_component, _ = dna_component_with_sequence(dna_identity, dna_sequence, description=dna_description)
+        # adding atleast 1 SO role
+        test_dna_component.roles.append(sbol3.SO_GENE)
+        assert is_dna_part(test_dna_component) 
 
     def test_system_building(self):
         doc = sbol3.Document()
@@ -30,10 +49,10 @@ class TestComponent(unittest.TestCase):
         # make a functional unit
         expression = add_feature(system, sbol3.LocalSubComponent([sbol3.SBO_DNA], roles=[tyto.SO.engineered_region]))
         contains(expression, gfp_cds)
-        rbs = contains(expression, sbol3.LocalSubComponent([sbol3.SBO_DNA], roles=[tyto.SO.ribosome_entry_site]))
-        regulate(rbs, gfp_cds)
-        terminator = contains(expression, sbol3.LocalSubComponent([sbol3.SBO_DNA], roles=[tyto.SO.terminator]))
-        order(gfp_cds, terminator)
+        rbs_comp = contains(expression, sbol3.LocalSubComponent([sbol3.SBO_DNA], roles=[tyto.SO.ribosome_entry_site]))
+        regulate(rbs_comp, gfp_cds)
+        term_comp = contains(expression, sbol3.LocalSubComponent([sbol3.SBO_DNA], roles=[tyto.SO.terminator]))
+        order(gfp_cds, term_comp)
         constitutive(expression)
         # link it to a product
         gfp_mut3_ncbi = 'https://www.ncbi.nlm.nih.gov/protein/AAB18957.1'
@@ -41,9 +60,11 @@ class TestComponent(unittest.TestCase):
         prod = add_interaction(sbol3.SBO_GENETIC_PRODUCTION,
                                participants={gfp: sbol3.SBO_PRODUCT, gfp_cds: sbol3.SBO_TEMPLATE})
 
-        assert contained_components(system) == {system, gfp_cds}
-        assert in_role(prod, sbol3.SBO_PRODUCT) == gfp
-        assert all_in_role(prod, sbol3.SBO_TEMPLATE) == [ensure_singleton_feature(system, gfp_cds)]
+        self.assertEqual(contained_components(system), {system, gfp_cds})
+        self.assertEqual(outgoing_links(doc), set())
+        self.assertEqual(in_role(prod, sbol3.SBO_PRODUCT), gfp)
+        self.assertEqual(all_in_role(prod, sbol3.SBO_TEMPLATE),
+                         [ensure_singleton_feature(system, gfp_cds)])
 
         # confirm that the system constructed is exactly as expected
         tmp_out = tempfile.mkstemp(suffix='.nt')[1]
@@ -52,9 +73,33 @@ class TestComponent(unittest.TestCase):
         comparison_file = os.path.join(test_dir, 'test_files', 'component_construction.nt')
         assert filecmp.cmp(tmp_out, comparison_file), f'Converted file {tmp_out} is not identical'
 
+    def test_containment(self):
+        """Test the operation of the contained_components function"""
+        doc = sbol3.Document()
+        test_dir = Path(__file__).parent
+        doc.read(str(test_dir / 'test_files' / 'constraints_library.nt'))
+
+        # Total of 43 parts, 2 non-library composites, 6 templates, 2 inserts
+        self.assertEqual(len(contained_components(doc.objects)), 53)
+        self.assertEqual(len(contained_components(toplevel_named(doc, 'BB-B0032-BB'))), 4)
+        self.assertEqual(len(contained_components(toplevel_named(doc, 'UNSX-UP'))), 3)
+        # 1 template, 4 in first slot, 4+template in 2nd slot
+        c = toplevel_named(doc, 'Multicolor expression')
+        self.assertEqual(len(contained_components(c)), 10)
+        # 1 template, 4 in first slot, 4+template in 2nd slot
+        c = toplevel_named(doc, 'Multicolor regulatory')
+        self.assertEqual(len(contained_components(c)), 10)
+        # 1 template, 1 backbone, 1 insert, 10 in 1st slot, 4 in 2nd (-1 shared), 5 in 3rd, 2 others
+        self.assertEqual(len(contained_components(toplevel_named(doc, 'Two color - operon'))), 23)
+
+        # Test again with an incomplete file. Should fail when missing elements are requested, but not when untouched
+        doc.read(str(test_dir / 'test_files' / 'incomplete_constraints_library.nt'))
+        self.assertRaises(TopLevelNotFound, lambda: contained_components(doc.objects))
+        self.assertEqual(len(contained_components(toplevel_named(doc, 'BB-B0032-BB'))), 4)
+        self.assertRaises(TopLevelNotFound, lambda: contained_components(toplevel_named(doc, 'Multicolor expression')))
 
     def test_high_level_constructors(self):
-
+        """Test construction of components and features using helper functions: for each, build manually and compare."""
         hlc_doc = sbol3.Document()
         doc = sbol3.Document()
         sbol3.set_namespace('http://sbolstandard.org/testfiles')
@@ -62,59 +107,45 @@ class TestComponent(unittest.TestCase):
         dna_identity = 'dna_component_with_sequence'
         dna_sequence = 'ttt'
         test_description = 'test'
-        hlc_dna_comp, hlc_dna_seq = dna_component_with_sequence(dna_identity, dna_sequence, description=test_description)
-        dna_seq = sbol3.Sequence(f'{dna_identity}_seq',
-                                elements=dna_sequence,
-                                encoding=sbol3.IUPAC_DNA_ENCODING)
-
-        dna_comp = sbol3.Component(dna_identity, sbol3.SBO_DNA,
-                                sequences=[dna_seq],
-                                description=test_description)
-        hlc_doc.add([hlc_dna_comp, hlc_dna_seq])
+        hl_dna_comp, hl_dna_seq = dna_component_with_sequence(dna_identity, dna_sequence, description=test_description)
+        dna_seq = sbol3.Sequence(f'{dna_identity}_seq', elements=dna_sequence, encoding=sbol3.IUPAC_DNA_ENCODING)
+        dna_comp = sbol3.Component(dna_identity, sbol3.SBO_DNA, sequences=[dna_seq], description=test_description)
+        hlc_doc.add([hl_dna_comp, hl_dna_seq])
         doc.add([dna_comp, dna_seq])
         assert doc_diff(doc, hlc_doc) == 0, f'Constructor Error: {dna_identity}'
 
         rna_identity = 'rna_component_with_sequence'
         rna_sequence = 'uuu'
-        hlc_rna_comp, hlc_rna_seq = rna_component_with_sequence(rna_identity, rna_sequence, description=test_description)
-        rna_seq = sbol3.Sequence(f'{rna_identity}_seq',
-                                    elements=rna_sequence,
-                                    encoding=sbol3.IUPAC_RNA_ENCODING)
-
-        rna_comp = sbol3.Component(rna_identity, sbol3.SBO_RNA,
-                                    sequences=[rna_seq],
-                                    description=test_description)
-        hlc_doc.add([hlc_rna_comp, hlc_rna_seq])
+        hl_rna_comp, hl_rna_seq = rna_component_with_sequence(rna_identity, rna_sequence, description=test_description)
+        rna_seq = sbol3.Sequence(f'{rna_identity}_seq', elements=rna_sequence, encoding=sbol3.IUPAC_RNA_ENCODING)
+        rna_comp = sbol3.Component(rna_identity, sbol3.SBO_RNA, sequences=[rna_seq], description=test_description)
+        hlc_doc.add([hl_rna_comp, hl_rna_seq])
         doc.add([rna_comp, rna_seq])
         assert doc_diff(doc, hlc_doc) == 0, f'Constructor Error: {rna_identity}'
 
         pro_identity = 'pro_component_with_sequence'
         pro_sequence = 'F'
-        hlc_pro_comp, hlc_pro_seq = protein_component_with_sequence(pro_identity, pro_sequence, description=test_description)
-        pro_seq = sbol3.Sequence(f'{pro_identity}_seq',
-                                        elements=pro_sequence,
-                                        encoding=sbol3.IUPAC_PROTEIN_ENCODING)
-
-        pro_comp = sbol3.Component(pro_identity, sbol3.SBO_PROTEIN,
-                                    sequences =[pro_seq],
-                                    description=test_description)
-        hlc_doc.add([hlc_pro_comp, hlc_pro_seq])
+        hl_pro_comp, hl_pro_seq = \
+            protein_component_with_sequence(pro_identity, pro_sequence, description=test_description)
+        pro_seq = sbol3.Sequence(f'{pro_identity}_seq', elements=pro_sequence, encoding=sbol3.IUPAC_PROTEIN_ENCODING)
+        pro_comp = sbol3.Component(pro_identity, sbol3.SBO_PROTEIN, sequences=[pro_seq], description=test_description)
+        hlc_doc.add([hl_pro_comp, hl_pro_seq])
         doc.add([pro_comp, pro_seq])
         assert doc_diff(doc, hlc_doc) == 0, f'Constructor Error: {pro_identity}'
 
         fun_identity = 'fun_component_with_sequence'
         hlc_fun_comp = functional_component(fun_identity, description=test_description)
-        fun_comp =  sbol3.Component(fun_identity, sbol3.SBO_FUNCTIONAL_ENTITY, description=test_description)
+        fun_comp = sbol3.Component(fun_identity, sbol3.SBO_FUNCTIONAL_ENTITY, description=test_description)
         hlc_doc.add(hlc_fun_comp)
         doc.add(fun_comp)
         assert doc_diff(doc, hlc_doc) == 0, f'Constructor Error: {fun_identity}'
 
         pro_identity = 'promoter'
         hlc_pro_comp, hlc_pro_seq = promoter(pro_identity, dna_sequence, description=test_description)
-        promoter_comp, promoter_seq = dna_component_with_sequence(pro_identity, dna_sequence, description=test_description)
-        promoter_comp.roles.append(sbol3.SO_PROMOTER)
+        p_comp, p_seq = dna_component_with_sequence(pro_identity, dna_sequence, description=test_description)
+        p_comp.roles.append(sbol3.SO_PROMOTER)
         hlc_doc.add([hlc_pro_comp, hlc_pro_seq])
-        doc.add([promoter_comp, promoter_seq])
+        doc.add([p_comp, p_seq])
         assert doc_diff(doc, hlc_doc) == 0, f'Constructor Error: {pro_identity}'
 
         rbs_identity = 'rbs'
@@ -175,9 +206,11 @@ class TestComponent(unittest.TestCase):
                 to_add = sbol3.SubComponent(to_add)
             enr_comp.features.append(to_add)
         if len(enr_comp.features) > 1:
-                for i in range(len(enr_comp.features)-1):
-                    enr_comp.constraints = [sbol3.Constraint(sbol3.SBOL_PRECEDES, enr_comp.features[i], enr_comp.features[i+1])]
-        else: pass
+            for i in range(len(enr_comp.features)-1):
+                constraint = sbol3.Constraint(sbol3.SBOL_PRECEDES, enr_comp.features[i], enr_comp.features[i+1])
+                enr_comp.constraints = [constraint]
+        else:
+            pass
         hlc_doc.add(hlc_enr_comp)
         doc.add(enr_comp)
         assert doc_diff(doc, hlc_doc) == 0, f'Constructor Error: {enr_identity}'
@@ -206,58 +239,48 @@ class TestComponent(unittest.TestCase):
         doc.add(strain_comp)
         assert doc_diff(doc, hlc_doc) == 0, f'Constructor Error: {strain_identity}'
 
-
         cds_ed_sch_identity = 'cds_ed_sch_identity'
         hlc_cds_ed_sch_comp, _ = cds(cds_ed_sch_identity, dna_sequence, description=test_description)
-        cds_ed_sch_comp, _ = dna_component_with_sequence(cds_ed_sch_identity, dna_sequence, description=test_description)
-        cds_ed_sch_comp.roles. append(sbol3.SO_CDS)
-        ed_sch_identity = 'ed_simple_chemical'
+        cds_comp, _ = dna_component_with_sequence(cds_ed_sch_identity, dna_sequence, description=test_description)
+        cds_comp.roles. append(sbol3.SO_CDS)
         ed_sch_definition = 'http://www.ebi.ac.uk/chebi/searchId.do?chebiId=CHEBI:177976'
         hlc_ed_sch = ed_simple_chemical(ed_sch_definition, description=test_description)
         ed_sch = sbol3.ExternallyDefined([sbol3.SBO_SIMPLE_CHEMICAL], ed_sch_definition, description=test_description)
         hlc_cds_ed_sch_comp.features.append(hlc_ed_sch)
-        cds_ed_sch_comp.features.append(ed_sch)
+        cds_comp.features.append(ed_sch)
         hlc_doc.add(hlc_cds_ed_sch_comp)
-        doc.add(cds_ed_sch_comp)
-        assert doc_diff(doc, hlc_doc) == 0, f'Constructor Error: {ed_sch_identity}'
+        doc.add(cds_comp)
+        assert doc_diff(doc, hlc_doc) == 0, f'Constructor Error: {ed_sch_definition}'
 
         cds_ed_pro_identity = 'cds_ed_pro_identity'
         hlc_cds_ed_pro_comp, _ = cds(cds_ed_pro_identity, dna_sequence, description=test_description)
-        cds_ed_pro_comp, _ = dna_component_with_sequence(cds_ed_pro_identity, dna_sequence, description=test_description)
-        cds_ed_pro_comp.roles. append(sbol3.SO_CDS)
-        ed_pro_identity = 'ed_protein'
+        cds_comp, _ = dna_component_with_sequence(cds_ed_pro_identity, dna_sequence, description=test_description)
+        cds_comp.roles. append(sbol3.SO_CDS)
         ed_pro_definition = 'https://www.uniprot.org/uniprot/P12747'
-        hlc_ed_pro = ed_protein(ed_pro_identity, description=test_description)
-        ed_pro = sbol3.ExternallyDefined([sbol3.SBO_PROTEIN], ed_pro_identity, description=test_description)
+        hlc_ed_pro = ed_protein(ed_pro_definition, description=test_description)
+        ed_pro = sbol3.ExternallyDefined([sbol3.SBO_PROTEIN], ed_pro_definition, description=test_description)
         hlc_cds_ed_pro_comp.features.append(hlc_ed_pro)
-        cds_ed_pro_comp.features.append(ed_pro)
+        cds_comp.features.append(ed_pro)
         hlc_doc.add(hlc_cds_ed_pro_comp)
-        doc.add(cds_ed_pro_comp)
-        assert doc_diff(doc, hlc_doc) == 0, f'Constructor Error: {ed_pro_identity}'
+        doc.add(cds_comp)
+        assert doc_diff(doc, hlc_doc) == 0, f'Constructor Error: {ed_pro_definition}'
 
-        peptone = sbol3.Component('Bacto_Peptone', 
-                    tyto.SBO.functional_entity,
-                    name = 'Bacto_Peptone',
-                    derived_from = ['https://www.thermofisher.com/order/catalog/product/211820'])
-
-        nacl = sbol3.Component('NaCl', 
-                    tyto.SBO.functional_entity,
-                    name = 'NaCl',
-                    derived_from = ['https://www.sigmaaldrich.com/AU/en/product/sigald/s9888'])
-
-        yeast_extract = sbol3.Component('Yeast_Extract', 
-                    tyto.SBO.functional_entity,
-                    name = 'Yeast_Extract',
-                    derived_from = ['https://www.thermofisher.com/order/catalog/product/212720'])
+        peptone = sbol3.Component('Bacto_Peptone', tyto.SBO.functional_entity, name='Bacto_Peptone',
+                                  derived_from=['https://www.thermofisher.com/order/catalog/product/211820'])
+        nacl = sbol3.Component('NaCl', tyto.SBO.functional_entity, name='NaCl',
+                               derived_from=['https://www.sigmaaldrich.com/AU/en/product/sigald/s9888'])
+        yeast_extract = sbol3.Component('Yeast_Extract', tyto.SBO.functional_entity, name='Yeast_Extract',
+                                        derived_from=['https://www.thermofisher.com/order/catalog/product/212720'])
 
         recipe = {
-            peptone:[10,tyto.OM.gram],
-            nacl:[5,tyto.OM.gram],
-            yeast_extract:[5,tyto.OM.gram]}
+            peptone: [10, tyto.OM.gram],
+            nacl: [5, tyto.OM.gram],
+            yeast_extract: [5, tyto.OM.gram]
+        }
 
         media_identity = 'media'
-        hlc_media_comp = media(media_identity, recipe, description = test_description)
-        media_comp = functional_component(media_identity, description = test_description)
+        hlc_media_comp = media(media_identity, recipe, description=test_description)
+        media_comp = functional_component(media_identity, description=test_description)
         media_comp.roles.append(tyto.NCIT.Media)
         if recipe:
             for key, value in recipe.items():
@@ -268,6 +291,267 @@ class TestComponent(unittest.TestCase):
         hlc_doc.add(hlc_media_comp)
         doc.add(media_comp)
         assert doc_diff(doc, hlc_doc) == 0, f'Constructor Error: {media_identity}'
+
+    def test_sep055(self):
+        """Test construction of components and features using helper functions: for each, build manually and compare."""
+        hlc_doc = sbol3.Document()
+        doc = sbol3.Document()
+        sbol3.set_namespace('http://sbolstandard.org/testfiles')
+
+        restriction_enzyme_name = 'BsaI'
+        restriction_enzyme_definition = 'http://rebase.neb.com/rebase/enz/BsaI.html' # TODO: replace with getting the URI from Enzyme when REBASE identifiers become available in biopython 1.80
+        bsai = ed_restriction_enzyme(restriction_enzyme_name)
+        assert bsai.definition == restriction_enzyme_definition, 'Constructor Error: ed_restriction_enzyme'
+
+        backbone_identity = 'backbone'
+        backbone_sequence = 'aaGGGGttttCCCCaa'
+        dropout_location = [3,15]
+        fusion_site_length = 4
+        test_description = 'test'
+
+        hl_circular_backbone_component, hl_circular_backbone_seq = backbone(identity=backbone_identity, sequence=backbone_sequence, dropout_location=dropout_location, fusion_site_length=fusion_site_length, linear=False, description=test_description)
+        hlc_doc.add([hl_circular_backbone_component, hl_circular_backbone_seq])
+
+        circular_backbone_seq = sbol3.Sequence(f'{backbone_identity}_seq', elements=backbone_sequence, encoding=sbol3.IUPAC_DNA_ENCODING)
+        circular_backbone_component =  sbol3.Component(backbone_identity, types=[sbol3.SBO_DNA, sbol3.SO_CIRCULAR], roles=[sbol3.SO_DOUBLE_STRANDED, tyto.SO.plasmid_vector], sequences=[circular_backbone_seq], description=test_description)
+
+        dropout_location_comp = sbol3.Range(sequence=circular_backbone_seq, start=dropout_location[0], end=dropout_location[1])
+        insertion_site_location1 = sbol3.Range(sequence=circular_backbone_seq, start=dropout_location[0], end=dropout_location[0]+fusion_site_length, order=1)
+        insertion_site_location2 = sbol3.Range(sequence=circular_backbone_seq, start=dropout_location[1]-fusion_site_length, end=dropout_location[1], order=3)
+        open_backbone_location1 = sbol3.Range(sequence=circular_backbone_seq, start=1, end=dropout_location[0]+fusion_site_length -1, order=2)
+        open_backbone_location2 = sbol3.Range(sequence=circular_backbone_seq, start=dropout_location[1]-fusion_site_length, end=len(backbone_sequence), order=1)
+        dropout_sequence_feature = sbol3.SequenceFeature(locations=[dropout_location_comp], roles=[tyto.SO.deletion])
+        insertion_sites_feature = sbol3.SequenceFeature(locations=[insertion_site_location1, insertion_site_location2], roles=[tyto.SO.insertion_site])
+        open_backbone_feature = sbol3.SequenceFeature(locations=[open_backbone_location1, open_backbone_location2])
+
+        circular_backbone_component.features.append(dropout_sequence_feature)
+        circular_backbone_component.features.append(insertion_sites_feature)
+        circular_backbone_component.features.append(open_backbone_feature)
+        backbone_dropout_meets = sbol3.Constraint(restriction='http://sbols.org/v3#meets', subject=dropout_sequence_feature, object=open_backbone_feature)
+        circular_backbone_component.constraints.append(backbone_dropout_meets)
+        doc.add([circular_backbone_component, circular_backbone_seq])
+        assert doc_diff(doc, hlc_doc) == 0, f'Constructor Error: Circular {backbone_identity}'
+
+        hlc_doc = sbol3.Document()
+        doc = sbol3.Document()
+        sbol3.set_namespace('http://sbolstandard.org/testfiles')
+
+        hl_linear_backbone_component, hl_linear_backbone_seq = backbone(identity=backbone_identity, sequence=backbone_sequence, dropout_location=dropout_location, fusion_site_length=fusion_site_length, linear=True, description=test_description)
+        hlc_doc.add([hl_linear_backbone_component, hl_linear_backbone_seq])
+
+        linear_backbone_seq = sbol3.Sequence(f'{backbone_identity}_seq', elements=backbone_sequence, encoding=sbol3.IUPAC_DNA_ENCODING)
+        linear_backbone_component =  sbol3.Component(backbone_identity, types=[sbol3.SBO_DNA, sbol3.SO_LINEAR], roles=[sbol3.SO_DOUBLE_STRANDED, sbol3.SO_ENGINEERED_REGION], sequences=[linear_backbone_seq], description=test_description)
+
+        dropout_location_comp = sbol3.Range(sequence=linear_backbone_seq, start=dropout_location[0], end=dropout_location[1]) 
+        insertion_site_location1 = sbol3.Range(sequence=linear_backbone_seq, start=dropout_location[0], end=dropout_location[0]+fusion_site_length, order=1)
+        insertion_site_location2 = sbol3.Range(sequence=linear_backbone_seq, start=dropout_location[1]-fusion_site_length, end=dropout_location[1], order=3)
+        open_backbone_location1 = sbol3.Range(sequence=linear_backbone_seq, start=1, end=dropout_location[0]+fusion_site_length-1, order=1)
+        open_backbone_location2 = sbol3.Range(sequence=linear_backbone_seq, start=dropout_location[1]-fusion_site_length, end=len(backbone_sequence), order=3)
+        dropout_sequence_feature = sbol3.SequenceFeature(locations=[dropout_location_comp], roles=[tyto.SO.deletion])
+        insertion_sites_feature = sbol3.SequenceFeature(locations=[insertion_site_location1, insertion_site_location2], roles=[tyto.SO.insertion_site])
+        open_backbone_feature = sbol3.SequenceFeature(locations=[open_backbone_location1, open_backbone_location2])
+
+        linear_backbone_component.features.append(dropout_sequence_feature)
+        linear_backbone_component.features.append(insertion_sites_feature)
+        linear_backbone_component.features.append(open_backbone_feature)
+        backbone_dropout_meets = sbol3.Constraint(restriction='http://sbols.org/v3#meets', subject=dropout_sequence_feature, object=open_backbone_feature)
+        linear_backbone_component.constraints.append(backbone_dropout_meets)
+        doc.add([linear_backbone_component, linear_backbone_seq])
+        assert doc_diff(doc, hlc_doc) == 0, f'Constructor Error: Linear {backbone_identity}'
+
+
+        hlc_doc = sbol3.Document()
+        doc = sbol3.Document()
+        sbol3.set_namespace('http://sbolstandard.org/testfiles')
+
+        test_promoter, test_promoter_seq = promoter('pTest', 'aaTTaa')
+        dropout_location = [4,14]
+        fusion_site_length = 4
+        test_backbone, test_backbone_seq = backbone('test_bb','cccGGGGTTGGGGccc', dropout_location, fusion_site_length, linear=False)
+        identity_pib = 'part_in_backbone'
+        hlc_doc.add([test_promoter, test_promoter_seq, test_backbone, test_backbone_seq])
+        doc.add([test_promoter, test_promoter_seq, test_backbone, test_backbone_seq])
+
+        hl_part_in_backbone_circular, hl_part_in_backbone_circular_sequence = part_in_backbone(identity_pib, part=test_promoter, backbone=test_backbone)
+        hlc_doc.add([hl_part_in_backbone_circular, hl_part_in_backbone_circular_sequence])
+
+        backbone_sequence = test_backbone.sequences[0].lookup().elements
+        open_backbone_sequence_from_location1=backbone_sequence[test_backbone.features[-1].locations[0].start -1 : test_backbone.features[-1].locations[0].end]
+        open_backbone_sequence_from_location2=backbone_sequence[test_backbone.features[-1].locations[1].start -1 : test_backbone.features[-1].locations[1].end]
+        
+        part_sequence = test_promoter.sequences[0].lookup().elements
+        part_in_backbone_seq_str = part_sequence + open_backbone_sequence_from_location2 + open_backbone_sequence_from_location1
+        part_in_backbone_component, part_in_backbone_seq = dna_component_with_sequence(identity_pib, part_in_backbone_seq_str)
+        part_in_backbone_component.roles.append(tyto.SO.plasmid_vector) #review
+        part_subcomponent_location = sbol3.Range(sequence=part_in_backbone_seq, start=1, end=len(part_sequence))
+        backbone_subcomponent_location = sbol3.Range(sequence=part_in_backbone_seq, start=len(part_sequence)+1, end=len(part_in_backbone_seq_str))
+        source_location = sbol3.Range(sequence=backbone_sequence, start=test_backbone.features[-1].locations[0].start, end=test_backbone.features[-1].locations[0].end) # review
+        part_subcomponent = sbol3.SubComponent(test_promoter, roles=[tyto.SO.engineered_insert], locations=[part_subcomponent_location], role_integration='http://sbols.org/v3#mergeRoles')
+        backbone_subcomponent = sbol3.SubComponent(test_backbone, locations=[backbone_subcomponent_location], source_locations=[source_location])  #[backbone.features[2].locations[0]]) #generalize source location
+        part_in_backbone_component.features.append(part_subcomponent)
+        part_in_backbone_component.features.append(backbone_subcomponent)
+        part_in_backbone_component_circular = part_in_backbone_component
+        part_in_backbone_component_circular.types.append(sbol3.SO_CIRCULAR)
+        doc.add([part_in_backbone_component_circular, part_in_backbone_seq])
+        assert doc_diff(doc, hlc_doc) == 0, f'Constructor Error: Circular {identity_pib}'
+
+        hlc_doc = sbol3.Document()
+        doc = sbol3.Document()
+        sbol3.set_namespace('http://sbolstandard.org/testfiles')
+
+        hlc_doc.add([test_promoter, test_promoter_seq, test_backbone, test_backbone_seq])
+        doc.add([test_promoter, test_promoter_seq, test_backbone, test_backbone_seq])
+
+        hl_part_in_backbone_linear, hl_part_in_backbone_linear_sequence = part_in_backbone(identity_pib, part=test_promoter, backbone=test_backbone, linear=True)
+        hlc_doc.add([hl_part_in_backbone_linear, hl_part_in_backbone_linear_sequence])
+
+        part_in_backbone_seq_str = open_backbone_sequence_from_location1 + part_sequence + open_backbone_sequence_from_location2
+        part_in_backbone_component, part_in_backbone_seq = dna_component_with_sequence(identity_pib, part_in_backbone_seq_str)
+        part_in_backbone_component.roles.append(tyto.SO.plasmid_vector) #review
+        part_subcomponent_location = sbol3.Range(sequence=part_in_backbone_seq, start=1, end=len(part_sequence))
+        backbone_subcomponent_location = sbol3.Range(sequence=part_in_backbone_seq, start=len(part_sequence)+1, end=len(part_in_backbone_seq_str))
+        source_location = sbol3.Range(sequence=backbone_sequence, start=test_backbone.features[-1].locations[0].start, end=test_backbone.features[-1].locations[0].end) # review
+        part_subcomponent = sbol3.SubComponent(test_promoter, roles=[tyto.SO.engineered_insert], locations=[part_subcomponent_location], role_integration='http://sbols.org/v3#mergeRoles')
+        backbone_subcomponent = sbol3.SubComponent(test_backbone, locations=[backbone_subcomponent_location], source_locations=[source_location])  #[backbone.features[2].locations[0]]) #generalize source location
+        part_in_backbone_component.features.append(part_subcomponent)
+        part_in_backbone_component.features.append(backbone_subcomponent)
+        part_in_backbone_component_linear = part_in_backbone_component
+        part_in_backbone_component_linear.types.append(sbol3.SO_LINEAR)
+        doc.add([part_in_backbone_component_linear, part_in_backbone_seq])
+        assert doc_diff(doc, hlc_doc) == 0, f'Constructor Error: Linear {identity_pib}'
+
+        hlc_doc = sbol3.Document()
+        doc = sbol3.Document()
+        sbol3.set_namespace('http://sbolstandard.org/testfiles')
+
+        test_promoter, test_promoter_seq = promoter('pTest', 'aaTTaa')
+        part_location = [4,14]
+        fusion_site_length = 4
+        test_backbone, test_backbone_seq = backbone('test_bb','cccGGGGTTGGGGccc', dropout_location, fusion_site_length, linear=False)
+        identity_pib = 'part_in_backbone2'
+        sequence_str_pib = 'cccGGGGTTGGGGccc'
+        part_role = sbol3.SO_PROMOTER
+
+        hl_part_in_backbone_circular, hl_part_in_backbone_circular_sequence = part_in_backbone2(identity=identity_pib,  sequence=sequence_str_pib, 
+            part_location=part_location, part_roles=[part_role], fusion_site_length=fusion_site_length, linear=False)
+        hlc_doc.add([hl_part_in_backbone_circular, hl_part_in_backbone_circular_sequence])
+
+        part_in_backbone_component, part_in_backbone_seq = dna_component_with_sequence(identity=identity_pib, sequence=sequence_str_pib)
+        part_in_backbone_component.roles.append(sbol3.SO_DOUBLE_STRANDED)
+        part_in_backbone_component.roles.append(sbol3.SO_PROMOTER)
+        
+        part_location_comp = sbol3.Range(sequence=part_in_backbone_seq, start=part_location[0], end=part_location[1], order=2)
+        insertion_site_location1 = sbol3.Range(sequence=part_in_backbone_seq, start=part_location[0], end=part_location[0]+fusion_site_length, order=1)
+        insertion_site_location2 = sbol3.Range(sequence=part_in_backbone_seq, start=part_location[1]-fusion_site_length, end=part_location[1], order=3)
+        part_sequence_feature = sbol3.SequenceFeature(locations=[part_location_comp], roles=[part_role])
+        part_sequence_feature.roles.append(tyto.SO.engineered_insert)
+        insertion_sites_feature = sbol3.SequenceFeature(locations=[insertion_site_location1, insertion_site_location2], roles=[tyto.SO.insertion_site])
+        
+        #circular
+        part_in_backbone_component.types.append(sbol3.SO_CIRCULAR)
+        part_in_backbone_component.roles.append(tyto.SO.plasmid_vector)
+        open_backbone_location1 = sbol3.Range(sequence=part_in_backbone_seq, start=1, end=part_location[0]+fusion_site_length-1, order=2)
+        open_backbone_location2 = sbol3.Range(sequence=part_in_backbone_seq, start=part_location[1]-fusion_site_length, end=len(sequence), order=1)
+        open_backbone_feature = sbol3.SequenceFeature(locations=[open_backbone_location1, open_backbone_location2])
+        
+        part_in_backbone_component.features.append(part_sequence_feature)
+        part_in_backbone_component.features.append(insertion_sites_feature)
+        part_in_backbone_component.features.append(open_backbone_feature)
+        backbone_part_meets = sbol3.Constraint(restriction='http://sbols.org/v3#meets', subject=part_sequence_feature, object=open_backbone_feature)
+        part_in_backbone_component.constraints.append(backbone_part_meets)
+        doc.add([part_in_backbone_component, part_in_backbone_seq])
+        assert doc_diff(doc, hlc_doc) == 0, f'Constructor Error: Circular {identity_pib}'
+
+        hlc_doc = sbol3.Document()
+        doc = sbol3.Document()
+        sbol3.set_namespace('http://sbolstandard.org/testfiles')
+
+        hl_part_in_backbone_linear, hl_part_in_backbone_linear_sequence = part_in_backbone2(identity=identity_pib,  sequence=sequence_str_pib, 
+            part_location=part_location, part_roles=[part_role], fusion_site_length=fusion_site_length, linear=True)
+        hlc_doc.add([hl_part_in_backbone_linear, hl_part_in_backbone_linear_sequence])
+
+        part_in_backbone_component, part_in_backbone_seq = dna_component_with_sequence(identity=identity_pib, sequence=sequence_str_pib)
+        part_in_backbone_component.roles.append(sbol3.SO_DOUBLE_STRANDED)
+        part_in_backbone_component.roles.append(sbol3.SO_PROMOTER)
+        
+        part_location_comp = sbol3.Range(sequence=part_in_backbone_seq, start=part_location[0], end=part_location[1], order=2)
+        insertion_site_location1 = sbol3.Range(sequence=part_in_backbone_seq, start=part_location[0], end=part_location[0]+fusion_site_length, order=1)
+        insertion_site_location2 = sbol3.Range(sequence=part_in_backbone_seq, start=part_location[1]-fusion_site_length, end=part_location[1], order=3)
+        part_sequence_feature = sbol3.SequenceFeature(locations=[part_location_comp], roles=[part_role])
+        part_sequence_feature.roles.append(tyto.SO.engineered_insert)
+        insertion_sites_feature = sbol3.SequenceFeature(locations=[insertion_site_location1, insertion_site_location2], roles=[tyto.SO.insertion_site])
+        
+        #linear
+        part_in_backbone_component.types.append(sbol3.SO_LINEAR)
+        part_in_backbone_component.roles.append(sbol3.SO_ENGINEERED_REGION)
+        open_backbone_location1 = sbol3.Range(sequence=part_in_backbone_seq, start=1, end=part_location[0]+fusion_site_length-1, order=1)
+        open_backbone_location2 = sbol3.Range(sequence=part_in_backbone_seq, start=part_location[1]-fusion_site_length, end=len(sequence), order=3)
+        open_backbone_feature = sbol3.SequenceFeature(locations=[open_backbone_location1, open_backbone_location2])
+
+        part_in_backbone_component.features.append(part_sequence_feature)
+        part_in_backbone_component.features.append(insertion_sites_feature)
+        part_in_backbone_component.features.append(open_backbone_feature)
+        backbone_part_meets = sbol3.Constraint(restriction='http://sbols.org/v3#meets', subject=part_sequence_feature, object=open_backbone_feature)
+        part_in_backbone_component.constraints.append(backbone_part_meets)
+        doc.add([part_in_backbone_component, part_in_backbone_seq])
+        assert doc_diff(doc, hlc_doc) == 0, f'Constructor Error: Linear {identity_pib}'
+
+        hlc_doc = sbol3.Document()
+        doc = sbol3.Document()
+        sbol3.set_namespace('http://sbolstandard.org/testfiles')
+
+        bsai = ed_restriction_enzyme('BsaI')
+        #added by Assembly
+
+        #lvl1 acceptor
+        lvl1_pOdd_acceptor_seq = 'gctcgagtcccgtcaagtcagcgtaatgctctgccagtgttacaaccaattaaccaattctgattagaaaaactcatcgagcatcaaatgaaactgcaatttattcatatcaggattatcaataccatatttttgaaaaagccgtttctgtaatgaaggagaaaactcaccgaggcagttccataggatggcaagatcctggtatcggtctgcgattccgactcgtccaacatcaatacaacctattaatttcccctcgtcaaaaataaggttatcaagtgagaaatcaccatgagtgacgactgaatccggtgagaatggcaaaagcttatgcatttctttccagacttgttcaacaggccagccattacgctcgtcatcaaaatcactcgcatcaaccaaaccgttattcattcgtgattgcgcctgagcgagacgaaatacgcgatcgctgttaaaaggacaattacaaacaggaatcgaatgcaaccggcgcaggaacactgccagcgcatcaacaatattttcacctgaatcaggatattcttctaatacctggaatgctgttttcccggggatcgcagtggtgagtaaccatgcatcatcaggagtacggataaaatgcttgatggtcggaagaggcataaattccgtcagccagtttagtctgaccatctcatctgtaacatcattggcaacgctacctttgccatgtttcagaaacaactctggcgcatcgggcttcccatacaatcgatagattgtcgcacctgattgcccgacattatcgcgagcccatttatacccatataaatcagcatccatgttggaatttaatcgcggcctggagcaagacgtttcccgttgaatatggctcataacaccccttgtattactgtttatgtaagcagacagttttattgttcatgatgatatatttttatcttgtgcaatgtaacatcagagattttgagacacaacgtggctttgttgaataaatcgaacttttgctgagttgaaggatcagctcgagtgccacctgacgtctaagaaaccattattatcatgacattaacctataaaaataggcgtatcacgaggcagaatttcagataaaaaaaatccttagctttcgctaaggatgatttctggaattcgctcttcaatgggagtgagacccaatacgcaaaccgcctctccccgcgcgttggccgattcattaatgcagctggcacgacaggtttcccgactggaaagcgggcagtgagcgcaacgcaattaatgtgagttagctcactcattaggcaccccaggctttacactttatgcttccggctcgtatgttgtgtggaattgtgagcggataacaatttcacacatactagagaaagaggagaaatactagatggcttcctccgaagacgttatcaaagagttcatgcgtttcaaagttcgtatggaaggttccgttaacggtcacgagttcgaaatcgaaggtgaaggtgaaggtcgtccgtacgaaggtacccagaccgctaaactgaaagttaccaaaggtggtccgctgccgttcgcttgggacatcctgtccccgcagttccagtacggttccaaagcttacgttaaacacccggctgacatcccggactacctgaaactgtccttcccggaaggtttcaaatgggaacgtgttatgaacttcgaagacggtggtgttgttaccgttacccaggactcctccctgcaagacggtgagttcatctacaaagttaaactgcgtggtaccaacttcccgtccgacggtccggttatgcagaaaaaaaccatgggttgggaagcttccaccgaacgtatgtacccggaagacggtgctctgaaaggtgaaatcaaaatgcgtctgaaactgaaagacggtggtcactacgacgctgaagttaaaaccacctacatggctaaaaaaccggttcagctgccgggtgcttacaaaaccgacatcaaactggacatcacctcccacaacgaagactacaccatcgttgaacagtacgaacgtgctgaaggtcgtcactccaccggtgcttaataacgctgatagtgctagtgtagatcgctactagagccaggcatcaaataaaacgaaaggctcagtcgaaagactgggcctttcgttttatctgttgtttgtcggtgaacgctctctactagagtcacactggctcaccttcgggtgggcctttctgcgtttataggtctcaGCTTgcatgaagagcctgcagtccggcaaaaaagggcaaggtgtcaccaccctgccctttttctttaaaaccgaaaagattacttcgcgttatgcaggcttcctcgctcactgactcgctgcgctcggtcgttcggctgcggcgagcggtatcagctcactcaaaggcggtaatacggttatccacagaatcaggggataacgcaggaaagaacatgtgagcaaaaggccagcaaaaggccaggaaccgtaaaaaggccgcgttgctggcgtttttccacaggctccgcccccctgacgagcatcacaaaaatcgacgctcaagtcagaggtggcgaaacccgacaggactataaagataccaggcgtttccccctggaagctccctcgtgcgctctcctgttccgaccctgccgcttaccggatacctgtccgcctttctcccttcgggaagcgtggcgctttctcatagctcacgctgtaggtatctcagttcggtgtaggtcgttcgctccaagctgggctgtgtgcacgaaccccccgttcagcccgaccgctgcgccttatccggtaactatcgtcttgagtccaacccggtaagacacgacttatcgccactggcagcagccactggtaacaggattagcagagcgaggtatgtaggcggtgctacagagttcttgaagtggtggcctaactacggctacactagaagaacagtatttggtatctgcgctctgctgaagccagttaccttcggaaaaagagttggtagctcttgatccggcaaacaaaccaccgctggtagcggtggtttttttgtttgcaagcagcagattacgcgcagaaaaaaaggatctcaagaagatcctttgatcttttctacggggtctgacgctcagtggaacgaaaactcacgttaagggattttggtcatgagattatcaaaaaggatcttcacctagatccttttaaattaaaaatgaagttttaaatcaatctaaagtatatatgagtaaacttggtctgaca'
+        podd_backbone, podd_backbone_seq = backbone('pOdd_bb', lvl1_pOdd_acceptor_seq, [1169,2259], 4, False, name='pOdd_bb')
+        doc.add([podd_backbone,podd_backbone_seq])
+
+        #parts in backbone
+        j23100_b0034_ac_seq_str = 'ttcattgccatacgaaattccggatgagcattcatcaggcgggcaagaatgtgaataaaggccggataaaacttgtgcttatttttctttacggtctttaaaaaggccgtaatatccagctgaacggtctggttataggtacattgagcaactgactgaaatgcctcaaaatgttctttacgatgccattgggatatatcaacggtggtatatccagtgatttttttctccattttagcttccttagctcctgaaaatctcgataactcaaaaaatacgcccggtagtgatcttatttcattatggtgaaagttggaacctcttacgtgcccgatcaactcgagtgccacctgacgtctaagaaaccattattatcatgacattaacctataaaaataggcgtatcacgaggcagaatttcagataaaaaaaatccttagctttcgctaaggatgatttctggaattcggtctcgggagtctTTGACGGCTAGCTCAGTCCTAGGTACAGTGCTAGCCTAGAGAAAGAGGAGAAATACTAGaatgCGAGaccctgcagtccggcaaaaaagggcaaggtgtcaccaccctgccctttttctttaaaaccgaaaagattacttcgcgttatgcaggcttcctcgctcactgactcgctgcgctcggtcgttcggctgcggcgagcggtatcagctcactcaaaggcggtaatacggttatccacagaatcaggggataacgcaggaaagaacatgtgagcaaaaggccagcaaaaggccaggaaccgtaaaaaggccgcgttgctggcgtttttccacaggctccgcccccctgacgagcatcacaaaaatcgacgctcaagtcagaggtggcgaaacccgacaggactataaagataccaggcgtttccccctggaagctccctcgtgcgctctcctgttccgaccctgccgcttaccggatacctgtccgcctttctcccttcgggaagcgtggcgctttctcatagctcacgctgtaggtatctcagttcggtgtaggtcgttcgctccaagctgggctgtgtgcacgaaccccccgttcagcccgaccgctgcgccttatccggtaactatcgtcttgagtccaacccggtaagacacgacttatcgccactggcagcagccactggtaacaggattagcagagcgaggtatgtaggcggtgctacagagttcttgaagtggtggcctaactacggctacactagaagaacagtatttggtatctgcgctctgctgaagccagttaccttcggaaaaagagttggtagctcttgatccggcaaacaaaccaccgctggtagcggtggtttttttgtttgcaagcagcagattacgcgcagaaaaaaaggatctcaagaagatcctttgatcttttctacggggtctgacgctcagtggaacgaaaactcacgttaagggattttggtcatgagattatcaaaaaggatcttcacctagatccttttaaattaaaaatgaagttttaaatcaatctaaagtatatatgagtaaacttggtctgacagctcgaggcttggattctcaccaataaaaaacgcccggcggcaaccgagcgttctgaacaaatccagatggagttctgaggtcattactggatctatcaacaggagtccaagcgagctcgatatcaaattacgccccgccctgccactcatcgcagtactgttgtaattcattaagcattctgccgacatggaagccatcacaaacggcatgatgaacctgaatcgccagcggcatcagcaccttgtcgccttgcgtataatatttgcccatggtgaaaacgggggcgaagaagttgtccatattggccacgtttaaatcaaaactggtgaaactcacccagggattggctgagacgaaaaacatattctcaataaaccctttagggaaataggccaggttttcaccgtaacacgccacatcttgcgaatatatgtgtagaaactgccggaaatcgtcgtggtattcactccagagcgatgaaaacgtttcagtttgctcatggaaaacggtgtaacaagggtgaacactatcccatatcaccagctcaccgtct'
+        sfgfp_ce_seq_str = 'ccacctgacgtctaagaaaccattattatcatgacattaacctataaaaataggcgtatcacgaggcagaatttcagataaaaaaaatccttagctttcgctaaggatgatttctggaattcggtctcgaatgcgtaaaggcgaggaactgttcactggtgtcgtccctattctggtggaactggatggtgatgtcaacggtcataagttttccgtgcgtggcgagggtgaaggtgacgcaactaatggtaaactgacgctgaagttcatctgtactactggtaaactgccggtaccttggccgactctggtaacgacgctgacttatggtgttcagtgctttgctcgttatccggaccatatgaagcagcatgacttcttcaagtccgccatgccggaaggctatgtgcaggaacgcacgatttcctttaaggatgacggcacgtacaaaacgcgtgcggaagtgaaatttgaaggcgataccctggtaaaccgcattgagctgaaaggcattgactttaaagaagacggcaatatcctgggccataagctggaatacaattttaacagccacaatgtttacatcaccgccgataaacaaaaaaatggcattaaagcgaattttaaaattcgccacaacgtggaggatggcagcgtgcagctggctgatcactaccagcaaaacactccaatcggtgatggtcctgttctgctgccagacaatcactatctgagcacgcaaagcgttctgtctaaagatccgaacgagaaacgcgatcatatggttctgctggagttcgtaaccgcagcgggcatcacgcatggtatggatgaactgtacaaatgatgagcttCGAGaccctgcagtccggcaaaaaagggcaaggtgtcaccaccctgccctttttctttaaaaccgaaaagattacttcgcgttatgcaggcttcctcgctcactgactcgctgcgctcggtcgttcggctgcggcgagcggtatcagctcactcaaaggcggtaatacggttatccacagaatcaggggataacgcaggaaagaacatgtgagcaaaaggccagcaaaaggccaggaaccgtaaaaaggccgcgttgctggcgtttttccacaggctccgcccccctgacgagcatcacaaaaatcgacgctcaagtcagaggtggcgaaacccgacaggactataaagataccaggcgtttccccctggaagctccctcgtgcgctctcctgttccgaccctgccgcttaccggatacctgtccgcctttctcccttcgggaagcgtggcgctttctcatagctcacgctgtaggtatctcagttcggtgtaggtcgttcgctccaagctgggctgtgtgcacgaaccccccgttcagcccgaccgctgcgccttatccggtaactatcgtcttgagtccaacccggtaagacacgacttatcgccactggcagcagccactggtaacaggattagcagagcgaggtatgtaggcggtgctacagagttcttgaagtggtggcctaactacggctacactagaagaacagtatttggtatctgcgctctgctgaagccagttaccttcggaaaaagagttggtagctcttgatccggcaaacaaaccaccgctggtagcggtggtttttttgtttgcaagcagcagattacgcgcagaaaaaaaggatctcaagaagatcctttgatcttttctacggggtctgacgctcagtggaacgaaaactcacgttaagggattttggtcatgagattatcaaaaaggatcttcacctagatccttttaaattaaaaatgaagttttaaatcaatctaaagtatatatgagtaaacttggtctgacagctcgaggcttggattctcaccaataaaaaacgcccggcggcaaccgagcgttctgaacaaatccagatggagttctgaggtcattactggatctatcaacaggagtccaagcgagctcgatatcaaattacgccccgccctgccactcatcgcagtactgttgtaattcattaagcattctgccgacatggaagccatcacaaacggcatgatgaacctgaatcgccagcggcatcagcaccttgtcgccttgcgtataatatttgcccatggtgaaaacgggggcgaagaagttgtccatattggccacgtttaaatcaaaactggtgaaactcacccagggattggctgagacgaaaaacatattctcaataaaccctttagggaaataggccaggttttcaccgtaacacgccacatcttgcgaatatatgtgtagaaactgccggaaatcgtcgtggtattcactccagagcgatgaaaacgtttcagtttgctcatggaaaacggtgtaacaagggtgaacactatcccatatcaccagctcaccgtctttcattgccatacgaaattccggatgagcattcatcaggcgggcaagaatgtgaataaaggccggataaaacttgtgcttatttttctttacggtctttaaaaaggccgtaatatccagctgaacggtctggttataggtacattgagcaactgactgaaatgcctcaaaatgttctttacgatgccattgggatatatcaacggtggtatatccagtgatttttttctccattttagcttccttagctcctgaaaatctcgataactcaaaaaatacgcccggtagtgatcttatttcattatggtgaaagttggaacctcttacgtgcccgatcaactcgagtg'
+        b0015_ef_seq_str = 'aagggtgaacactatcccatatcaccagctcaccgtctttcattgccatacgaaattccggatgagcattcatcaggcgggcaagaatgtgaataaaggccggataaaacttgtgcttatttttctttacggtctttaaaaaggccgtaatatccagctgaacggtctggttataggtacattgagcaactgactgaaatgcctcaaaatgttctttacgatgccattgggatatatcaacggtggtatatccagtgatttttttctccattttagcttccttagctcctgaaaatctcgataactcaaaaaatacgcccggtagtgatcttatttcattatggtgaaagttggaacctcttacgtgcccgatcaactcgagtgccacctgacgtctaagaaaccattattatcatgacattaacctataaaaataggcgtatcacgaggcagaatttcagataaaaaaaatccttagctttcgctaaggatgatttctggaattcggtctcggcttccaggcatcaaataaaacgaaaggctcagtcgaaagactgggcctttcgttttatctgttgtttgtcggtgaacgctctctactagagtcacactggctcaccttcgggtgggcctttctgcgtttatacgctCGAGaccctgcagtccggcaaaaaagggcaaggtgtcaccaccctgccctttttctttaaaaccgaaaagattacttcgcgttatgcaggcttcctcgctcactgactcgctgcgctcggtcgttcggctgcggcgagcggtatcagctcactcaaaggcggtaatacggttatccacagaatcaggggataacgcaggaaagaacatgtgagcaaaaggccagcaaaaggccaggaaccgtaaaaaggccgcgttgctggcgtttttccacaggctccgcccccctgacgagcatcacaaaaatcgacgctcaagtcagaggtggcgaaacccgacaggactataaagataccaggcgtttccccctggaagctccctcgtgcgctctcctgttccgaccctgccgcttaccggatacctgtccgcctttctcccttcgggaagcgtggcgctttctcatagctcacgctgtaggtatctcagttcggtgtaggtcgttcgctccaagctgggctgtgtgcacgaaccccccgttcagcccgaccgctgcgccttatccggtaactatcgtcttgagtccaacccggtaagacacgacttatcgccactggcagcagccactggtaacaggattagcagagcgaggtatgtaggcggtgctacagagttcttgaagtggtggcctaactacggctacactagaagaacagtatttggtatctgcgctctgctgaagccagttaccttcggaaaaagagttggtagctcttgatccggcaaacaaaccaccgctggtagcggtggtttttttgtttgcaagcagcagattacgcgcagaaaaaaaggatctcaagaagatcctttgatcttttctacggggtctgacgctcagtggaacgaaaactcacgttaagggattttggtcatgagattatcaaaaaggatcttcacctagatccttttaaattaaaaatgaagttttaaatcaatctaaagtatatatgagtaaacttggtctgacagctcgaggcttggattctcaccaataaaaaacgcccggcggcaaccgagcgttctgaacaaatccagatggagttctgaggtcattactggatctatcaacaggagtccaagcgagctcgatatcaaattacgccccgccctgccactcatcgcagtactgttgtaattcattaagcattctgccgacatggaagccatcacaaacggcatgatgaacctgaatcgccagcggcatcagcaccttgtcgccttgcgtataatatttgcccatggtgaaaacgggggcgaagaagttgtccatattggccacgtttaaatcaaaactggtgaaactcacccagggattggctgagacgaaaaacatattctcaataaaccctttagggaaataggccaggttttcaccgtaacacgccacatcttgcgaatatatgtgtagaaactgccggaaatcgtcgtggtattcactccagagcgatgaaaacgtttcagtttgctcatggaaaacggtgtaac'
+
+        j23100_b0034_ac_in_bb, j23100_b0034_ac_in_bb_seq = part_in_backbone2('j23100_b0034_ac_in_bb', j23100_b0034_ac_seq_str, [476,545], [sbol3.SO_PROMOTER, sbol3.SO_RBS], 4, False, name='j23100_b0034_ac_in_bb')
+        doc.add([j23100_b0034_ac_in_bb, j23100_b0034_ac_in_bb_seq])
+
+        sfgfp_ce_in_bb, sfgfp_ce_in_bb_seq = part_in_backbone2('sfgfp_ce_in_bb', sfgfp_ce_seq_str, [130,854], [sbol3.SO_CDS], 4, False, name='sfgfp_ce_in_bb')
+        doc.add([sfgfp_ce_in_bb, sfgfp_ce_in_bb_seq])
+
+        b0015_ef_in_bb, b0015_ef_in_bb_seq = part_in_backbone2('b0015_ef_in_bb', b0015_ef_seq_str, [514,650], [sbol3.SO_TERMINATOR], 4, False, name='b0015_ef_in_bb')
+        doc.add([b0015_ef_in_bb, b0015_ef_in_bb_seq])
+
+        #Assembly plan
+        test_assembly_plan = Assembly_plan_composite_in_backbone_single_enzyme( 
+                            name='constitutive_gfp_tu',
+                            parts_in_backbone=[j23100_b0034_ac_in_bb, sfgfp_ce_in_bb, b0015_ef_in_bb], 
+                            acceptor_backbone=podd_backbone,
+                            restriction_enzyme=bsai,
+                            document=doc)
+
+        test_assembly_plan.run()
+
+        #Check assembly plan
+        expected_assembled_j23100_b0034_ac_seq_str = j23100_b0034_ac_seq_str[475:545]
+        assembled_j23100_b0034_ac_seq_str = test_assembly_plan.extracted_parts[0].sequences[0].lookup().elements
+        assert expected_assembled_j23100_b0034_ac_seq_str==assembled_j23100_b0034_ac_seq_str, 'Constructor Error: First extracted part sequence does not match expected sequence'
+
+        expected_assembled_sfgfp_ce_seq_str = sfgfp_ce_seq_str[129:854]
+        assembled_sfgfp_ce_seq_str = test_assembly_plan.extracted_parts[1].sequences[0].lookup().elements
+        assert expected_assembled_sfgfp_ce_seq_str==assembled_sfgfp_ce_seq_str, 'Constructor Error: Second extracted part sequence does not match expected sequence'
+
+        expected_assembled_b0015_ef_seq_str = b0015_ef_seq_str[513:650]
+        assembled_b0015_ef_seq_str = test_assembly_plan.extracted_parts[2].sequences[0].lookup().elements
+        assert expected_assembled_b0015_ef_seq_str==assembled_b0015_ef_seq_str, 'Constructor Error: Third extracted part sequence does not match expected sequence'
+
+        expected_assembled_open_backbone_seq_str = lvl1_pOdd_acceptor_seq[2255:] + lvl1_pOdd_acceptor_seq[:1172]
+        assembled_open_backbone_seq_str = test_assembly_plan.extracted_parts[-1].sequences[0].lookup().elements
+        assert expected_assembled_open_backbone_seq_str==assembled_open_backbone_seq_str, 'Constructor Error: Last extracted part (open backbone) sequence does not match expected sequence'
+
+        expected_composite_seq_str = expected_assembled_open_backbone_seq_str[:-4] + expected_assembled_j23100_b0034_ac_seq_str[:-4] + expected_assembled_sfgfp_ce_seq_str[:-4] + expected_assembled_b0015_ef_seq_str[:-4]
+        assembled_composite_seq_str = test_assembly_plan.composites[0][0].sequences[0].lookup().elements
+        assert expected_composite_seq_str==assembled_composite_seq_str, 'Constructor Error: Composite sequence does not match expected sequence'
 
 if __name__ == '__main__':
     unittest.main()

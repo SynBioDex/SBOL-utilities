@@ -7,7 +7,7 @@ setup(name='sbol-utilities',
       long_description_content_type='text/markdown',
       url='https://github.com/SynBioDex/SBOL-utilities',
       license='MIT License',
-      version='1.0a14',
+      version='1.0a17',
       # See https://pypi.python.org/pypi?%3Aaction=list_classifiers
       classifiers=[
             # How mature is this project? Common values are
@@ -27,22 +27,28 @@ setup(name='sbol-utilities',
             'Programming Language :: Python :: 3 :: Only',
             'Programming Language :: Python :: 3.7',
             'Programming Language :: Python :: 3.8',
-            'Programming Language :: Python :: 3.9'
+            'Programming Language :: Python :: 3.9',
+            'Programming Language :: Python :: 3.10'
       ],
       # What does your project relate to?
       keywords='synthetic biology',
       install_requires=[
-            'sbol3>=1.0b8,!=1.0b9',
-            'sbol2>=1.3',
-            'rdflib',
+            'sbol3>=1.0b11',
+            'sbol2>=1.4',
+            'rdflib>=6.2',
             'biopython',
             'graphviz',
-            'tyto>=1.0-beta',
-            'openpyxl'
+            'tyto>=1.2.1',
+            'openpyxl',
+            'sbol_factory>=1.0a11',
+            'pydna'
             ],
-      scripts=['graph-sbol'],
-      entry_points = {
+      extras_require={  # requirements for development
+          'dev': ['pytest', 'interrogate']
+      },
+      entry_points={
             'console_scripts': ['excel-to-sbol=sbol_utilities.excel_to_sbol:main',
+                                'graph-sbol=sbol_utilities.graph_sbol:main',
                                 'sbol-expand-derivations=sbol_utilities.expand_combinatorial_derivations:main',
                                 'sbol-calculate-sequences=sbol_utilities.calculate_sequences:main',
                                 'sbol-converter=sbol_utilities.conversion:main',

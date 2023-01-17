@@ -4,7 +4,8 @@ import rdflib
 import argparse
 
 
-def graph_sbol(doc, outfile='out'):
+def graph_sbol(doc: sbol3.Document, file_format: str = "pdf", view_now: bool = False, outfile:str = "out",
+               write_source: bool = False):
     g = doc.graph()
     dot_master = graphviz.Digraph()
 
@@ -47,8 +48,12 @@ def graph_sbol(doc, outfile='out'):
             # It seems that weight=0 gives better results:
             dot_master.edge(_strip_scheme(start_node), _strip_scheme(end_node), label=edge, weight='0', **association_relationship)
         
-    #print(dot_master.source)
-    dot_master.render(outfile, view=True)
+    # write the source file, if requested
+    if write_source:
+        with open(f'{outfile}.dot', 'w') as source_out:
+            source_out.write(dot_master.source)
+    # finally, lay out and save in the intended format
+    dot_master.render(outfile, view=view_now, format=file_format)
  
 
 def _get_node_label(graph, uri):
@@ -122,7 +127,9 @@ composition_relationship = {
     } 
 
 
-if __name__ == "__main__":
+def main():
+    """Read input file into SBOL3 document, then invoke graph_sbol"""
+
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "-i",
@@ -130,8 +137,36 @@ if __name__ == "__main__":
         dest="in_file",
         help="Input PAML file",
     )
-    args_dict = vars(parser.parse_args())
+    parser.add_argument(
+        "-f",
+        "--format",
+        dest="file_format",
+        default="pdf",
+        help="Final file format to produce graph in",
+    )
+    parser.add_argument(
+        "-v",
+        "--view",
+        dest="view_now",
+        action="store_true",
+        help="Open generated file automatically",
+    )
+    parser.add_argument(
+        "-s",
+        "--write-source",
+        dest="write_source",
+        action="store_true",
+        help="Write the source .dot file as well as the rendered output",
+    )
 
+    # Parse cli args
+    args_dict = vars(parser.parse_args())
     doc = sbol3.Document()
     doc.read(args_dict['in_file'])
-    graph_sbol(doc, args_dict['in_file'].split('.')[0])
+    outfile: str = args_dict['in_file'].split('.')[0]
+    graph_sbol(doc, args_dict['file_format'], view_now=args_dict['view_now'], outfile=outfile,
+               write_source=args_dict['write_source'])
+
+
+if __name__ == "__main__":
+    main()
