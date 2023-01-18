@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Dict, Iterable, List, Union, Optional, Tuple
+from typing import Callable, Dict, Iterable, List, Union, Set, Optional, Tuple
 
 import sbol3
 import tyto
@@ -89,11 +89,32 @@ def is_dna_part(obj: sbol3.Component) -> bool:
 
     # there must be atleast 1 SO role, among others
     def check_roles(component: sbol3.Component) -> bool:
-        return any(tyto.SO.get_term_by_uri(role) for role in component.roles)
+        try:
+            return any(tyto.SO.get_term_by_uri(role) for role in component.roles)
+        except LookupError:
+            return False
 
     # check all conditions
     return isinstance(obj, sbol3.Component) and check_roles(obj) \
         and has_dna_type(obj) and len(obj.sequences) == 1
+
+
+def by_roles(required_role: str) -> Callable[[sbol3.TopLevel], bool]:
+    """Given an object and a role, check if it is one of the roles of the object.
+
+    :param required_role: the role which must be present in given object
+    :return: lambda function taking an obj to check roles in, returns bool
+    """
+    return lambda obj: isinstance(obj, sbol3.Component) and required_role in obj.roles
+
+
+def by_types(required_type: str) -> Callable[[sbol3.TopLevel], bool]:
+    """Given an object and a type, check if it is one of the types of the object.
+
+    :param required_type: the type which must be present in given object
+    :return: lambda function taking an obj to check types in, returns bool
+    """
+    return lambda obj: isinstance(obj, sbol3.Component) and required_type in obj.types
 
 
 def ensure_singleton_feature(system: sbol3.Component, target: Union[sbol3.Feature, sbol3.Component]):
