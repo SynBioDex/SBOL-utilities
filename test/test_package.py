@@ -425,7 +425,7 @@ class TestPackage(unittest.TestCase):
         temp_name = tempfile.mkstemp(suffix='.nt')[1]
         doc.write(temp_name, sbol3.SORTED_NTRIPLES)
         with temporary_package_manager():
-            package.load_package('https://test.org/mypackage', temp_name)
+            package.load_package('https://biopackages.org/mypackage', temp_name)
 
     # def test_dissociated_package_excel(self):
     #     """Basic smoke test of Excel to SBOL3 conversion with a package"""
@@ -462,7 +462,7 @@ class TestPackage(unittest.TestCase):
             wb = openpyxl.load_workbook(TEST_FILES / 'packaged_library_no_dissociated.xlsx', data_only=True)
             doc = excel_to_sbol.excel_to_sbol(wb)
             # Install package, allowing it to be implicitly loaded
-            package.install_package('https://test.org/mypackage/', doc)
+            package.install_package(f'https://biopackages.org/mypackage/', doc)
 
             # convert package with dependency
             wb = openpyxl.load_workbook(TEST_FILES / 'second_library.xlsx', data_only=True)
@@ -473,23 +473,23 @@ class TestPackage(unittest.TestCase):
             # 7 basic parts + 7 sequences + 1x2 CombDev + 4 product collections = 20
             self.assertEqual(20, len(doc.find('package').members))
             # Check that the package has the expected dependency
-            self.assertEqual(['https://test.org/mypackage'], [str(d.package) for d in doc.find('package').dependencies])
+            self.assertEqual(['https://biopackages.org/mypackage'], [str(d.package) for d in doc.find('package').dependencies])
 
             # Write it out and make sure we can import as a package
             temp_name = tempfile.mkstemp(suffix='.nt')[1]
             doc.write(temp_name, sbol3.SORTED_NTRIPLES)
-            second_library = package.load_package('https://test.org/second_library', temp_name)
+            second_library = package.load_package('https://test.org/second-library', temp_name)
 
             # Check that cross-document link works correctly
             fp_collection = member_named(second_library, 'All FPs')
             self.assertTrue(isinstance(fp_collection, sbol3.CombinatorialDerivation))
             rfp_component = reference_named(fp_collection.variable_features[0].variants, 'mRFP1')
             self.assertIsNotNone(rfp_component)
-            self.assertEqual(rfp_component.identity, 'https://test.org/mypackage/mRFP1')
+            self.assertEqual(rfp_component.identity, 'https://biopackages.org/mypackage/mRFP1')
             self.assertEqual(rfp_component.description, 'Red FP (off patent)\nmRFP1')
             gfp_component = reference_named(fp_collection.variable_features[0].variants, 'GFPmut3')
             self.assertIsNotNone(gfp_component)
-            self.assertEqual(gfp_component.identity, 'https://test.org/mypackage/GFPmut3')
+            self.assertEqual(gfp_component.identity, 'https://biopackages.org/mypackage/GFPmut3')
             self.assertEqual(gfp_component.description, 'Green FP (off patent)\nGFPmut3')
 
 

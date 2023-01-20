@@ -11,7 +11,7 @@ import openpyxl
 import tyto
 
 from .helper_functions import toplevel_named, strip_sbol2_version, is_plasmid, url_to_identity, strip_filetype_suffix
-from .package import package_id, sep_054, load_package, lookup, find_all_in_dependencies
+from .package import package_id, sep_054, load_package, lookup, find_all_in_dependencies, ensure_package_namespace
 from .workarounds import type_to_standard_extension
 
 BASIC_PARTS_COLLECTION = 'BasicParts'
@@ -105,10 +105,14 @@ def read_metadata(wb: openpyxl.Workbook, doc: sbol3.Document, config: dict):
     # Make the stub package - must be done first to set namespace
     package = None
     if package_namespace:
+        # Error check and obtain canonical name:
+        package_namespace = ensure_package_namespace(package_namespace)
+        # Get package
         package = sep_054.Package(package_id(package_namespace), conversion=False)
         sbol3.set_namespace(package_namespace)
         # TODO: nicknames for package imports, versions
         for p in package_imports:
+            p = ensure_package_namespace(p)
             loaded = load_package(p)
             # TODO: identify subpackage dependencies from the difference in import vs. loaded namespace
             package.dependencies.append(sep_054.Dependency(package=p))
