@@ -19,6 +19,10 @@ from sbol_utilities.helper_functions import sbol3_namespace, same_namespace, id_
 
 sep_054 = SBOLFactory('sep_054', Path(__file__).parent / 'sep_054_extension.ttl', 'http://sbols.org/SEP054#')
 
+DEFAULT_CATALOG_NAMESPACE = "https://biopackages.org/"
+"""Root namespace used for centralized package hosting"""
+# TODO: in the future, may wish to consider options for multiple hosting locations
+
 GENERATED_CONTENT_SUBDIRECTORY = '.sip'
 """Per SEP 054: When built with respect to a specific directory, generated content SHOULD be stored in a hidden 
 subdirectory named .sip.
@@ -390,6 +394,38 @@ def get_prefix(package_list):
     return prefix
 
 
+def ensure_package_namespace(identifier: str) -> str:
+    """Takes a proposed identifier for a package and converts it to a canonical package URI
+    To avoid potential confusion, package names must be lower-case with ASCII alphanumeric/dash path elements.
+
+    :param identifier: String to be turned into a valid package identifier, if possible
+    :return: valid package namespace
+    :raises PackageError: if package_id cannot be turned into a valid package namespace
+    """
+    # make sure it's all ASCII
+    if not identifier.isascii():
+        raise PackageError(f'Package identifier {identifier} has characters that are not ASCII')
+    # canonicalize to lower case
+    if not identifier.islower():
+        identifier = identifier.lower()
+
+    parsed = urlparse(identifier)
+    if parsed.params or parsed.query or parsed.fragment:
+        raise PackageError(f'Package identifier {identifier} must not have URL params, query, or fragment')
+    # Make sure path is only alphanumeric, dash, and slash
+    if not parsed.path.replace('-', '').replace('/', '').isalnum():
+        raise PackageError(f'Package path {parsed.path} has characters that are not alphanumeric or dash')
+    # Make sure there isn't a trailing slash
+    if parsed.path[-1] == '/':
+        raise PackageError(f'Package identifier {identifier} must not end with a slash')
+    # If URL scheme is missing, assume it is a path and attempt to prepend with the default catalog namespace
+    if not parsed.scheme:
+        identifier = urljoin(DEFAULT_CATALOG_NAMESPACE, identifier)
+
+    # Return final validated canonical form
+    return identifier
+
+
 def package_id(namespace: str) -> str:
     """Get the standard identity for a Package object from the package's namespace
 
@@ -445,7 +481,9 @@ class PackageManager:
         return f'{hash_name}.nt'
 
     def install_package(self, namespace: str, doc: sbol3.Document) -> sep_054.Package:
-        """Install a package into the package catalog
+        """Install a package into the package catalog, either from a local document or by downloading
+        from the source given in the remote catalog
+        TODO: create remote catalog
 
         :param namespace: namespace of the package being installed
         :param doc: Document containing the package and any bundled subpackages and dependencies
