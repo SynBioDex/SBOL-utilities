@@ -38,7 +38,7 @@ setup(name='sbol-utilities',
             'rdflib>=6.2',
             'biopython',
             'graphviz',
-            'tyto~=1.2.1',  # unpin after resolution of https://github.com/SynBioDex/tyto/issues/71
+            'tyto==1.2.1',  # unpin after resolution of https://github.com/SynBioDex/tyto/issues/71
             'openpyxl',
             'sbol_factory>=1.0'
             ],
