@@ -7,9 +7,9 @@ from pathlib import Path
 import sbol3
 import tyto
 
-from sbol_utilities.component import contained_components, contains, add_feature, add_interaction, \
-    constitutive, ed_restriction_enzyme, \
-    regulate, order, in_role, all_in_role, ensure_singleton_feature, is_dna_part
+from sbol_utilities.component import contained_components, contains, add_feature, add_interaction, constitutive, \
+    regulate, order, in_role, all_in_role, ensure_singleton_feature, by_roles, by_types, is_dna_part, ed_restriction_enzyme
+from sbol_utilities.helper_functions import filter_top_level
 from sbol_utilities.component import dna_component_with_sequence, rna_component_with_sequence, \
     protein_component_with_sequence, media, functional_component, promoter, rbs, cds, terminator, \
     protein_stability_element, gene, operator, engineered_region, mrna, transcription_factor, \
@@ -22,18 +22,61 @@ from sbol_utilities.sbol_diff import doc_diff
 
 class TestComponent(unittest.TestCase):
 
+    def test_filter_by_roles(self):
+        """test the filter by roles utility"""
+        doc = sbol3.Document()
+        sbol3.set_namespace('http://sbolstandard.org/testfiles')
+        # create and add 3 components, with 2 having common role of dna
+        comp_1 = sbol3.Component('component_1', sbol3.SBO_DNA, roles=[tyto.SBO.deoxyribonucleic_acid])
+        comp_2 = sbol3.Component('component_2', sbol3.SBO_DNA, roles=[tyto.SO.engineered_region])
+        comp_3 = sbol3.Component('component_3', sbol3.SBO_DNA, roles=[tyto.SO.engineered_region, tyto.SBO.deoxyribonucleic_acid])
+        doc.add(comp_1)
+        doc.add(comp_2)
+        doc.add(comp_3)
+        # only comp_1 and comp_3 must be returned by the function
+        matched = list(filter_top_level(doc, by_roles(tyto.SBO.deoxyribonucleic_acid)))
+        assert(comp_1 in matched and comp_3 in matched and len(matched) == 2)
+
+    def test_filter_by_types(self):
+        """test the filter by types utility"""
+        doc = sbol3.Document()
+        sbol3.set_namespace('http://sbolstandard.org/testfiles')
+        # create and add 3 components, with 2 one of the types as SBO_DNA
+        comp_1 = sbol3.Component('component_1', types=[sbol3.SBO_DNA])
+        comp_2 = sbol3.Component('component_2', types=[sbol3.SBO_DEGRADATION, sbol3.SBO_DNA])
+        comp_3 = sbol3.Component('component_3', types=[sbol3.SBO_FUNCTIONAL_ENTITY])
+        doc.add(comp_1)
+        doc.add(comp_2)
+        doc.add(comp_3)
+        # only comp_1 and comp_3 must be returned by the function
+        matched = list(filter_top_level(doc, by_types(sbol3.SBO_DNA)))
+        assert(comp_1 in matched and comp_2 in matched and len(matched) == 2)
+
     def test_dna_part(self):
         """Test the correctness of is_dna_part check"""
         # create a test dna component
-        dna_identity = 'Test_dna_identity'
+        doc = sbol3.Document()
+        sbol3.set_namespace('http://sbolstandard.org/testfiles')
         dna_sequence = 'Test_dna_sequence'
         dna_description = 'Test_dna_description'
         sbol3.set_namespace('http://sbolstandard.org/testfiles')
         # we don't need dna_sequence object
-        test_dna_component, _ = dna_component_with_sequence(dna_identity, dna_sequence, description=dna_description)
+        test_dna_component_1, _ = dna_component_with_sequence('test_identity1', dna_sequence, description=dna_description)
+        test_dna_component_2, _ = dna_component_with_sequence('test_identity2', dna_sequence, description=dna_description)
+        test_dna_component_3, _ = dna_component_with_sequence('test_identity3', dna_sequence, description=dna_description)
         # adding atleast 1 SO role
-        test_dna_component.roles.append(sbol3.SO_GENE)
-        assert is_dna_part(test_dna_component) 
+        test_dna_component_1.roles.append(sbol3.SO_GENE)
+        test_dna_component_2.roles.append(sbol3.SBO_DEGRADATION)
+        # created and add 3 components, with 1 satisfying all criteria
+        doc.add(test_dna_component_3)
+        doc.add(test_dna_component_2)
+        doc.add(test_dna_component_1)
+        # use filter_top_level utility to filter objects which are dna parts
+        matched = list(filter_top_level(doc, is_dna_part))
+        # 2nd component had non SO roles, 3rd component had no role
+        assert test_dna_component_1 in matched
+        assert test_dna_component_2 not in matched
+        assert test_dna_component_3 not in matched
 
     def test_system_building(self):
         doc = sbol3.Document()
