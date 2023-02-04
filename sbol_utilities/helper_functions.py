@@ -357,3 +357,9 @@ def outgoing_links(doc: sbol3.Document) -> set[URIRef]:
     with cached_references(doc):
         doc.traverse(collector)
     return outgoing
+
+def find_feature(sbol3: sbol3_file,f: feature,seq: sequence) -> sbol3.Feature:
+    for i in sbol3.features:
+        if i.instance_of == f.identity:
+            i.locations.append(Range(seq, 746, 875))
+            return i
