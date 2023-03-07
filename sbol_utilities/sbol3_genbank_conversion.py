@@ -739,7 +739,8 @@ class GenBank_SBOL3_Converter:
                             sequence    = seq,
                             orientation = feat_loc_orientation,
                             end         = int(gb_loc.end),
-                            start       = int(gb_loc.start)
+                            # add 1, as BioPython parses GenBank start locations as 0-indexed instead of 1-indexed
+                            start       = int(gb_loc.start) + 1
                         )
                     # If either or both of start and end locations are fuzzy, then
                     # the location object needs to be of the custom class 'Location_GenBank_Extension'
@@ -750,7 +751,8 @@ class GenBank_SBOL3_Converter:
                         )
                         # start start and end int positions specified
                         locs.end = int(gb_loc.end)
-                        locs.start = int(gb_loc.start)
+                        # add 1, as BioPython parses GenBank start locations as 0-indexed instead of 1-indexed
+                        locs.start = int(gb_loc.start) + 1
                         # storing location types in IntProperties of SBOL3
                         locs.end_position = end_position
                         locs.start_position = start_position
@@ -839,15 +841,16 @@ class GenBank_SBOL3_Converter:
                     # TODO: Raise custom converter class ERROR for `else:`
                     # creating start and end Positions
                     endPosition = ExactPosition(obj_feat_loc.end)
-                    startPosition = ExactPosition(obj_feat_loc.start)
+                    # subtract 1, as BioPython parses GenBank start locations as 0-indexed instead of 1-indexed
+                    startPosition = ExactPosition(int(obj_feat_loc.start) - 1)
                     # if custom range object, check for position being Before / After Positions
                     if isinstance(obj_feat_loc, self.Location_GenBank_Extension):
                         # change end and start Positions only if user has made integer entries into them
                         if obj_feat_loc.end_position is not None:
                             endPosition = self.GENBANK_LOCATION_POSITION[obj_feat_loc.end_position](obj_feat_loc.end)
                         if obj_feat_loc.start_position is not None:
-                            startPosition = self.GENBANK_LOCATION_POSITION[obj_feat_loc.start_position](
-                                obj_feat_loc.start)
+                            # subtract 1, as BioPython parses GenBank start locations as 0-indexed instead of 1-indexed
+                            startPosition = self.GENBANK_LOCATION_POSITION[obj_feat_loc.start_position](int(obj_feat_loc.start) - 1)
                     feat_loc_object = FeatureLocation(
                         start  = startPosition,
                         end    = endPosition,
