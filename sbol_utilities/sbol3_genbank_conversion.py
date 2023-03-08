@@ -808,7 +808,6 @@ class GenBank_SBOL3_Converter:
         # parse if sbol object has any features
         if not obj.features:
             return
-        feat_order = {}
         seq_rec_features = []
         # for round trip conversion, consider all features - exact and fuzzy ones too
         all_features = list(obj.features)
@@ -894,7 +893,7 @@ class GenBank_SBOL3_Converter:
                 feat = SeqFeature(
                     location=feat_loc_object, strand=feat_strand, type=feat_role
                 )
-                feat_order[feat] = feat_loc_positions
+                feat.loc_positions = feat_loc_positions
                 if isinstance(obj_feat, self.Feature_GenBank_Extension):
                     keys = sorted(obj_feat.qualifier_key, key=lambda x: int(x.split(":", 1)[0]))
                     values = sorted(obj_feat.qualifier_value, key=lambda x: int(x.split(":", 1)[0]))
@@ -904,6 +903,6 @@ class GenBank_SBOL3_Converter:
 
         # Sort features based on feature location start/end, lexicographically, and then by
         # strand / number of qualifiers / type of feature string comparison
-        seq_rec_features.sort(key=lambda feat: (feat_order[feat], feat.strand, len(feat.qualifiers), feat.type))
+        seq_rec_features.sort(key=lambda feat: (feat.loc_positions, feat.strand, len(feat.qualifiers), feat.type))
         seq_rec.features = seq_rec_features
 
