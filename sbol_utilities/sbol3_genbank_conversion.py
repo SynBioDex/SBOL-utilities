@@ -808,7 +808,6 @@ class GenBank_SBOL3_Converter:
         # parse if sbol object has any features
         if not obj.features:
             return
-        feat_order = {}
         seq_rec_features = []
         # for round trip conversion, consider all features - exact and fuzzy ones too
         all_features = list(obj.features)
