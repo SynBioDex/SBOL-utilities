@@ -358,8 +358,11 @@ def outgoing_links(doc: sbol3.Document) -> set[URIRef]:
         doc.traverse(collector)
     return outgoing
 
-def find_feature(sbol3: sbol3_file,f: feature,seq: sequence) -> sbol3.Feature:
-    for i in sbol3.features:
+def find_feature(doc: sbol3.Component,f:sbol3.Feature) -> sbol3.Feature:
+    """
+    find_feature function used for  finding a specific feature you specify and check
+    if this feature one of your sbol3 document features or not.
+    """
+    for i in doc.features:
         if i.instance_of == f.identity:
-            i.locations.append(Range(seq, 746, 875))
             return i
