@@ -11,7 +11,7 @@ import sbol3
 
 from sbol_utilities.conversion import convert2to3, convert3to2, convert_to_genbank, convert_to_fasta, \
     convert_from_fasta, convert_from_genbank, main \
-    ,sbol-to-fasta, sbol-to-genbank, sbol2-to-sbol3, sbol3-to-sbol2, fasta-to-sbol, genbank-to-sbol
+    ,sbol2fasta, sbol2genbank, sbol2to3, sbol3to2, fasta2sbol, genbank2sbol
 from helpers import copy_to_tmp
 from sbol_utilities.sbol_diff import doc_diff
 # TODO: Add command-line utilities and test them too
@@ -250,33 +250,33 @@ class Test2To3Conversion(unittest.TestCase):
         assert filecmp.cmp(temp_name, test_file['sbol3']), f'Converted file {temp_name} is not identical'
 
         # Run the other six tests
-        test_args = ['fasta2sbol', '-o', temp_name, '-n', 'https://synbiohub.org/public/igem', test_file['fasta']]
+        test_args = ['fasta-to-sbol', '-o', temp_name, '-n', 'https://synbiohub.org/public/igem', test_file['fasta']]
         with patch.object(sys, 'argv', test_args):
             fasta2sbol()
         assert filecmp.cmp(temp_name, test_file['from_fasta']), f'Converted file {temp_name} is not identical'
 
         # genbank conversion should succeed the same way when not online if not given an online argument
-        test_args = ['genbank2sbol', '-o', temp_name, '-n', 'https://synbiohub.org/public/igem', test_file['genbank']]
+        test_args = ['genbank-to-sbol', '-o', temp_name, '-n', 'https://synbiohub.org/public/igem', test_file['genbank']]
         with patch.object(sys, 'argv', test_args):
             genbank2sbol()
         assert filecmp.cmp(temp_name, test_file['from_genbank']), f'Converted file {temp_name} is not identical'
 
-        test_args = ['sbol2fasta', '-o', temp_name, test_file['sbol3']]
+        test_args = ['sbol-to-fasta', '-o', temp_name, test_file['sbol3']]
         with patch.object(sys, 'argv', test_args):
             sbol2fasta()
         assert filecmp.cmp(temp_name, test_file['fasta']), f'Converted file {temp_name} is not identical'
 
-        test_args = ['sbol2genbank', '-o', temp_name, test_file['sbol3']]
+        test_args = ['sbol-to-genbank', '-o', temp_name, test_file['sbol3']]
         with patch.object(sys, 'argv', test_args):
             sbol2genbank()
         assert filecmp.cmp(temp_name, test_file['genbank']), f'Converted file {temp_name} is not identical'
 
         # SBOL2 serialization is not stable, so test via round-trip instead
-        test_args = ['sbol3to2', '-o', temp_name, test_file['sbol3']]
+        test_args = ['sbol3-to-sbol2', '-o', temp_name, test_file['sbol3']]
         with patch.object(sys, 'argv', test_args):
             sbol3to2()
         temp_name_2 = tempfile.mkstemp()[1]
-        test_args = ['sbol2to3', '-o', temp_name_2, temp_name]
+        test_args = ['sbol2-to-sbol3', '-o', temp_name_2, temp_name]
         with patch.object(sys, 'argv', test_args):
             sbol2to3()
         assert filecmp.cmp(temp_name_2, test_file['sbol323']), f'Converted file {temp_name} is not identical'
@@ -290,7 +290,7 @@ class Test2To3Conversion(unittest.TestCase):
             'from_genbank': os.path.join(test_files, 'BBa_J23101_from_genbank.nt'),
         }
 
-        test_args = ['genbank2sbol', '-o', temp_name, '-n', 'https://synbiohub.org/public/igem', test_file['genbank'],
+        test_args = ['genbank-to-sbol', '-o', temp_name, '-n', 'https://synbiohub.org/public/igem', test_file['genbank'],
                      '--allow-genbank-online']
         with patch.object(sys, 'argv', test_args):
             genbank2sbol()
