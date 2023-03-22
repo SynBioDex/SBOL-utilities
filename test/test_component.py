@@ -456,13 +456,13 @@ class TestComponent(unittest.TestCase):
         podd_backbone, podd_backbone_seq = backbone('pOdd_bb', lvl1_pOdd_acceptor_seq, [1169,2259], 4, False, name='pOdd_bb')
         doc.add([podd_backbone,podd_backbone_seq])
         #parts in backbone
-        j23100_b0034_doc = convert_from_genbank('j23100_b0034.gb', 'https://github.com/Gonza10V')
+        j23100_b0034_doc = convert_from_genbank('test_files/j23100_b0034.gb', 'https://github.com/Gonza10V')
         j23100_b0034_ac = [top_level for top_level in j23100_b0034_doc if type(top_level)==sbol3.Component][0]
         j23100_b0034_ac_seq_str = j23100_b0034_ac.sequences[0].lookup().elements
-        sfgfp_doc = convert_from_genbank('sfgfp.gb', 'https://github.com/Gonza10V')
+        sfgfp_doc = convert_from_genbank('test_files/sfgfp.gb', 'https://github.com/Gonza10V')
         sfgfp_ce = [top_level for top_level in sfgfp_doc if type(top_level)==sbol3.Component][0]
         sfgfp_ce_seq_str = sfgfp_ce.sequences[0].lookup().elements
-        b0015_doc = convert_from_genbank('b0015.gb', 'https://github.com/Gonza10V')
+        b0015_doc = convert_from_genbank('test_files/b0015.gb', 'https://github.com/Gonza10V')
         b0015_ef = [top_level for top_level in b0015_doc if type(top_level)==sbol3.Component][0]
         b0015_ef_seq_str = b0015_ef.sequences[0].lookup().elements
         j23100_b0034_ac_in_bb, j23100_b0034_ac_in_bb_seq = part_in_backbone_from_sbol('j23100_b0034_ac_in_bb', j23100_b0034_ac, [476,545], [sbol3.SO_PROMOTER, sbol3.SO_RBS], 4, False, name='j23100_b0034_ac_in_bb')
