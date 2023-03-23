@@ -10,8 +10,8 @@ import sbol2
 import sbol3
 
 from sbol_utilities.conversion import convert2to3, convert3to2, convert_to_genbank, convert_to_fasta, \
-    convert_from_fasta, convert_from_genbank, main \
-    ,sbol2fasta, sbol2genbank, sbol2to3, sbol3to2, fasta2sbol, genbank2sbol
+    convert_from_fasta, convert_from_genbank, \
+    main, sbol2fasta, sbol2genbank, sbol2to3, sbol3to2, fasta2sbol, genbank2sbol
 from helpers import copy_to_tmp
 from sbol_utilities.sbol_diff import doc_diff
 # TODO: Add command-line utilities and test them too
