@@ -195,13 +195,7 @@ class GenBank_SBOL3_Converter:
         start and end position types (AfterPostion / BeforePosition / ExactPosition).
         :extends: sbol3.Location class
         """
-        # Use the SBOL3 namespace for the type URI as a workaround for
-        # a bug in pySBOL3.
-        # TODO: use genbank namespace when the pySBOL3 bug is fixed
-        # NOTE: pySBOL3 BUG REPORT: https://github.com/SynBioDex/pySBOL3/issues/414
-        # NOTE: pySBOL3 BUG FIX   : https://github.com/SynBioDex/pySBOL3/pull/415
-        # GENBANK_RANGE_NS = "http://www.ncbi.nlm.nih.gov/genbank#locationPosition"
-        GENBANK_RANGE_NS = sbol3.SBOL3_NS + "locationPosition"
+        GENBANK_RANGE_NS = "http://www.ncbi.nlm.nih.gov/genbank#locationPosition"
 
         def __init__(self, sequence: sbol3.Sequence = sbol3.Sequence("autoCreatedSequence"),
                      *, identity: str = None, type_uri: str = GENBANK_RANGE_NS,
@@ -734,7 +728,8 @@ class GenBank_SBOL3_Converter:
                     start_position = self.SBOL_LOCATION_POSITION[type(gb_loc.start)]
                     # If both start and end positions are exact positions, the
                     # feature location can be created simply as a range object
-                    if start_position == 1 and end_position == 1:
+                    # Kludge truncation of fuzzy ranges (https://github.com/SynBioDex/SBOL-utilities/issues/200)
+                    if start_position == 1 and end_position == 1 or True:
                         locs = sbol3.Range(
                             sequence    = seq,
                             orientation = feat_loc_orientation,
