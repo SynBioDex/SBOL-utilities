@@ -1,0 +1,102 @@
+{
+    "parts": { // objects that we want to validate are all at top level
+        "entity_id": "UUID", // unique identifier for the object type
+        "fields": {
+            "partName": {
+                "type": {
+                    "type": "String",
+                    "valid": ".*"
+                },
+                "required": true,
+                "sourcePointer": "A1",
+                "qualityPoints": [
+                    {
+                        "quality": "A",
+                        "points": 10
+                    },
+                    {
+                        "quality": "B",
+                        "points": 5
+                    },
+                    {
+                        "quality": "C",
+                        "points": 0
+                    }
+                ],
+                "errors": { 
+                    "validationError": "Part name is invalid",
+                    "missingValueError": "Part name is required"
+                },
+                "warnings": { 
+                    "validationWarning": "Part name is invalid",
+                    "missingValueWarning": "Part name is required"
+                }
+            },
+            "role": {
+                "type": {
+                    "type": "Enum",
+                    "valid": [
+                        "CDS",
+                        "plasmid_vector",
+                        "designed_sequence",
+                        "other"
+                    ]
+                },
+                "required": true,
+                "sourcePointer": "A1",
+                "qualityPoints": [
+                    {
+                        "quality": "A",
+                        "points": 10
+                    },
+                    {
+                        "quality": "B",
+                        "points": 5
+                    },
+                    {
+                        "quality": "C",
+                        "points": 0
+                    }
+                ],
+                "errors": {
+                    "validationError": "Part name is invalid",
+                    "missingValueError": "Part name is required"
+                },
+                "warnings": {
+                    "validationWarning": "Part name is invalid",
+                    "missingValueWarning": "Part name is required"
+                }
+            },
+            "designNotes": {
+                "type": {
+                    "type": "String",
+                    "valid": ".*"
+                },
+                "required": false,
+                "sourcePointer": "A1",
+                "qualityPoints": [
+                    {
+                        "quality": "A",
+                        "points": 10
+                    },
+                    {
+                        "quality": "B",
+                        "points": 5
+                    },
+                    {
+                        "quality": "C",
+                        "points": 0
+                    }
+                ],
+                "errors": {
+                    "validationError": "Part name is invalid",
+                    "missingValueError": "Part name is required"
+                },
+                "warnings": {
+                    "validationWarning": "Part name is invalid",
+                    "missingValueWarning": "Part name is required"
+                }
+            }
+        }
+    }
+}
