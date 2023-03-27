@@ -631,7 +631,7 @@ def part_in_backbone_from_sbol(identity: str,  sbol3_comp: sbol3.Component, part
     :param sbol3_comp: The SBOL3 Component that will be used to create the part in backbone.
     :param part_location: List of 2 integers that indicates the start and the end of the unitary part sequence. Note that the index of the first location is 1, as is typical practice in biology, rather than 0, as is typical practice in computer science.
     :param part_roles: List of strings that indicates the roles of the part.
-    :param fusion_site_length: Integer of the lenght of the fusion sites (eg. BsaI fusion site lenght is 4, SapI fusion site lenght is 3)
+    :param fusion_site_length: Integer of the length of the fusion sites (eg. BsaI fusion site lenght is 4, SapI fusion site lenght is 3)
     :param linear: Boolean than indicates if the backbone is linear, by default it is seted to Flase which means that it has a circular topology.
     :param overwrite: Boolean that indicates if the input Component will be overwritten. By default it is seted to True.
     :param kwargs: Keyword arguments of any other Component attribute.
