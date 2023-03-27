@@ -441,8 +441,8 @@ class TestComponent(unittest.TestCase):
         target_b0015_unitary_part_sequence = 'ccaggcatcaaataaaacgaaaggctcagtcgaaagactgggcctttcgttttatctgttgtttgtcggtgaacgctctctactagagtcacactggctcaccttcgggtgggcctttctgcgtttata'
         b0015_doc = convert_from_genbank(b0015_dir, 'https://github.com/Gonza10V')
         b0015_ef = [top_level for top_level in b0015_doc if type(top_level)==sbol3.Component][0]
-        b0015_ef_seq_str = b0015_ef.sequences[0].lookup().elements
         b0015_ef_in_bb, b0015_ef_in_bb_seq = part_in_backbone_from_sbol('b0015_ef_in_bb', b0015_ef, [518,646], [sbol3.SO_TERMINATOR], 4, False, name='b0015_ef_in_bb')
+        doc.add([b0015_ef_in_bb, b0015_ef_in_bb_seq])
         for feature in b0015_ef_in_bb.features:
             if feature.roles == [sbol3.SO_TERMINATOR, tyto.SO.engineered_insert]:
                 b0015_unitary_part_sequence = feature.locations[0].sequence.lookup().elements[feature.locations[0].start-1:feature.locations[0].end]
