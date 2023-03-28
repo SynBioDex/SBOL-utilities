@@ -358,11 +358,11 @@ def outgoing_links(doc: sbol3.Document) -> set[URIRef]:
         doc.traverse(collector)
     return outgoing
 
-def find_feature(doc: sbol3.Component,f:sbol3.Feature) -> sbol3.Feature:
+def find_feature(component:sbol3.Component,f:sbol3.Feature) -> sbol3.Feature:
     """
-    find_feature function used for  finding a specific feature you specify and check
-    if this feature one of your sbol3 document features or not.
+    find_feature function used for  finding a feature in your component and check
+    if this feature has a known identity or not.
     """
-    for i in doc.features:
+    for i in component.features:
         if i.instance_of == f.identity:
-            return i
+            return f'Feature: {f} has a known identity'

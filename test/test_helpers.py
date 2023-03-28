@@ -153,9 +153,13 @@ class TestHelpers(unittest.TestCase):
         b0034.roles = [sbol3.SO_NS + '0000139']
         doc.add(b0034)
         i13504.features.append(sbol3.SubComponent(b0034))
+        # creating a feature without adding it to the sbol3 Document
+        e0040 = sbol3.Component('E0040', sbol3.SBO_DNA)
+        e0040.name = 'GFP'
+        e0040.roles = [sbol3.SO_NS + '0000316']
 
-        result=find_feature(i13504,b0034)
-        self.assertEqual(find_feature(i13504,b0034),result)
+        self.assertEqual(find_feature(i13504,b0034),f'Feature: {b0034} has a known identity')
+        self.assertEqual(find_feature(i13504,e0040),None)
 
 
 
