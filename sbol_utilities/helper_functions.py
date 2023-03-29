@@ -365,3 +365,12 @@ def is_circular(obj: Union[sbol3.Component, sbol3.LocalSubComponent, sbol3.Exter
     :return: true if circular
     """    
     return any(n==sbol3.SO_CIRCULAR for n in obj.types)
+
+def find_feature(component:sbol3.Component,f:sbol3.Feature) -> sbol3.Feature:
+    """
+    find_feature function used for  finding a feature in your component and check
+    if this feature has a known identity or not.
+    """
+    for i in component.features:
+        if i.instance_of == f.identity:
+            return f'Feature: {f} has a known identity'
