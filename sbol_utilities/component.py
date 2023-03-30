@@ -902,7 +902,6 @@ def ligation(reactants:List[sbol3.Component], assembly_plan:sbol3.Component)-> L
 
 class Assembly_plan_composite_in_backbone_single_enzyme():
     """Creates a Assembly Plan.
-    #classes uses param here?
     :param parts_in_backbone: Parts in backbone to be assembled. 
     :param acceptor_backbone:  Backbone in which parts are inserted on the assembly. 
     :param restriction_enzymes: Restriction enzyme with correct name from Bio.Restriction as Externally Defined.
