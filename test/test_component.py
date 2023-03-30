@@ -294,21 +294,19 @@ class TestComponent(unittest.TestCase):
         assert doc_diff(doc, hlc_doc) == 0, f'Constructor Error: {media_identity}'
 
     def test_restriction_enzyme_bp011(self):
-        """Test construction of components and features using helper functions: for each, build manually and compare."""
-        hlc_doc = sbol3.Document()
-        doc = sbol3.Document()
+        """Test the restriction_enzyme function"""
         sbol3.set_namespace('http://sbolstandard.org/testfiles')
-        # Restriction enzyme
         restriction_enzyme_name = 'BsaI'
         restriction_enzyme_definition = 'http://rebase.neb.com/rebase/enz/BsaI.html' # TODO: replace with getting the URI from Enzyme when REBASE identifiers become available in biopython 1.80
         bsai = ed_restriction_enzyme(restriction_enzyme_name)
         assert bsai.definition == restriction_enzyme_definition, 'Constructor Error: ed_restriction_enzyme'
         
     def test_backbone_bp011(self):
+        """Test the backbone function"""
         hlc_doc = sbol3.Document()
         doc = sbol3.Document()
         sbol3.set_namespace('http://sbolstandard.org/testfiles')
-        # Backbone
+
         backbone_identity = 'backbone'
         backbone_sequence = 'aaGGGGttttCCCCaa'
         dropout_location = [3,15]
@@ -366,10 +364,7 @@ class TestComponent(unittest.TestCase):
         assert doc_diff(doc, hlc_doc) == 0, f'Constructor Error: Linear {backbone_identity}'
         
     def test_part_in_backbone_bp011(self):
-        hlc_doc = sbol3.Document()
-        doc = sbol3.Document()
-        sbol3.set_namespace('http://sbolstandard.org/testfiles')
-        # Part in backbone
+        """Test the part_in_backbone function"""
         hlc_doc = sbol3.Document()
         doc = sbol3.Document()
         sbol3.set_namespace('http://sbolstandard.org/testfiles')
@@ -431,7 +426,7 @@ class TestComponent(unittest.TestCase):
         assert doc_diff(doc, hlc_doc) == 0, f'Constructor Error: Linear {identity_pib}'
         
     def test_part_in_backbone_from_sbol_bp011(self):
-        hlc_doc = sbol3.Document()
+        """Test part_in_backbone function with a part from SBOL"""
         doc = sbol3.Document()
         sbol3.set_namespace('http://sbolstandard.org/testfiles')
         test_dir = os.path.dirname(os.path.realpath(__file__))
@@ -449,7 +444,7 @@ class TestComponent(unittest.TestCase):
         assert target_b0015_unitary_part_sequence == b0015_unitary_part_sequence
         
     def test_assembly_plan_bp011(self):
-        hlc_doc = sbol3.Document()
+        """Test assembly plan class"""
         doc = sbol3.Document()
         sbol3.set_namespace('http://sbolstandard.org/testfiles')
         test_dir = os.path.dirname(os.path.realpath(__file__))
