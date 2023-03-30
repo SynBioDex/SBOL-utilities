@@ -1,7 +1,8 @@
+from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Union, Any
 import re
 
 
@@ -16,10 +17,37 @@ class FieldTypeEnum(Enum):
 
 @dataclass
 class QCFieldType:
+    """A class to represent a QC field type"""
+
     type: FieldTypeEnum
     valid: Optional[Union[List[str], str]]
 
-    def validate(self, value) -> bool:
+    @staticmethod
+    def from_json(field_type_dict: Dict) -> QCFieldType:
+        """ Create a QCFieldType object from a json string
+
+        Args:
+            field_type (str): The json string to create the object from
+
+        Returns:
+            QCFieldType: The created object
+        """
+        ret = QCFieldType(FieldTypeEnum(field_type_dict['type']), field_type_dict['valid'])
+        return ret
+
+    def validate(self, value: Any) -> bool:
+        """ Validate a value against the field type
+
+        Args:
+            value (Any): The value to validate
+
+        Raises:
+            ValueError: If invalid data is passed to the function
+            ValueError: An uknown field type is passed to the function
+
+        Returns:
+            bool: True if the value is valid, False otherwise
+        """
         if self.type == FieldTypeEnum.STRING:
             # Check if valid field has a string
             if isinstance(self.valid, str):

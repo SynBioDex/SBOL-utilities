@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Dict, Union
+from typing import Dict, List, Union
 
 
 class QCFieldQualityScore( Dict[str, float]):
@@ -7,10 +7,17 @@ class QCFieldQualityScore( Dict[str, float]):
 
     Data structure to store quality score for a field/entry/package.
 
-    """    
+    """
 
-    def __init__(self):
-        super().__init__()
+    @staticmethod
+    def from_json(json_list: List) -> QCFieldQualityScore:
+        """Read the QC JSON file and populate the QCChecker object."""
+        ret = QCFieldQualityScore()
+        for item in json_list:
+            ret[item['quality']] = item['points']
+
+        return ret
+
 
     def __add__(self, other:  Dict[str, float]) -> QCFieldQualityScore:
         """ Overload the + operator to add two QCFieldQualityScore objects
@@ -22,14 +29,15 @@ class QCFieldQualityScore( Dict[str, float]):
 
         Returns:
             QCFieldQualityScore: QCFieldQualityScore
-        """        
+        """
         for key, value in other.items():
             if key not in self.keys():
                 self[key] = value
             else:
                 self[key] += value
         return self
-    
+
+
     def __copy__(self) -> QCFieldQualityScore:
         """ Overload the copy operator to copy a QCFieldQualityScore object
 

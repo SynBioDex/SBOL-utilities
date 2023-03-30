@@ -1,4 +1,5 @@
-from typing import Dict
+from __future__ import annotations
+from typing import Dict, Optional, Tuple
 from pathlib import Path
 
 from sbol_utilities.igem.qc_entity import QCEntity
@@ -7,16 +8,24 @@ from sbol_utilities.igem.qc_field import QCFieldQualityScore
 class QCChecker:
     """Class to perform the QC check on a package."""
 
-    def __init__(self, qc_json_file: Path):
+    def __init__(self):
         """Initialize the QC checker.
 
         Args:
             qc_json_file: The QC JSON file to use.
         """
-        self.qc_json_file = qc_json_file
         self.entity: Dict[str, QCEntity]
 
-    def perform_qc_check(self, package_data: Dict) -> QCFieldQualityScore:
+    @staticmethod
+    def from_json(schema_json_dict: Dict) -> QCChecker:
+        """Read the QC JSON file and populate the QCChecker object."""
+        # Read the 
+        ret = QCChecker()
+        for entity_id, entity_dict in schema_json_dict.items():
+            entity = QCEntity.from_json(entity_dict)
+            ret.entity[entity_id] = entity
+
+    def perform_qc_check(self, package_data: Dict) -> Tuple[QCFieldQualityScore, str, Dict[str, Dict[str, Optional[str]]]]:
         """Perform the QC check on the package data.
 
         Package data shape Example:
@@ -49,7 +58,7 @@ class QCChecker:
         # Validate the value
         # Compute the total score
         overall_score = QCFieldQualityScore()
-
+        errors = {}
         for entity_id, entity in self.entity.items():
             # Pass the package data to the entity to validate
             data_to_validate = package_data[entity_id]
@@ -60,8 +69,8 @@ class QCChecker:
                 # Add the QC score to the item
                 overall_score += entity_qc_score/normailization_factor
                 # Add the error messages to the item
-                item["errors"] = entity_error_messages
+                errors[entity_id] = entity_error_messages
 
-        return overall_score
+        return overall_score, errors
 
 

@@ -30,4 +30,4 @@ class TestFieldQualityScore(unittest.TestCase):
         self.assertEqual(score_2["b"], 2)
         self.assertEqual(score_2["c"], 3)
         score_1["a"] = 2
-        self.assertEqual(score_2["a"], 1)   
+        self.assertEqual(score_2["a"], 1)

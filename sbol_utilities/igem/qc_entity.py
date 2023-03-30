@@ -1,20 +1,31 @@
+from __future__ import annotations
 from dataclasses import dataclass
-from typing import Dict, List, Tuple
+from typing import Dict, Tuple, Optional
 
 from sbol_utilities.igem.qc_field import QCField, QCFieldQualityScore
 
 @dataclass
 class QCEntity:
-    entity_id : str
     fields: Dict[str, QCField]
 
-    def validate(self, data: Dict) -> Tuple[QCFieldQualityScore, List[str]]:
+    def __init__(self) -> None:
+        self.fields = {}
+
+    @staticmethod
+    def from_json(entity_dict: Dict) -> QCEntity:
+        ret = QCEntity()
+        for field_id, field_dict in entity_dict['fields'].items():
+            field = QCField.from_json(field_dict)
+            ret.fields[field_id] = field
+        return ret
+
+    def validate(self, data: Dict) -> Tuple[QCFieldQualityScore, Dict[str, Optional[str]]]:
         entity_score = QCFieldQualityScore()
-        entity_validation_messages = []
+        entity_validation_messages: Dict[str, Optional[str]] = {}
         for field_id, field in self.fields.items():
             validation_result = field.validate(data[field_id])
             entity_score = field.get_quality_score(failure = validation_result[0])
-            entity_validation_messages.append(validation_result[1])
+            entity_validation_messages[field_id] = validation_result[1]
 
         return entity_score, entity_validation_messages
 
