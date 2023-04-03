@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "sbol-utilities"
+name = "sbol_utilities"
 description = "SBOL utilities"
 version = "1.0a17"
 readme = "README.md"
