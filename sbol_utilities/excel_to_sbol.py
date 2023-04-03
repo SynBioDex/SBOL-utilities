@@ -1,3 +1,4 @@
+from typing import Dict, Optional
 import unicodedata
 import warnings
 import logging
@@ -17,7 +18,7 @@ LINEAR_PRODUCTS_COLLECTION = 'LinearDNAProducts'
 FINAL_PRODUCTS_COLLECTION = 'FinalProducts'
 
 
-def expand_configuration(values: dict) -> dict:
+def expand_configuration(values: Optional[Dict] = None) -> dict:
     """
     Initialize sheet configuration dictionary
     :param values: Dictionary of overrides for defaults
@@ -207,7 +208,7 @@ def row_to_basic_part(doc: sbol3.Document, row, basic_parts: sbol3.Collection, l
 # form of a sub-component:
 # X: identifies a component or set thereof
 # RC(X): X is reversed
-reverse_complement_pattern = re.compile('RC\(.+\)')
+reverse_complement_pattern = re.compile(r'RC\(.+\)')
 # Returns sanitized text without optional reverse complement marker
 def strip_RC(name):
     sanitized = name.strip()
@@ -255,7 +256,7 @@ def make_composite_component(display_id,part_lists,reverse_complements):
     # return the completed part
     return composite_part
 
-constraint_pattern = re.compile('Part (\d+) (.+) Part (\d+)')
+constraint_pattern = re.compile(r'Part (\d+) (.+) Part (\d+)')
 constraint_dict = {'same as': sbol3.SBOL_VERIFY_IDENTICAL,
                    'different from': sbol3.SBOL_DIFFERENT_FROM,
                    'same orientation as': sbol3.SBOL_SAME_ORIENTATION_AS,
@@ -420,7 +421,7 @@ def make_composite_part(document, row, composite_parts, linear_products, final_p
         plasmid.constraints.append(sbol3.Constraint(sbol3.SBOL_MEETS, backbone_sub, part_sub))
 
 
-def excel_to_sbol(wb: openpyxl.Workbook, config: dict = None) -> sbol3.Document:
+def excel_to_sbol(wb: openpyxl.Workbook, config: Optional[Dict] = None) -> sbol3.Document:
     """
     Take an open Excel file, return an SBOL document
     :param wb: openpyxl pointer to an Excel file

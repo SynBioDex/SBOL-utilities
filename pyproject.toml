@@ -1,3 +1,48 @@
+[tool.poetry]
+name = "sbol_utilities"
+description = "SBOL utilities"
+version = "1.0a17"
+readme = "README.md"
+authors = ["Your Name <yourname@example.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.7"
+sbol3 = "^1.0b11"
+sbol2 = "^1.4"
+rdflib = "^6.2"
+biopython = "^1.79"
+graphviz = "^0.17"
+tyto = "^1.4"
+openpyxl = "^3.0"
+sbol_factory = "^1.0a11"
+
+[tool.poetry.dev-dependencies]
+pytest = "^6.0"
+interrogate = "^1.5"
+
+[tool.poetry.scripts]
+excel-to-sbol = "sbol_utilities.excel_to_sbol:main"
+graph-sbol = "sbol_utilities.graph_sbol:main"
+sbol-expand-derivations = "sbol_utilities.expand_combinatorial_derivations:main"
+sbol-calculate-sequences = "sbol_utilities.calculate_sequences:main"
+sbol-converter = "sbol_utilities.conversion:main"
+sbol2-to-sbol3 = "sbol_utilities.conversion:sbol2to3"
+sbol3-to-sbol2 = "sbol_utilities.conversion:sbol3to2"
+sbol-to-genbank = "sbol_utilities.conversion:sbol2genbank"
+sbol-to-fasta = "sbol_utilities.conversion:sbol2fasta"
+genbank-to-sbol = "sbol_utilities.conversion:genbank2sbol"
+fasta-to-sbol = "sbol_utilities.conversion:fasta2sbol"
+sbol-diff = "sbol_utilities.sbol_diff:main"
+
+[tool.poetry.extras]
+dev = ["pytest", "interrogate"]
+
+
+[build-system]
+requires = ["poetry-core>=1.1.0"]
+build-backend = "poetry.core.masonry.api"
+
+
 [tool.interrogate]
 
 # custom docstring conventions
