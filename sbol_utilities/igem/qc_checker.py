@@ -10,9 +10,6 @@ class QCChecker:
 
     def __init__(self):
         """Initialize the QC checker.
-
-        Args:
-            qc_json_file: The QC JSON file to use.
         """
         self.entities: Dict[str, QCEntity]
         self.overall_score: QCFieldQualityScore = QCFieldQualityScore()
@@ -20,7 +17,14 @@ class QCChecker:
 
     @staticmethod
     def from_json(schema_json_dict: Dict) -> QCChecker:
-        """Read the QC JSON file and populate the QCChecker object."""
+        """Read the QC JSON file and populate the QCChecker object.
+
+        Args:
+            schema_json_dict (Dict): _description_
+
+        Returns:
+            QCChecker: _description_
+        """        
         # Read the 
         ret = QCChecker()
         for entity_id, entity_dict in schema_json_dict.items():
