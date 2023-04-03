@@ -1,7 +1,7 @@
 from __future__ import annotations
 from copy import copy
 from dataclasses import dataclass
-from typing import Dict, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 from sbol_utilities.igem.qc_default_evaluators import MISSING_VALUE_ERROR, MISSING_VALUE_WARNING, VALIDATION_ERROR
 from sbol_utilities.igem.qc_field_quality_score import QCFieldQualityScore
 
@@ -21,6 +21,14 @@ class QCField:
 
     @staticmethod
     def from_json(field_dict: Dict) -> QCField:
+        """Parse the JSON dict and return a QCField object.
+
+        Args:
+            field_dict (Dict): Field dict from the JSON file.
+
+        Returns:
+            QCField: New QCField object.
+        """
         ret = QCField(
             type = QCFieldType.from_json(field_dict['type']),
             required = field_dict['required'],
@@ -31,7 +39,17 @@ class QCField:
         )
         return ret
 
-    def validate(self, value) -> ValidationResult:
+    def validate(self, value: Any) -> ValidationResult:
+        """Validate the value against the QCField.
+
+        _extended_summary_
+
+        Args:
+            value (Any): Value in the excel
+
+        Returns:
+            ValidationResult: Tuple of (bool, Optional[str]) where the first value is True if the value is valid and the second value is the error message if the value is invalid.
+        """
         # Step 1 - Check if value is present
         # If value is required then we pull missing value error
         if self.required:

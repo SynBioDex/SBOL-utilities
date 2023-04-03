@@ -45,7 +45,7 @@ class CombinatorialDerivationExpander:
         assert all(isinstance(find_top_level(x), sbol3.Collection) or isinstance(find_top_level(x), sbol3.Component) for x in c.members)
         values = [find_top_level(x) for x in id_sort(c.members) if isinstance(find_top_level(x), sbol3.Component)] + \
             id_sort(itertools.chain(*([self.collection_values(x) for x in c.members if isinstance(find_top_level(x), sbol3.Collection)])))
-        logging.debug("Found "+str(len(values))+" values in collection "+c.display_id)
+        logging.debug(f"Found {str(len(values))} values in collection {c.display_id}")
         return values
 
     def cd_variable_values(self, v: sbol3.VariableFeature) -> List[sbol3.Component]:
@@ -54,12 +54,12 @@ class CombinatorialDerivationExpander:
         :param v: Variable to be flattened
         :return: list of Component values found
         """
-        logging.debug("Finding values for " + find_child(v.variable).name)
+        logging.debug(f"Finding values for {find_child(v.variable).name}")
         sub_cd_collections = [self.derivation_to_collection(find_top_level(d)) for d in id_sort(v.variant_derivations)]
         values = [find_top_level(x) for x in id_sort(v.variants)] + \
                  id_sort(itertools.chain(*[self.collection_values(c) for c in id_sort(v.variant_collections)])) + \
                  id_sort(itertools.chain(*(self.collection_values(c) for c in id_sort(sub_cd_collections))))
-        logging.debug("Found " + str(len(values)) + " total values for " + find_child(v.variable).name)
+        logging.debug(f"Found {str(len(values))} total values for {find_child(v.variable).name}")
         return values
 
     def derivation_to_collection(self, cd: sbol3.CombinatorialDerivation) -> sbol3.Collection:
@@ -76,15 +76,15 @@ class CombinatorialDerivationExpander:
         sort_owned_objects(find_top_level(cd.template)) # TODO: https://github.com/SynBioDex/pySBOL3/issues/231
         # we've already converted this CombinatorialDerivation to a Collection, just return the conversion
         if cd in self.expanded_derivations.keys():
-            logging.debug('Found previous expansion of ' + cd.display_id)
+            logging.debug(f"Found previous expansion of {cd.display_id}")
             return self.expanded_derivations[cd]
         # if it doesn't already exist, we'll build it
-        logging.debug("Expanding combinatorial derivation " + cd.display_id)
+        logging.debug(f"Expanding combinatorial derivation {cd.display_id}")
         # first get all of the values
         values = [id_sort(self.cd_variable_values(v)) for v in id_sort(cd.variable_features)]
         # if this is de facto a collection rather than a CD, just return it directly
         if is_library(cd):
-            logging.debug("Interpreting combinatorial derivation " + cd.display_id + " as library")
+            logging.debug(f"Interpreting combinatorial derivation {cd.display_id} as library")
             derivatives = sbol3.Collection(cd.identity + "_collection")
             doc.add(derivatives)
             derivatives.members += values[0]
@@ -96,7 +96,7 @@ class CombinatorialDerivationExpander:
             for a in assignments:
                 # scratch_doc = sbol3.Document()
                 derived = find_top_level(cd.template).clone(cd_assigment_to_display_id(cd, a))
-                logging.debug("Considering derived combination " + derived.display_id)
+                logging.debug(f"Considering derived combination {derived.display_id}")
                 # scratch_doc.add(derived) # add to the scratch document to enable manipulation of children
                 doc.add(derived)  # add to the scratch document to enable manipulation of children
                 # Replace variables with values
@@ -139,7 +139,7 @@ def expand_derivations(targets: List[sbol3.CombinatorialDerivation]) -> List[sbo
     # Output document will contain the derivative collections for each target
     expander = CombinatorialDerivationExpander()
     for cd in targets:
-        logging.info('Expanding derivation '+cd.display_id)
+        logging.info(f"Expanding derivation {cd.display_id}")
         expander.derivation_to_collection(cd)
         logging.info("Expansion finished, producing "+str(len(expander.expanded_derivations[cd].members))+" designs")
 
