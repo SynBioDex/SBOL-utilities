@@ -3,6 +3,7 @@ from typing import Dict, List, Optional, Tuple
 
 from sbol_utilities.igem.qc_entity import QCEntity
 from sbol_utilities.igem.qc_field import QCFieldQualityScore
+from sbol_utilities.igem.qc_input_data import QCInputData
 
 class QCChecker:
     """Class to perform the QC check on a package."""
@@ -14,6 +15,8 @@ class QCChecker:
             qc_json_file: The QC JSON file to use.
         """
         self.entities: Dict[str, QCEntity]
+        self.overall_score: QCFieldQualityScore = QCFieldQualityScore()
+        self.errors: List[Dict[str, Optional[str]]] = [] # Key: location, Value: error/warning message
 
     @staticmethod
     def from_json(schema_json_dict: Dict) -> QCChecker:
@@ -26,7 +29,7 @@ class QCChecker:
 
         return ret
 
-    def perform_qc_check(self, entity_id: str, data_to_validate: Dict) -> Tuple[QCFieldQualityScore, List[Dict[str, Optional[str]]]]:
+    def perform_qc_check(self, entity_id: str, data_to_validate: QCInputData) -> None:
         """Perform the QC check on the package data.
 
         Package data shape Example:
@@ -41,25 +44,15 @@ class QCChecker:
             package_data: The package data to check.
 
         Returns:
-            The package data with the QC check results.
+            None.
         """
-        # Step through each QC section
-        # Step through each QC field
-        # Get the corresponding value from the package data
-        # Validate the value
-        # Compute the total score
-        overall_score = QCFieldQualityScore()
-        errors = []
+
         # Pass the package data to the entity to validate
         entity = self.entities[entity_id]
-        normailization_factor = len(data_to_validate)
+        normailization_factor = len(data_to_validate.data)
         # Since this can be a collection of matching entity types, we need to iterate through each
-        entity_qc_score, entity_error_messages = entity.validate(data_to_validate)
+        entity_qc_score, entity_error_messages = entity.validate(data_to_validate.data)
         # Add the QC score to the item
-        overall_score += entity_qc_score/normailization_factor
+        self.overall_score += entity_qc_score/normailization_factor
         # Add the error messages to the item
-        errors.append(entity_error_messages)
-
-        return overall_score, errors
-
-
+        self.errors.append(entity_error_messages)
