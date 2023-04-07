@@ -60,7 +60,7 @@ class Test2To3Conversion(unittest.TestCase):
             sbol2.Config.setOption(sbol2.ConfigOptions.VALIDATE_ONLINE, validate_online)
         assert len(doc2.componentDefinitions) == 1, f'Expected 1 CD, but found {len(doc2.componentDefinitions)}'
         # TODO: bring this back after resolution of https://github.com/sboltools/sbolgraph/issues/15
-        #assert len(doc2.activities) == 1, f'Expected 1 Activity, but found {len(doc2.activities)}'
+        # assert len(doc2.activities) == 1, f'Expected 1 Activity, but found {len(doc2.activities)}'
         assert len(doc2.sequences) == 1, f'Expected 1 Sequence, but found {len(doc2.sequences)}'
         assert doc2.componentDefinitions[0].identity == 'https://synbiohub.org/public/igem/BBa_J23101'
         assert doc2.componentDefinitions[0].sequences[0] == 'https://synbiohub.org/public/igem/BBa_J23101_sequence'
@@ -158,7 +158,8 @@ class Test2To3Conversion(unittest.TestCase):
         """Test ability to convert from GenBank to SBOL3"""
         # Get the GenBank test document and convert
         tmp_sub = copy_to_tmp(package=['BBa_J23101.gb'])
-        doc3 = convert_from_genbank(os.path.join(tmp_sub, 'BBa_J23101.gb'), 'https://synbiohub.org/public/igem')
+        doc3 = convert_from_genbank(os.path.join(tmp_sub, 'BBa_J23101.gb'), 'https://synbiohub.org/public/igem',
+                                    force_new_converter=False)
 
         # Note: cannot directly round-trip because converter is a) lossy, and b) inserts extra materials
         test_dir = os.path.dirname(os.path.realpath(__file__))
