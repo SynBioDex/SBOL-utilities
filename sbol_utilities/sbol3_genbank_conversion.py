@@ -251,24 +251,24 @@ class GenBankSBOL3Converter:
         :return: int 1 / 0 denoting the status of whether the mappings were created and stored in dictionaries
         """
         if convert_gb2so:
-            logging.info(f"Parsing {gb2so_csv} for GenBank to SO ontology mappings.")
+            logging.debug("Parsing %s for GenBank to SO ontology mappings.", gb2so_csv)
             try:
                 with open(gb2so_csv, mode="r") as csv_file:
                     csv_reader = csv.DictReader(csv_file)
                     for row in csv_reader:
                         self.gb2so_map[row["GenBank_Ontology"]] = row["SO_Ontology"]
             except FileNotFoundError:
-                logging.error(f"No GenBank to SO Ontology Mapping CSV File Exists!")
+                logging.error("No GenBank to SO Ontology Mapping CSV File Exists!")
                 return 0
         if convert_so2gb:
-            logging.info(f"Parsing {so2gb_csv} for SO to GenBank ontology mappings.")
+            logging.debug("Parsing %s for SO to GenBank ontology mappings.", so2gb_csv)
             try:
                 with open(so2gb_csv, mode="r") as csv_file:
                     csv_reader = csv.DictReader(csv_file)
                     for row in csv_reader:
                         self.so2gb_map[row["SO_Ontology"]] = row["GenBank_Ontology"]
             except FileNotFoundError:
-                logging.error(f"No SO to Genbank Ontology Mapping CSV File Exists!")
+                logging.error("No SO to Genbank Ontology Mapping CSV File Exists!")
                 return 0
         return 1
 
@@ -289,22 +289,18 @@ class GenBankSBOL3Converter:
         sbol3.set_namespace(namespace)
         doc = sbol3.Document()
         # create updated py dict to store mappings between gb and so ontologies
-        logging.info(
-            "Creating GenBank and SO ontologies mappings for sequence feature roles"
-        )
-        map_created = self.create_gb2so_role_mappings(
-            gb2so_csv=self.GB2SO_MAPPINGS_CSV, convert_so2gb=False
-        )
+        logging.debug("Creating GenBank and SO ontologies mappings for sequence feature roles")
+        map_created = self.create_gb2so_role_mappings(gb2so_csv=self.GB2SO_MAPPINGS_CSV, convert_so2gb=False)
         if not map_created:
             # TODO: Need better SBOL3-GenBank specific error classes in future
             raise ValueError("Required CSV data files are not present in your package.\n    "
                              "Please reinstall the sbol_utilities package.\n Stopping current conversion process.\n    "
                              "Reverting to legacy converter if new Conversion process is not forced.")
         # access records by parsing gb file using SeqIO class
-        logging.info(f"Parsing Genbank records using SeqIO class.\n    Using GenBank file {gb_file}")
+        logging.debug("Parsing Genbank records using SeqIO class, using GenBank file %s", gb_file)
         for record in list(SeqIO.parse(gb_file, "genbank").records):
             # TODO: Currently we assume only linear or circular topology is possible
-            logging.info("Parsing record - `%s` in genbank file.", record.id)
+            logging.debug("Parsing record - `%s` in genbank file.", record.id)
             topology = "linear"
             if "topology" in record.annotations:
                 topology = record.annotations["topology"]
@@ -340,9 +336,7 @@ class GenBankSBOL3Converter:
             self._handle_features_gb_to_sbol(record, comp, seq)
 
         if write:
-            logging.info(
-                f"Writing created sbol3 document to disk in sorted ntriples format.\n    With path {sbol3_file}"
-            )
+            logging.debug("Writing created sbol3 document to disk in sorted ntriples format: %s", sbol3_file)
             doc.write(fpath=sbol3_file, file_format=sbol3.SORTED_NTRIPLES)
         return doc
 
@@ -363,7 +357,7 @@ class GenBankSBOL3Converter:
         seq_records = []
         # create logs dict to be returned as conversion status of the SBOL3 file provided
         logs: Dict[sbol3.TopLevel, bool] = {}
-        logging.info("Creating GenBank and SO ontologies mappings for sequence feature roles")
+        logging.debug("Creating GenBank and SO ontologies mappings for sequence feature roles")
         # create updated py dict to store mappings between gb and so ontologies
         map_created = self.create_gb2so_role_mappings(so2gb_csv=self.SO2GB_MAPPINGS_CSV, convert_gb2so=False)
         if not map_created:
@@ -372,14 +366,14 @@ class GenBankSBOL3Converter:
                              "Please reinstall the sbol_utilities package.\n Stopping current conversion process.\n    "
                              "Reverting to legacy converter if new Conversion process is not forced.")
         # consider sbol3 objects which are components
-        logging.info(f"Parsing SBOL3 Document components using SBOL3 Document: \n{doc}")
+        logging.debug("Parsing SBOL3 Document components using SBOL3 Document: %s", doc)
         for obj in doc.objects:
             if isinstance(obj, sbol3.TopLevel):
                 # create a key for the top level object if it is not already parsed
                 if obj not in logs:
                     logs[obj] = False
             if isinstance(obj, sbol3.Component):
-                logging.info(f"Parsing component - `{obj.display_id}` in sbol3 document.")
+                logging.debug("Parsing component - `%s` in sbol3 document.", obj.display_id)
                 # NOTE: A single component/record cannot have multiple sequences
                 seq = None  # If no sequence is found for a component
                 if obj.sequences and len(obj.sequences) == 1:
@@ -415,9 +409,7 @@ class GenBankSBOL3Converter:
                 seq_records.append(seq_rec)
         # writing generated genbank document to disk at path provided
         if write:
-            logging.info(
-                f"Writing created genbank file to disk.\n    With path {gb_file}"
-            )
+            logging.debug("Writing created genbank file to disk: %s", gb_file)
             SeqIO.write(seq_records, gb_file, "genbank")
         return {"status": logs, "seqrecords": seq_records}
 
@@ -659,7 +651,7 @@ class GenBankSBOL3Converter:
             feat_name = f"_converted_feature_{ind}"
             if "label" in gb_feat.qualifiers:
                 feat_name = gb_feat.qualifiers["label"][0]
-            logging.info(f"Parsing feature `{feat_name}` for record `{record.id}`")
+            logging.debug("Parsing feature `%s` for record `%s`", feat_name, record.id)
             for gb_loc in gb_feat.location.parts:
                 # Default orientation is "inline" except if complement is specified via strand
                 feat_loc_orientation = sbol3.SO_FORWARD
@@ -754,9 +746,7 @@ class GenBankSBOL3Converter:
             # TODO: Also add ability to parse subcomponent feature type
             # Note: Currently we only parse sequence features from sbol3 to genbank
             if isinstance(obj_feat, sbol3.SequenceFeature):
-                logging.info(
-                    f"Parsing feature `{obj_feat.name}` for component `{obj.display_id}`"
-                )
+                logging.debug("Parsing feature `%s` for component `%s`", obj_feat.name, obj.display_id)
                 # TODO: There may be multiple locations for a feature from sbol3;
                 #       add ability to parse them into a single genbank feature
                 feat_loc_parts = []
