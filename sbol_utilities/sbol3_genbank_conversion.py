@@ -4,7 +4,7 @@ import math
 import sbol3
 import logging
 from collections import OrderedDict
-from typing import Dict, List, Sequence, Union, Optional, Any
+from typing import Dict, List, Sequence, Union, Optional
 from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
@@ -17,7 +17,7 @@ class GenBank_SBOL3_Converter:
     # dictionaries to store feature lookups for terms in GenBank and SO ontologies
     gb2so_map = {}
     so2gb_map = {}
-    ### Conversion Constants :
+    # Conversion Constants :
     # TODO: Temporarily assuming only dna components to be dealt with in genbank files
     COMP_TYPES = [sbol3.SBO_DNA]
     # TODO: Temporarily assuming components to only have the engineered_region role
@@ -28,7 +28,7 @@ class GenBank_SBOL3_Converter:
     BIO_STRAND_FORWARD = 1
     BIO_STRAND_REVERSE = -1
     # Mapping int types to types of locationPositions in GenBank (Before/After/Exact)
-    SBOL_LOCATION_POSITION    = {BeforePosition: 0, ExactPosition: 1, AfterPosition: 2}
+    SBOL_LOCATION_POSITION = {BeforePosition: 0, ExactPosition: 1, AfterPosition: 2}
     GENBANK_LOCATION_POSITION = {0: BeforePosition, 1: ExactPosition, 2: AfterPosition}
     # Default value for the "sequence_version" annotation in GenBank files
     DEFAULT_GB_SEQ_VERSION = 1
@@ -42,7 +42,6 @@ class GenBank_SBOL3_Converter:
     # translations between GenBank and SO ontologies
     GB2SO_MAPPINGS_CSV = os.path.join(os.path.dirname(os.path.realpath(__file__)), "gb2so.csv")
     SO2GB_MAPPINGS_CSV = os.path.join(os.path.dirname(os.path.realpath(__file__)), "so2gb.csv")
-
 
     def __init__(self) -> None:
         """While instantiating an instance of the converter, required builders
@@ -128,7 +127,6 @@ class GenBank_SBOL3_Converter:
         # the SBOL3 parser to build objects with a Location type URI
         sbol3.Document.register_builder(self.Location_GenBank_Extension.GENBANK_RANGE_NS, build_location_extension)
 
-
     class CustomReferenceProperty(sbol3.CustomIdentified):
         """Serves to store information and annotations for 'Reference' objects in
         GenBank file to SBOL3 while parsing so that it may be retrieved back in a round trip
@@ -138,21 +136,20 @@ class GenBank_SBOL3_Converter:
 
         def __init__(self, type_uri=CUSTOM_REFERENCE_NS, identity=None):
             super().__init__(identity=identity, type_uri=type_uri)
-            self.authors    = sbol3.TextProperty(self, f"{self.CUSTOM_REFERENCE_NS}#authors"   , 0, 1)
-            self.comment    = sbol3.TextProperty(self, f"{self.CUSTOM_REFERENCE_NS}#comment"   , 0, 1)
-            self.journal    = sbol3.TextProperty(self, f"{self.CUSTOM_REFERENCE_NS}#journal"   , 0, 1)
-            self.consrtm    = sbol3.TextProperty(self, f"{self.CUSTOM_REFERENCE_NS}#consrtm"   , 0, 1)
-            self.title      = sbol3.TextProperty(self, f"{self.CUSTOM_REFERENCE_NS}#title"     , 0, 1)
+            self.authors = sbol3.TextProperty(self, f"{self.CUSTOM_REFERENCE_NS}#authors", 0, 1)
+            self.comment = sbol3.TextProperty(self, f"{self.CUSTOM_REFERENCE_NS}#comment", 0, 1)
+            self.journal = sbol3.TextProperty(self, f"{self.CUSTOM_REFERENCE_NS}#journal", 0, 1)
+            self.consrtm = sbol3.TextProperty(self, f"{self.CUSTOM_REFERENCE_NS}#consrtm", 0, 1)
+            self.title = sbol3.TextProperty(self, f"{self.CUSTOM_REFERENCE_NS}#title", 0, 1)
             self.medline_id = sbol3.TextProperty(self, f"{self.CUSTOM_REFERENCE_NS}#medline_id", 0, 1)
-            self.pubmed_id  = sbol3.TextProperty(self, f"{self.CUSTOM_REFERENCE_NS}#pubmed_id" , 0, 1)
+            self.pubmed_id = sbol3.TextProperty(self, f"{self.CUSTOM_REFERENCE_NS}#pubmed_id", 0, 1)
             # stores the display id of parent component for a particular CustomReferenceProperty object
-            self.component  = sbol3.TextProperty(self, f"{self.CUSTOM_REFERENCE_NS}#component" , 0, 1)
+            self.component = sbol3.TextProperty(self, f"{self.CUSTOM_REFERENCE_NS}#component", 0, 1)
             # TODO: support cut locations?
             # there can be multiple locations described for a reference, thus upper
             # bound needs to be > 1 in order to use ListProperty
             self.location = sbol3.OwnedObject(
                 self, f"{self.CUSTOM_REFERENCE_NS}#location", 0, math.inf, type_constraint=sbol3.Range)
-
 
     class CustomStructuredCommentProperty(sbol3.CustomIdentified):
         """Serves to store information and annotations for 'Structured_Comment' objects in
@@ -164,7 +161,7 @@ class GenBank_SBOL3_Converter:
 
         def __init__(self, type_uri=CUSTOM_STRUCTURED_COMMENT_NS, identity=None):
             super().__init__(identity=identity, type_uri=type_uri)
-            self.heading   = sbol3.TextProperty(self, f"{self.CUSTOM_STRUCTURED_COMMENT_NS}#heading"  , 0, 1)
+            self.heading = sbol3.TextProperty(self, f"{self.CUSTOM_STRUCTURED_COMMENT_NS}#heading", 0, 1)
             # stores the display id of parent component for a particular CustomReferenceProperty object
             self.component = sbol3.TextProperty(self, f"{self.CUSTOM_STRUCTURED_COMMENT_NS}#component", 0, 1)
             # there can be multiple key/values described for a structured_comment,
@@ -174,7 +171,6 @@ class GenBank_SBOL3_Converter:
             self.structured_values = sbol3.TextProperty(
                 self, f"{self.CUSTOM_STRUCTURED_COMMENT_NS}#structuredValues", 0, math.inf)
 
-
     class Feature_GenBank_Extension(sbol3.SequenceFeature):
         """Overrides the sbol3 SequenceFeature class to include fields to directly read and write
         qualifiers of GenBank features not storeable in any SBOL3 datafield.
@@ -182,13 +178,14 @@ class GenBank_SBOL3_Converter:
         """
         GENBANK_FEATURE_QUALIFIER_NS = "http://www.ncbi.nlm.nih.gov/genbank#featureQualifier"
 
-        def __init__(self, locations: List[sbol3.Location] = [], **kwargs) -> None:
+        def __init__(self, locations: List[sbol3.Location] = None, **kwargs) -> None:
+            if locations is None:
+                locations = []
             # instantiating sbol3 SequenceFeature object
             super().__init__(locations=locations, **kwargs)
             # Setting properties for GenBank's qualifiers not settable in any SBOL3 field.
-            self.qualifier_key   = sbol3.TextProperty(self, f"{self.GENBANK_FEATURE_QUALIFIER_NS}#key"  , 0, math.inf)
+            self.qualifier_key = sbol3.TextProperty(self, f"{self.GENBANK_FEATURE_QUALIFIER_NS}#key", 0, math.inf)
             self.qualifier_value = sbol3.TextProperty(self, f"{self.GENBANK_FEATURE_QUALIFIER_NS}#value", 0, math.inf)
-
 
     class Location_GenBank_Extension(sbol3.Location):
         """Overrides the sbol3 Location class to include fields to store the
@@ -202,11 +199,10 @@ class GenBank_SBOL3_Converter:
                      **kwargs) -> None:
             super().__init__(sequence=sequence, identity=identity, type_uri=type_uri, **kwargs)
             self.start = sbol3.IntProperty(self, f"{self.GENBANK_RANGE_NS}#start", 0, 1)
-            self.end   = sbol3.IntProperty(self, f"{self.GENBANK_RANGE_NS}#end"  , 0, 1)
+            self.end = sbol3.IntProperty(self, f"{self.GENBANK_RANGE_NS}#end", 0, 1)
             # Setting properties for GenBank's location position not settable in any SBOL3 field.
             self.start_position = sbol3.IntProperty(self, f"{self.GENBANK_RANGE_NS}#start_position", 0, 1)
-            self.end_position   = sbol3.IntProperty(self, f"{self.GENBANK_RANGE_NS}#end_position"  , 0, 1)
-
+            self.end_position = sbol3.IntProperty(self, f"{self.GENBANK_RANGE_NS}#end_position", 0, 1)
 
     class Component_GenBank_Extension(sbol3.Component):
         """Overrides the sbol3 Component class to include fields to directly read and write
@@ -219,19 +215,19 @@ class GenBank_SBOL3_Converter:
             # instantiating sbol3 component object
             super().__init__(identity=identity, types=types, **kwargs)
             # Setting properties for GenBank's extraneous properties not settable in any SBOL3 field.
-            self.genbank_seq_version   = sbol3.IntProperty(self , f"{self.GENBANK_EXTRA_PROPERTY_NS}#seq_version", 0, 1)
-            self.genbank_name          = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#name"       , 0, 1)
-            self.genbank_date          = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#date"       , 0, 1)
-            self.genbank_division      = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#division"   , 0, 1)
-            self.genbank_locus         = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#locus"      , 0, 1)
-            self.genbank_molecule_type = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#molecule"   , 0, 1)
-            self.genbank_organism      = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#organism"   , 0, 1)
-            self.genbank_source        = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#source"     , 0, 1)
-            self.genbank_topology      = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#topology"   , 0, 1)
-            self.genbank_gi            = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#gi"         , 0, 1)
-            self.genbank_comment       = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#comment"    , 0, 1)
-            self.genbank_dblink        = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#dbxrefs"    , 0, 1)
-            self.genbank_record_id     = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#id"         , 0, 1)
+            self.genbank_seq_version = sbol3.IntProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#seq_version", 0, 1)
+            self.genbank_name = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#name", 0, 1)
+            self.genbank_date = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#date", 0, 1)
+            self.genbank_division = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#division", 0, 1)
+            self.genbank_locus = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#locus", 0, 1)
+            self.genbank_molecule_type = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#molecule", 0, 1)
+            self.genbank_organism = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#organism", 0, 1)
+            self.genbank_source = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#source", 0, 1)
+            self.genbank_topology = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#topology", 0, 1)
+            self.genbank_gi = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#gi", 0, 1)
+            self.genbank_comment = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#comment", 0, 1)
+            self.genbank_dblink = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#dbxrefs", 0, 1)
+            self.genbank_record_id = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#id", 0, 1)
             # TODO : add note linking issue here
             self.genbank_taxonomy = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#taxonomy", 0, 1)
             self.genbank_keywords = sbol3.TextProperty(self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#keywords", 0, 1)
@@ -239,12 +235,14 @@ class GenBank_SBOL3_Converter:
             self.genbank_accessions = sbol3.TextProperty(
                 self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#accession", 0, math.inf)
             self.fuzzy_features = sbol3.OwnedObject(
-                self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#fuzzyFeature", 0, math.inf, type_constraint=sbol3.SequenceFeature)
+                self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#fuzzyFeature", 0, math.inf,
+                type_constraint=sbol3.SequenceFeature)
             self.genbank_references = sbol3.OwnedObject(
-                self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#reference", 0, math.inf, type_constraint=GenBank_SBOL3_Converter.CustomReferenceProperty)
+                self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#reference", 0, math.inf,
+                type_constraint=GenBank_SBOL3_Converter.CustomReferenceProperty)
             self.genbank_structured_comments = sbol3.OwnedObject(
-                self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#structuredComment", 0, math.inf, type_constraint=GenBank_SBOL3_Converter.CustomStructuredCommentProperty)
-
+                self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#structuredComment", 0, math.inf,
+                type_constraint=GenBank_SBOL3_Converter.CustomStructuredCommentProperty)
 
     def create_GB_SO_role_mappings(self, gb2so_csv: str = GB2SO_MAPPINGS_CSV, so2gb_csv: str = SO2GB_MAPPINGS_CSV,
                                    convert_gb2so: bool = True, convert_so2gb: bool = True) -> int:
@@ -277,7 +275,6 @@ class GenBank_SBOL3_Converter:
                 return 0
         return 1
 
-
     def convert_genbank_to_sbol3(self, gb_file: str, sbol3_file: str = "sbol3.nt", namespace: str = TEST_NAMESPACE,
                                  write: bool = False) -> sbol3.Document:
         """Convert a GenBank document on disk into an SBOL3 document
@@ -303,17 +300,14 @@ class GenBank_SBOL3_Converter:
         )
         if not map_created:
             # TODO: Need better SBOL3-GenBank specific error classes in future
-            raise ValueError(
-                "Required CSV data files are not present in your package.\n    Please reinstall the sbol_utilities package.\n \
-                Stopping current conversion process.\n    Reverting to legacy converter if new Conversion process is not forced."
-            )
+            raise ValueError("Required CSV data files are not present in your package.\n    "
+                             "Please reinstall the sbol_utilities package.\n Stopping current conversion process.\n    "
+                             "Reverting to legacy converter if new Conversion process is not forced.")
         # access records by parsing gb file using SeqIO class
-        logging.info(
-            f"Parsing Genbank records using SeqIO class.\n    Using GenBank file {gb_file}"
-        )
+        logging.info(f"Parsing Genbank records using SeqIO class.\n    Using GenBank file {gb_file}")
         for record in list(SeqIO.parse(gb_file, "genbank").records):
             # TODO: Currently we assume only linear or circular topology is possible
-            logging.info(f"Parsing record - `{record.id}` in genbank file.")
+            logging.info("Parsing record - `%s` in genbank file.", record.id)
             topology = "linear"
             if "topology" in record.annotations:
                 topology = record.annotations["topology"]
@@ -325,12 +319,9 @@ class GenBank_SBOL3_Converter:
             else:
                 extra_comp_types = [sbol3.SO_CIRCULAR]
             # creating component extended Component class to include GenBank extraneous properties
-            comp = self.Component_GenBank_Extension(
-                identity    = sbol3.string_to_display_id(record.name),
-                types       = self.COMP_TYPES + extra_comp_types,
-                roles       = self.COMP_ROLES,
-                description = record.description,
-            )
+            comp = self.Component_GenBank_Extension(identity=sbol3.string_to_display_id(record.name),
+                                                    types=self.COMP_TYPES + extra_comp_types, roles=self.COMP_ROLES,
+                                                    description=record.description)
             # since SBOL3 requires display_id to have only alphanumeric characters and start not with a number;
             # and these constraints are not present in GenBank, we pass the GenBank locus name through a filter
             # helper method ('string_to_display_id'), which conforms it to SBOL's standard, and also store the
@@ -339,11 +330,8 @@ class GenBank_SBOL3_Converter:
             doc.add(comp)
 
             # TODO: Currently we use a fixed method of encoding (IUPAC)
-            seq = sbol3.Sequence(
-                identity = str(comp.display_id) + "_sequence",
-                elements = str(record.seq.lower()),
-                encoding = self.SEQUENCE_ENCODING,
-            )
+            seq = sbol3.Sequence(identity=str(comp.display_id) + "_sequence", elements=str(record.seq.lower()),
+                                 encoding=self.SEQUENCE_ENCODING)
             doc.add(seq)
             comp.sequences = [seq]
 
@@ -360,7 +348,6 @@ class GenBank_SBOL3_Converter:
             )
             doc.write(fpath=sbol3_file, file_format=sbol3.SORTED_NTRIPLES)
         return doc
-
 
     def convert_sbol3_to_genbank(self, sbol3_file: str, doc: sbol3.Document = None, gb_file: str = "genbank.out",
                                  # write: bool = False) -> List[SeqRecord]:
