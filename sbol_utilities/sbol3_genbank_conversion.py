@@ -364,37 +364,11 @@ class GenBank_SBOL3_Converter:
             doc = sbol3.Document()
             doc.read(sbol3_file)
         seq_records = []
-        logging.info(
-            "Creating GenBank and SO ontologies mappings for sequence feature roles"
-        )
         # create logs dict to be returned as conversion status of the SBOL3 file provided
         logs: Dict[sbol3.TopLevel, bool] = {}
-        # create dict to link component with their respective Reference property objects
-        references: Dict[sbol3.Component, List[sbol3.CustomIdentified]] = {}
-        for obj in doc.objects:
-            if isinstance(obj, sbol3.CustomIdentified) and obj.type_uri == self.CustomReferenceProperty.CUSTOM_REFERENCE_NS:
-                component_object = doc.find(str(obj.component))
-                if component_object and isinstance(component_object, sbol3.Component):
-                    references[component_object] = [
-                        obj] if component_object not in references else references[component_object] + [obj]
-                # TODO: Raise error here
-                # else:
-        # create dict to link component with their respective structured comment objects
-        structured_comments: Dict[sbol3.Component, List[sbol3.CustomIdentified]] = {}
-        for obj in doc.objects:
-            if isinstance(
-                    obj, sbol3.CustomIdentified) and obj.type_uri == self.CustomStructuredCommentProperty.CUSTOM_STRUCTURED_COMMENT_NS:
-                component_object = doc.find(str(obj.component))
-                if component_object and isinstance(component_object, sbol3.Component):
-                    structured_comments[component_object] = [
-                        obj] if component_object not in structured_comments else structured_comments[component_object] + [obj]
-                # TODO: Raise error here
-                # else:
-
+        logging.info("Creating GenBank and SO ontologies mappings for sequence feature roles")
         # create updated py dict to store mappings between gb and so ontologies
-        map_created = self.create_GB_SO_role_mappings(
-            so2gb_csv=self.SO2GB_MAPPINGS_CSV, convert_gb2so=False
-        )
+        map_created = self.create_GB_SO_role_mappings(so2gb_csv=self.SO2GB_MAPPINGS_CSV, convert_gb2so=False)
         if not map_created:
             # TODO: Need better SBOL3-GenBank specific error classes in future
             raise ValueError(
@@ -434,7 +408,7 @@ class GenBank_SBOL3_Converter:
                     name=locus_name,
                 )
                 # Resetting extraneous genbank properties from extended component-genbank class
-                self._reset_extra_properties_in_genbank(obj, seq_rec, references, structured_comments)
+                self._reset_extra_properties_in_genbank(obj, seq_rec)
 
                 seq_rec_features = []
                 # recreate all sequence features, and tag all encountered feature
@@ -571,14 +545,11 @@ class GenBank_SBOL3_Converter:
         # 13. GenBank Record Locus
         comp.genbank_locus = record.name
 
-
-    def _reset_extra_properties_in_genbank(self, obj: sbol3.Component, seq_rec: SeqRecord,
-                                           references: Dict[sbol3.Component, List[sbol3.CustomIdentified]], structured_comments: Dict[sbol3.Component, List[sbol3.CustomIdentified]]) -> None:
+    def _reset_extra_properties_in_genbank(self, obj: sbol3.Component, seq_rec: SeqRecord) -> None:
         """Helper function for resetting properties for GenBank's extraneous properties from SBOL3 Document's properties,
         by using a modified, extended SBOL3 Component class, and a new CustomReferenceProperty TopLevel class.
         :param obj: SBOL3 component, extra properties would be stored within it if its an instance of the extended SBOL3 Component class
         :param seq_rec: GenBank SeqRecord instance for the record in which to reset extra properties
-        :param references: Dictionary linking SBOL3 components to their respective list of CustomReferenceProperty objects
         """
         if isinstance(obj, self.Component_GenBank_Extension):
             seq_rec.id = obj.genbank_record_id
