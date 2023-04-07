@@ -12,7 +12,7 @@ from Bio.SeqFeature import SeqFeature, FeatureLocation, Reference, \
     CompoundLocation, BeforePosition, ExactPosition, AfterPosition
 
 
-class GenBank_SBOL3_Converter:
+class GenBankSBOL3Converter:
     """Main Converter class handling offline, direction conversion of files SBOL3 files to and from GenBank files"""
     # dictionaries to store feature lookups for terms in GenBank and SO ontologies
     gb2so_map = {}
@@ -48,7 +48,7 @@ class GenBank_SBOL3_Converter:
         must be registered in order to accurately parse modified or new SBOL3 class objects
         """
         def build_component_genbank_extension(
-                *, identity, type_uri) -> GenBank_SBOL3_Converter.Component_GenBank_Extension:
+                *, identity, type_uri) -> GenBankSBOL3Converter.ComponentGenBankExtension:
             """A builder function to be called by the SBOL3 parser
             when it encounters a Component in an SBOL file.
             :param identity: identity for new component class instance to have
@@ -57,13 +57,13 @@ class GenBank_SBOL3_Converter:
             # `types` is required and not known at build time.
             # Supply a missing value to the constructor, then clear
             # the missing value before returning the built object.
-            obj = self.Component_GenBank_Extension(identity=identity, types=[sbol3.PYSBOL3_MISSING], type_uri=type_uri)
+            obj = self.ComponentGenBankExtension(identity=identity, types=[sbol3.PYSBOL3_MISSING], type_uri=type_uri)
             # Remove the placeholder value
             obj.clear_property(sbol3.SBOL_TYPE)
             return obj
 
         def build_feature_qualifiers_extension(
-                *, identity, type_uri) -> GenBank_SBOL3_Converter.Feature_GenBank_Extension:
+                *, identity, type_uri) -> GenBankSBOL3Converter.FeatureGenBankExtension:
             """A builder function to be called by the SBOL3 parser
             when it encounters a SequenceFeature in an SBOL file.
             :param identity: identity for new feature qualifier class instance to have
@@ -72,12 +72,12 @@ class GenBank_SBOL3_Converter:
             # `types` is required and not known at build time.
             # Supply a missing value to the constructor, then clear
             # the missing value before returning the built object.
-            obj = self.Feature_GenBank_Extension(identity=identity, type_uri=type_uri)
+            obj = self.FeatureGenBankExtension(identity=identity, type_uri=type_uri)
             # Remove the placeholder value
             obj.clear_property(sbol3.SBOL_TYPE)
             return obj
 
-        def build_location_extension(*, identity, type_uri) -> GenBank_SBOL3_Converter.Location_GenBank_Extension:
+        def build_location_extension(*, identity, type_uri) -> GenBankSBOL3Converter.LocationGenBankExtension:
             """A builder function to be called by the SBOL3 parser
             when it encounters a Custom location in an SBOL file.
             :param identity: identity for new Location class instance to have
@@ -86,12 +86,12 @@ class GenBank_SBOL3_Converter:
             # `types` is required and not known at build time.
             # Supply a missing value to the constructor, then clear
             # the missing value before returning the built object.
-            obj = self.Location_GenBank_Extension(identity=identity, type_uri=type_uri)
+            obj = self.LocationGenBankExtension(identity=identity, type_uri=type_uri)
             # Remove the placeholder value
             # obj.clear_property(sbol3.SBOL_TYPE)
             return obj
 
-        def build_custom_reference_property(*, identity, type_uri) -> GenBank_SBOL3_Converter.CustomReferenceProperty:
+        def build_custom_reference_property(*, identity, type_uri) -> GenBankSBOL3Converter.CustomReferenceProperty:
             """A builder function to be called by the SBOL3 parser
             when it encounters a CustomReferenceProperty Toplevel object in an SBOL file.
             :param identity: identity for custom reference property instance to have
@@ -101,7 +101,7 @@ class GenBank_SBOL3_Converter:
             return obj
 
         def build_custom_structured_comment_property(
-                *, identity, type_uri) -> GenBank_SBOL3_Converter.CustomStructuredCommentProperty:
+                *, identity, type_uri) -> GenBankSBOL3Converter.CustomStructuredCommentProperty:
             """A builder function to be called by the SBOL3 parser
             when it encounters a CustomStructuredCommentProperty Toplevel object in an SBOL file.
             :param identity: identity for custom comment property instance to have
@@ -122,7 +122,7 @@ class GenBank_SBOL3_Converter:
         # Register the builder function so SBOL3 parser can build objects with a SequenceFeature type URI
         sbol3.Document.register_builder(sbol3.SBOL_SEQUENCE_FEATURE, build_feature_qualifiers_extension)
         # Register the builder function so SBOL3 parser can build objects with a Location type URI
-        sbol3.Document.register_builder(self.Location_GenBank_Extension.GENBANK_RANGE_NS, build_location_extension)
+        sbol3.Document.register_builder(self.LocationGenBankExtension.GENBANK_RANGE_NS, build_location_extension)
 
     class CustomReferenceProperty(sbol3.CustomIdentified):
         """Serves to store information and annotations for 'Reference' objects in
@@ -168,7 +168,7 @@ class GenBank_SBOL3_Converter:
             self.structured_values = sbol3.TextProperty(
                 self, f"{self.CUSTOM_STRUCTURED_COMMENT_NS}#structuredValues", 0, math.inf)
 
-    class Feature_GenBank_Extension(sbol3.SequenceFeature):
+    class FeatureGenBankExtension(sbol3.SequenceFeature):
         """Overrides the sbol3 SequenceFeature class to include fields to directly read and write
         qualifiers of GenBank features not storable in any SBOL3 data field.
         :extends: sbol3.SequenceFeature class
@@ -184,7 +184,7 @@ class GenBank_SBOL3_Converter:
             self.qualifier_key = sbol3.TextProperty(self, f"{self.GENBANK_FEATURE_QUALIFIER_NS}#key", 0, math.inf)
             self.qualifier_value = sbol3.TextProperty(self, f"{self.GENBANK_FEATURE_QUALIFIER_NS}#value", 0, math.inf)
 
-    class Location_GenBank_Extension(sbol3.Location):
+    class LocationGenBankExtension(sbol3.Location):
         """Overrides the sbol3 Location class to include fields to store the
         start and end position types (AfterPosition / BeforePosition / ExactPosition).
         :extends: sbol3.Location class
@@ -201,7 +201,7 @@ class GenBank_SBOL3_Converter:
             self.start_position = sbol3.IntProperty(self, f"{self.GENBANK_RANGE_NS}#start_position", 0, 1)
             self.end_position = sbol3.IntProperty(self, f"{self.GENBANK_RANGE_NS}#end_position", 0, 1)
 
-    class Component_GenBank_Extension(sbol3.Component):
+    class ComponentGenBankExtension(sbol3.Component):
         """Overrides the sbol3 Component class to include fields to directly read and write
         extraneous properties of GenBank not storable in any SBOL3 data field.
         :extends: sbol3.Component class
@@ -236,12 +236,12 @@ class GenBank_SBOL3_Converter:
                 type_constraint=sbol3.SequenceFeature)
             self.genbank_references = sbol3.OwnedObject(
                 self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#reference", 0, math.inf,
-                type_constraint=GenBank_SBOL3_Converter.CustomReferenceProperty)
+                type_constraint=GenBankSBOL3Converter.CustomReferenceProperty)
             self.genbank_structured_comments = sbol3.OwnedObject(
                 self, f"{self.GENBANK_EXTRA_PROPERTY_NS}#structuredComment", 0, math.inf,
-                type_constraint=GenBank_SBOL3_Converter.CustomStructuredCommentProperty)
+                type_constraint=GenBankSBOL3Converter.CustomStructuredCommentProperty)
 
-    def create_GB_SO_role_mappings(self, gb2so_csv: str = GB2SO_MAPPINGS_CSV, so2gb_csv: str = SO2GB_MAPPINGS_CSV,
+    def create_gb2so_role_mappings(self, gb2so_csv: str = GB2SO_MAPPINGS_CSV, so2gb_csv: str = SO2GB_MAPPINGS_CSV,
                                    convert_gb2so: bool = True, convert_so2gb: bool = True) -> int:
         """Reads 2 CSV Files containing mappings for converting between GenBank and SequenceOntology (SO) roles
         :param gb2so_csv: path to read genbank to so conversion csv file
@@ -292,7 +292,7 @@ class GenBank_SBOL3_Converter:
         logging.info(
             "Creating GenBank and SO ontologies mappings for sequence feature roles"
         )
-        map_created = self.create_GB_SO_role_mappings(
+        map_created = self.create_gb2so_role_mappings(
             gb2so_csv=self.GB2SO_MAPPINGS_CSV, convert_so2gb=False
         )
         if not map_created:
@@ -316,9 +316,9 @@ class GenBank_SBOL3_Converter:
             else:
                 extra_comp_types = [sbol3.SO_CIRCULAR]
             # creating component extended Component class to include GenBank extraneous properties
-            comp = self.Component_GenBank_Extension(identity=sbol3.string_to_display_id(record.name),
-                                                    types=self.COMP_TYPES + extra_comp_types, roles=self.COMP_ROLES,
-                                                    description=record.description)
+            comp = self.ComponentGenBankExtension(identity=sbol3.string_to_display_id(record.name),
+                                                  types=self.COMP_TYPES + extra_comp_types, roles=self.COMP_ROLES,
+                                                  description=record.description)
             # since SBOL3 requires display_id to have only alphanumeric characters and start not with a number;
             # and these constraints are not present in GenBank, we pass the GenBank locus name through a filter
             # helper method ('string_to_display_id'), which conforms it to SBOL's standard, and also store the
@@ -365,7 +365,7 @@ class GenBank_SBOL3_Converter:
         logs: Dict[sbol3.TopLevel, bool] = {}
         logging.info("Creating GenBank and SO ontologies mappings for sequence feature roles")
         # create updated py dict to store mappings between gb and so ontologies
-        map_created = self.create_GB_SO_role_mappings(so2gb_csv=self.SO2GB_MAPPINGS_CSV, convert_gb2so=False)
+        map_created = self.create_gb2so_role_mappings(so2gb_csv=self.SO2GB_MAPPINGS_CSV, convert_gb2so=False)
         if not map_created:
             # TODO: Need better SBOL3-GenBank specific error classes in future
             raise ValueError("Required CSV data files are not present in your package.\n    "
@@ -395,7 +395,7 @@ class GenBank_SBOL3_Converter:
                 # Locus name for the sequence record is just the display id if SBOL3 component was not extended
                 # to include extraneous properties (in which case, we use the directly stored 'genbank_name' field)
                 locus_name = obj.display_id
-                if isinstance(obj, self.Component_GenBank_Extension) and obj.genbank_name:
+                if isinstance(obj, self.ComponentGenBankExtension) and obj.genbank_name:
                     locus_name = obj.genbank_name
                 seq_rec = SeqRecord(
                     seq=seq,
@@ -421,7 +421,7 @@ class GenBank_SBOL3_Converter:
             SeqIO.write(seq_records, gb_file, "genbank")
         return {"status": logs, "seqrecords": seq_records}
 
-    def _store_extra_properties_in_sbol3(self, comp: Component_GenBank_Extension,
+    def _store_extra_properties_in_sbol3(self, comp: ComponentGenBankExtension,
                                          seq: sbol3.Sequence, record: SeqRecord) -> None:
         """Helper function for setting properties for GenBank's extraneous properties not directly settable in any
         SBOL3 field, using a modified, extended SBOL3 Component class, and a new CustomReferenceProperty TopLevel class.
@@ -543,7 +543,7 @@ class GenBank_SBOL3_Converter:
         :param obj: SBOL3 component, extra properties are stored within if an instance of the extended class
         :param seq_rec: GenBank SeqRecord instance for the record in which to reset extra properties
         """
-        if isinstance(obj, self.Component_GenBank_Extension):
+        if isinstance(obj, self.ComponentGenBankExtension):
             seq_rec.id = obj.genbank_record_id
             # set db links using dbxrefs property of biopython
             if obj.genbank_dblink:
@@ -641,7 +641,7 @@ class GenBank_SBOL3_Converter:
         # TODO: temporarily hard coding version as "1"
         seq_rec.annotations["sequence_version"] = self.DEFAULT_GB_SEQ_VERSION
 
-    def _handle_features_gb_to_sbol(self, record: SeqRecord, comp: Component_GenBank_Extension,
+    def _handle_features_gb_to_sbol(self, record: SeqRecord, comp: ComponentGenBankExtension,
                                     seq: sbol3.Sequence) -> None:
         """Helper function for setting sequence features and their qualifiers to SBOL,
         by using a modified, extended SBOL3 Sequence Feature class - Feature_GenBank_Extension.
@@ -686,7 +686,7 @@ class GenBank_SBOL3_Converter:
                     # If either or both of start and end locations are fuzzy, then
                     # the location object needs to be of the custom class 'Location_GenBank_Extension'
                     else:
-                        locs = self.Location_GenBank_Extension(sequence=seq, orientation=feat_loc_orientation)
+                        locs = self.LocationGenBankExtension(sequence=seq, orientation=feat_loc_orientation)
                         # start and end int positions specified
                         locs.end = int(gb_loc.end)
                         # add 1, as BioPython parses GenBank start locations as 0-indexed instead of 1-indexed
@@ -706,13 +706,14 @@ class GenBank_SBOL3_Converter:
                 feat_role += self.gb2so_map[gb_feat.type]
             else:
                 logging.warning(f"Feature type: `{gb_feat.type}` for feature: `{gb_feat.qualifiers['label'][0]}` \n \
-                of record: `{record.name}` has no corresponding ontology term for SO, using the default SO term, {self.DEFAULT_SO_TERM}")
+                of record: `{record.name}` has no corresponding ontology term for SO, using the default SO term, "
+                                f"{self.DEFAULT_SO_TERM}")
                 feat_role += self.DEFAULT_SO_TERM
             # assign feature orientation based on the strand value in genbank feature
             feat_orientation = sbol3.SO_FORWARD
             if gb_feat.strand == -1:
                 feat_orientation = sbol3.SO_REVERSE
-            feat = self.Feature_GenBank_Extension(
+            feat = self.FeatureGenBankExtension(
                 locations=feat_locations,
                 roles=[feat_role],
                 # name=gb_feat.qualifiers["label"][0],
@@ -720,9 +721,9 @@ class GenBank_SBOL3_Converter:
                 orientation=feat_orientation
             )
             # store qualifiers key value pairs
-            for ind, qualifier in enumerate(gb_feat.qualifiers):
-                feat.qualifier_key.append(f"{ind}:" + qualifier)
-                feat.qualifier_value.append(f"{ind}:" + gb_feat.qualifiers[qualifier][0])
+            for index, qualifier in enumerate(gb_feat.qualifiers):
+                feat.qualifier_key.append(f"{index}:" + qualifier)
+                feat.qualifier_value.append(f"{index}:" + gb_feat.qualifiers[qualifier][0])
             # if feature has any fuzzy location, since SBOL does not support storing such location endpoints,
             # instead of presenting incomplete/incorrect information to users, we would store the feature assume
             # a property of the Extended GenBank Component class, instead as a feature of the component.
@@ -734,7 +735,7 @@ class GenBank_SBOL3_Converter:
             else:
                 comp.fuzzy_features.append(feat)
 
-    def _handle_features_sbol_to_gb(self, seq_rec: SeqRecord, obj: Component_GenBank_Extension) -> None:
+    def _handle_features_sbol_to_gb(self, seq_rec: SeqRecord, obj: ComponentGenBankExtension) -> None:
         """Helper function for resetting sequence features and their qualifiers to GenBank,
         by using a modified, extended SBOL3 Sequence Feature class - Feature_GenBank_Extension.
         :param seq_rec: GenBank SeqRecord instance for the record which contains sequence features
@@ -746,7 +747,7 @@ class GenBank_SBOL3_Converter:
         seq_rec_features = []
         # for round trip conversion, consider all features - exact and fuzzy ones too
         all_features = list(obj.features)
-        if isinstance(obj, self.Component_GenBank_Extension):
+        if isinstance(obj, self.ComponentGenBankExtension):
             all_features += list(obj.fuzzy_features)
         # converting all sequence features
         for obj_feat in all_features:
@@ -758,10 +759,10 @@ class GenBank_SBOL3_Converter:
                 )
                 # TODO: There may be multiple locations for a feature from sbol3;
                 #       add ability to parse them into a single genbank feature
-                feat_loc_parts     = []
-                feat_loc_object    = None
+                feat_loc_parts = []
+                feat_loc_object = None
                 feat_loc_positions = []
-                feat_strand        = self.BIO_STRAND_FORWARD
+                feat_strand = self.BIO_STRAND_FORWARD
                 for obj_feat_loc in obj_feat.locations:
                     feat_strand = self.BIO_STRAND_FORWARD
                     # feature strand value which denotes orientation of the location of the feature
@@ -774,18 +775,20 @@ class GenBank_SBOL3_Converter:
                         Valid orientations are `{sbol3.SO_FORWARD}`, `{sbol3.SO_REVERSE}`")
                     # TODO: Raise custom converter class ERROR for `else:`
                     # creating start and end Positions
-                    endPosition = ExactPosition(obj_feat_loc.end)
+                    end_position = ExactPosition(obj_feat_loc.end)
                     # subtract 1, as BioPython parses GenBank start locations as 0-indexed instead of 1-indexed
-                    startPosition = ExactPosition(int(obj_feat_loc.start) - 1)
+                    start_position = ExactPosition(int(obj_feat_loc.start) - 1)
                     # if custom range object, check for position being Before / After Positions
-                    if isinstance(obj_feat_loc, self.Location_GenBank_Extension):
+                    if isinstance(obj_feat_loc, self.LocationGenBankExtension):
                         # change end and start Positions only if user has made integer entries into them
                         if obj_feat_loc.end_position is not None:
-                            endPosition = self.GENBANK_LOCATION_POSITION[obj_feat_loc.end_position](obj_feat_loc.end)
+                            position_class = self.GENBANK_LOCATION_POSITION[obj_feat_loc.end_position]
+                            end_position = position_class(obj_feat_loc.end)
                         if obj_feat_loc.start_position is not None:
+                            position_class = self.GENBANK_LOCATION_POSITION[obj_feat_loc.start_position]
                             # subtract 1, as BioPython parses GenBank start locations as 0-indexed instead of 1-indexed
-                            startPosition = self.GENBANK_LOCATION_POSITION[obj_feat_loc.start_position](int(obj_feat_loc.start) - 1)
-                    feat_loc_object = FeatureLocation(start=startPosition, end=endPosition, strand=feat_strand)
+                            start_position = position_class(int(obj_feat_loc.start) - 1)
+                    feat_loc_object = FeatureLocation(start=start_position, end=end_position, strand=feat_strand)
                     feat_loc_parts.append(feat_loc_object)
                 # sort feature locations lexicographically internally first
                 # NOTE: If the feature location has an outer "complement" location
@@ -794,8 +797,8 @@ class GenBank_SBOL3_Converter:
                     feat_loc_parts.sort(key=lambda loc: (loc.start, loc.end, loc.strand), reverse=True)
                 else:
                     feat_loc_parts.sort(key=lambda loc: (loc.start, loc.end, loc.strand))
-                for loc in feat_loc_parts:
-                    feat_loc_positions += [loc.start, loc.end]
+                for location in feat_loc_parts:
+                    feat_loc_positions += [location.start, location.end]
                 if len(feat_loc_parts) > 1:
                     feat_loc_object = CompoundLocation(parts=feat_loc_parts, operator="join")
                 elif len(feat_loc_parts) == 1:
@@ -822,16 +825,17 @@ class GenBank_SBOL3_Converter:
                 # create sequence feature object with label qualifier
                 # TODO: create issue for presence of genbank file with features without the "label" qualifier
                 # TODO: feat_strand value ambiguous in case of multiple locations?
-                feat = SeqFeature(
+                feature = SeqFeature(
                     location=feat_loc_object, strand=feat_strand, type=feat_role
                 )
-                feat.loc_positions = feat_loc_positions
-                if isinstance(obj_feat, self.Feature_GenBank_Extension):
+                feature.loc_positions = feat_loc_positions
+                if isinstance(obj_feat, self.FeatureGenBankExtension):
                     keys = sorted(obj_feat.qualifier_key, key=lambda x: int(x.split(":", 1)[0]))
                     values = sorted(obj_feat.qualifier_value, key=lambda x: int(x.split(":", 1)[0]))
                     for qualifier_ind in range(len(keys)):
-                        feat.qualifiers[keys[qualifier_ind].split(":", 1)[1]] = values[qualifier_ind].split(":", 1)[1]
-                seq_rec_features.append(feat)
+                        feature.qualifiers[keys[qualifier_ind].split(":", 1)[1]] = \
+                            values[qualifier_ind].split(":", 1)[1]
+                seq_rec_features.append(feature)
 
         # Sort features based on feature location start/end, lexicographically, and then by
         # strand / number of qualifiers / type of feature string comparison

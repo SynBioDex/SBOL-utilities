@@ -15,7 +15,7 @@ from Bio.Seq import Seq
 
 from sbol_utilities.helper_functions import strip_sbol2_version, GENETIC_DESIGN_FILE_TYPES, \
     find_top_level
-from sbol_utilities.sbol3_genbank_conversion import GenBank_SBOL3_Converter
+from sbol_utilities.sbol3_genbank_conversion import GenBankSBOL3Converter
 from sbol_utilities.workarounds import id_sort
 
 # sbol javascript executable based on https://github.com/sboltools/sbolgraph
@@ -304,7 +304,7 @@ def convert_from_genbank(path: str, namespace: str, allow_genbank_online: bool =
     :return: SBOL3 document containing converted materials
     """
     if force_new_converter:
-        converter = GenBank_SBOL3_Converter()
+        converter = GenBankSBOL3Converter()
         return converter.convert_genbank_to_sbol3(gb_file=path, namespace=namespace, write=False)
     doc2 = sbol2.Document()
     sbol2.setHomespace(namespace)
@@ -332,7 +332,7 @@ def convert_to_genbank(doc3: sbol3.Document, path: str, allow_genbank_online: bo
     :return: BioPython SeqRecord of the GenBank that was written
     """
     if force_new_converter:
-        converter = GenBank_SBOL3_Converter()
+        converter = GenBankSBOL3Converter()
         result_dict = converter.convert_sbol3_to_genbank(sbol3_file=None, doc=doc3, gb_file=path, write=True)
         return result_dict["seqrecords"]
     # first convert to SBOL2, then export to a temp GenBank file

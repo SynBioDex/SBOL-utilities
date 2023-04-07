@@ -5,12 +5,12 @@ import os
 from pathlib import Path
 from helpers import copy_to_tmp
 from sbol_utilities.sbol_diff import doc_diff
-from sbol_utilities.sbol3_genbank_conversion import GenBank_SBOL3_Converter
+from sbol_utilities.sbol3_genbank_conversion import GenBankSBOL3Converter
 
 
 class TestGenBankSBOL3(unittest.TestCase):
     # Create converter instance
-    converter = GenBank_SBOL3_Converter()
+    converter = GenBankSBOL3Converter()
 
     def _test_genbank_to_sbol3(self, sample_sbol3_file: Path, sample_genbank_file: Path):
         """Helper method to test conversion of a given GenBank file to SBOL3 using new converter.
