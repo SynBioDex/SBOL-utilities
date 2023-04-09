@@ -74,7 +74,7 @@
 <https://test.sbol3.genbank/pSB1C3/SequenceFeature1/Range1> <http://sbols.org/v3#displayId> "Range1" .
 <https://test.sbol3.genbank/pSB1C3/SequenceFeature1/Range1> <http://sbols.org/v3#end> "21"^^<http://www.w3.org/2001/XMLSchema#integer> .
 <https://test.sbol3.genbank/pSB1C3/SequenceFeature1/Range1> <http://sbols.org/v3#hasSequence> <https://test.sbol3.genbank/pSB1C3_sequence> .
-<https://test.sbol3.genbank/pSB1C3/SequenceFeature1/Range1> <http://sbols.org/v3#orientation> <https://identifiers.org/SO:0001030> .
+<https://test.sbol3.genbank/pSB1C3/SequenceFeature1/Range1> <http://sbols.org/v3#orientation> <http://sbols.org/v3#inline> .
 <https://test.sbol3.genbank/pSB1C3/SequenceFeature1/Range1> <http://sbols.org/v3#start> "0"^^<http://www.w3.org/2001/XMLSchema#integer> .
 <https://test.sbol3.genbank/pSB1C3/SequenceFeature1/Range1> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://sbols.org/v3#Range> .
 <https://test.sbol3.genbank/pSB1C3/SequenceFeature10/Range1> <http://sbols.org/v3#displayId> "Range1" .
@@ -252,3 +252,16 @@
 <https://test.sbol3.genbank/pSB1C3_sequence> <http://sbols.org/v3#hasNamespace> <https://test.sbol3.genbank/> .
 <https://test.sbol3.genbank/pSB1C3_sequence> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://sbols.org/v3#Sequence> .
 <https://synbiohub.programmingbiology.org/public/Eco1C1G1T1/attachment_2a6ef492b29345cb92c0b0e738f30881> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://sbols.org/v3#Attachment> .
+<http://sbolstandard.org/testfiles/CompositeParts> <http://sbols.org/v3#description> "Collection to be ignored by GenBank export" .
+<http://sbolstandard.org/testfiles/CompositeParts> <http://sbols.org/v3#displayId> "CompositeParts" .
+<http://sbolstandard.org/testfiles/CompositeParts> <http://sbols.org/v3#hasNamespace> <http://sbolstandard.org/testfiles> .
+<http://sbolstandard.org/testfiles/CompositeParts> <http://sbols.org/v3#member> <https://test.sbol3.genbank/pSB1C3> .
+<http://sbolstandard.org/testfiles/CompositeParts> <http://sbols.org/v3#member> <https://test.sbol3.genbank/pSB1C3_sequence> .
+<http://sbolstandard.org/testfiles/CompositeParts> <http://sbols.org/v3#name> "Collection to be ignored" .
+<http://sbolstandard.org/testfiles/CompositeParts> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://sbols.org/v3#Collection> .
+<http://sbolstandard.org/testfiles/Multicolor_expression> <http://sbols.org/v3#displayId> "Multicolor_expression" .
+<http://sbolstandard.org/testfiles/Multicolor_expression> <http://sbols.org/v3#hasNamespace> <http://sbolstandard.org/testfiles> .
+<http://sbolstandard.org/testfiles/Multicolor_expression> <http://sbols.org/v3#name> "Combinatorial derivation to be ignored" .
+<http://sbolstandard.org/testfiles/Multicolor_expression> <http://sbols.org/v3#strategy> <http://sbols.org/v3#enumerate> .
+<http://sbolstandard.org/testfiles/Multicolor_expression> <http://sbols.org/v3#template> <https://test.sbol3.genbank/pSB1C3> .
+<http://sbolstandard.org/testfiles/Multicolor_expression> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://sbols.org/v3#CombinatorialDerivation> .

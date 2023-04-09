@@ -2,7 +2,7 @@ import difflib
 import tempfile
 import os
 from shutil import copy
-from typing import List, Dict
+from typing import List, Dict, Union
 
 
 def copy_to_tmp(package: List[str] = None, renames: Dict[str, str] = None) -> str:
@@ -29,7 +29,7 @@ def copy_to_tmp(package: List[str] = None, renames: Dict[str, str] = None) -> st
     return tmp_sub
 
 
-def assert_files_identical(file1: os.PathLike, file2: os.PathLike) -> None:
+def assert_files_identical(file1: Union[os.PathLike, str], file2: Union[os.PathLike, str]) -> None:
     """check if two files are identical; if not, report their diff
     :param file1: path of first file to compare
     :param file2: path of second file to compare
