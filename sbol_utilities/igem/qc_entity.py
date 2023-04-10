@@ -13,6 +13,14 @@ class QCEntity:
 
     @staticmethod
     def from_json(entity_dict: Dict) -> QCEntity:
+        """Convert the JSON entity to a QCEntity object.
+
+        Args:
+            entity_dict (Dict): JSON dictionary of the entity.
+
+        Returns:
+            QCEntity: The QCEntity object.
+        """
         ret = QCEntity()
         for field_id, field_dict in entity_dict['fields'].items():
             field = QCField.from_json(field_dict)
@@ -20,6 +28,14 @@ class QCEntity:
         return ret
 
     def validate(self, data: Dict) -> Tuple[QCFieldQualityScore, Dict[str, Optional[str]]]:
+        """Validate the data against the entity.
+
+        Args:
+            data (Dict): JSON dictionary of the data to validate.
+
+        Returns:
+            Tuple[QCFieldQualityScore, Dict[str, Optional[str]]]: The QC score and the validation messages.
+        """        
         entity_score = QCFieldQualityScore()
         entity_validation_messages: Dict[str, Optional[str]] = {}
         for field_id, field in self.fields.items():
