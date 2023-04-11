@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import sys
 import tempfile
 import unittest
@@ -13,17 +15,18 @@ from sbol_utilities.conversion import convert2to3, convert3to2, convert_to_genba
     convert_from_fasta, convert_from_genbank, \
     main, sbol2fasta, sbol2genbank, sbol2to3, sbol3to2, fasta2sbol, genbank2sbol
 from sbol_utilities.sbol3_genbank_conversion import GenBankSBOL3Converter
-from helpers import copy_to_tmp
+from helpers import copy_to_tmp, assert_files_identical
 from sbol_utilities.sbol_diff import doc_diff
 # TODO: Add command-line utilities and test them too
+
+TEST_FILES = Path(__file__).parent / 'test_files'
 
 
 class Test2To3Conversion(unittest.TestCase):
     def test_convert_identities(self):
         """Test conversion of a complex file"""
         test_dir = os.path.dirname(os.path.realpath(__file__))
-        input_path = os.path.join(test_dir, 'test_files', 'sbol3-small-molecule.rdf')
-        doc = convert2to3(input_path)
+        doc = convert2to3(str(TEST_FILES / 'sbol3-small-molecule.rdf'))
         # check for issues in converted document
         report = doc.validate()
         assert len(report) == 0, "\n".join(str(issue) for issue in report)
@@ -149,10 +152,7 @@ class Test2To3Conversion(unittest.TestCase):
         # Convert to GenBank and check contents
         outfile = os.path.join(tmp_sub, 'BBa_J23101.gb')
         convert_to_genbank(doc3, outfile)
-
-        test_dir = os.path.dirname(os.path.realpath(__file__))
-        comparison_file = os.path.join(test_dir, 'test_files', 'BBa_J23101.gb')
-        assert filecmp.cmp(outfile, comparison_file), f'Converted GenBank file {comparison_file} is not identical'
+        assert_files_identical(outfile, TEST_FILES / 'BBa_J23101.gb')
 
     def test_conversion_from_genbank(self):
         """Test ability to convert from GenBank to SBOL3"""
@@ -178,9 +178,7 @@ class Test2To3Conversion(unittest.TestCase):
         # Convert to GenBank and check contents
         outfile = os.path.join(tmp_sub, 'BBa_J23101.gb')
         convert_to_genbank(doc3=doc3, path=outfile, allow_genbank_online=False, force_new_converter=True)
-        test_dir = os.path.dirname(os.path.realpath(__file__))
-        comparison_file = os.path.join(test_dir, 'test_files', 'sbol3_genbank_conversion', 'BBa_J23101_from_sbol3_direct.gb')
-        assert filecmp.cmp(outfile, comparison_file), f'Converted GenBank file {comparison_file} is not identical'
+        assert_files_identical(outfile, TEST_FILES / 'sbol3_genbank_conversion' / 'BBa_J23101_from_sbol3_direct.gb')
 
     def test_conversion_from_genbank_new_converter(self):
         """Test ability to convert from GenBank to SBOL3 using new converter
@@ -208,11 +206,8 @@ class Test2To3Conversion(unittest.TestCase):
 
         # Convert to GenBank and check contents
         outfile = os.path.join(tmp_sub, 'iGEM_SBOL2_imports.gb')
-        convert_to_genbank(doc3, outfile)
-
-        test_dir = os.path.dirname(os.path.realpath(__file__))
-        comparison_file = os.path.join(test_dir, 'test_files', 'iGEM_SBOL2_imports.gb')
-        assert filecmp.cmp(outfile, comparison_file), f'Converted GenBank file {comparison_file} is not identical'
+        convert_to_genbank(doc3, outfile, force_new_converter=False)
+        assert_files_identical(outfile, TEST_FILES / 'iGEM_SBOL2_imports.gb')
 
     def test_fasta_conversion(self):
         """Test ability to convert from SBOL3 to FASTA"""
