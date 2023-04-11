@@ -61,6 +61,12 @@ setup(name='sbol-utilities',
                                 'sbol-diff=sbol_utilities.sbol_diff:main']
       },
       packages=['sbol_utilities'],
-      package_data={'sbol_utilities': ['sbolgraph-standalone.js']},
+      package_data={
+          'sbol_utilities': [
+              'gb2so.csv',
+              'sbolgraph-standalone.js',
+              'so2gb.csv',
+          ],
+      },
       include_package_data=True
       )
