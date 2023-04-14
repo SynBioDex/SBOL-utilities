@@ -1,7 +1,8 @@
+import difflib
 import tempfile
 import os
 from shutil import copy
-from typing import List, Dict
+from typing import List, Dict, Union
 
 
 def copy_to_tmp(package: List[str] = None, renames: Dict[str, str] = None) -> str:
@@ -26,3 +27,17 @@ def copy_to_tmp(package: List[str] = None, renames: Dict[str, str] = None) -> st
     for old_f, new_f in renames.items():
         copy(os.path.join(test_dir, 'test_files', old_f), os.path.join(tmp_sub, new_f))
     return tmp_sub
+
+
+def assert_files_identical(file1: Union[os.PathLike, str], file2: Union[os.PathLike, str]) -> None:
+    """check if two files are identical; if not, report their diff
+    :param file1: path of first file to compare
+    :param file2: path of second file to compare
+    :return: true if
+    """
+    with open(file1, 'r') as f1:
+        with open(file2, 'r') as f2:
+            diff = difflib.unified_diff(f1.readlines(), f2.readlines(), fromfile=str(file1), tofile=str(file2))
+    diff_str = ''.join(diff)
+    if diff_str:
+        raise AssertionError("File differs from expected value:\n" + diff_str)

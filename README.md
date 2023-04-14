@@ -1,5 +1,7 @@
 # SBOL-utilities
+
 SBOL-utilities is a collection of scripts and functions for manipulating SBOL 3 data that can be run from the command line or as functions in Python.
+[Additional documentation is online at readthedocs.io](https://sbol-utilities.readthedocs.io/en/latest/).
 
 [![Documentation Status](https://readthedocs.org/projects/sbol-utilities/badge/?version=latest)](http://sbol-utilities.readthedocs.io/)
 [![Docstrings Coverage](https://github.com/SynBioDex/SBOL-utilities/actions/workflows/docstr-coverage.yml/badge.svg)](https://github.com/SynBioDex/SBOL-utilities/actions/workflows/docstr-coverage.yml)
@@ -21,6 +23,7 @@ pip3 install sbol-utilities
 Certain utilities also have non-Python dependencies, which must be installed separately:
 - `graph-sbol` requires [Graphviz](https://graphviz.org/) to be able to render diagrams.
 - `sbol-converter` requires [node.js](https://nodejs.org/en/) to be able to locally run Javascript.
+
 
 ## Utilities
 
@@ -54,9 +57,9 @@ The `excel-to-sbol` utility reads an Excel file specifying a library of basic an
 The `sbol-converter` utility converts between any of the SBOL3, SBOL2, GenBank, and FASTA formats.
 
 Additional "macro" utilities convert specifically between SBOL3 and one of the other formats: 
-- `sbol2fasta` and `fasta2sbol` convert from SBOL3 to FASTA and vice versa
-- `sbol2genbank` and `genbank2sbol` convert from SBOL3 to GenBank and vice versa
-- `sbol3to2` and `sbol2to3` convert to and from SBOL2
+- `sbol-to-fasta` and `fasta-to-sbol` convert from SBOL3 to FASTA and vice versa
+- `sbol-to-genbank` and `genbank-to-sbol` convert from SBOL3 to GenBank and vice versa
+- `sbol3-to-sbol2` and `sbol2-to-sbol3` convert to and from SBOL2
 
 ### Expand the combinatorial derivations in an SBOL file
 
@@ -69,3 +72,9 @@ The `sbol-calculate-sequences` utility attempts to calculate the sequence of any
 ### Compute the difference between two SBOL3 documents
 The `sbol-diff` utility computes the difference between two SBOL3 documents
 and reports the differences.
+
+
+## Contributing
+
+We welcome contributions that patch bugs, improve existing utilities or documentation, or add new utilities!
+For guidance on how to contribute effectively to this project, see [CONTRIBUTING.md](CONTRIBUTING.md).

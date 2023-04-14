@@ -21,6 +21,21 @@ def tyto_lookup_with_caching(term: str) -> str:
     return tyto.SO.get_uri_by_term(term)
 
 
+# TODO: remove kludge after resolution of https://github.com/SynBioDex/tyto/issues/75
+def tyto_normalize_term(ontology: tyto.Ontology, uri: str) -> Optional[str]:
+    """Change an ontology term into the "standard" form returned by tyto.ontology.get_uri_by_term
+    Workaround for tyto issue https://github.com/SynBioDex/tyto/issues/75, which will be removed after that
+    issue is addressed.
+
+    :param ontology: Ontology containing term
+    :param uri: URI to be normalized
+    :return: normalized URI (or None if term is not in the ontology)
+    """
+    try:
+        return ontology.get_uri_by_term(ontology.get_term_by_uri(uri))
+    except LookupError:
+        return None
+
 #########################
 # This file contains workarounds for known issues in pySBOL3
 # They will be removed when pySBOL3 upgrades fix the associated issues

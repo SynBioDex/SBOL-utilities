@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import sys
 import tempfile
 import unittest
@@ -12,17 +14,19 @@ import sbol3
 from sbol_utilities.conversion import convert2to3, convert3to2, convert_to_genbank, convert_to_fasta, \
     convert_from_fasta, convert_from_genbank, \
     main, sbol2fasta, sbol2genbank, sbol2to3, sbol3to2, fasta2sbol, genbank2sbol
-from helpers import copy_to_tmp
+from sbol_utilities.sbol3_genbank_conversion import GenBankSBOL3Converter
+from helpers import copy_to_tmp, assert_files_identical
 from sbol_utilities.sbol_diff import doc_diff
 # TODO: Add command-line utilities and test them too
+
+TEST_FILES = Path(__file__).parent / 'test_files'
 
 
 class Test2To3Conversion(unittest.TestCase):
     def test_convert_identities(self):
         """Test conversion of a complex file"""
         test_dir = os.path.dirname(os.path.realpath(__file__))
-        input_path = os.path.join(test_dir, 'test_files', 'sbol3-small-molecule.rdf')
-        doc = convert2to3(input_path)
+        doc = convert2to3(str(TEST_FILES / 'sbol3-small-molecule.rdf'))
         # check for issues in converted document
         report = doc.validate()
         assert len(report) == 0, "\n".join(str(issue) for issue in report)
@@ -59,7 +63,7 @@ class Test2To3Conversion(unittest.TestCase):
             sbol2.Config.setOption(sbol2.ConfigOptions.VALIDATE_ONLINE, validate_online)
         assert len(doc2.componentDefinitions) == 1, f'Expected 1 CD, but found {len(doc2.componentDefinitions)}'
         # TODO: bring this back after resolution of https://github.com/sboltools/sbolgraph/issues/15
-        #assert len(doc2.activities) == 1, f'Expected 1 Activity, but found {len(doc2.activities)}'
+        # assert len(doc2.activities) == 1, f'Expected 1 Activity, but found {len(doc2.activities)}'
         assert len(doc2.sequences) == 1, f'Expected 1 Sequence, but found {len(doc2.sequences)}'
         assert doc2.componentDefinitions[0].identity == 'https://synbiohub.org/public/igem/BBa_J23101'
         assert doc2.componentDefinitions[0].sequences[0] == 'https://synbiohub.org/public/igem/BBa_J23101_sequence'
@@ -148,16 +152,14 @@ class Test2To3Conversion(unittest.TestCase):
         # Convert to GenBank and check contents
         outfile = os.path.join(tmp_sub, 'BBa_J23101.gb')
         convert_to_genbank(doc3, outfile)
-
-        test_dir = os.path.dirname(os.path.realpath(__file__))
-        comparison_file = os.path.join(test_dir, 'test_files', 'BBa_J23101.gb')
-        assert filecmp.cmp(outfile, comparison_file), f'Converted GenBank file {comparison_file} is not identical'
+        assert_files_identical(outfile, TEST_FILES / 'BBa_J23101.gb')
 
     def test_conversion_from_genbank(self):
         """Test ability to convert from GenBank to SBOL3"""
         # Get the GenBank test document and convert
         tmp_sub = copy_to_tmp(package=['BBa_J23101.gb'])
-        doc3 = convert_from_genbank(os.path.join(tmp_sub, 'BBa_J23101.gb'), 'https://synbiohub.org/public/igem')
+        doc3 = convert_from_genbank(os.path.join(tmp_sub, 'BBa_J23101.gb'), 'https://synbiohub.org/public/igem',
+                                    force_new_converter=False)
 
         # Note: cannot directly round-trip because converter is a) lossy, and b) inserts extra materials
         test_dir = os.path.dirname(os.path.realpath(__file__))
@@ -165,6 +167,35 @@ class Test2To3Conversion(unittest.TestCase):
         comparison_doc = sbol3.Document()
         comparison_doc.read(comparison_file)
         assert not doc_diff(doc3, comparison_doc), f'Converted GenBank file not identical to {comparison_file}'
+
+    def test_genbank_conversion_new_converter(self):
+        """Test ability to convert from SBOL3 to GenBank using new converter
+        by specifying the `--force-new-converter` flag """
+        # Get the SBOL3 test document
+        tmp_sub = copy_to_tmp(package=['sbol3_genbank_conversion/BBa_J23101_from_genbank_to_sbol3_direct.nt'])
+        doc3 = sbol3.Document()
+        doc3.read(os.path.join(tmp_sub, 'BBa_J23101_from_genbank_to_sbol3_direct.nt'))
+        # Convert to GenBank and check contents
+        outfile = os.path.join(tmp_sub, 'BBa_J23101.gb')
+        convert_to_genbank(doc3=doc3, path=outfile, allow_genbank_online=False, force_new_converter=True)
+        assert_files_identical(outfile, TEST_FILES / 'sbol3_genbank_conversion' / 'BBa_J23101_from_sbol3_direct.gb')
+
+    def test_conversion_from_genbank_new_converter(self):
+        """Test ability to convert from GenBank to SBOL3 using new converter
+        by specifying the `--force-new-converter` flag """
+        # Get the GenBank test document and convert
+        tmp_sub = copy_to_tmp(package=['BBa_J23101.gb'])
+        doc3 = convert_from_genbank(path=os.path.join(tmp_sub, 'BBa_J23101.gb'),
+                                    namespace=GenBankSBOL3Converter.TEST_NAMESPACE,
+                                    allow_genbank_online=False,
+                                    force_new_converter=True)
+
+        # Note: cannot directly round-trip because converter is a) lossy, and b) inserts extra materials
+        test_dir = os.path.dirname(os.path.realpath(__file__))
+        comparison_file = os.path.join(test_dir, 'test_files', 'sbol3_genbank_conversion', 'BBa_J23101_from_genbank_to_sbol3_direct.nt')
+        comparison_doc = sbol3.Document()
+        comparison_doc.read(comparison_file)
+        assert not doc_diff(doc3, comparison_doc), f'Converted SBOL3 file not identical to {comparison_file}'
 
     def test_genbank_multi_conversion(self):
         """Test ability to convert from SBOL3 to GenBank"""
@@ -175,11 +206,8 @@ class Test2To3Conversion(unittest.TestCase):
 
         # Convert to GenBank and check contents
         outfile = os.path.join(tmp_sub, 'iGEM_SBOL2_imports.gb')
-        convert_to_genbank(doc3, outfile)
-
-        test_dir = os.path.dirname(os.path.realpath(__file__))
-        comparison_file = os.path.join(test_dir, 'test_files', 'iGEM_SBOL2_imports.gb')
-        assert filecmp.cmp(outfile, comparison_file), f'Converted GenBank file {comparison_file} is not identical'
+        convert_to_genbank(doc3, outfile, force_new_converter=False)
+        assert_files_identical(outfile, TEST_FILES / 'iGEM_SBOL2_imports.gb')
 
     def test_fasta_conversion(self):
         """Test ability to convert from SBOL3 to FASTA"""
@@ -250,33 +278,33 @@ class Test2To3Conversion(unittest.TestCase):
         assert filecmp.cmp(temp_name, test_file['sbol3']), f'Converted file {temp_name} is not identical'
 
         # Run the other six tests
-        test_args = ['fasta2sbol', '-o', temp_name, '-n', 'https://synbiohub.org/public/igem', test_file['fasta']]
+        test_args = ['fasta-to-sbol', '-o', temp_name, '-n', 'https://synbiohub.org/public/igem', test_file['fasta']]
         with patch.object(sys, 'argv', test_args):
             fasta2sbol()
         assert filecmp.cmp(temp_name, test_file['from_fasta']), f'Converted file {temp_name} is not identical'
 
         # genbank conversion should succeed the same way when not online if not given an online argument
-        test_args = ['genbank2sbol', '-o', temp_name, '-n', 'https://synbiohub.org/public/igem', test_file['genbank']]
+        test_args = ['genbank-to-sbol', '-o', temp_name, '-n', 'https://synbiohub.org/public/igem', test_file['genbank']]
         with patch.object(sys, 'argv', test_args):
             genbank2sbol()
         assert filecmp.cmp(temp_name, test_file['from_genbank']), f'Converted file {temp_name} is not identical'
 
-        test_args = ['sbol2fasta', '-o', temp_name, test_file['sbol3']]
+        test_args = ['sbol-to-fasta', '-o', temp_name, test_file['sbol3']]
         with patch.object(sys, 'argv', test_args):
             sbol2fasta()
         assert filecmp.cmp(temp_name, test_file['fasta']), f'Converted file {temp_name} is not identical'
 
-        test_args = ['sbol2genbank', '-o', temp_name, test_file['sbol3']]
+        test_args = ['sbol-to-genbank', '-o', temp_name, test_file['sbol3']]
         with patch.object(sys, 'argv', test_args):
             sbol2genbank()
         assert filecmp.cmp(temp_name, test_file['genbank']), f'Converted file {temp_name} is not identical'
 
         # SBOL2 serialization is not stable, so test via round-trip instead
-        test_args = ['sbol3to2', '-o', temp_name, test_file['sbol3']]
+        test_args = ['sbol3-to-sbol2', '-o', temp_name, test_file['sbol3']]
         with patch.object(sys, 'argv', test_args):
             sbol3to2()
         temp_name_2 = tempfile.mkstemp()[1]
-        test_args = ['sbol2to3', '-o', temp_name_2, temp_name]
+        test_args = ['sbol2-to-sbol3', '-o', temp_name_2, temp_name]
         with patch.object(sys, 'argv', test_args):
             sbol2to3()
         assert filecmp.cmp(temp_name_2, test_file['sbol323']), f'Converted file {temp_name} is not identical'
@@ -290,7 +318,7 @@ class Test2To3Conversion(unittest.TestCase):
             'from_genbank': os.path.join(test_files, 'BBa_J23101_from_genbank.nt'),
         }
 
-        test_args = ['genbank2sbol', '-o', temp_name, '-n', 'https://synbiohub.org/public/igem', test_file['genbank'],
+        test_args = ['genbank-to-sbol', '-o', temp_name, '-n', 'https://synbiohub.org/public/igem', test_file['genbank'],
                      '--allow-genbank-online']
         with patch.object(sys, 'argv', test_args):
             genbank2sbol()

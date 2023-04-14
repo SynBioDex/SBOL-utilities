@@ -357,3 +357,10 @@ def outgoing_links(doc: sbol3.Document) -> set[URIRef]:
     with cached_references(doc):
         doc.traverse(collector)
     return outgoing
+
+def is_circular(obj: Union[sbol3.Component, sbol3.LocalSubComponent, sbol3.ExternallyDefined]) -> bool:
+    """Check if an SBOL Component or Feature is circular.
+    :param obj: design to be checked
+    :return: true if circular
+    """    
+    return any(n==sbol3.SO_CIRCULAR for n in obj.types)

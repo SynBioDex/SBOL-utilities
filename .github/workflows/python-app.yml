@@ -17,7 +17,7 @@ jobs:
       matrix:
         # Default builds are on Ubuntu
         os: [ubuntu-latest]
-        python-version: ['3.7', '3.8', '3.9', '3.10']
+        python-version: ['3.7', '3.8', '3.9', '3.10', '3.11']
         include:
           # Also test on macOS and Windows using the latest Python 3
           - os: macos-latest
@@ -38,6 +38,9 @@ jobs:
         python -m pip install interrogate
     - name: Setup Graphviz
       uses: ts-graphviz/setup-graphviz@v1
+    - name: Show Node.js version
+      run: |
+        node --version
     - name: Test with pytest
       run: |
         pip install .
