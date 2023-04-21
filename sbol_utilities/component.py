@@ -624,7 +624,7 @@ def part_in_backbone(identity: str, part: sbol3.Component, backbone: sbol3.Compo
     part_in_backbone_component.types.append(topology_type)
     return part_in_backbone_component, part_in_backbone_seq
 
-def part_in_backbone_from_sbol(identity: str,  sbol3_comp: sbol3.Component, part_location: List[int], part_roles:List[str], fusion_site_length:int, linear:bool=False, **kwargs) -> Tuple[sbol3.Component, sbol3.Sequence]:
+def part_in_backbone_from_sbol(identity: Union[str, None],  sbol3_comp: sbol3.Component, part_location: List[int], part_roles:List[str], fusion_site_length:int, linear:bool=False, **kwargs) -> Tuple[sbol3.Component, sbol3.Sequence]:
     """Creates a Part in Backbone Component and its Sequence following BP011 from an unformatted SBOL3 Component.
     It overwrites the SBOL3 Component provided. 
     A part inserted into a backbone is represented by a Component that includes both the part insert 
@@ -645,7 +645,11 @@ def part_in_backbone_from_sbol(identity: str,  sbol3_comp: sbol3.Component, part
     if len(sbol3_comp.sequences)!=1:
         raise ValueError(f'The reactant needs to have precisely one sequence. The input reactant has {len(sbol3_comp.sequences)} sequences')
     sequence = sbol3_comp.sequences[0].lookup().elements
-    part_in_backbone_component, part_in_backbone_seq = dna_component_with_sequence(identity, sequence, **kwargs)
+    if identity == None:
+        part_in_backbone_component = sbol3_comp 
+        part_in_backbone_seq = sbol3_comp.sequences[0]
+    else:
+        part_in_backbone_component, part_in_backbone_seq = dna_component_with_sequence(identity, sequence, **kwargs)
     part_in_backbone_component.roles.append(sbol3.SO_DOUBLE_STRANDED)
     for part_role in part_roles:  
         part_in_backbone_component.roles.append(part_role)  
@@ -677,6 +681,9 @@ def part_in_backbone_from_sbol(identity: str,  sbol3_comp: sbol3.Component, part
     backbone_dropout_meets = sbol3.Constraint(restriction='http://sbols.org/v3#meets', subject=part_sequence_feature, object=open_backbone_feature)
     part_in_backbone_component.constraints.append(backbone_dropout_meets)
     #TODO: Add a branch to create a component without overwriting the WHOLE input component
+    #removing repeated types and roles
+    part_in_backbone_component.types = set(part_in_backbone_component.types)
+    part_in_backbone_component.roles = set(part_in_backbone_component.roles)
     return part_in_backbone_component, part_in_backbone_seq
 
 def digestion(reactant:sbol3.Component, restriction_enzymes:List[sbol3.ExternallyDefined], assembly_plan:sbol3.Component, **kwargs)-> Tuple[sbol3.Component, sbol3.Sequence]:
