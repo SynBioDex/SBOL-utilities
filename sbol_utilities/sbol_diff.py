@@ -9,6 +9,36 @@ import rdflib.compare
 import sbol3
 
 
+def is_same(doc1: sbol3.Document, doc2: sbol3.Document) -> bool:
+    """
+    Compute the difference between two SBOL3 documents
+
+    :param doc1: the first SBOL3 document
+    :param doc2: the second SBOL3 document
+    :return: a tuple of three rdflib.Graph objects: (in1, in2, rdf_diff)
+    """
+    _, first_graph, second_graph = _diff_graphs(doc1.graph(), doc2.graph())
+
+    # For checking to see what all the differences are
+    _report_diffs("First SBOL Document", first_graph, "Second SBOL Document", second_graph)
+
+    # Ensure that the only diff is the timestamp
+    ret = True
+    for subject1, _, _ in first_graph:
+        if subject1 == "http://sbolstandard.org/testfiles/Timestamp":
+            continue
+        else:
+            ret = False
+
+    for subject2, _, _ in second_graph:
+        if subject2 == "http://sbolstandard.org/testfiles/Timestamp":
+            continue
+        else:
+            ret = False
+
+    return ret
+
+
 def _load_rdf(fpath: Union[str, bytes, os.PathLike]) -> rdflib.Graph:
     rdf_format = rdflib.util.guess_format(fpath)
     graph1 = rdflib.Graph()

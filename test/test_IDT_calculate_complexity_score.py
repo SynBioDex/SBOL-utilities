@@ -10,6 +10,7 @@ import sbol_utilities.IDT_calculate_complexity_score
 import sbol_utilities.sbol_diff
 
 
+
 class TestIDTCalculateComplexityScore(unittest.TestCase):
     def test_IDT_calculate_complexity_score(self):
         username = 'jfgm'
@@ -43,12 +44,9 @@ class TestIDTCalculateComplexityScore(unittest.TestCase):
         DateTime = datetime.datetime.utcnow()
         # Create an Activity object to store timestamp
         sequence_timestamp = sbol3.Activity('Timestamp', end_time=DateTime.isoformat(timespec='seconds') + 'Z')
-        #Timestamp both documents with same date for not having issues when comparing them
-        #doc1.add(sequence_timestamp)
-        #doc2.add(sequence_timestamp)
-
+        #http://sbolstandard.org/testfiles/Timestamp
         #Verify that sbol_diff is 0, meaning there is no difference between documents
-        assert 1 - sbol_utilities.sbol_diff.doc_diff(doc1, doc2), f'Converted file {temp_name} is not identical'
+        assert 1 - sbol_utilities.sbol_diff.is_same(doc1, doc2), f'Converted file {temp_name} is not identical'
 
 if __name__ == '__main__':
     unittest.main()
