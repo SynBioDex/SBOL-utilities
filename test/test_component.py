@@ -441,8 +441,8 @@ class TestComponent(unittest.TestCase):
                 b0015_unitary_part_sequence = feature.locations[0].sequence.lookup().elements[feature.locations[0].start-1:feature.locations[0].end]
         assert target_b0015_unitary_part_sequence == b0015_unitary_part_sequence , "Unitary part sequence does not match target sequence"
         assert len(hlc_b0015_ef_in_bb.features) == 3, f"Incorrect number of features, number of features expeted is 3, got {len(hlc_b0015_ef_in_bb.features)}"
-        assert hlc_b0015_ef_in_bb.types == [sbol3.SBO_DNA, sbol3.SO_CIRCULAR] , f"Incorrect types, types expected are [sbol3.SBO_DNA, sbol3.SO_CIRCULAR], got {hlc_b0015_ef_in_bb.types}"
-        assert hlc_b0015_ef_in_bb.roles == [sbol3.SO_DOUBLE_STRANDED, sbol3.SO_TERMINATOR, tyto.SO.plasmid_vector], f"Incorrect roles, roles expected are [sbol3.SO_DOUBLE_STRANDED, sbol3.SO_TERMINATOR, tyto.SO.plasmid_vector], got {hlc_b0015_ef_in_bb.roles}"
+        assert set(hlc_b0015_ef_in_bb.types) == set([sbol3.SBO_DNA, sbol3.SO_CIRCULAR]) , f"Incorrect types, types expected are [sbol3.SBO_DNA, sbol3.SO_CIRCULAR], got {hlc_b0015_ef_in_bb.types}"
+        assert set(hlc_b0015_ef_in_bb.roles) == set([sbol3.SO_DOUBLE_STRANDED, sbol3.SO_TERMINATOR, tyto.SO.plasmid_vector]), f"Incorrect roles, roles expected are [sbol3.SO_DOUBLE_STRANDED, sbol3.SO_TERMINATOR, tyto.SO.plasmid_vector], got {hlc_b0015_ef_in_bb.roles}"
         features_roles = set()
         for ft in hlc_b0015_ef_in_bb.features:
             for role in ft.roles:
