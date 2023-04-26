@@ -426,22 +426,28 @@ class TestComponent(unittest.TestCase):
         assert doc_diff(doc, hlc_doc) == 0, f'Constructor Error: Linear {identity_pib}'
         
     def test_part_in_backbone_from_sbol_bp011(self):
-        """Test part_in_backbone function with a part from SBOL"""
-        doc = sbol3.Document()
+        hlc_doc = sbol3.Document()
         sbol3.set_namespace('http://sbolstandard.org/testfiles')
         test_dir = os.path.dirname(os.path.realpath(__file__))
         b0015_dir = os.path.join(test_dir, 'test_files', 'b0015.gb')
-
         # Part in backbone from SBOL
         target_b0015_unitary_part_sequence = 'ccaggcatcaaataaaacgaaaggctcagtcgaaagactgggcctttcgttttatctgttgtttgtcggtgaacgctctctactagagtcacactggctcaccttcgggtgggcctttctgcgtttata'
         b0015_doc = convert_from_genbank(b0015_dir, 'https://github.com/Gonza10V')
         b0015_ef = [top_level for top_level in b0015_doc if type(top_level)==sbol3.Component][0]
-        b0015_ef_in_bb, b0015_ef_in_bb_seq = part_in_backbone_from_sbol('b0015_ef_in_bb', b0015_ef, [518,646], [sbol3.SO_TERMINATOR], 4, False, name='b0015_ef_in_bb')
-        doc.add([b0015_ef_in_bb, b0015_ef_in_bb_seq])
-        for feature in b0015_ef_in_bb.features:
+        hlc_b0015_ef_in_bb, hlc_b0015_ef_in_bb_seq = part_in_backbone_from_sbol('b0015_ef_in_bb', b0015_ef, [518,646], [sbol3.SO_TERMINATOR], 4, False, name='b0015_ef_in_bb')
+        hlc_doc.add([hlc_b0015_ef_in_bb, hlc_b0015_ef_in_bb_seq])
+        for feature in hlc_b0015_ef_in_bb.features:
             if feature.roles == [sbol3.SO_TERMINATOR, tyto.SO.engineered_insert]:
                 b0015_unitary_part_sequence = feature.locations[0].sequence.lookup().elements[feature.locations[0].start-1:feature.locations[0].end]
-        assert target_b0015_unitary_part_sequence == b0015_unitary_part_sequence
+        assert target_b0015_unitary_part_sequence == b0015_unitary_part_sequence , "Unitary part sequence does not match target sequence"
+        assert len(hlc_b0015_ef_in_bb.features) == 3, f"Incorrect number of features, number of features expeted is 3, got {len(hlc_b0015_ef_in_bb.features)}"
+        assert hlc_b0015_ef_in_bb.types == [sbol3.SBO_DNA, sbol3.SO_CIRCULAR] , f"Incorrect types, types expected are [sbol3.SBO_DNA, sbol3.SO_CIRCULAR], got {hlc_b0015_ef_in_bb.types}"
+        assert hlc_b0015_ef_in_bb.roles == [sbol3.SO_DOUBLE_STRANDED, sbol3.SO_TERMINATOR, tyto.SO.plasmid_vector], f"Incorrect roles, roles expected are [sbol3.SO_DOUBLE_STRANDED, sbol3.SO_TERMINATOR, tyto.SO.plasmid_vector], got {hlc_b0015_ef_in_bb.roles}"
+        features_roles = set()
+        for ft in hlc_b0015_ef_in_bb.features:
+            for role in ft.roles:
+                features_roles.add(role)
+        assert features_roles == set([tyto.SO.insertion_site, sbol3.SO_TERMINATOR, tyto.SO.engineered_insert]), f"Incorrect feature roles, roles expected are [tyto.SO.insertion_site, sbol3.SO_TERMINATOR, tyto.SO.engineered_insert], got {features_roles}"
         
     def test_assembly_plan_bp011(self):
         """Test assembly plan class"""

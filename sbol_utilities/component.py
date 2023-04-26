@@ -631,10 +631,10 @@ def part_in_backbone_from_sbol(identity: Union[str, None],  sbol3_comp: sbol3.Co
     as a feature that is a SubComponent and the backbone as another SubComponent.
     For more information about BP011 visit https://github.com/SynBioDex/SBOL-examples/tree/main/SBOL/best-practices/BP011 
 
-    :param identity: The identity of the Component. The identity of Sequence is also identity with the suffix '_seq'.
+    :param identity: The identity of the Component, is its a String it build a new SBOL Component, if None it adds on top of the input. The identity of Sequence is also identity with the suffix '_seq'.
     :param sbol3_comp: The SBOL3 Component that will be used to create the part in backbone Component and Sequence.
     :param part_location: List of 2 integers that indicates the start and the end of the unitary part. Note that the index of the first location is 1, as is typical practice in biology, rather than 0, as is typical practice in computer science.
-    :param part_roles: List of strings that indicates the roles of the part.
+    :param part_roles: List of strings that indicates the roles to add on the part.
     :param fusion_site_length: Integer of the length of the fusion sites (eg. BsaI fusion site lenght is 4, SapI fusion site lenght is 3)
     :param linear: Boolean than indicates if the backbone is linear, by default it is seted to Flase which means that it has a circular topology.    
     :param kwargs: Keyword arguments of any other Component attribute.
