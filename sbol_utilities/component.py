@@ -624,7 +624,7 @@ def part_in_backbone(identity: str, part: sbol3.Component, backbone: sbol3.Compo
     part_in_backbone_component.types.append(topology_type)
     return part_in_backbone_component, part_in_backbone_seq
 
-def part_in_backbone_from_sbol(identity: Union[str, None],  sbol3_comp: sbol3.Component, part_location: List[int], part_roles:List[str], fusion_site_length:int, linear:bool=False, **kwargs) -> Tuple[sbol3.Component, sbol3.Sequence]:
+def part_in_backbone_from_sbol(identity: Union[str, None],  sbol_comp: sbol3.Component, part_location: List[int], part_roles:List[str], fusion_site_length:int, linear:bool=False, **kwargs) -> Tuple[sbol3.Component, sbol3.Sequence]:
     """Restructures a non-hierarchical plasmid Component to follow the part-in-backbone pattern following BP011.
     It overwrites the SBOL3 Component provided. 
     A part inserted into a backbone is represented by a Component that includes both the part insert 
@@ -632,7 +632,7 @@ def part_in_backbone_from_sbol(identity: Union[str, None],  sbol3_comp: sbol3.Co
     For more information about BP011 visit https://github.com/SynBioDex/SBOL-examples/tree/main/SBOL/best-practices/BP011 
 
     :param identity: The identity of the Component, is its a String it build a new SBOL Component, if None it adds on top of the input. The identity of Sequence is also identity with the suffix '_seq'.
-    :param sbol3_comp: The SBOL3 Component that will be used to create the part in backbone Component and Sequence.
+    :param sbol_comp: The SBOL3 Component that will be used to create the part in backbone Component and Sequence.
     :param part_location: List of 2 integers that indicates the start and the end of the unitary part. Note that the index of the first location is 1, as is typical practice in biology, rather than 0, as is typical practice in computer science.
     :param part_roles: List of strings that indicates the roles to add on the part.
     :param fusion_site_length: Integer of the length of the fusion sites (eg. BsaI fusion site lenght is 4, SapI fusion site lenght is 3)
@@ -642,12 +642,12 @@ def part_in_backbone_from_sbol(identity: Union[str, None],  sbol3_comp: sbol3.Co
     """
     if len(part_location) != 2:
         raise ValueError('The part_location only accepts 2 int values in a list.')
-    if len(sbol3_comp.sequences)!=1:
+    if len(sbol_comp.sequences)!=1:
         raise ValueError(f'The reactant needs to have precisely one sequence. The input reactant has {len(sbol3_comp.sequences)} sequences')
-    sequence = sbol3_comp.sequences[0].lookup().elements
+    sequence = sbol_comp.sequences[0].lookup().elements
     if identity == None:
-        part_in_backbone_component = sbol3_comp 
-        part_in_backbone_seq = sbol3_comp.sequences[0]
+        part_in_backbone_component = sbol_comp 
+        part_in_backbone_seq = sbol_comp.sequences[0]
     else:
         part_in_backbone_component, part_in_backbone_seq = dna_component_with_sequence(identity, sequence, **kwargs)
     part_in_backbone_component.roles.append(sbol3.SO_DOUBLE_STRANDED)
@@ -661,6 +661,7 @@ def part_in_backbone_from_sbol(identity: Union[str, None],  sbol3_comp: sbol3.Co
     part_sequence_feature = sbol3.SequenceFeature(locations=[part_location_comp], roles=part_roles)
     part_sequence_feature.roles.append(tyto.SO.engineered_insert)
     insertion_sites_feature = sbol3.SequenceFeature(locations=[insertion_site_location1, insertion_site_location2], roles=[tyto.SO.insertion_site])
+    #TODO: infer topology from the input
     if linear:
         part_in_backbone_component.types.append(sbol3.SO_LINEAR)
         part_in_backbone_component.roles.append(sbol3.SO_ENGINEERED_REGION)
