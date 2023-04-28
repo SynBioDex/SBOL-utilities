@@ -625,7 +625,7 @@ def part_in_backbone(identity: str, part: sbol3.Component, backbone: sbol3.Compo
     return part_in_backbone_component, part_in_backbone_seq
 
 def part_in_backbone_from_sbol(identity: Union[str, None],  sbol3_comp: sbol3.Component, part_location: List[int], part_roles:List[str], fusion_site_length:int, linear:bool=False, **kwargs) -> Tuple[sbol3.Component, sbol3.Sequence]:
-    """Creates a Part in Backbone Component and its Sequence following BP011 from an unformatted SBOL3 Component.
+    """Restructures a non-hierarchical plasmid Component to follow the part-in-backbone pattern following BP011.
     It overwrites the SBOL3 Component provided. 
     A part inserted into a backbone is represented by a Component that includes both the part insert 
     as a feature that is a SubComponent and the backbone as another SubComponent.
