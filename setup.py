@@ -28,19 +28,20 @@ setup(name='sbol-utilities',
             'Programming Language :: Python :: 3.7',
             'Programming Language :: Python :: 3.8',
             'Programming Language :: Python :: 3.9',
-            'Programming Language :: Python :: 3.10'
+            'Programming Language :: Python :: 3.10',
+            'Programming Language :: Python :: 3.11'
       ],
       # What does your project relate to?
       keywords='synthetic biology',
       install_requires=[
-            'sbol3>=1.0b11',
+            'sbol3>=1.1',
             'sbol2>=1.4',
             'rdflib>=6.2',
             'biopython',
             'graphviz',
-            'tyto>=1.2.1',
+            'tyto>=1.4',
             'openpyxl',
-            'sbol_factory>=1.0a11'
+            'sbol_factory>=1.1'
             ],
       extras_require={  # requirements for development
           'dev': ['pytest', 'interrogate']
@@ -51,15 +52,21 @@ setup(name='sbol-utilities',
                                 'sbol-expand-derivations=sbol_utilities.expand_combinatorial_derivations:main',
                                 'sbol-calculate-sequences=sbol_utilities.calculate_sequences:main',
                                 'sbol-converter=sbol_utilities.conversion:main',
-                                'sbol2to3=sbol_utilities.conversion:sbol2to3',
-                                'sbol3to2=sbol_utilities.conversion:sbol3to2',
-                                'sbol2genbank=sbol_utilities.conversion:sbol2genbank',
-                                'sbol2fasta=sbol_utilities.conversion:sbol2fasta',
-                                'genbank2sbol=sbol_utilities.conversion:genbank2sbol',
-                                'fasta2sbol=sbol_utilities.conversion:fasta2sbol',
+                                'sbol2-to-sbol3=sbol_utilities.conversion:sbol2to3',
+                                'sbol3-to-sbol2=sbol_utilities.conversion:sbol3to2',
+                                'sbol-to-genbank=sbol_utilities.conversion:sbol2genbank',
+                                'sbol-to-fasta=sbol_utilities.conversion:sbol2fasta',
+                                'genbank-to-sbol=sbol_utilities.conversion:genbank2sbol',
+                                'fasta-to-sbol=sbol_utilities.conversion:fasta2sbol',
                                 'sbol-diff=sbol_utilities.sbol_diff:main']
       },
       packages=['sbol_utilities'],
-      package_data={'sbol_utilities': ['sbolgraph-standalone.js']},
+      package_data={
+          'sbol_utilities': [
+              'gb2so.csv',
+              'sbolgraph-standalone.js',
+              'so2gb.csv',
+          ],
+      },
       include_package_data=True
       )
