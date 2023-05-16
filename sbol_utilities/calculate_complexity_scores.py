@@ -1,7 +1,5 @@
-import os
 import requests
 import sbol3
-from sbol3 import Measure
 import tyto
 import datetime
 import argparse
@@ -15,6 +13,8 @@ ssl._create_default_https_context = ssl._create_unverified_context
 
 IDT_API_TOKEN_URL = "https://www.idtdna.com/Identityserver/connect/token"
 IDT_API_SCORE_URL = "https://www.idtdna.com/api/complexities/screengBlockSequences"
+SCORE_TIMEOUT = 500
+"""Time to wait for score query requests to complete"""
 
 def get_token(username: str, password: str, ClientID: str, ClientSecret: str) -> str:
     """ Get access token for IDT API
@@ -27,7 +27,7 @@ def get_token(username: str, password: str, ClientID: str, ClientSecret: str) ->
     """
 
     data = {'grant_type': 'password', 'username': username, 'password': password, 'scope': 'test'}
-    r = requests.post(IDT_API_TOKEN_URL, data, auth=requests.auth.HTTPBasicAuth(ClientID, ClientSecret), timeout = 500)
+    r = requests.post(IDT_API_TOKEN_URL, data, auth=requests.auth.HTTPBasicAuth(ClientID, ClientSecret), timeout=SCORE_TIMEOUT)
 
     if(not('access_token' in r.json())):
         raise Exception("Access token could not be generated. Check your credentials.")
@@ -50,7 +50,7 @@ def screening(token, sequences) -> [list,int]:
                 headers={'Authorization': 'Bearer {}'.format(token),
                 'Content-Type': 'application/json; charset=utf-8'},
                 json=partition,
-                timeout=500)
+                timeout=SCORE_TIMEOUT)
         results.append(resp.json())
 
     print('Requests to IDT API finished.')
@@ -126,7 +126,7 @@ def IDT_calculate_complexity_score(username: str, password: str, ClientID: str, 
     i = 0
     for sequ in doc:
         if type(sequ) == sbol3.Sequence:
-            measure = Measure(scores_list[i], unit=number_unit, name='Measure_'+ids[i], types = [tyto.EDAM.sequence_complexity_report])
+            measure = sbol3.Measure(scores_list[i], unit=number_unit, name='Measure_'+ids[i], types = [tyto.EDAM.sequence_complexity_report])
             measure.generated_by = [report_generation]
             sequ.measures.append(measure)
             results.append({"Sequence Name": ids[i], "Complexity Score": scores_list[i]})

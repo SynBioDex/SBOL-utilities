@@ -4,7 +4,7 @@ import tempfile
 import os
 import sbol3
 from unittest.mock import patch
-import sbol_utilities.IDT_calculate_complexity_score
+import sbol_utilities.calculate_complexity_scores
 import sbol_utilities.sbol_diff
 
 def is_same(doc1: sbol3.Document, doc2: sbol3.Document) -> bool:
@@ -36,17 +36,17 @@ class TestIDTCalculateComplexityScore(unittest.TestCase):
         doc = sbol3.Document()
         doc.read(os.path.join(test_dir, 'test_files', 'BBa_J23101.nt'))
 
-        results = sbol_utilities.IDT_calculate_complexity_score.IDT_calculate_complexity_score(username, password, ClientID, ClientSecret, doc)
+        results = sbol_utilities.calculate_complexity_scores.IDT_calculate_complexity_score(username, password, ClientID, ClientSecret, doc)
         assert len(results) == 1, f'Expected 1 sequence, but found {len(results)}'
 
     def test_commandline(self):
 
         test_dir = os.path.dirname(os.path.realpath(__file__))
         temp_name = tempfile.mkstemp(suffix='.nt')[1]
-        test_args = ['IDT_calculate_complexity_score.py','jfgm', 'CompuIDT1598@', '1598', 'babd134e-fc99-4a84-8e8c-719e9125d5d1',
+        test_args = ['calculate_complexity_scores.py','jfgm', 'CompuIDT1598@', '1598', 'babd134e-fc99-4a84-8e8c-719e9125d5d1',
                      os.path.join(test_dir, 'test_files', 'Test_file_Complexity_Scores.nt'), temp_name]
         with patch.object(sys, 'argv', test_args):
-            sbol_utilities.IDT_calculate_complexity_score.main()
+            sbol_utilities.calculate_complexity_scores.main()
 
         comparison_file = os.path.join(test_dir, 'test_files', 'Comparison_file_Complexity_Scores.nt')
 
