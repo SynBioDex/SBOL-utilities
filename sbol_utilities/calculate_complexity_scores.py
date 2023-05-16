@@ -11,9 +11,12 @@ import sbol3
 import tyto
 from sbol_utilities.workarounds import type_to_standard_extension
 
-IDT_API_TOKEN_URL = "https://www.idtdna.com/Identityserver/connect/token"
-IDT_API_SCORE_URL = "https://www.idtdna.com/api/complexities/screengBlockSequences"
-SEQUENCE_BLOCK_SIZE = 1  # TODO: determine if it is possible to run multiple sequences in a block
+COMPLEXITY_SCORE_NAMESPACE = 'http://igem.org/IDT_complexity_score'
+REPORT_ACTIVITY_TYPE = 'https://github.com/SynBioDex/SBOL-utilities/compute-sequence-complexity'
+
+IDT_API_TOKEN_URL = 'https://www.idtdna.com/Identityserver/connect/token'
+IDT_API_SCORE_URL = 'https://www.idtdna.com/api/complexities/screengBlockSequences'
+SEQUENCE_BLOCK_SIZE = 1  # TODO: determine if it is possible to run multiple sequences in a single query
 SCORE_TIMEOUT = 120
 """Number of seconds to wait for score query requests to complete"""
 
@@ -27,7 +30,7 @@ def get_idt_access_token(username: str, password: str, client_id: str, client_se
     :param client_secret: ClientSecret key of your IDT account
     :return: dictionary with the access token
     """
-    logging.info(f'Connecting to IDT DNA')
+    logging.info(f'Connecting to IDT API')
     data = {'grant_type': 'password', 'username': username, 'password': password, 'scope': 'test'}
     result = post(IDT_API_TOKEN_URL, data, auth=HTTPBasicAuth(client_id, client_secret), timeout=SCORE_TIMEOUT)
 
@@ -57,43 +60,35 @@ def get_idt_sequence_scores(token, sequences) -> list:
     return results
 
 
-def check_synthesizability(username: str, password: str, client_id: str, client_secret: str, doc: sbol3.Document) \
-        -> [list[float], list[str], list[str]]:
+def check_synthesizability(username: str, password: str, client_id: str, client_secret: str,
+                           sequences: list[sbol3.Sequence]) -> dict[sbol3.Sequence, float]:
     """ Extract complexity scores from IDT API results
 
     :param username: Username of your IDT account
     :param password: Password of your IDT account
     :param client_id: ClientID key of your IDT account
     :param client_secret: ClientSecret key of your IDT account
-    :param doc: SBOL document with sequences of interest in it
-    :return: Complexity Scores, Sequence names, Sequence elements
+    :param sequences: list of SBOL Sequences to evaluate
+    :return: dictionary mapping sequences to complexity Scores, Sequence names, Sequence elements
     """
-    # Extract sequence identities and elements from SBOL document
-    logging.info(f'Importing distribution sequences')
-    ids = []
-    sequences = []
-
-    for top_level in doc:
-        if type(top_level) == sbol3.Sequence:
-            ids.append(str(top_level.display_name))
-            seq = {"Name": str(top_level.display_name), "Sequence": str(top_level.elements)}
-            sequences.append(seq)
+    # Set up list of query dictionaries
+    idt_sequences = [{"Name": str(seq.display_name), "Sequence": str(seq.elements)} for seq in sequences]
 
     token = get_idt_access_token(username, password, client_id, client_secret)
-    scores = get_idt_sequence_scores(token, sequences)
+    scores = get_idt_sequence_scores(token, idt_sequences)
 
-    # Compute total score for each sequence as the sum all complexity scores
-    scores_list = []
+    # Compute total score for each sequence as the sum all complexity scores for the sequence
+    score_list = []
     for score_set in scores:
-        complexity_score = 0
-        for k in range(0, len(score_set[0])):
-            pivot = score_set[0]
-            complexity_score += pivot[k].get('Score')
-        scores_list.append(complexity_score)
+        for sequence_scores in score_set:
+            complexity_score = sum(score.get('Score') for score in sequence_scores)
+            score_list.append(complexity_score)
+    # Associate each sequence to its score
+    return dict(zip(sequences, score_list))
 
-    return scores_list, ids
 
-def IDT_calculate_complexity_score(username: str, password: str, ClientID: str, ClientSecret: str, doc: sbol3.Document) -> list[dict]:
+def IDT_calculate_complexity_score(username: str, password: str, ClientID: str, ClientSecret: str,
+                                   doc: sbol3.Document) -> dict[sbol3.Sequence, float]:
     """ Add computed complexity scores of sequences to SBOL document with a timestamp
 
     :param username: Username of your IDT account
@@ -101,33 +96,30 @@ def IDT_calculate_complexity_score(username: str, password: str, ClientID: str, 
     :param ClientID: ClientID key of your IDT account
     :param ClientSecret: ClientSecret key of your IDT account
     :param doc: SBOL document with sequences of interest in it
-    :return: List of dictionaries of sequences and their complexities scores
+    :return: Dictionary mapping Sequences to complexity scores
     """
+    # Extract sequence identities and elements from SBOL document
+    logging.info(f'Importing distribution sequences')
+    sequences = [top_level for top_level in doc if isinstance(top_level, sbol3.Sequence)]
+    # TODO: only compute for sequences that don't already have scores
+    # TODO: separate doc scrape from sequence score computation
+    # TODO: wrap IDT account into info an object
+    # Query for the scores of the sequences
+    score_dictionary = check_synthesizability(username, password, ClientID, ClientSecret, sequences)
 
-    sbol3.set_namespace('http://igem.org/IDT_complexity_score')
-    #Define unit measure as dimensionless
-    number_unit = tyto.OM.number_unit
-    #Add Report Generation
-    REPORT_ACTIVITY_TYPE = 'https://github.com/SynBioDex/SBOL-utilities/compute-sequence-complexity'
-    date_time = datetime.datetime.utcnow()
-    timestamp = date_time.isoformat(timespec='seconds') + 'Z'
-    report_unique_id = f'Complexity_Report_{timestamp.replace(":", "").replace("-", "")}_{str(uuid.uuid4())[0:8]}'
-    report_generation = sbol3.Activity(report_unique_id, end_time=timestamp, types=[REPORT_ACTIVITY_TYPE])
+    # Create report generation activity
+    timestamp = datetime.datetime.utcnow().isoformat(timespec='seconds') + 'Z'
+    report_id = f'{COMPLEXITY_SCORE_NAMESPACE}/Complexity_Report_{timestamp.replace(":", "").replace("-", "")}_' \
+                f'{str(uuid.uuid4())[0:8]}'
+    report_generation = sbol3.Activity(report_id, end_time=timestamp, types=[REPORT_ACTIVITY_TYPE])
     doc.add(report_generation)
+    # Mark the sequences with their scores, where each score is a dimensionless measure
+    for sequence, score in score_dictionary.items():
+        measure = sbol3.Measure(score, unit=tyto.OM.number_unit, types=[tyto.EDAM.sequence_complexity_report])
+        measure.generated_by.append(report_generation)
+        sequence.measures.append(measure)
 
-    scores_list, ids = check_synthesizability(username, password, ClientID, ClientSecret, doc)
-
-    results = []
-    i = 0
-    for sequ in doc:
-        if type(sequ) == sbol3.Sequence:
-            measure = sbol3.Measure(scores_list[i], unit=number_unit, name='Measure_'+ids[i], types = [tyto.EDAM.sequence_complexity_report])
-            measure.generated_by = [report_generation]
-            sequ.measures.append(measure)
-            results.append({"Sequence Name": ids[i], "Complexity Score": scores_list[i]})
-            i = i + 1
-
-    return results
+    return score_dictionary
 
 
 def main():
@@ -161,6 +153,7 @@ def main():
     results = IDT_calculate_complexity_score(args_dict['username'], args_dict['password'], args_dict['ClientID'], args_dict['ClientSecret'], doc)
     doc.write(outfile_name, args_dict['file_type'])
     logging.info('SBOL file written to %s with %i new scores calculated', outfile_name, len(results))
+
 
 if __name__ == '__main__':
     main()
