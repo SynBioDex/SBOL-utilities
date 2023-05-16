@@ -45,7 +45,7 @@ def screening(token, sequences) -> [list,int]:
 
     results = []
     for idx, partition in enumerate(partitions_sequences):
-        print('Request {0} of {1}'.format(idx+1, len(partitions_sequences)))
+        logging.debug('Request {0} of {1}'.format(idx+1, len(partitions_sequences)))
         resp = requests.post(IDT_API_SCORE_URL,
                 headers={'Authorization': 'Bearer {}'.format(token),
                 'Content-Type': 'application/json; charset=utf-8'},
@@ -53,7 +53,7 @@ def screening(token, sequences) -> [list,int]:
                 timeout=SCORE_TIMEOUT)
         results.append(resp.json())
 
-    print('Requests to IDT API finished.')
+    logging.info('Requests to IDT API finished.')
     return results, len(sequences)
 
 def check_synthesizability(username: str, password: str, ClientID: str, ClientSecret: str, doc: sbol3.Document) -> [list[float], list[str],list[str]]:
@@ -66,7 +66,7 @@ def check_synthesizability(username: str, password: str, ClientID: str, ClientSe
     :param doc: SBOL document with sequences of interest in it
     :return: Complexity Scores, Sequence's names, Sequence's elements
     """
-    print(f'Importing distribution sequences')
+    logging.info(f'Importing distribution sequences')
 
     # Extract sequence identities and elements from SBOL document
     ids = []
@@ -80,7 +80,7 @@ def check_synthesizability(username: str, password: str, ClientID: str, ClientSe
             seq = {"Name": str(top_level.display_name), "Sequence": str(top_level.elements)}
             sequences.append(seq)
 
-    print(f'Connecting to IDT DNA')
+    logging.info(f'Connecting to IDT DNA')
     token = get_token(username, password, ClientID, ClientSecret)
     scores, length_sequences = screening(token, sequences)
 
