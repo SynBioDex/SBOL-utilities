@@ -41,6 +41,7 @@ setup(name='sbol-utilities',
             'graphviz',
             'tyto>=1.4',
             'openpyxl',
+            'certifi',
             'requests',
             'sbol_factory>=1.1'
             ],
