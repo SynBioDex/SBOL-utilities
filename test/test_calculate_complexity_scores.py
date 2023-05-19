@@ -1,13 +1,24 @@
+"""Tests for calculating sequence synthesis complexity scores via the IDT interface
+
+To run these tests, you will need IDT access credentials (see: https://www.idtdna.com/pages/tools/apidoc)
+The values of the IDT access credentials should be stored in a file in the top level directory called
+'test_secret_idt_credentials.json', with the contents of the form:
+{ "username": "username", "password": "password", "ClientID": "####", "ClientSecret": "XXXXXXXXXXXXXXXXXXX" }
+"""
+from pathlib import Path
+
+import json
+
 import unittest
 import sys
 import tempfile
-import os
 import sbol3
 from unittest.mock import patch
 from sbol_utilities.calculate_complexity_scores import IDTAccountAccessor, idt_calculate_complexity_scores, \
     idt_calculate_sequence_complexity_scores, get_complexity_scores
 import sbol_utilities.sbol_diff
 
+# TODO: add to readme
 
 def same_except_timestamps(doc1: sbol3.Document, doc2: sbol3.Document) -> bool:
     """Check that the only triple-level difference between two SBOL documents is their time-stamps
@@ -30,21 +41,18 @@ class TestIDTCalculateComplexityScore(unittest.TestCase):
 
     def test_IDT_calculate_complexity_score(self):
         """Test that a library-call invocation of complexity scoring works"""
-        username = 'jfgm'
-        password = 'CompuIDT1598@'
-        ClientID = '1598'
-        ClientSecret = 'babd134e-fc99-4a84-8e8c-719e9125d5d1'
+        test_dir = Path(__file__).parent
+        with open(test_dir.parent / 'test_secret_idt_credentials.json') as test_credentials:
+            idt_accessor = IDTAccountAccessor.from_json(json.load(test_credentials))
 
-        test_dir = os.path.dirname(os.path.realpath(__file__))
         doc = sbol3.Document()
-        doc.read(os.path.join(test_dir, 'test_files', 'BBa_J23101.nt'))
+        doc.read(test_dir / 'test_files' / 'BBa_J23101.nt')
 
         # Check the scores - they should initially be all missing
         sequences = [obj for obj in doc if isinstance(obj, sbol3.Sequence)]
         scores = get_complexity_scores(sequences)
         self.assertEqual(scores, dict())
         # Compute sequences for
-        idt_accessor = IDTAccountAccessor(username, password, ClientID, ClientSecret)
         results = idt_calculate_sequence_complexity_scores(idt_accessor, sequences)
         self.assertEqual(len(results), 1)
         self.assertEqual(results[sequences[0]], 0)  # score is zero because the sequence both short and easy
@@ -60,21 +68,20 @@ class TestIDTCalculateComplexityScore(unittest.TestCase):
 
     def test_commandline(self):
         """Test that a command-line invocation of complexity scoring works"""
-        test_dir = os.path.dirname(os.path.realpath(__file__))
+        test_dir = Path(__file__).parent
         temp_name = tempfile.mkstemp(suffix='.nt')[1]
-        test_args = ['calculate_complexity_scores.py','jfgm', 'CompuIDT1598@', '1598', 'babd134e-fc99-4a84-8e8c-719e9125d5d1',
-                     os.path.join(test_dir, 'test_files', 'Test_file_Complexity_Scores.nt'), temp_name]
+        test_args = ['calculate_complexity_scores.py',
+                     '--credentials', str(test_dir.parent / 'test_secret_idt_credentials.json'),
+                     str(test_dir / 'test_files' / 'Test_file_Complexity_Scores.nt'), temp_name]
         with patch.object(sys, 'argv', test_args):
             sbol_utilities.calculate_complexity_scores.main()
 
-        comparison_file = os.path.join(test_dir, 'test_files', 'Comparison_file_Complexity_Scores.nt')
-
-        doc1 = sbol3.Document()
-        doc1.read(comparison_file)
-        doc2 = sbol3.Document()
-        doc2.read(temp_name)
-
-        self.assertTrue(same_except_timestamps(doc1, doc2))
+        # Compare expected results to actual output file
+        expected = sbol3.Document()
+        expected.read(test_dir / 'test_files' / 'Comparison_file_Complexity_Scores.nt')
+        generated = sbol3.Document()
+        generated.read(temp_name)
+        self.assertTrue(same_except_timestamps(expected, generated))
 
 
 if __name__ == '__main__':

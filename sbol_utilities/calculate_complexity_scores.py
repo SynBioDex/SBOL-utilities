@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+
 from typing import Optional
 
 import datetime
@@ -75,7 +77,7 @@ class IDTAccountAccessor:
 
         :param sequences: sequences for which we want to calculate the complexity score
         :return: dictionary mapping sequences to complexity Scores
-        :return: List of lists of dictionaries with information about sequence synthesizability features
+        :return: List of lists of dictionaries with information about sequence synthesis features
         """
         # Set up list of query dictionaries
         seq_dict = [{'Name': str(seq.display_name), 'Sequence': str(seq.elements)} for seq in sequences]
@@ -180,7 +182,7 @@ def idt_calculate_sequence_complexity_scores(accessor: IDTAccountAccessor, seque
 
 
 def idt_calculate_complexity_scores(accessor: IDTAccountAccessor, doc: sbol3.Document) -> dict[sbol3.Sequence, float]:
-    """Given an SBOL Document, compute the complexity scores for any sequences in the Dcoument not currently scored
+    """Given an SBOL Document, compute the complexity scores for any sequences in the Document not currently scored
     Also records the complexity computation with an activity
 
     :param accessor: IDT API access object
@@ -196,10 +198,16 @@ def main():
     Main wrapper: read from input file, invoke idt_calculate_complexity_scores, then write to output file
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument('username', help="Username of your IDT account")
-    parser.add_argument('password', help="Password of your IDT account")
-    parser.add_argument('ClientID', help="ClientID of your IDT account")
-    parser.add_argument('ClientSecret', help="ClientSecret of your IDT account")
+    parser.add_argument('-c', '--credentials',
+                        help="""JSON file containing IDT API access credentials.
+To obtain access credentials, follow the directions at https://www.idtdna.com/pages/tools/apidoc
+The values of the IDT access credentials should be stored in a JSON of the following form:
+{ "username": "username", "password": "password", "ClientID": "####", "ClientSecret": "XXXXXXXXXXXXXXXXXXX" }"
+""")
+    parser.add_argument('--username', help="Username of your IDT account (if not using JSON credentials)")
+    parser.add_argument('--password', help="Password of your IDT account (if not using JSON credentials)")
+    parser.add_argument('--ClientID', help="ClientID of your IDT account (if not using JSON credentials)")
+    parser.add_argument('--ClientSecret', help="ClientSecret of your IDT account (if not using JSON credentials)")
     parser.add_argument('input_file', help="Absolute path to sbol file with sequences")
     parser.add_argument('output_name', help="Name of SBOL file to be written")
     parser.add_argument('-t', '--file-type', dest='file_type', default=sbol3.SORTED_NTRIPLES,
@@ -214,6 +222,13 @@ def main():
     input_file = args_dict['input_file']
     output_name = args_dict['output_name']
 
+    if 'credentials' in args_dict:
+        with open(args_dict['credentials']) as credentials:
+            idt_accessor = IDTAccountAccessor.from_json(json.load(credentials))
+    else:
+        idt_accessor = IDTAccountAccessor(args_dict['username'], args_dict['password'], args_dict['ClientID'],
+                                          args_dict['ClientSecret'])
+
     extension = type_to_standard_extension[args_dict['file_type']]
     outfile_name = output_name if output_name.endswith(extension) else output_name + extension
 
@@ -221,7 +236,6 @@ def main():
     logging.info('Reading SBOL file ' + input_file)
     doc = sbol3.Document()
     doc.read(input_file)
-    idt_accessor = IDTAccountAccessor(args_dict['username'], args_dict['password'], args_dict['ClientID'], args_dict['ClientSecret'])
     results = idt_calculate_complexity_scores(idt_accessor, doc)
     doc.write(outfile_name, args_dict['file_type'])
     logging.info('SBOL file written to %s with %i new scores calculated', outfile_name, len(results))

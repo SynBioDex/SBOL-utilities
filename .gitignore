@@ -5,3 +5,6 @@
 test/__pycache__/
 sbol_utilities/__pycache__/
 __pycache__/
+
+# test secrets
+test_secret*
