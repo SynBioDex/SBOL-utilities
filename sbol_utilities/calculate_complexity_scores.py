@@ -14,87 +14,115 @@ from sbol_utilities.workarounds import type_to_standard_extension
 COMPLEXITY_SCORE_NAMESPACE = 'http://igem.org/IDT_complexity_score'
 REPORT_ACTIVITY_TYPE = 'https://github.com/SynBioDex/SBOL-utilities/compute-sequence-complexity'
 
-IDT_API_TOKEN_URL = 'https://www.idtdna.com/Identityserver/connect/token'
-IDT_API_SCORE_URL = 'https://www.idtdna.com/api/complexities/screengBlockSequences'
-SEQUENCE_BLOCK_SIZE = 1  # TODO: determine if it is possible to run multiple sequences in a single query
-SCORE_TIMEOUT = 120
-"""Number of seconds to wait for score query requests to complete"""
+
+class IDTAccountAccessor:
+    """Class that wraps access to the IDT API"""
+
+    _TOKEN_URL = 'https://www.idtdna.com/Identityserver/connect/token'
+    """API URL for obtaining session tokens"""
+    _SCORE_URL = 'https://www.idtdna.com/api/complexities/screengBlockSequences'
+    """APR URL for obtaining sequence scores"""
+    _BLOCK_SIZE = 1  # TODO: determine if it is possible to run multiple sequences in a single query
+    SCORE_TIMEOUT = 120
+    """Number of seconds to wait for score query requests to complete"""
+
+    def __init__(self, username: str, password: str, client_id: str, client_secret: str):
+        """Initialize with required access information for IDT API (see: https://www.idtdna.com/pages/tools/apidoc)
+        Automatically logs in and obtains a session token
+
+        :param username: Username of your IDT account
+        :param password: Password of your IDT account
+        :param client_id: ClientID key of your IDT account
+        :param client_secret: ClientSecret key of your IDT account
+        """
+        self.username = username
+        self.password = password
+        self.client_id = client_id
+        self.client_secret = client_secret
+        self.token = self._get_idt_access_token()
+
+    @staticmethod
+    def from_json(json_object) -> IDTAccountAccessor:
+        """Initialize IDT account accessor from a JSON object with field values
+
+        :param json_object: object with account information
+        :return: Account accessor object
+        """
+        return IDTAccountAccessor(username=json_object['username'], password=json_object['password'],
+                                  client_id=json_object['ClientID'], client_secret=json_object['ClientSecret'])
+
+    def _get_idt_access_token(self) -> str:
+        """Get access token for IDT API (see: https://www.idtdna.com/pages/tools/apidoc)
+
+        :return: access token string
+        """
+        logging.info('Connecting to IDT API')
+        data = {'grant_type': 'password', 'username': self.username, 'password': self.password, 'scope': 'test'}
+        auth = HTTPBasicAuth(self.client_id, self.client_secret)
+        result = post(IDTAccountAccessor._TOKEN_URL, data, auth=auth, timeout=IDTAccountAccessor.SCORE_TIMEOUT)
+
+        if 'access_token' in result.json():
+            return result.json()['access_token']
+        else:
+            raise ValueError('Access token for IDT API could not be generated. Check your credentials.')
+
+    def get_sequence_scores(self, sequences: list[sbol3.Sequence]) -> list:
+        """Retrieve synthesis complexity scores of sequences from the IDT API
+        This system uses the gBlock API, which is intended for sequences from 125 to 3000 bp in length
+
+        :param sequences: sequences for which we want to calculate the complexity score
+        :return: dictionary mapping sequences to complexity Scores
+        :return: List of lists of dictionaries with information about sequence synthesizability features
+        """
+        # Set up list of query dictionaries
+        seq_dict = [{'Name': str(seq.display_name), 'Sequence': str(seq.elements)} for seq in sequences]
+        # Break into query blocks
+        partitions_sequences = [seq_dict[x:x + 1] for x in range(0, len(seq_dict), IDTAccountAccessor._BLOCK_SIZE)]
+        # Send each query to IDT and collect results
+        results = []
+        for idx, partition in enumerate(partitions_sequences):
+            logging.debug('Sequence score request %i of %i', idx+1, len(partitions_sequences))
+            resp = post(IDTAccountAccessor._SCORE_URL, json=partition, timeout=IDTAccountAccessor.SCORE_TIMEOUT,
+                        headers={'Authorization': 'Bearer {}'.format(self.token),
+                                 'Content-Type': 'application/json; charset=utf-8'})
+            response_list = resp.json()
+            if len(response_list) != len(partition):
+                raise ValueError(f'Unexpected complexity score: expected {len(partition)} scores, '
+                                 f'but got {len(response_list)}')
+            results.append(resp.json())
+        logging.info('Requests to IDT API finished.')
+        return results
+
+    def get_sequence_complexity(self, sequences: list[sbol3.Sequence]) -> dict[sbol3.Sequence, float]:
+        """ Extract complexity scores from IDT API for a list of SBOL Sequence objects
+        This works by computing full sequence evaluations, then compressing down to a single score for each sequence.
+
+        :param sequences: list of SBOL Sequences to evaluate
+        :return: dictionary mapping sequences to complexity Scores
+        """
+        # Retrieve full evaluations for sequences
+        scores = self.get_sequence_scores(sequences)
+        # Compute total score for each sequence as the sum all complexity scores for the sequence
+        score_list = []
+        for score_set in scores:
+            for sequence_scores in score_set:
+                complexity_score = sum(score.get('Score') for score in sequence_scores)
+                score_list.append(complexity_score)
+        # Associate each sequence to its score
+        return dict(zip(sequences, score_list))
+
+# TODO: separate scoring sequences from scoring documents
+# TODO: function for retrieving sequence scores
 
 
-def get_idt_access_token(username: str, password: str, client_id: str, client_secret: str) -> str:
-    """Get access token for IDT API (see: https://www.idtdna.com/pages/tools/apidoc)
-
-    :param username: Username of your IDT account
-    :param password: Password of your IDT account
-    :param client_id: ClientID key of your IDT account
-    :param client_secret: ClientSecret key of your IDT account
-    :return: dictionary with the access token
-    """
-    logging.info(f'Connecting to IDT API')
-    data = {'grant_type': 'password', 'username': username, 'password': password, 'scope': 'test'}
-    result = post(IDT_API_TOKEN_URL, data, auth=HTTPBasicAuth(client_id, client_secret), timeout=SCORE_TIMEOUT)
-
-    if 'access_token' in result.json():
-        return result.json()['access_token']
-    else:
-        raise Exception("Access token for IDT API could not be generated. Check your credentials.")
-
-
-def get_idt_sequence_scores(token, sequences) -> list:
-    """Retrieve synthesis complexity scores of sequences from the IDT API
-    This system uses the gBlock API, which is intended for sequences from 125 to 3000 bp in length
-
-    :param token: access token generated by get_idt_access_token
-    :param sequences: sequences for which we want to calculate the complexity score
-    :return: List of lists of dictionaries with information about sequence synthesizability features
-    """
-    partitions_sequences = [sequences[x:x + 1] for x in range(0, len(sequences), SEQUENCE_BLOCK_SIZE)]
-    results = []
-    for idx, partition in enumerate(partitions_sequences):
-        logging.debug('Sequence score request %i of %i', idx+1, len(partitions_sequences))
-        resp = post(IDT_API_SCORE_URL, json=partition, timeout=SCORE_TIMEOUT,
-                    headers={'Authorization': 'Bearer {}'.format(token),
-                             'Content-Type': 'application/json; charset=utf-8'})
-        results.append(resp.json())
-    logging.info('Requests to IDT API finished.')
-    return results
-
-
-def check_synthesizability(username: str, password: str, client_id: str, client_secret: str,
-                           sequences: list[sbol3.Sequence]) -> dict[sbol3.Sequence, float]:
-    """ Extract complexity scores from IDT API results
-
-    :param username: Username of your IDT account
-    :param password: Password of your IDT account
-    :param client_id: ClientID key of your IDT account
-    :param client_secret: ClientSecret key of your IDT account
-    :param sequences: list of SBOL Sequences to evaluate
-    :return: dictionary mapping sequences to complexity Scores, Sequence names, Sequence elements
-    """
-    # Set up list of query dictionaries
-    idt_sequences = [{"Name": str(seq.display_name), "Sequence": str(seq.elements)} for seq in sequences]
-
-    token = get_idt_access_token(username, password, client_id, client_secret)
-    scores = get_idt_sequence_scores(token, idt_sequences)
-
-    # Compute total score for each sequence as the sum all complexity scores for the sequence
-    score_list = []
-    for score_set in scores:
-        for sequence_scores in score_set:
-            complexity_score = sum(score.get('Score') for score in sequence_scores)
-            score_list.append(complexity_score)
-    # Associate each sequence to its score
-    return dict(zip(sequences, score_list))
-
-
-def IDT_calculate_complexity_score(username: str, password: str, ClientID: str, ClientSecret: str,
+def IDT_calculate_complexity_score(username: str, password: str, client_id: str, client_secret: str,
                                    doc: sbol3.Document) -> dict[sbol3.Sequence, float]:
     """ Add computed complexity scores of sequences to SBOL document with a timestamp
 
     :param username: Username of your IDT account
     :param password: Password of your IDT account
-    :param ClientID: ClientID key of your IDT account
-    :param ClientSecret: ClientSecret key of your IDT account
+    :param client_id: ClientID key of your IDT account
+    :param client_secret: ClientSecret key of your IDT account
     :param doc: SBOL document with sequences of interest in it
     :return: Dictionary mapping Sequences to complexity scores
     """
@@ -105,7 +133,8 @@ def IDT_calculate_complexity_score(username: str, password: str, ClientID: str, 
     # TODO: separate doc scrape from sequence score computation
     # TODO: wrap IDT account into info an object
     # Query for the scores of the sequences
-    score_dictionary = check_synthesizability(username, password, ClientID, ClientSecret, sequences)
+    idt_accessor = IDTAccountAccessor(username, password, client_id, client_secret)
+    score_dictionary = idt_accessor.get_sequence_complexity(sequences)
 
     # Create report generation activity
     timestamp = datetime.datetime.utcnow().isoformat(timespec='seconds') + 'Z'
@@ -140,6 +169,8 @@ def main():
 
     # Extract arguments:
     verbosity = args_dict['verbose']
+    logging.getLogger().setLevel(level=(logging.WARN if verbosity == 0 else
+                                        logging.INFO if verbosity == 1 else logging.DEBUG))
     input_file = args_dict['input_file']
     output_name = args_dict['output_name']
 
