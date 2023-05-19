@@ -12,7 +12,6 @@ on:
 
 jobs:
   build:
-    environment: test_environment
     env:
       IDT_CREDENTIALS: ${{ secrets.IDT_CREDENTIALS }}
     runs-on: ubuntu-latest
