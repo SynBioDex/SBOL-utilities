@@ -71,8 +71,9 @@ The `sbol-calculate-sequences` utility attempts to calculate the sequence of any
 
 ### Calculate sequence synthesis complexity for DNA sequences in an SBOL file
 
-The `sbol-calculate-sequences` utility attempts to calculate the synthesis complexity of any DNA sequence in the file, usig IDT's sequence calculator.
-Sequences whose complexity is know are not re-calculated.
+The `sbol-calculate-sequences` utility attempts to calculate the synthesis complexity of any DNA sequence in the file, by sending sequences to be evaluated by IDT's sequence calculator service. Sequences whose complexity is know are not re-calculated.
+
+Note that use of this utility requires an account with IDT that is set up to use IDT's online service API (see: https://www.idtdna.com/pages/tools/apidoc)
 
 ### Compute the difference between two SBOL3 documents
 The `sbol-diff` utility computes the difference between two SBOL3 documents

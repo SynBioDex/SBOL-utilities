@@ -150,6 +150,7 @@ def get_complexity_scores(sequences: list[sbol3.Sequence], include_missing=False
 def idt_calculate_sequence_complexity_scores(accessor: IDTAccountAccessor, sequences: list[sbol3.Sequence]) -> \
         dict[sbol3.Sequence, float]:
     """Given a list of sequences, compute the complexity scores for any sequences not currently scored
+    by calling IDT's online service for calculating sequence synthesis complexity.
     Also records the complexity computation with an activity
 
     :param accessor: IDT API access object
@@ -184,6 +185,7 @@ def idt_calculate_sequence_complexity_scores(accessor: IDTAccountAccessor, seque
 
 def idt_calculate_complexity_scores(accessor: IDTAccountAccessor, doc: sbol3.Document) -> dict[sbol3.Sequence, float]:
     """Given an SBOL Document, compute the complexity scores for any sequences in the Document not currently scored
+    by calling IDT's online service for calculating sequence synthesis complexity.
     Also records the complexity computation with an activity
 
     :param accessor: IDT API access object
