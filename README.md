@@ -69,6 +69,12 @@ The `sbol-expand-derivations` utility searches through an SBOL file for Combinat
 
 The `sbol-calculate-sequences` utility attempts to calculate the sequence of any DNA Component that can be fully specified from the sequences of its sub-components.
 
+### Calculate sequence synthesis complexity for DNA sequences in an SBOL file
+
+The `sbol-calculate-sequences` utility attempts to calculate the synthesis complexity of any DNA sequence in the file, by sending sequences to be evaluated by IDT's sequence calculator service. Sequences whose complexity is know are not re-calculated.
+
+Note that use of this utility requires an account with IDT that is set up to use IDT's online service API (see: https://www.idtdna.com/pages/tools/apidoc)
+
 ### Compute the difference between two SBOL3 documents
 The `sbol-diff` utility computes the difference between two SBOL3 documents
 and reports the differences.
