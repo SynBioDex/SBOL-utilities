@@ -46,5 +46,5 @@ jobs:
     - name: Test with pytest
       run: |
         pip install .
-        echo "IDT_CREDENTIALS" > test_secret_idt_credentials.json
+        echo "$IDT_CREDENTIALS" > test_secret_idt_credentials.json
         pytest --ignore=test/test_docstr_coverage.py -s

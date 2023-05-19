@@ -140,6 +140,7 @@ def get_complexity_scores(sequences: list[sbol3.Sequence], include_missing=False
     :param include_missing: if true, Sequences without scores are included, mapping to none
     :return: dictionary mapping Sequence to score
     """
+    # TODO: change to run computations only on DNA sequences
     score_map = {seq: get_complexity_score(seq) for seq in sequences}
     if not include_missing:
         score_map = {k: v for k, v in score_map.items() if v is not None}
