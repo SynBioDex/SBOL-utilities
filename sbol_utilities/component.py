@@ -624,7 +624,70 @@ def part_in_backbone(identity: str, part: sbol3.Component, backbone: sbol3.Compo
     part_in_backbone_component.types.append(topology_type)
     return part_in_backbone_component, part_in_backbone_seq
 
-def digestion(reactant:sbol3.Component, restriction_enzymes:List[sbol3.ExternallyDefined], assembly_plan:sbol3.Component)-> Tuple[sbol3.Component, sbol3.Sequence]:
+def part_in_backbone_from_sbol(identity: Union[str, None],  sbol_comp: sbol3.Component, part_location: List[int], part_roles:List[str], fusion_site_length:int, linear:bool=False, **kwargs) -> Tuple[sbol3.Component, sbol3.Sequence]:
+    """Restructures a non-hierarchical plasmid Component to follow the part-in-backbone pattern following BP011.
+    It overwrites the SBOL3 Component provided. 
+    A part inserted into a backbone is represented by a Component that includes both the part insert 
+    as a feature that is a SubComponent and the backbone as another SubComponent.
+    For more information about BP011 visit https://github.com/SynBioDex/SBOL-examples/tree/main/SBOL/best-practices/BP011 
+
+    :param identity: The identity of the Component, is its a String it build a new SBOL Component, if None it adds on top of the input. The identity of Sequence is also identity with the suffix '_seq'.
+    :param sbol_comp: The SBOL3 Component that will be used to create the part in backbone Component and Sequence.
+    :param part_location: List of 2 integers that indicates the start and the end of the unitary part. Note that the index of the first location is 1, as is typical practice in biology, rather than 0, as is typical practice in computer science.
+    :param part_roles: List of strings that indicates the roles to add on the part.
+    :param fusion_site_length: Integer of the length of the fusion sites (eg. BsaI fusion site lenght is 4, SapI fusion site lenght is 3)
+    :param linear: Boolean than indicates if the backbone is linear, by default it is seted to Flase which means that it has a circular topology.    
+    :param kwargs: Keyword arguments of any other Component attribute.
+    :return: A tuple of Component and Sequence.
+    """
+    if len(part_location) != 2:
+        raise ValueError('The part_location only accepts 2 int values in a list.')
+    if len(sbol_comp.sequences)!=1:
+        raise ValueError(f'The reactant needs to have precisely one sequence. The input reactant has {len(sbol3_comp.sequences)} sequences')
+    sequence = sbol_comp.sequences[0].lookup().elements
+    if identity == None:
+        part_in_backbone_component = sbol_comp 
+        part_in_backbone_seq = sbol_comp.sequences[0]
+    else:
+        part_in_backbone_component, part_in_backbone_seq = dna_component_with_sequence(identity, sequence, **kwargs)
+    part_in_backbone_component.roles.append(sbol3.SO_DOUBLE_STRANDED)
+    for part_role in part_roles:  
+        part_in_backbone_component.roles.append(part_role)  
+    # creating part feature    
+    part_location_comp = sbol3.Range(sequence=part_in_backbone_seq, start=part_location[0], end=part_location[1])
+    #TODO: add the option of fusion sites to be of different lenghts
+    insertion_site_location1 = sbol3.Range(sequence=part_in_backbone_seq, start=part_location[0], end=part_location[0]+fusion_site_length, order=1)
+    insertion_site_location2 = sbol3.Range(sequence=part_in_backbone_seq, start=part_location[1]-fusion_site_length, end=part_location[1], order=3)
+    part_sequence_feature = sbol3.SequenceFeature(locations=[part_location_comp], roles=part_roles)
+    part_sequence_feature.roles.append(tyto.SO.engineered_insert)
+    insertion_sites_feature = sbol3.SequenceFeature(locations=[insertion_site_location1, insertion_site_location2], roles=[tyto.SO.insertion_site])
+    #TODO: infer topology from the input
+    if linear:
+        part_in_backbone_component.types.append(sbol3.SO_LINEAR)
+        part_in_backbone_component.roles.append(sbol3.SO_ENGINEERED_REGION)
+        # creating backbone feature
+        open_backbone_location1 = sbol3.Range(sequence=part_in_backbone_seq, start=1, end=part_location[0]+fusion_site_length-1, order=1)
+        open_backbone_location2 = sbol3.Range(sequence=part_in_backbone_seq, start=part_location[1]-fusion_site_length, end=len(sequence), order=3)
+        open_backbone_feature = sbol3.SequenceFeature(locations=[open_backbone_location1, open_backbone_location2])
+    else: 
+        part_in_backbone_component.types.append(sbol3.SO_CIRCULAR)
+        part_in_backbone_component.roles.append(tyto.SO.plasmid_vector)
+        # creating backbone feature
+        open_backbone_location1 = sbol3.Range(sequence=part_in_backbone_seq, start=1, end=part_location[0]+fusion_site_length-1, order=2)
+        open_backbone_location2 = sbol3.Range(sequence=part_in_backbone_seq, start=part_location[1]-fusion_site_length, end=len(sequence), order=1)
+        open_backbone_feature = sbol3.SequenceFeature(locations=[open_backbone_location1, open_backbone_location2])
+    part_in_backbone_component.features.append(part_sequence_feature)
+    part_in_backbone_component.features.append(insertion_sites_feature)
+    part_in_backbone_component.features.append(open_backbone_feature)
+    backbone_dropout_meets = sbol3.Constraint(restriction='http://sbols.org/v3#meets', subject=part_sequence_feature, object=open_backbone_feature)
+    part_in_backbone_component.constraints.append(backbone_dropout_meets)
+    #TODO: Add a branch to create a component without overwriting the WHOLE input component
+    #removing repeated types and roles
+    part_in_backbone_component.types = set(part_in_backbone_component.types)
+    part_in_backbone_component.roles = set(part_in_backbone_component.roles)
+    return part_in_backbone_component, part_in_backbone_seq
+
+def digestion(reactant:sbol3.Component, restriction_enzymes:List[sbol3.ExternallyDefined], assembly_plan:sbol3.Component, **kwargs)-> Tuple[sbol3.Component, sbol3.Sequence]:
     """Digests a Component using the provided restriction enzymes and creates a product Component and a digestion Interaction.
     The product Component is assumed to be the insert for parts in backbone and the backbone for backbones.
 
@@ -641,7 +704,6 @@ def digestion(reactant:sbol3.Component, restriction_enzymes:List[sbol3.Externall
     for re in restriction_enzymes:
         enzyme = Restriction.__dict__[re.name]
         restriction_enzymes_pydna.append(enzyme)
-        assembly_plan.features.append(re)
         modifier_participation = sbol3.Participation(roles=[sbol3.SBO_MODIFIER], participant=re)
         participations.append(modifier_participation)
 
@@ -662,15 +724,11 @@ def digestion(reactant:sbol3.Component, restriction_enzymes:List[sbol3.Externall
         raise NotImplementedError(f'Not supported number of products. Found{len(digested_reactant)}')
     #TODO select them based on content rather than size.
     elif circular and len(digested_reactant)==2:
-        digested_reactant = ds_reactant.cut(restriction_enzymes_pydna)
         part_extract, backbone = sorted(digested_reactant, key=len)
     elif linear and len(digested_reactant)==3:
-        digested_reactant = ds_reactant.cut(restriction_enzymes_pydna)
-        # check digested_reactant
         prefix, part_extract, suffix = digested_reactant
     else: raise NotImplementedError('The reactant has no valid topology type')
-    # Compute the lenth of single strand sticky ends or fusion sites
-    digested_reactant_5_prime_ss_strand, digested_reactant_5_prime_ss_end = digested_reactant.five_prime_end()
+    
     # Extracting roles from features
     reactant_features_roles = []
     for f in reactant.features:
@@ -678,23 +736,36 @@ def digestion(reactant:sbol3.Component, restriction_enzymes:List[sbol3.Externall
              reactant_features_roles.append(r)
     # if part
     if any(n==tyto.SO.engineered_insert for n in reactant_features_roles):
-        product_sequence = str(part_extract.seq)
-        prod_comp, prod_seq = dna_component_with_sequence(identity=f'{reactant.name}_part_extract', sequence=product_sequence) #str(product_sequence))
-        # add sticky ends features
-        five_prime_fusion_site_location = sbol3.Range(sequence=product_sequence, start=1, end=dropout_location[0]+fusion_site_length, order=1)
-        three_prime_fusion_site_location = sbol3.Range(sequence=product_sequence, start=dropout_location[1]-fusion_site_length, end=dropout_location[1], order=3)
-        insertion_sites_feature = sbol3.SequenceFeature(locations=[insertion_site_location1, insertion_site_location2], roles=[tyto.SO.insertion_site])
+        # Compute the length of single strand sticky ends or fusion sites
+        product_5_prime_ss_strand, product_5_prime_ss_end = part_extract.seq.five_prime_end()
+        product_3_prime_ss_strand, product_3_prime_ss_end = part_extract.seq.three_prime_end()
     
+        product_sequence = str(part_extract.seq)
+        prod_comp, prod_seq = dna_component_with_sequence(identity=f'{reactant.name}_part_extract', sequence=product_sequence, **kwargs) #str(product_sequence))
+        # add sticky ends features
+        five_prime_fusion_site_location = sbol3.Range(sequence=product_sequence, start=1, end=len(product_5_prime_ss_end), order=1)
+        three_prime_fusion_site_location = sbol3.Range(sequence=product_sequence, start=len(product_sequence)-len(product_3_prime_ss_end), end=len(product_sequence), order=3)
+        fusion_sites_feature = sbol3.SequenceFeature(locations=[five_prime_fusion_site_location, three_prime_fusion_site_location], roles=[tyto.SO.insertion_site])
+        prod_comp.features.append(fusion_sites_feature)
+
     # if backbone
     elif any(n==tyto.SO.deletion for n in reactant_features_roles):
+        # Compute the length of single strand sticky ends or fusion sites
+        product_5_prime_ss_strand, product_5_prime_ss_end = backbone.seq.five_prime_end()
+        product_3_prime_ss_strand, product_3_prime_ss_end = backbone.seq.three_prime_end()
         product_sequence = str(backbone.seq)
-        prod_comp, prod_seq = dna_component_with_sequence(identity=f'{reactant.name}_backbone', sequence=product_sequence) #str(product_sequence))
+        prod_comp, prod_seq = dna_component_with_sequence(identity=f'{reactant.name}_backbone', sequence=product_sequence, **kwargs) #str(product_sequence))
         # add sticky ends features
-        # add recognition site features
+        five_prime_fusion_site_location = sbol3.Range(sequence=product_sequence, start=1, end=len(product_5_prime_ss_end), order=1)
+        three_prime_fusion_site_location = sbol3.Range(sequence=product_sequence, start=len(product_sequence)-len(product_3_prime_ss_end), end=len(product_sequence), order=3)
+        fusion_sites_feature = sbol3.SequenceFeature(locations=[five_prime_fusion_site_location, three_prime_fusion_site_location], roles=[tyto.SO.insertion_site])
+        prod_comp.features.append(fusion_sites_feature)
+
     else: raise NotImplementedError('The reactant has no valid roles')
 
-    #
-
+    #Add reference to part in backbone
+    reactant_subcomponent = sbol3.SubComponent(reactant)
+    prod_comp.features.append(reactant_subcomponent)
     # Create reactant Participation.
     react_subcomp = sbol3.SubComponent(reactant)
     assembly_plan.features.append(react_subcomp)
@@ -737,8 +808,6 @@ def ligation(reactants:List[sbol3.Component], assembly_plan:sbol3.Component)-> L
         alignments.pop(0)
         # compare to all other alignments
         for alignment in alignments:
-            #working_alignment_5_prime_fusion_site_length = working_alignment[0].features[0].locations[0].end
-            #alignment_3_prime_fusion_site_length = alignment[-1].features[0].locations[1].start
             working_alignment_5_prime_fusion_site = working_alignment[0].sequences[0].lookup().elements[:working_alignment[0].features[0].locations[0].end]
             working_alignment_3_prime_fusion_site = working_alignment[-1].sequences[0].lookup().elements[working_alignment[-1].features[0].locations[1].start:]
             alignment_5_prime_fusion_site = alignment[0].sequences[0].lookup().elements[:alignment[0].features[0].locations[0].end]
@@ -749,9 +818,7 @@ def ligation(reactants:List[sbol3.Component], assembly_plan:sbol3.Component)-> L
                 if working_alignment_5_prime_fusion_site in used_fusion_sites:
                     raise ValueError(f"Fusion site {working_alignment[0].sequences[0].lookup().elements[:fusion_site_length-1]} already used")                
                 else: used_fusion_sites.add(working_alignment_5_prime_fusion_site)
-                # if repeated elements pass
-                #if(all(x in working_alignment for x in alignment)):
-                #    raise ValueError(f"Repeated elements in alignment {alignment}")
+
 
                 working_alignment = alignment + working_alignment
 
@@ -774,9 +841,6 @@ def ligation(reactants:List[sbol3.Component], assembly_plan:sbol3.Component)-> L
                 # if in used_fusion_sites, raise error
                 if working_alignment_3_prime_fusion_site in used_fusion_sites:
                     raise ValueError(f"Fusion site {working_alignment[0].sequences[0].lookup().elements[:fusion_site_length-1]} already used")                
-                # if repeated elements, raise error
-                #if(all(x in working_alignment for x in alignment)):
-                #    raise ValueError(f"Repeated elements in alignment {alignment}")
     
                 working_alignment = working_alignment + alignment
 
@@ -798,7 +862,6 @@ def ligation(reactants:List[sbol3.Component], assembly_plan:sbol3.Component)-> L
                 break
             
             # TODO: feed working alignment to alignments
-            #alignments.insert(0, working_alignment)
 
             # use final products to build assembly product somponent
         fusion_site_length = 4
@@ -809,39 +872,27 @@ def ligation(reactants:List[sbol3.Component], assembly_plan:sbol3.Component)-> L
             # calculate sequence
             composite_sequence_str = ""
             composite_name = ""
-            for part in composite:
-                composite_sequence_str = composite_sequence_str + part.sequences[0].lookup().elements[:-fusion_site_length] #needs a version for linear
+            #part_subcomponents = []
+            part_extract_subcomponents = []
+            for part_extract in composite:
+                composite_sequence_str = composite_sequence_str + part_extract.sequences[0].lookup().elements[:-fusion_site_length] #needs a version for linear
                 # create participations
-                part_subcomponent = sbol3.SubComponent(part) # LocalSubComponent??
-                # if not in assemblye plan?
-                assembly_plan.features.append(part_subcomponent)
-                part_participation = sbol3.Participation(roles=[sbol3.SBO_REACTANT], participant=part_subcomponent)
-                participations.append(part_participation)
-                composite_name = composite_name + part.name
+                part_extract_subcomponent = sbol3.SubComponent(part_extract) # LocalSubComponent??
+                part_extract_subcomponents.append(part_extract_subcomponent)
+                composite_name = composite_name + part_extract.name
             # create dna componente and sequence
             composite_component, composite_seq = dna_component_with_sequence(f'composite_{composite_number}_{composite_name}', composite_sequence_str) # **kwarads use in future?
-            #composite_component.types.append()
             composite_component.roles.append(sbol3.SO_ENGINEERED_REGION)
-            #composite_component.features = composite
+            composite_component.features = part_extract_subcomponents
             # TODO fix order of features
-            #composite_component.constraints.append(sbol3.Constraint(sbol3.SBOL_MEETS, composite_component.features[composite_number-1], composite_component.features[composite_number]))
-            # add product participation 
-            #composite_subcomponent = sbol3.SubComponent(composite_component)
-            #participations.append(sbol3.Participation(roles=[sbol3.SBO_PRODUCT], participant=composite_subcomponent))
-            # create interactions
-            #assembly_plan.interactions.append(sbol3.Interaction(types=[tyto.SBO.conversion], participations=participations))
             products_list.append([composite_component, composite_seq])
             composite_number += 1
-    #create preceed constrain
-    #create composite part or part in backbone
-    #add interactions to assembly_plan
-    #add participations to assembly_plan
+            # TODO: modify to work outside of an assembly plan as well
 
     return products_list
 
 class Assembly_plan_composite_in_backbone_single_enzyme():
     """Creates a Assembly Plan.
-    #classes uses param here?
     :param parts_in_backbone: Parts in backbone to be assembled. 
     :param acceptor_backbone:  Backbone in which parts are inserted on the assembly. 
     :param restriction_enzymes: Restriction enzyme with correct name from Bio.Restriction as Externally Defined.
@@ -855,15 +906,14 @@ class Assembly_plan_composite_in_backbone_single_enzyme():
         self.parts_in_backbone = parts_in_backbone
         self.acceptor_backbone = acceptor_backbone
         self.restriction_enzyme = restriction_enzyme
-        self.unitary_parts = None
-        self.products = None
+        self.products = []
         self.extracted_parts = []
-        self.assembly_plan_component = None
         self.document = document
 
         #create assembly plan
         self.assembly_plan_component = sbol3.Component(identity=f'{self.name}_assembly_plan', types=sbol3.SBO_FUNCTIONAL_ENTITY)
         self.document.add(self.assembly_plan_component)
+        self.composites = []
 
     def run(self):
         self.assembly_plan_component.features.append(self.restriction_enzyme)
@@ -881,49 +931,9 @@ class Assembly_plan_composite_in_backbone_single_enzyme():
         self.extracted_parts.append(backbone_comp)
         
         #create composite part from extracted parts
-        composites_comp = ligation(reactants=self.extracted_parts, assembly_plan=self.assembly_plan_component)
-        self.products = composites_comp
-        for composite in composites_comp:
+        composites_list = ligation(reactants=self.extracted_parts, assembly_plan=self.assembly_plan_component)
+        for composite in composites_list:
+            composite[0].generated_by.append(self.assembly_plan_component) #
+            self.composites.append(composite)
+            self.products.append(composite)
             self.document.add(composite)
-
-def part_in_backbone2(identity: str,  sequence: str, part_location: List[int], part_roles:List[str], fusion_site_length:int, linear:bool, **kwargs) -> Tuple[sbol3.Component, sbol3.Sequence]:
-    """Creates a Backbone Component and its Sequence.
-
-    :param identity: The identity of the Component. The identity of Sequence is also identity with the suffix '_seq'.
-    :param sequence: The DNA sequence of the Component encoded in IUPAC.
-    :param dropout_location: List of 2 integers that indicates the start and the end of the dropout sequence including overhangs. Note that the index of the first location is 1, as is typical practice in biology, rather than 0, as is typical practice in computer science.
-    :param fusion_site_length: Integer of the lenght of the fusion sites (eg. BsaI fusion site lenght is 4, SapI fusion site lenght is 3)
-    :param linear: Boolean than indicates if the backbone is linear, by default it is seted to Flase which means that it has a circular topology.
-    :param kwargs: Keyword arguments of any other Component attribute.
-    :return: A tuple of Component and Sequence.
-    """
-    if len(part_location) != 2:
-        raise ValueError('The part_location only accepts 2 int values in a list.')
-    part_in_backbone_component, part_in_backbone_seq = dna_component_with_sequence(identity, sequence, **kwargs)
-    part_in_backbone_component.roles.append(sbol3.SO_DOUBLE_STRANDED)
-    for part_role in part_roles:  
-        part_in_backbone_component.roles.append(part_role)  
-    part_location_comp = sbol3.Range(sequence=part_in_backbone_seq, start=part_location[0], end=part_location[1])
-    insertion_site_location1 = sbol3.Range(sequence=part_in_backbone_seq, start=part_location[0], end=part_location[0]+fusion_site_length, order=1)
-    insertion_site_location2 = sbol3.Range(sequence=part_in_backbone_seq, start=part_location[1]-fusion_site_length, end=part_location[1], order=3)
-    part_sequence_feature = sbol3.SequenceFeature(locations=[part_location_comp], roles=part_roles)
-    part_sequence_feature.roles.append(tyto.SO.engineered_insert)
-    insertion_sites_feature = sbol3.SequenceFeature(locations=[insertion_site_location1, insertion_site_location2], roles=[tyto.SO.insertion_site])
-    if linear:
-        part_in_backbone_component.types.append(sbol3.SO_LINEAR)
-        part_in_backbone_component.roles.append(sbol3.SO_ENGINEERED_REGION)
-        open_backbone_location1 = sbol3.Range(sequence=part_in_backbone_seq, start=1, end=part_location[0]+fusion_site_length-1, order=1)
-        open_backbone_location2 = sbol3.Range(sequence=part_in_backbone_seq, start=part_location[1]-fusion_site_length, end=len(sequence), order=3)
-        open_backbone_feature = sbol3.SequenceFeature(locations=[open_backbone_location1, open_backbone_location2])
-    else: 
-        part_in_backbone_component.types.append(sbol3.SO_CIRCULAR)
-        part_in_backbone_component.roles.append(tyto.SO.plasmid_vector)
-        open_backbone_location1 = sbol3.Range(sequence=part_in_backbone_seq, start=1, end=part_location[0]+fusion_site_length-1, order=2)
-        open_backbone_location2 = sbol3.Range(sequence=part_in_backbone_seq, start=part_location[1]-fusion_site_length, end=len(sequence), order=1)
-        open_backbone_feature = sbol3.SequenceFeature(locations=[open_backbone_location1, open_backbone_location2])
-    part_in_backbone_component.features.append(part_sequence_feature)
-    part_in_backbone_component.features.append(insertion_sites_feature)
-    part_in_backbone_component.features.append(open_backbone_feature)
-    backbone_dropout_meets = sbol3.Constraint(restriction='http://sbols.org/v3#meets', subject=part_sequence_feature, object=open_backbone_feature)
-    part_in_backbone_component.constraints.append(backbone_dropout_meets)
-    return part_in_backbone_component, part_in_backbone_seq
