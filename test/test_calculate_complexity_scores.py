@@ -4,7 +4,8 @@ import tempfile
 import os
 import sbol3
 from unittest.mock import patch
-import sbol_utilities.calculate_complexity_scores
+from sbol_utilities.calculate_complexity_scores import IDTAccountAccessor, idt_calculate_complexity_scores, \
+    idt_calculate_sequence_complexity_scores, get_complexity_scores
 import sbol_utilities.sbol_diff
 
 
@@ -26,6 +27,7 @@ def same_except_timestamps(doc1: sbol3.Document, doc2: sbol3.Document) -> bool:
 
 
 class TestIDTCalculateComplexityScore(unittest.TestCase):
+
     def test_IDT_calculate_complexity_score(self):
         """Test that a library-call invocation of complexity scoring works"""
         username = 'jfgm'
@@ -37,8 +39,24 @@ class TestIDTCalculateComplexityScore(unittest.TestCase):
         doc = sbol3.Document()
         doc.read(os.path.join(test_dir, 'test_files', 'BBa_J23101.nt'))
 
-        results = sbol_utilities.calculate_complexity_scores.IDT_calculate_complexity_score(username, password, ClientID, ClientSecret, doc)
-        assert len(results) == 1, f'Expected 1 sequence, but found {len(results)}'
+        # Check the scores - they should initially be all missing
+        sequences = [obj for obj in doc if isinstance(obj, sbol3.Sequence)]
+        scores = get_complexity_scores(sequences)
+        self.assertEqual(scores, dict())
+        # Compute sequences for
+        idt_accessor = IDTAccountAccessor(username, password, ClientID, ClientSecret)
+        results = idt_calculate_sequence_complexity_scores(idt_accessor, sequences)
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[sequences[0]], 0)  # score is zero because the sequence both short and easy
+        scores = get_complexity_scores(sequences)
+        self.assertEqual(scores, results)
+
+        # Compute results again: results should be blank, because the calculation is already made
+        results = idt_calculate_complexity_scores(idt_accessor, doc)
+        self.assertEqual(len(results), 0)
+        self.assertEqual(results, dict())
+        scores = get_complexity_scores(sequences)
+        self.assertEqual(scores, {sequences[0]: 0})
 
     def test_commandline(self):
         """Test that a command-line invocation of complexity scoring works"""

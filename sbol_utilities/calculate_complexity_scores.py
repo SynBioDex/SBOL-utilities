@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Optional
+
 import datetime
 import argparse
 import logging
@@ -9,6 +11,7 @@ from requests.auth import HTTPBasicAuth
 
 import sbol3
 import tyto
+
 from sbol_utilities.workarounds import type_to_standard_extension
 
 COMPLEXITY_SCORE_NAMESPACE = 'http://igem.org/IDT_complexity_score'
@@ -111,49 +114,86 @@ class IDTAccountAccessor:
         # Associate each sequence to its score
         return dict(zip(sequences, score_list))
 
-# TODO: separate scoring sequences from scoring documents
-# TODO: function for retrieving sequence scores
 
+def get_complexity_score(seq: sbol3.Sequence) -> Optional[float]:
+    """Given a sequence, return its previously computed complexity score, if such exists
 
-def IDT_calculate_complexity_score(username: str, password: str, client_id: str, client_secret: str,
-                                   doc: sbol3.Document) -> dict[sbol3.Sequence, float]:
-    """ Add computed complexity scores of sequences to SBOL document with a timestamp
-
-    :param username: Username of your IDT account
-    :param password: Password of your IDT account
-    :param client_id: ClientID key of your IDT account
-    :param client_secret: ClientSecret key of your IDT account
-    :param doc: SBOL document with sequences of interest in it
-    :return: Dictionary mapping Sequences to complexity scores
+    :param seq: SBOL Sequence object to check for score
+    :return: score if set, None if not
     """
-    # Extract sequence identities and elements from SBOL document
-    logging.info(f'Importing distribution sequences')
-    sequences = [top_level for top_level in doc if isinstance(top_level, sbol3.Sequence)]
-    # TODO: only compute for sequences that don't already have scores
-    # TODO: separate doc scrape from sequence score computation
-    # TODO: wrap IDT account into info an object
+    scores = [score for score in seq.measures if tyto.EDAM.sequence_complexity_report in score.types]
+    if scores:
+        if len(scores) > 1:
+            raise ValueError(f'Found multiple complexity scores on Sequence {seq.identity}')
+        return scores[0].value
+    else:
+        return None
+
+
+def get_complexity_scores(sequences: list[sbol3.Sequence], include_missing=False) -> \
+        dict[sbol3.Sequence, Optional[float]]:
+    """Retrieve complexity scores for a list of sequences
+
+    :param sequences: Sequences to get scores for
+    :param include_missing: if true, Sequences without scores are included, mapping to none
+    :return: dictionary mapping Sequence to score
+    """
+    score_map = {seq: get_complexity_score(seq) for seq in sequences}
+    if not include_missing:
+        score_map = {k: v for k, v in score_map.items() if v is not None}
+    return score_map
+
+
+def idt_calculate_sequence_complexity_scores(accessor: IDTAccountAccessor, sequences: list[sbol3.Sequence]) -> \
+        dict[sbol3.Sequence, float]:
+    """Given a list of sequences, compute the complexity scores for any sequences not currently scored
+    Also records the complexity computation with an activity
+
+    :param accessor: IDT API access object
+    :param sequences: list of SBOL Sequences to evaluate
+    :return: Dictionary mapping Sequences to complexity scores for newly computed sequences
+    """
+    # Determine which sequences need scores
+    need_scores = [seq for seq, score in get_complexity_scores(sequences, include_missing=True).items()
+                   if score is None]
+    if not need_scores:
+        return dict()
+
     # Query for the scores of the sequences
-    idt_accessor = IDTAccountAccessor(username, password, client_id, client_secret)
-    score_dictionary = idt_accessor.get_sequence_complexity(sequences)
+    score_dictionary = accessor.get_sequence_complexity(need_scores)
 
     # Create report generation activity
+    doc = need_scores[0].document
     timestamp = datetime.datetime.utcnow().isoformat(timespec='seconds') + 'Z'
     report_id = f'{COMPLEXITY_SCORE_NAMESPACE}/Complexity_Report_{timestamp.replace(":", "").replace("-", "")}_' \
                 f'{str(uuid.uuid4())[0:8]}'
     report_generation = sbol3.Activity(report_id, end_time=timestamp, types=[REPORT_ACTIVITY_TYPE])
     doc.add(report_generation)
+
     # Mark the sequences with their scores, where each score is a dimensionless measure
     for sequence, score in score_dictionary.items():
         measure = sbol3.Measure(score, unit=tyto.OM.number_unit, types=[tyto.EDAM.sequence_complexity_report])
         measure.generated_by.append(report_generation)
         sequence.measures.append(measure)
-
+    # return the dictionary of newly computed scores
     return score_dictionary
+
+
+def idt_calculate_complexity_scores(accessor: IDTAccountAccessor, doc: sbol3.Document) -> dict[sbol3.Sequence, float]:
+    """Given an SBOL Document, compute the complexity scores for any sequences in the Dcoument not currently scored
+    Also records the complexity computation with an activity
+
+    :param accessor: IDT API access object
+    :param doc: SBOL document with sequences of interest in it
+    :return: Dictionary mapping Sequences to complexity scores
+    """
+    sequences = [obj for obj in doc if isinstance(obj, sbol3.Sequence)]
+    return idt_calculate_sequence_complexity_scores(accessor, sequences)
 
 
 def main():
     """
-    Main wrapper: read from input file, invoke IDT_calculate_complexity_score, then write to output file
+    Main wrapper: read from input file, invoke idt_calculate_complexity_scores, then write to output file
     """
     parser = argparse.ArgumentParser()
     parser.add_argument('username', help="Username of your IDT account")
@@ -181,7 +221,8 @@ def main():
     logging.info('Reading SBOL file ' + input_file)
     doc = sbol3.Document()
     doc.read(input_file)
-    results = IDT_calculate_complexity_score(args_dict['username'], args_dict['password'], args_dict['ClientID'], args_dict['ClientSecret'], doc)
+    idt_accessor = IDTAccountAccessor(args_dict['username'], args_dict['password'], args_dict['ClientID'], args_dict['ClientSecret'])
+    results = idt_calculate_complexity_scores(idt_accessor, doc)
     doc.write(outfile_name, args_dict['file_type'])
     logging.info('SBOL file written to %s with %i new scores calculated', outfile_name, len(results))
 
