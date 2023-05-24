@@ -73,7 +73,9 @@ class IDTAccountAccessor:
 
     def get_sequence_scores(self, sequences: list[sbol3.Sequence]) -> list:
         """Retrieve synthesis complexity scores of sequences from the IDT API
-        This system uses the gBlock API, which is intended for sequences from 125 to 3000 bp in length
+        This system uses the gBlock API, which is intended for sequences from 125 to 3000 bp in length. If it is more 
+        than 3000 bp or less than 125 bp your returned score will be 0. A complexity score in the range from 0 to 10 means 
+        your sequence is synthesizable, if the score is greater or equal than 10 means it is not synthesizable.
 
         :param sequences: sequences for which we want to calculate the complexity score
         :return: dictionary mapping sequences to complexity Scores
