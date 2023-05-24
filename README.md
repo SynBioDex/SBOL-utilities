@@ -71,7 +71,9 @@ The `sbol-calculate-sequences` utility attempts to calculate the sequence of any
 
 ### Calculate sequence synthesis complexity for DNA sequences in an SBOL file
 
-The `sbol-calculate-complexity-scores` utility attempts to calculate the synthesis complexity of any DNA sequence in the file, by sending sequences to be evaluated by IDT's sequence calculator service. Sequences whose complexity is known are not re-calculated. The system uses the gBlock API, which is intended for sequences from 125 to 3000 bp in length. If it is more than 3000 bp or less than 125 bp your returned score will be 0. A complexity score in the range from 0 to 10 means your sequence is synthesizable, if the score is greater or equal than 10 means it is not synthesizable.
+The `sbol-calculate-complexity` utility attempts to calculate the synthesis complexity of any DNA sequence in the file, by sending sequences to be evaluated by IDT's sequence calculator service. Sequences whose complexity is known are not re-calculated. 
+
+The system uses the gBlock API, which is intended for sequences from 125 to 3000 bp in length. If it is more than 3000 bp or less than 125 bp your returned score will be 0. A complexity score in the range from 0 to 10 means your sequence is synthesizable, if the score is greater or equal than 10 means it is not synthesizable.
 
 Note that use of this utility requires an account with IDT that is set up to use IDT's online service API (see: https://www.idtdna.com/pages/tools/apidoc)
 
