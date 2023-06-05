@@ -1,12 +1,14 @@
 {
     "parts": { // objects that we want to validate are all at top level
         "entity_id": "UUID", // unique identifier for the object type
+        "sbol_destination": "http://synbiohub.org/public/igem/igem_collection/1", // the destination of the object
         "fields": {
             "partName": {
                 "type": {
                     "type": "String",
                     "valid": ".*"
                 },
+                "sbol_destination": "http://synbiohub.org/public/igem/igem_collection/1",
                 "required": true,
                 "sourcePointer": "A1",
                 "qualityPoints": [
@@ -23,11 +25,11 @@
                         "points": 0
                     }
                 ],
-                "errors": { 
+                "errors": {
                     "validationError": "Part name is invalid",
                     "missingValueError": "Part name is required"
                 },
-                "warnings": { 
+                "warnings": {
                     "validationWarning": "Part name is invalid",
                     "missingValueWarning": "Part name is required"
                 }
@@ -42,6 +44,7 @@
                         "other"
                     ]
                 },
+                "sbol_destination": "http://synbiohub.org/public/igem/igem_collection/1", // the destination of the object
                 "required": true,
                 "sourcePointer": "A1",
                 "qualityPoints": [
@@ -72,6 +75,7 @@
                     "type": "String",
                     "valid": ".*"
                 },
+                "sbol_destination": "http://synbiohub.org/public/igem/igem_collection/1", // the destination of the object
                 "required": false,
                 "sourcePointer": "A1",
                 "qualityPoints": [
