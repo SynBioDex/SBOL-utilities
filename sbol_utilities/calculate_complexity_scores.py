@@ -227,7 +227,7 @@ The values of the IDT access credentials should be stored in a JSON of the follo
     input_file = args_dict['input_file']
     output_name = args_dict['output_name']
 
-    if 'credentials' in args_dict:
+    if args_dict['credentials'] != None:
         with open(args_dict['credentials']) as credentials:
             idt_accessor = IDTAccountAccessor.from_json(json.load(credentials))
     else:
