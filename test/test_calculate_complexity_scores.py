@@ -32,8 +32,8 @@ def same_except_timestamps(doc1: sbol3.Document, doc2: sbol3.Document) -> bool:
     # Return true only if all differences are time-stamps or the activity name
     ignored_predicates = {sbol3.PROV_ENDED_AT_TIME, sbol3.SBOL_DISPLAY_ID}
     return all(p1 == p2 and (str(p1) in ignored_predicates or
-                             (str(s1) == replaced_subject and p1 == p2 and o1 == o2) or
-                             (s1 == s2 and p1 == p2 and str(o1) == replaced_subject))
+                             (str(s1) == replaced_subject and o1 == o2) or
+                             (s1 == s2 and str(o1) == replaced_subject))
                for (s1, p1, o1), (s2, p2, o2) in zip(sorted(first_graph), sorted(second_graph)))
 
 
