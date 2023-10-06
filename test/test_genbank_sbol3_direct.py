@@ -198,7 +198,7 @@ class TestGenBankSBOL3(unittest.TestCase):
         BBF10K_000***.gb ; these files mostly follow standard GenBank formatting, and don't have misplaced information
         """
         genbank_file = (
-            Path(__file__).parent / "test_files" / "sbol3_genbank_conversion" / "iGEM_BBF10K_000***.gb"
+            Path(__file__).parent / "test_files" / "sbol3_genbank_conversion" / "iGEM_BBF10K_000475_modified.gb"
         )
         self._test_round_trip_genbank(genbank_file)
 
