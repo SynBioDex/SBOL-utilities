@@ -1,6 +1,8 @@
 import sbol3
 import sbol2
 
+SBOL2_VERSION_PREDICATE = 'http://sboltools.org/backport#sbol2version'
+
 
 class SBOL3ConverterVisitor:
 
@@ -9,11 +11,23 @@ class SBOL3ConverterVisitor:
     def __init__(self, doc2: sbol2.Document):
         self.doc2 = doc2
 
-    def _convert_identified(self):
-        raise NotImplementedError('Conversion of identified objects from SBOL3 to SBOL2 not yet implemented')
+    def _convert_extension_properties(self, obj: sbol2.Identified):
+        """Map over the other properties of an extension materials"""
+        pass
 
-    def _convert_toplevel(self):
-        raise NotImplementedError('Conversion of toplevel objects from SBOL3 to SBOL2 not yet implemented')
+    def _convert_identified(self, obj: sbol2.Identified):
+        """Map over the other properties of an identified object"""
+        pass
+
+    def _convert_toplevel(self, obj: sbol2.TopLevel):
+        """Map over the other properties of a toplevel object"""
+        self._convert_identified(obj)
+        pass
+
+    @staticmethod
+    def _sbol2_version(obj: sbol3.Identified):
+        obj.sbol2_version = sbol3.TextProperty(obj, SBOL2_VERSION_PREDICATE, 0, 1)
+        return obj.sbol2_version or '1'
 
     def visit_activity(self, a: sbol3.Activity):
         raise NotImplementedError('Conversion of Activity from SBOL3 to SBOL2 not yet implemented')
@@ -96,8 +110,12 @@ class SBOL3ConverterVisitor:
     def visit_si_prefix(self, a: sbol3.SIPrefix):
         raise NotImplementedError('Conversion of SIPrefix from SBOL3 to SBOL2 not yet implemented')
 
-    def visit_sequence(self, a: sbol3.Sequence):
-        raise NotImplementedError('Conversion of Sequence from SBOL3 to SBOL2 not yet implemented')
+    def visit_sequence(self, seq: sbol3.Sequence):
+        # Make the Sequence object and add it to the document
+        seq = sbol2.Sequence(seq.identity, seq.elements, encoding=seq.encoding, version=self._sbol2_version(seq))
+        self.doc2.addSequence(seq)
+        # Add all of the other TopLevel properties and extensions not already covered
+        self._convert_toplevel(seq)
 
     def visit_sequence_feature(self, a: sbol3.SequenceFeature):
         raise NotImplementedError('Conversion of SequenceFeature from SBOL3 to SBOL2 not yet implemented')
