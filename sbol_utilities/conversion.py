@@ -16,6 +16,7 @@ from Bio.Seq import Seq
 from sbol_utilities.helper_functions import strip_sbol2_version, GENETIC_DESIGN_FILE_TYPES, \
     find_top_level
 from sbol_utilities.sbol3_genbank_conversion import GenBankSBOL3Converter
+from sbol_utilities.sbol3_sbol2_conversion import SBOL2SBOL3Converter
 from sbol_utilities.workarounds import id_sort
 
 # sbol javascript executable based on https://github.com/sboltools/sbolgraph
@@ -69,13 +70,18 @@ def convert_identities2to3(sbol3_data: str) -> str:
     return g.serialize(format="xml")
 
 
-def convert2to3(sbol2_doc: Union[str, sbol2.Document], namespaces=None) -> sbol3.Document:
+def convert2to3(sbol2_doc: Union[str, sbol2.Document], namespaces=None, use_native_converter: bool = True) \
+        -> sbol3.Document:
     """Convert an SBOL2 document to an equivalent SBOL3 document
 
     :param sbol2_doc: Document to convert
     :param namespaces: list of URI prefixes to treat as namespaces
+    :param use_native_converter: if true, use experimental Python converter instead of JavaScript call-out
     :return: equivalent SBOL3 document
     """
+    if use_native_converter:
+        return SBOL2SBOL3Converter.convert2to3(sbol2_doc)
+
     # if we've started with a Document in memory, write it to a temp file
     if namespaces is None:
         namespaces = []
@@ -167,12 +173,16 @@ def convert2to3(sbol2_doc: Union[str, sbol2.Document], namespaces=None) -> sbol3
     return doc
 
 
-def convert3to2(doc3: sbol3.Document) -> sbol2.Document:
+def convert3to2(doc3: sbol3.Document, use_native_converter: bool = False) -> sbol2.Document:
     """Convert an SBOL3 document to an equivalent SBOL2 document
 
     :param doc3: Document to convert
+    :param use_native_converter: if true, use experimental Python converter instead of JavaScript call-out
     :return: equivalent SBOL2 document
     """
+    if use_native_converter:
+        return SBOL2SBOL3Converter.convert3to2(doc3)
+
     # TODO: remove workarounds after conversion errors fixed in https://github.com/sboltools/sbolgraph/issues/16
     # remap sequence encodings:
     encoding_remapping = {
