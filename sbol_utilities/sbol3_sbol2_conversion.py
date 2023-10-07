@@ -253,5 +253,5 @@ def convert2to3(doc2: sbol2.Document) -> sbol3.Document:
     :returns: SBOL3 document
     """
     doc3 = sbol3.Document()
-    # TODO: build converter here
+    raise NotImplementedError('Conversion from SBOL2 to SBOL3 not yet implemented')
     return doc3
