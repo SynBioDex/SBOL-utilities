@@ -58,5 +58,7 @@
     <ns0:ownedBy rdf:resource="https://synbiohub.org/user/james"/>
     <sbol:persistentIdentity rdf:resource="https://synbiohub.org/public/igem/igem2sbol"/>
     <sbol:displayId>igem2sbol</sbol:displayId>
+    <dcterms:title>iGEM to SBOL conversion</dcterms:title>
+    <dcterms:description>Conversion of the iGEM parts registry to SBOL2.1</dcterms:description>
   </prov:Activity>
 </rdf:RDF>
