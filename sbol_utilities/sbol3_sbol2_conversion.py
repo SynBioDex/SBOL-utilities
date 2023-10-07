@@ -40,6 +40,9 @@ class SBOL3To2ConversionVisitor:
         # Try conversion, resetting saved parameter values afterward
         try:
             doc3.accept(self)
+            # TODO: make sure that complex extension objects (e.g., from SBOLFactory) are properly converted
+            # TODO: make sure that unhandled SBOL child objects / properties will throw errors
+            # TODO: check if we need to add post-creation fix-up of links, to ensure they point to objects
         finally:
             sbol2.Config.setOption(sbol2.ConfigOptions.SBOL_COMPLIANT_URIS.value, saved_compliance)
             sbol2.setHomespace(saved_homespace)
