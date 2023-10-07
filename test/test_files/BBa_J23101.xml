@@ -1,0 +1,62 @@
+<rdf:RDF xmlns:owl="http://www.w3.org/2002/07/owl#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#" xmlns:xsd="http://www.w3.org/2001/XMLSchema#" xmlns:backport="http://sboltools.org/backport#" xmlns:prov="http://www.w3.org/ns/prov#" xmlns:om="http://www.ontology-of-units-of-measure.org/resource/om-2/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:sbol="http://sbols.org/v2#" xmlns:ns0="http://wiki.synbiohub.org/wiki/Terms/synbiohub#" xmlns:ns1="http://purl.org/dc/elements/1.1/" xmlns:ns2="http://wiki.synbiohub.org/wiki/Terms/igem#">
+  <sbol:ComponentDefinition rdf:about="https://synbiohub.org/public/igem/BBa_J23101">
+    <ns0:mutableDescription>later</ns0:mutableDescription>
+    <ns0:ownedBy rdf:resource="https://synbiohub.org/user/myers"/>
+    <sbol:type rdf:resource="http://www.biopax.org/release/biopax-level3.owl#DnaRegion"/>
+    <sbol:version>1</sbol:version>
+    <ns0:mutableNotes>N/A</ns0:mutableNotes>
+    <ns2:sampleStatus>In stock</ns2:sampleStatus>
+    <dcterms:title>BBa_J23101</dcterms:title>
+    <ns2:partStatus>Released HQ 2013</ns2:partStatus>
+    <ns0:bookmark>true</ns0:bookmark>
+    <ns0:mutableProvenance>later</ns0:mutableProvenance>
+    <ns0:topLevel rdf:resource="https://synbiohub.org/public/igem/BBa_J23101"/>
+    <ns2:dominant>true</ns2:dominant>
+    <sbol:role rdf:resource="http://identifiers.org/so/SO:0000167"/>
+    <ns0:star>true</ns0:star>
+    <ns0:ownedBy rdf:resource="https://synbiohub.org/user/james"/>
+    <backport:sbol3namespace rdf:resource="https://synbiohub.org"/>
+    <prov:wasDerivedFrom rdf:resource="http://parts.igem.org/Part:BBa_J23101"/>
+    <ns2:discontinued>false</ns2:discontinued>
+    <dcterms:modified>2015-08-31T04:08:40Z</dcterms:modified>
+    <sbol:persistentIdentity rdf:resource="https://synbiohub.org/public/igem/BBa_J23101"/>
+    <dcterms:created>2006-08-03T11:00:00Z</dcterms:created>
+    <sbol:sequence rdf:resource="https://synbiohub.org/public/igem/BBa_J23101_sequence"/>
+    <sbol:displayId>BBa_J23101</sbol:displayId>
+    <dcterms:description>constitutive promoter family member</dcterms:description>
+    <ns2:status rdf:resource="http://wiki.synbiohub.org/wiki/Terms/igem#status/Available"/>
+    <sbol:role rdf:resource="http://wiki.synbiohub.org/wiki/Terms/igem#partType/Regulatory"/>
+    <ns2:owner_id>483</ns2:owner_id>
+    <ns2:owning_group_id>95</ns2:owning_group_id>
+    <ns2:group_u_list>_52_</ns2:group_u_list>
+    <prov:wasGeneratedBy rdf:resource="https://synbiohub.org/public/igem/igem2sbol"/>
+    <ns1:creator>John Anderson</ns1:creator>
+    <ns2:m_user_id>0</ns2:m_user_id>
+    <ns2:experience rdf:resource="http://wiki.synbiohub.org/wiki/Terms/igem#experience/Works"/>
+  </sbol:ComponentDefinition>
+  <sbol:Sequence rdf:about="https://synbiohub.org/public/igem/BBa_J23101_sequence">
+    <sbol:displayId>BBa_J23101_sequence</sbol:displayId>
+    <ns0:ownedBy rdf:resource="https://synbiohub.org/user/james"/>
+    <backport:sbol3namespace rdf:resource="https://synbiohub.org"/>
+    <sbol:persistentIdentity rdf:resource="https://synbiohub.org/public/igem/BBa_J23101_sequence"/>
+    <prov:wasDerivedFrom rdf:resource="http://parts.igem.org/Part:BBa_J23101"/>
+    <prov:wasGeneratedBy rdf:resource="https://synbiohub.org/public/igem/igem2sbol"/>
+    <ns0:topLevel rdf:resource="https://synbiohub.org/public/igem/BBa_J23101_sequence"/>
+    <sbol:encoding rdf:resource="http://www.chem.qmul.ac.uk/iubmb/misc/naseq.html"/>
+    <sbol:elements>tttacagctagctcagtcctaggtattatgctagc</sbol:elements>
+    <ns0:ownedBy rdf:resource="https://synbiohub.org/user/myers"/>
+    <sbol:version>1</sbol:version>
+  </sbol:Sequence>
+  <prov:Activity rdf:about="https://synbiohub.org/public/igem/igem2sbol">
+    <ns1:creator>Chris J. Myers</ns1:creator>
+    <ns0:ownedBy rdf:resource="https://synbiohub.org/user/myers"/>
+    <prov:endedAtTime>2017-03-06T15:00:00+00:00</prov:endedAtTime>
+    <sbol:version>1</sbol:version>
+    <ns0:topLevel rdf:resource="https://synbiohub.org/public/igem/igem2sbol"/>
+    <backport:sbol3namespace rdf:resource="https://synbiohub.org"/>
+    <ns1:creator>James Alastair McLaughlin</ns1:creator>
+    <ns0:ownedBy rdf:resource="https://synbiohub.org/user/james"/>
+    <sbol:persistentIdentity rdf:resource="https://synbiohub.org/public/igem/igem2sbol"/>
+    <sbol:displayId>igem2sbol</sbol:displayId>
+  </prov:Activity>
+</rdf:RDF>

@@ -16,7 +16,7 @@ from Bio.Seq import Seq
 from sbol_utilities.helper_functions import strip_sbol2_version, GENETIC_DESIGN_FILE_TYPES, \
     find_top_level
 from sbol_utilities.sbol3_genbank_conversion import GenBankSBOL3Converter
-from sbol_utilities.sbol3_sbol2_conversion import SBOL2SBOL3Converter
+import sbol_utilities.sbol3_sbol2_conversion
 from sbol_utilities.workarounds import id_sort
 
 # sbol javascript executable based on https://github.com/sboltools/sbolgraph
@@ -80,7 +80,7 @@ def convert2to3(sbol2_doc: Union[str, sbol2.Document], namespaces=None, use_nati
     :return: equivalent SBOL3 document
     """
     if use_native_converter:
-        return SBOL2SBOL3Converter.convert2to3(sbol2_doc)
+        return sbol_utilities.sbol3_sbol2_conversion.convert2to3(sbol2_doc)
 
     # if we've started with a Document in memory, write it to a temp file
     if namespaces is None:
@@ -181,7 +181,7 @@ def convert3to2(doc3: sbol3.Document, use_native_converter: bool = False) -> sbo
     :return: equivalent SBOL2 document
     """
     if use_native_converter:
-        return SBOL2SBOL3Converter.convert3to2(doc3)
+        return sbol_utilities.sbol3_sbol2_conversion.convert3to2(doc3)
 
     # TODO: remove workarounds after conversion errors fixed in https://github.com/sboltools/sbolgraph/issues/16
     # remap sequence encodings:
