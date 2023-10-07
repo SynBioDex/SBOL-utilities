@@ -80,7 +80,7 @@ def convert2to3(sbol2_doc: Union[str, sbol2.Document], namespaces=None, use_nati
     :return: equivalent SBOL3 document
     """
     if use_native_converter:
-        return sbol_utilities.sbol3_sbol2_conversion.convert2to3(sbol2_doc)
+        return sbol_utilities.sbol3_sbol2_conversion.convert2to3(sbol2_doc, namespaces)
 
     # if we've started with a Document in memory, write it to a temp file
     if namespaces is None:
