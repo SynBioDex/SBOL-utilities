@@ -82,14 +82,18 @@ class SBOL3To2ConversionVisitor:
         act2 = sbol2.Activity(act3.identity, version=self._sbol2_version(act3))
         if act3.types:
             if len(act3.types) > 1:
-                raise NotImplementedError('Conversion of multi-type activities to SBOL2 not yet implemented:'
+                raise NotImplementedError('Conversion of multi-type Activities to SBOL2 not yet implemented:'
                                           'pySBOL2 currently supports a maximum of one type per activity'
                                           'Bug: https://github.com/SynBioDex/pySBOL2/issues/428')
             act2.types = act3.types[0]  # Take first type from list of length 1
         act2.startedAtTime = act3.start_time
         act2.endedAtTime = act3.end_time
-        act2.usages = act3.usage
-        act2.associations = act3.association
+        if act3.usage or act3.association:
+            raise NotImplementedError('Conversion of Activity usage and association properties to SBOL2 '
+                                      'not yet implemented, due to visitors failing to return values'
+                                      'Bug: https://github.com/SynBioDex/pySBOL3/issues/437')
+        act2.usages = [usage.accept(self) for usage in act3.usage]
+        act2.associations = [assoc.accept(self) for assoc in act3.association]
         # TODO: pySBOL3 is currently missing wasInformedBy (https://github.com/SynBioDex/pySBOL3/issues/436
         # act2.wasInformedBy = act3.informed_by
         self.doc2.activities.add(act2)
@@ -116,8 +120,8 @@ class SBOL3To2ConversionVisitor:
 
     def visit_component(self, cp3: sbol3.Component):
         # Remap type if it's one of the ones that needs remapping; otherwise pass through unchanged
-        type_map = {sbol3.SBO_DNA: sbol2.BIOPAX_DNA,  # TODO: distinguish biopax Dna from DnaRegion
-                    sbol3.SBO_RNA: sbol2.BIOPAX_RNA,  # TODO: distinguish biopax Rna from RnaRegion
+        type_map = {sbol3.SBO_DNA: sbol2.BIOPAX_DNA,  # TODO: distinguish BioPAX Dna from DnaRegion
+                    sbol3.SBO_RNA: sbol2.BIOPAX_RNA,  # TODO: distinguish BioPAX Rna from RnaRegion
                     sbol3.SBO_PROTEIN: sbol2.BIOPAX_PROTEIN,
                     sbol3.SBO_SIMPLE_CHEMICAL: sbol2.BIOPAX_SMALL_MOLECULE,
                     sbol3.SBO_NON_COVALENT_COMPLEX: sbol2.BIOPAX_COMPLEX}
