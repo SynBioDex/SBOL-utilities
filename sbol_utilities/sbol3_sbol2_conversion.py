@@ -1,5 +1,6 @@
 import sbol3
 import sbol2
+from sbol2 import mapsto, model, sequenceconstraint
 
 # Namespaces
 from rdflib import URIRef
@@ -67,7 +68,6 @@ class SBOL3To2ConversionVisitor:
         # Turn measures into extension properties
         if obj3.measures:
             raise NotImplementedError('Conversion of measures from SBOL3 to SBOL2 not yet implemented')
-        pass
 
     def _convert_toplevel(self, obj3: sbol3.TopLevel, obj2: sbol2.TopLevel):
         """Map over the other properties of a TopLevel object"""
@@ -78,11 +78,13 @@ class SBOL3To2ConversionVisitor:
     @staticmethod
     def _sbol2_version(obj: sbol3.Identified):
         obj.sbol2_version = sbol3.TextProperty(obj, BACKPORT2_VERSION, 0, 1)
+        # TODO: since version is optional, if it's missing, should this be returning '1' or None?
         return obj.sbol2_version or '1'
 
     def visit_activity(self, act3: sbol3.Activity):
         # Make the Activity object and add it to the document
         act2 = sbol2.Activity(act3.identity, version=self._sbol2_version(act3))
+        self.doc2.activities.add(act2)
         if act3.types:
             if len(act3.types) > 1:
                 raise NotImplementedError('Conversion of multi-type Activities to SBOL2 not yet implemented:'
@@ -99,7 +101,6 @@ class SBOL3To2ConversionVisitor:
         act2.associations = [assoc.accept(self) for assoc in act3.association]
         # TODO: pySBOL3 is currently missing wasInformedBy (https://github.com/SynBioDex/pySBOL3/issues/436
         # act2.wasInformedBy = act3.informed_by
-        self.doc2.activities.add(act2)
         # Map over all other TopLevel properties and extensions not covered by the constructor
         self._convert_toplevel(act3, act2)
 
@@ -243,6 +244,189 @@ class SBOL3To2ConversionVisitor:
         raise NotImplementedError('Conversion of VariableFeature from SBOL3 to SBOL2 not yet implemented')
 
 
+class SBOL2To3ConversionVisitor:
+    """This class is used to map every object in an SBOL3 document into an empty SBOL2 document"""
+
+    doc3: sbol3.Document
+    namespaces: list
+
+    def __init__(self, doc2: sbol2.Document, namespaces: list):
+        # Create the target document
+        self.doc3 = sbol3.Document()
+        self.namespaces = namespaces
+        #   # Immediately run the conversion
+        self._convert(doc2)
+
+    def _convert(self, doc2: sbol2.Document):
+        # Note: namespaces don't need to be bound for SBOL3 documents, which don't usually use XML
+        # We can skip all the preliminaries and just go to conversion
+        self.visit_document(doc2)
+        # TODO: check if there is additional work needed for Annotation & GenericTopLevel conversion
+
+    @staticmethod
+    def _convert_extension_properties(obj2: sbol2.Identified, obj3: sbol3.Identified):
+        """Copy over extension properties"""
+        extension_properties = (p for p in obj2.properties
+                                if not any(p.startswith(prefix) for prefix in NON_EXTENSION_PROPERTY_PREFIXES))
+        for p in extension_properties:
+            obj3._properties[p] = obj2.properties[p]
+
+    def _convert_identified(self, obj2: sbol2.Identified, obj3: sbol3.Identified):
+        """Map over the other properties of an Identified object"""
+        self._convert_extension_properties(obj2, obj3)
+        # Map over equivalent properties
+        # display_id and namespace are handled during creation
+        if obj2.version:  # Save version for unpacking later if needed
+            obj3.sbol2_version = sbol3.TextProperty(obj3, BACKPORT2_VERSION, 0, 1)
+            obj3.sbol2_version = obj2.version
+        obj3.name = obj2.name
+        obj3.description = obj2.description
+        obj3.derived_from = obj2.wasDerivedFrom
+        obj3.generated_by = obj2.wasGeneratedBy
+        # TODO: unpack measures from extension properties
+
+    def _convert_toplevel(self, obj2: sbol2.TopLevel, obj3: sbol3.TopLevel):
+        """Map over the other properties of a TopLevel object"""
+        self._convert_identified(obj2, obj3)
+        obj3.attachments = [a.identity for a in obj2.attachments]
+
+    def _sbol3_namespace(self, obj2: sbol2.TopLevel):
+        # If a namespace is explicitly set, that takes priority
+        if BACKPORT3_NAMESPACE in obj2.properties:
+            return obj2.properties[BACKPORT3_NAMESPACE]
+        # Check if the object starts with any of the provided namespaces
+        for namespace in self.namespaces:
+            if obj2.identity.startswith(namespace):
+                return namespace
+        # Otherwise, use default behavior
+        return None
+
+    def visit_activity(self, act2: sbol2.Activity):
+        # Make the Activity object and add it to the document
+        act3 = sbol3.Activity(act2.identity, namespace=self._sbol3_namespace(act2),
+                              types=[act2.types],  # TODO: unwrap after https://github.com/SynBioDex/pySBOL2/issues/428
+                              start_time=act2.startedAtTime, end_time=act2.endedAtTime)
+        self.doc3.add(act3)
+        # Convert child objects after adding to document
+        act3.usage = [usage.visit_usage(self) for usage in act2.usages]
+        act3.association = [assoc.visit_association(self) for assoc in act2.associations]
+        # TODO: pySBOL3 is currently missing wasInformedBy (https://github.com/SynBioDex/pySBOL3/issues/436
+        # act3.informed_by = act2.wasInformedBy
+        # Map over all other TopLevel properties and extensions not covered by the constructor
+        self._convert_toplevel(act2, act3)
+
+    def visit_agent(self, a: sbol2.Agent):
+        raise NotImplementedError('Conversion of Agent from SBOL2 to SBOL3 not yet implemented')
+
+    def visit_association(self, a: sbol2.Association):
+        raise NotImplementedError('Conversion of Association from SBOL2 to SBOL3 not yet implemented')
+
+    def visit_attachment(self, a: sbol2.Attachment):
+        raise NotImplementedError('Conversion of Attachment from SBOL2 to SBOL3 not yet implemented')
+
+    def visit_collection(self, a: sbol2.Collection):
+        raise NotImplementedError('Conversion of Collection from SBOL2 to SBOL3 not yet implemented')
+
+    def visit_combinatorial_derivation(self, a: sbol2.CombinatorialDerivation):
+        raise NotImplementedError('Conversion of CombinatorialDerivation from SBOL2 to SBOL3 not yet implemented')
+
+    def visit_component_definition(self, a: sbol2.ComponentDefinition):
+        raise NotImplementedError('Conversion of ComponentDefinition from SBOL2 to SBOL3 not yet implemented')
+
+    def visit_component(self, a: sbol2.Component):
+        raise NotImplementedError('Conversion of Component from SBOL2 to SBOL3 not yet implemented')
+
+    def visit_cut(self, a: sbol2.Cut):
+        raise NotImplementedError('Conversion of Cut from SBOL2 to SBOL3 not yet implemented')
+
+    def visit_document(self, doc2: sbol2.Document):
+        for obj in doc2.componentDefinitions:
+            self.visit_component_definition(obj)
+        for obj in doc2.moduleDefinitions:
+            self.visit_module_definition(obj)
+        for obj in doc2.models:
+            self.visit_model(obj)
+        for obj in doc2.sequences:
+            self.visit_sequence(obj)
+        for obj in doc2.collections:
+            self.visit_collection(obj)
+        for obj in doc2.activities:
+            self.visit_activity(obj)
+        for obj in doc2.plans:
+            self.visit_plan(obj)
+        for obj in doc2.agents:
+            self.visit_agent(obj)
+        for obj in doc2.attachments:
+            self.visit_attachment(obj)
+        for obj in doc2.combinatorialderivations:
+            self.visit_combinatorial_derivation(obj)
+        for obj in doc2.implementations:
+            self.visit_implementation(obj)
+        for obj in doc2.experiments:
+            self.visit_experiment(obj)
+        for obj in doc2.experimentalData:
+            self.visit_experimental_data(obj)
+        # TODO: handle "standard extensions" in pySBOL2:
+        #   designs, builds, tests, analyses, sampleRosters, citations, keywords
+
+    def visit_experiment(self, a: sbol2.Experiment):
+        raise NotImplementedError('Conversion of Experiment from SBOL2 to SBOL3 not yet implemented')
+
+    def visit_experimental_data(self, a: sbol2.ExperimentalData):
+        raise NotImplementedError('Conversion of ExperimentalData from SBOL2 to SBOL3 not yet implemented')
+
+    def visit_functional_component(self, a: sbol2.FunctionalComponent):
+        raise NotImplementedError('Conversion of FunctionalComponent from SBOL2 to SBOL3 not yet implemented')
+
+    def visit_generic_location(self, a: sbol2.GenericLocation):
+        raise NotImplementedError('Conversion of GenericLocation from SBOL2 to SBOL3 not yet implemented')
+
+    def visit_implementation(self, a: sbol2.Implementation):
+        raise NotImplementedError('Conversion of Implementation from SBOL2 to SBOL3 not yet implemented')
+
+    def visit_interaction(self, a: sbol2.Interaction):
+        raise NotImplementedError('Conversion of Interaction from SBOL2 to SBOL3 not yet implemented')
+
+    def visit_maps_to(self, a: sbol2.mapsto.MapsTo):
+        raise NotImplementedError('Conversion of MapsTo from SBOL2 to SBOL3 not yet implemented')
+
+    def visit_measure(self, a: sbol2.measurement.Measurement):
+        raise NotImplementedError('Conversion of Measure from SBOL2 to SBOL3 not yet implemented')
+
+    def visit_model(self, a: sbol2.model.Model):
+        raise NotImplementedError('Conversion of Model from SBOL2 to SBOL3 not yet implemented')
+
+    def visit_module(self, a: sbol2.Module):
+        raise NotImplementedError('Conversion of Module from SBOL2 to SBOL3 not yet implemented')
+
+    def visit_module_definition(self, a: sbol2.ModuleDefinition):
+        raise NotImplementedError('Conversion of ModuleDefinition from SBOL2 to SBOL3 not yet implemented')
+
+    def visit_participation(self, a: sbol2.Participation):
+        raise NotImplementedError('Conversion of Participation from SBOL2 to SBOL3 not yet implemented')
+
+    def visit_plan(self, a: sbol2.Plan):
+        raise NotImplementedError('Conversion of Plan from SBOL2 to SBOL3 not yet implemented')
+
+    def visit_range(self, a: sbol2.Range):
+        raise NotImplementedError('Conversion of Range from SBOL2 to SBOL3 not yet implemented')
+
+    def visit_sequence(self, seq2: sbol2.Sequence):
+        raise NotImplementedError('Conversion of Sequence from SBOL2 to SBOL3 not yet implemented')
+
+    def visit_sequence_annotation(self, seq2: sbol2.SequenceAnnotation):
+        raise NotImplementedError('Conversion of SequenceAnnotation from SBOL2 to SBOL3 not yet implemented')
+
+    def visit_sequence_constraint(self, seq2: sbol2.sequenceconstraint.SequenceConstraint):
+        raise NotImplementedError('Conversion of SequenceConstraint from SBOL2 to SBOL3 not yet implemented')
+
+    def visit_usage(self, a: sbol2.Usage):
+        raise NotImplementedError('Conversion of Usage from SBOL2 to SBOL3 not yet implemented')
+
+    def visit_variable_component(self, a: sbol2.VariableComponent):
+        raise NotImplementedError('Conversion of VariableComponent from SBOL2 to SBOL3 not yet implemented')
+
+
 def convert3to2(doc3: sbol3.Document) -> sbol2.Document:
     """Convert an SBOL3 document to an SBOL2 document
 
@@ -253,12 +437,12 @@ def convert3to2(doc3: sbol3.Document) -> sbol2.Document:
     return converter.doc2
 
 
-def convert2to3(doc2: sbol2.Document) -> sbol3.Document:
+def convert2to3(doc2: sbol2.Document, namespaces=None) -> sbol3.Document:
     """Convert an SBOL2 document to an SBOL3 document
 
     :param doc2: SBOL2 document to convert
+    :param namespaces: list of URI prefixes to treat as namespaces
     :returns: SBOL3 document
     """
-    doc3 = sbol3.Document()
-    raise NotImplementedError('Conversion from SBOL2 to SBOL3 not yet implemented')
-    return doc3
+    converter = SBOL2To3ConversionVisitor(doc2, namespaces)
+    return converter.doc3
