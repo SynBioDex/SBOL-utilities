@@ -24,6 +24,8 @@ class TestDirectSBOL2SBOL3Conversion(unittest.TestCase):
         with tempfile.NamedTemporaryFile(suffix='.xml') as tmp:
             doc2.write(tmp.name)
             self.assertFalse(file_diff(tmp.name, str(TEST_FILES / 'BBa_J23101.xml')))
+            doc2.read(tmp.name)
+            doc3_loop = convert3to2()
 
 
 if __name__ == '__main__':
