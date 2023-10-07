@@ -54,15 +54,21 @@ class SBOL3To2ConversionVisitor:
         extension_properties = (p for p in obj3.properties
                                 if not any(p.startswith(prefix) for prefix in NON_EXTENSION_PROPERTY_PREFIXES))
         for p in extension_properties:
-            obj2.properties[p] = obj3._properties[p]  # Can't use setPropertyValue because it may not be a string
+            obj2.properties[p] = obj3._properties[p].copy()  # Can't use setPropertyValue because it may not be a string
+
+    @staticmethod
+    def _value_or_property(obj3: sbol3.Identified, value, property: str):
+        if property in obj3._properties and len(obj3._properties[property]) == 1:
+            return value or obj3._properties[property][0]
+        return value
 
     def _convert_identified(self, obj3: sbol3.Identified, obj2: sbol2.Identified):
         """Map over the other properties of an identified object"""
         self._convert_extension_properties(obj3, obj2)
         # Map over equivalent properties
         obj2.displayId = obj3.display_id
-        obj2.name = obj3.name
-        obj2.description = obj3.description
+        obj2.name = self._value_or_property(obj3, obj3.name, 'http://purl.org/dc/terms/title')
+        obj2.description = self._value_or_property(obj3, obj3.description, 'http://purl.org/dc/terms/description')
         obj2.wasDerivedFrom = obj3.derived_from
         obj2.wasGeneratedBy = obj3.generated_by
         # Turn measures into extension properties
@@ -77,7 +83,8 @@ class SBOL3To2ConversionVisitor:
 
     @staticmethod
     def _sbol2_version(obj: sbol3.Identified):
-        obj.sbol2_version = sbol3.TextProperty(obj, BACKPORT2_VERSION, 0, 1)
+        if not hasattr(obj, 'sbol2_version'):
+            obj.sbol2_version = sbol3.TextProperty(obj, BACKPORT2_VERSION, 0, 1)
         # TODO: since version is optional, if it's missing, should this be returning '1' or None?
         return obj.sbol2_version or '1'
 
@@ -105,21 +112,27 @@ class SBOL3To2ConversionVisitor:
         self._convert_toplevel(act3, act2)
 
     def visit_agent(self, a: sbol3.Agent):
+        # Priority: 3
         raise NotImplementedError('Conversion of Agent from SBOL3 to SBOL2 not yet implemented')
 
     def visit_association(self, a: sbol3.Association):
+        # Priority: 3
         raise NotImplementedError('Conversion of Association from SBOL3 to SBOL2 not yet implemented')
 
     def visit_attachment(self, a: sbol3.Attachment):
+        # Priority: 2
         raise NotImplementedError('Conversion of Attachment from SBOL3 to SBOL2 not yet implemented')
 
     def visit_binary_prefix(self, a: sbol3.BinaryPrefix):
+        # Priority: 4
         raise NotImplementedError('Conversion of BinaryPrefix from SBOL3 to SBOL2 not yet implemented')
 
     def visit_collection(self, a: sbol3.Collection):
+        # Priority: 1
         raise NotImplementedError('Conversion of Collection from SBOL3 to SBOL2 not yet implemented')
 
     def visit_combinatorial_derivation(self, a: sbol3.CombinatorialDerivation):
+        # Priority: 2
         raise NotImplementedError('Conversion of CombinatorialDerivation from SBOL3 to SBOL2 not yet implemented')
 
     def visit_component(self, cp3: sbol3.Component):
@@ -150,12 +163,15 @@ class SBOL3To2ConversionVisitor:
         self._convert_toplevel(cp3, cp2)
 
     def visit_component_reference(self, a: sbol3.ComponentReference):
+        # Priority: 3
         raise NotImplementedError('Conversion of ComponentReference from SBOL3 to SBOL2 not yet implemented')
 
     def visit_constraint(self, a: sbol3.Constraint):
+        # Priority: 2
         raise NotImplementedError('Conversion of Constraint from SBOL3 to SBOL2 not yet implemented')
 
     def visit_cut(self, a: sbol3.Cut):
+        # Priority: 2
         raise NotImplementedError('Conversion of Cut from SBOL3 to SBOL2 not yet implemented')
 
     def visit_document(self, doc3: sbol3.Document):
@@ -163,48 +179,63 @@ class SBOL3To2ConversionVisitor:
             obj.accept(self)
 
     def visit_entire_sequence(self, a: sbol3.EntireSequence):
+        # Priority: 3
         raise NotImplementedError('Conversion of EntireSequence from SBOL3 to SBOL2 not yet implemented')
 
     def visit_experiment(self, a: sbol3.Experiment):
+        # Priority: 3
         raise NotImplementedError('Conversion of Experiment from SBOL3 to SBOL2 not yet implemented')
 
     def visit_experimental_data(self, a: sbol3.ExperimentalData):
+        # Priority: 3
         raise NotImplementedError('Conversion of ExperimentalData from SBOL3 to SBOL2 not yet implemented')
 
     def visit_externally_defined(self, a: sbol3.ExternallyDefined):
+        # Priority: 3
         raise NotImplementedError('Conversion of ExternallyDefined from SBOL3 to SBOL2 not yet implemented')
 
     def visit_implementation(self, a: sbol3.Implementation):
+        # Priority: 1
         raise NotImplementedError('Conversion of Implementation from SBOL3 to SBOL2 not yet implemented')
 
     def visit_interaction(self, a: sbol3.Interaction):
+        # Priority: 2
         raise NotImplementedError('Conversion of Interaction from SBOL3 to SBOL2 not yet implemented')
 
     def visit_interface(self, a: sbol3.Interface):
+        # Priority: 3
         raise NotImplementedError('Conversion of Interface from SBOL3 to SBOL2 not yet implemented')
 
     def visit_local_sub_component(self, a: sbol3.LocalSubComponent):
+        # Priority: 2
         raise NotImplementedError('Conversion of LocalSubComponent from SBOL3 to SBOL2 not yet implemented')
 
     def visit_measure(self, a: sbol3.Measure):
+        # Priority: 3
         raise NotImplementedError('Conversion of Measure from SBOL3 to SBOL2 not yet implemented')
 
     def visit_model(self, a: sbol3.Model):
+        # Priority: 3
         raise NotImplementedError('Conversion of Model from SBOL3 to SBOL2 not yet implemented')
 
     def visit_participation(self, a: sbol3.Participation):
+        # Priority: 2
         raise NotImplementedError('Conversion of Participation from SBOL3 to SBOL2 not yet implemented')
 
     def visit_plan(self, a: sbol3.Plan):
+        # Priority: 3
         raise NotImplementedError('Conversion of Plan from SBOL3 to SBOL2 not yet implemented')
 
     def visit_prefixed_unit(self, a: sbol3.PrefixedUnit):
+        # Priority: 4
         raise NotImplementedError('Conversion of PrefixedUnit from SBOL3 to SBOL2 not yet implemented')
 
     def visit_range(self, a: sbol3.Range):
+        # Priority: 2
         raise NotImplementedError('Conversion of Range from SBOL3 to SBOL2 not yet implemented')
 
     def visit_si_prefix(self, a: sbol3.SIPrefix):
+        # Priority: 4
         raise NotImplementedError('Conversion of SIPrefix from SBOL3 to SBOL2 not yet implemented')
 
     def visit_sequence(self, seq3: sbol3.Sequence):
@@ -220,27 +251,35 @@ class SBOL3To2ConversionVisitor:
         self._convert_toplevel(seq3, seq2)
 
     def visit_sequence_feature(self, a: sbol3.SequenceFeature):
+        # Priority: 1
         raise NotImplementedError('Conversion of SequenceFeature from SBOL3 to SBOL2 not yet implemented')
 
     def visit_singular_unit(self, a: sbol3.SingularUnit):
+        # Priority: 4
         raise NotImplementedError('Conversion of SingularUnit from SBOL3 to SBOL2 not yet implemented')
 
     def visit_sub_component(self, a: sbol3.SubComponent):
+        # Priority: 1
         raise NotImplementedError('Conversion of SubComponent from SBOL3 to SBOL2 not yet implemented')
 
     def visit_unit_division(self, a: sbol3.UnitDivision):
+        # Priority: 4
         raise NotImplementedError('Conversion of UnitDivision from SBOL3 to SBOL2 not yet implemented')
 
     def visit_unit_exponentiation(self, a: sbol3.UnitExponentiation):
+        # Priority: 4
         raise NotImplementedError('Conversion of UnitExponentiation from SBOL3 to SBOL2 not yet implemented')
 
     def visit_unit_multiplication(self, a: sbol3.UnitMultiplication):
+        # Priority: 4
         raise NotImplementedError('Conversion of UnitMultiplication from SBOL3 to SBOL2 not yet implemented')
 
     def visit_usage(self, a: sbol3.Usage):
+        # Priority: 3
         raise NotImplementedError('Conversion of Usage from SBOL3 to SBOL2 not yet implemented')
 
     def visit_variable_feature(self, a: sbol3.VariableFeature):
+        # Priority: 2
         raise NotImplementedError('Conversion of VariableFeature from SBOL3 to SBOL2 not yet implemented')
 
 
@@ -321,18 +360,23 @@ class SBOL2To3ConversionVisitor:
         self._convert_toplevel(act2, act3)
 
     def visit_agent(self, a: sbol2.Agent):
+        # Priority: 3
         raise NotImplementedError('Conversion of Agent from SBOL2 to SBOL3 not yet implemented')
 
     def visit_association(self, a: sbol2.Association):
+        # Priority: 3
         raise NotImplementedError('Conversion of Association from SBOL2 to SBOL3 not yet implemented')
 
     def visit_attachment(self, a: sbol2.Attachment):
+        # Priority: 2
         raise NotImplementedError('Conversion of Attachment from SBOL2 to SBOL3 not yet implemented')
 
     def visit_collection(self, a: sbol2.Collection):
+        # Priority: 1
         raise NotImplementedError('Conversion of Collection from SBOL2 to SBOL3 not yet implemented')
 
     def visit_combinatorial_derivation(self, a: sbol2.CombinatorialDerivation):
+        # Priority: 2
         raise NotImplementedError('Conversion of CombinatorialDerivation from SBOL2 to SBOL3 not yet implemented')
 
     def visit_component_definition(self, cd2: sbol2.ComponentDefinition):
@@ -363,9 +407,11 @@ class SBOL2To3ConversionVisitor:
         self._convert_toplevel(cd2, cp3)
 
     def visit_component(self, a: sbol2.Component):
+        # Priority: 2
         raise NotImplementedError('Conversion of Component from SBOL2 to SBOL3 not yet implemented')
 
     def visit_cut(self, a: sbol2.Cut):
+        # Priority: 2
         raise NotImplementedError('Conversion of Cut from SBOL2 to SBOL3 not yet implemented')
 
     def visit_document(self, doc2: sbol2.Document):
@@ -399,45 +445,59 @@ class SBOL2To3ConversionVisitor:
         #   designs, builds, tests, analyses, sampleRosters, citations, keywords
 
     def visit_experiment(self, a: sbol2.Experiment):
+        # Priority: 3
         raise NotImplementedError('Conversion of Experiment from SBOL2 to SBOL3 not yet implemented')
 
     def visit_experimental_data(self, a: sbol2.ExperimentalData):
+        # Priority: 3
         raise NotImplementedError('Conversion of ExperimentalData from SBOL2 to SBOL3 not yet implemented')
 
     def visit_functional_component(self, a: sbol2.FunctionalComponent):
+        # Priority: 3
         raise NotImplementedError('Conversion of FunctionalComponent from SBOL2 to SBOL3 not yet implemented')
 
     def visit_generic_location(self, a: sbol2.GenericLocation):
+        # Priority: 3
         raise NotImplementedError('Conversion of GenericLocation from SBOL2 to SBOL3 not yet implemented')
 
     def visit_implementation(self, a: sbol2.Implementation):
+        # Priority: 1
         raise NotImplementedError('Conversion of Implementation from SBOL2 to SBOL3 not yet implemented')
 
     def visit_interaction(self, a: sbol2.Interaction):
+        # Priority: 2
         raise NotImplementedError('Conversion of Interaction from SBOL2 to SBOL3 not yet implemented')
 
     def visit_maps_to(self, a: sbol2.mapsto.MapsTo):
+        # Priority: 3
         raise NotImplementedError('Conversion of MapsTo from SBOL2 to SBOL3 not yet implemented')
 
     def visit_measure(self, a: sbol2.measurement.Measurement):
+        # Priority: 3
         raise NotImplementedError('Conversion of Measure from SBOL2 to SBOL3 not yet implemented')
 
     def visit_model(self, a: sbol2.model.Model):
+        # Priority: 3
         raise NotImplementedError('Conversion of Model from SBOL2 to SBOL3 not yet implemented')
 
     def visit_module(self, a: sbol2.Module):
+        # Priority: 3
         raise NotImplementedError('Conversion of Module from SBOL2 to SBOL3 not yet implemented')
 
     def visit_module_definition(self, a: sbol2.ModuleDefinition):
+        # Priority: 3
         raise NotImplementedError('Conversion of ModuleDefinition from SBOL2 to SBOL3 not yet implemented')
 
     def visit_participation(self, a: sbol2.Participation):
+        # Priority: 2
         raise NotImplementedError('Conversion of Participation from SBOL2 to SBOL3 not yet implemented')
 
     def visit_plan(self, a: sbol2.Plan):
+        # Priority: 3
         raise NotImplementedError('Conversion of Plan from SBOL2 to SBOL3 not yet implemented')
 
     def visit_range(self, a: sbol2.Range):
+        # Priority: 2
         raise NotImplementedError('Conversion of Range from SBOL2 to SBOL3 not yet implemented')
 
     def visit_sequence(self, seq2: sbol2.Sequence):
@@ -454,15 +514,19 @@ class SBOL2To3ConversionVisitor:
         self._convert_toplevel(seq2, seq3)
 
     def visit_sequence_annotation(self, seq2: sbol2.SequenceAnnotation):
+        # Priority: 1
         raise NotImplementedError('Conversion of SequenceAnnotation from SBOL2 to SBOL3 not yet implemented')
 
     def visit_sequence_constraint(self, seq2: sbol2.sequenceconstraint.SequenceConstraint):
+        # Priority: 2
         raise NotImplementedError('Conversion of SequenceConstraint from SBOL2 to SBOL3 not yet implemented')
 
     def visit_usage(self, a: sbol2.Usage):
+        # Priority: 3
         raise NotImplementedError('Conversion of Usage from SBOL2 to SBOL3 not yet implemented')
 
     def visit_variable_component(self, a: sbol2.VariableComponent):
+        # Priority: 2
         raise NotImplementedError('Conversion of VariableComponent from SBOL2 to SBOL3 not yet implemented')
 
 
