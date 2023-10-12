@@ -39,6 +39,7 @@ def same_except_timestamps(doc1: sbol3.Document, doc2: sbol3.Document) -> bool:
 
 class TestIDTCalculateComplexityScore(unittest.TestCase):
 
+    @unittest.skipIf(sys.platform == 'win32', reason='Not working on Windows https://github.com/SynBioDex/SBOL-utilities/issues/221')
     def test_IDT_calculate_complexity_score(self):
         """Test that a library-call invocation of complexity scoring works"""
         test_dir = Path(__file__).parent
@@ -66,6 +67,7 @@ class TestIDTCalculateComplexityScore(unittest.TestCase):
         scores = get_complexity_scores(sequences)
         self.assertEqual(scores, {sequences[0]: 0})
 
+    @unittest.skipIf(sys.platform == 'win32', reason='Not working on Windows https://github.com/SynBioDex/SBOL-utilities/issues/221')
     def test_commandline(self):
         """Test that a command-line invocation of complexity scoring works"""
         test_dir = Path(__file__).parent

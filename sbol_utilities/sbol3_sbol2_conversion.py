@@ -12,6 +12,8 @@ BACKPORT3_NAMESPACE = f'{BACKPORT_NAMESPACE}sbol3namespace'
 NON_EXTENSION_PROPERTY_PREFIXES = {sbol3.SBOL3_NS, sbol3.SBOL2_NS,  # SBOL 2 & 3 namespaces
                                    sbol3.RDF_NS, sbol3.PROV_NS, sbol3.OM_NS,  # Standard ontologies
                                    BACKPORT_NAMESPACE}  # Information added by this converter
+SBOL2_NON_EXTENSION_PROPERTY_PREFIXES = NON_EXTENSION_PROPERTY_PREFIXES.union({
+    'http://purl.org/dc/terms/description', 'http://purl.org/dc/terms/title'})
 
 
 class SBOL3To2ConversionVisitor:
@@ -57,9 +59,9 @@ class SBOL3To2ConversionVisitor:
             obj2.properties[p] = obj3._properties[p].copy()  # Can't use setPropertyValue because it may not be a string
 
     @staticmethod
-    def _value_or_property(obj3: sbol3.Identified, value, property: str):
-        if property in obj3._properties and len(obj3._properties[property]) == 1:
-            return value or obj3._properties[property][0]
+    def _value_or_property(obj3: sbol3.Identified, value, prop: str):
+        if prop in obj3._properties and len(obj3._properties[prop]) == 1:
+            return value or obj3._properties[prop][0]
         return value
 
     def _convert_identified(self, obj3: sbol3.Identified, obj2: sbol2.Identified):
@@ -310,7 +312,7 @@ class SBOL2To3ConversionVisitor:
     def _convert_extension_properties(obj2: sbol2.Identified, obj3: sbol3.Identified):
         """Copy over extension properties"""
         extension_properties = (p for p in obj2.properties
-                                if not any(p.startswith(prefix) for prefix in NON_EXTENSION_PROPERTY_PREFIXES))
+                                if not any(p.startswith(prefix) for prefix in SBOL2_NON_EXTENSION_PROPERTY_PREFIXES))
         for p in extension_properties:
             obj3._properties[p] = obj2.properties[p]
 
