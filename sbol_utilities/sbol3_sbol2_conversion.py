@@ -200,6 +200,7 @@ class SBOL3To2ConversionVisitor:
         # Priority: 1
         # Make the Implement object and add it to the document
         implement2 = sbol2.Implementation(implement3.identity, version=self._sbol2_version(implement3))
+        implement2.built = implement3.built
         self.doc2.addImplementation(implement2)
         # Map over all other TopLevel properties and extensions not covered by the constructor
         self._convert_toplevel(implement3, implement2)
@@ -469,7 +470,7 @@ class SBOL2To3ConversionVisitor:
     def visit_implementation(self, imp2: sbol2.Implementation):
         # Priority: 1
         # Make the Implementation object and add it to the document
-        imp3 = sbol3.Implementation(imp2.identity, namespace=self._sbol3_namespace(imp2))
+        imp3 = sbol3.Implementation(imp2.identity, namespace=self._sbol3_namespace(imp2), built=imp2.built)
         self.doc3.add(imp3)
         # Map over all other TopLevel properties and extensions not covered by the constructor
         self._convert_toplevel(imp2, imp3)

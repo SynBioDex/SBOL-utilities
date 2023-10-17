@@ -26,13 +26,13 @@ class TestDirectSBOL2SBOL3Conversion(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             tmp2 = Path(tmpdir) / 'doc2.xml'
             doc2.write(tmp2)
-            #doc2.write('C:\\Users\Yehuda\\SBOL-utilities\\test\\test_files\\sbol_3to2_implementation.xml')
+            doc2.write('C:\\Users\Yehuda\\SBOL-utilities\\test\\test_files\\sbol_3to2_implementation.xml')
             self.assertFalse(file_diff(str(tmp2), str(TEST_FILES / 'sbol_3to2_implementation.xml')))
             doc3_loop = convert2to3(doc2, use_native_converter=True)
             self.assertEqual(len(doc3_loop.validate()), 0)
             tmp3 = Path(tmpdir) / 'doc3_loop.nt'
             doc3_loop.write(tmp3)
-            doc3_loop.write('C:\\Users\Yehuda\\SBOL-utilities\\test\\test_files\\sbol_3to2to3_implementation.xml')
+            #doc3_loop.write('C:\\Users\Yehuda\\SBOL-utilities\\test\\test_files\\sbol_3to2to3_implementation.xml')
             self.assertFalse(file_diff(str(tmp3), str(TEST_FILES / 'sbol3_implementation.xml')))
 
     def test_2to3_conversion(self):
