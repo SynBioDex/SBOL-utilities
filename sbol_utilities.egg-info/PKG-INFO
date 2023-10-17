@@ -1,0 +1,21 @@
+Metadata-Version: 2.1
+Name: sbol-utilities
+Version: 1.0a17
+Summary: SBOL utilities
+Home-page: https://github.com/SynBioDex/SBOL-utilities
+License: MIT License
+Keywords: synthetic biology
+Classifier: Development Status :: 3 - Alpha
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3 :: Only
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Description-Content-Type: text/markdown
+Provides-Extra: dev
+License-File: LICENSE.txt
+
+SBOL-utilities is a collection of scripts and functions for manipulating SBOL 3 data that can be imported as packages or run from the command line.
