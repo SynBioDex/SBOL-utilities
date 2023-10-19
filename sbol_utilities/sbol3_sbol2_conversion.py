@@ -196,14 +196,14 @@ class SBOL3To2ConversionVisitor:
         # Priority: 3
         raise NotImplementedError('Conversion of ExternallyDefined from SBOL3 to SBOL2 not yet implemented')
 
-    def visit_implementation(self, implement3: sbol3.Implementation):
+    def visit_implementation(self, imp3: sbol3.Implementation):
         # Priority: 1
         # Make the Implement object and add it to the document
-        implement2 = sbol2.Implementation(implement3.identity, version=self._sbol2_version(implement3))
-        implement2.built = implement3.built
-        self.doc2.addImplementation(implement2)
+        imp2 = sbol2.Implementation(imp3.identity, version=self._sbol2_version(imp3))
+        imp2.built = imp3.built
+        self.doc2.addImplementation(imp2)
         # Map over all other TopLevel properties and extensions not covered by the constructor
-        self._convert_toplevel(implement3, implement2)
+        self._convert_toplevel(imp3, imp2)
 
     def visit_interaction(self, a: sbol3.Interaction):
         # Priority: 2
