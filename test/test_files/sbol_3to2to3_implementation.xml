@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rdf:RDF
+   xmlns:ns1="http://sboltools.org/backport#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:sbol="http://sbols.org/v3#"
+>
+  <rdf:Description rdf:about="https://sbolstandard.org/examples/impl1">
+    <sbol:displayId>impl1</sbol:displayId>
+    <rdf:type rdf:resource="http://sbols.org/v3#Implementation"/>
+    <sbol:hasNamespace rdf:resource="https://sbolstandard.org/examples"/>
+    <sbol:built rdf:resource="https://sbolstandard.org/examples/TetR_protein"/>
+    <ns1:sbol2version>1</ns1:sbol2version>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://sbolstandard.org/examples/TetR_protein">
+    <sbol:displayId>TetR_protein</sbol:displayId>
+    <sbol:name>TetR</sbol:name>
+    <sbol:description>TetR protein</sbol:description>
+    <rdf:type rdf:resource="http://sbols.org/v3#Component"/>
+    <sbol:hasNamespace rdf:resource="https://sbolstandard.org/examples"/>
+    <sbol:type rdf:resource="https://identifiers.org/SBO:0000252"/>
+    <sbol:role rdf:resource="https://identifiers.org/GO:0003700"/>
+    <ns1:sbol2version>1</ns1:sbol2version>
+  </rdf:Description>
+</rdf:RDF>

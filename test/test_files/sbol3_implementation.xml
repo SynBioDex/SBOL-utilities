@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+<rdf:RDF xmlns:ns1="http://sboltools.org/backport#"
+         xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
          xmlns:ns0="http://sbols.org/v3#">
-
   <rdf:Description rdf:about="https://sbolstandard.org/examples/impl1">
     <ns0:built>
       <ns0:Component rdf:about="https://sbolstandard.org/examples/TetR_protein">
@@ -13,10 +13,8 @@
         <ns0:displayId>TetR_protein</ns0:displayId>
       </ns0:Component>
     </ns0:built>
-
     <ns0:hasNamespace rdf:resource="https://sbolstandard.org/examples"/>
     <ns0:displayId>impl1</ns0:displayId>
     <rdf:type rdf:resource="http://sbols.org/v3#Implementation"/>
   </rdf:Description>
-
 </rdf:RDF>
