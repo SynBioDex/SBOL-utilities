@@ -24,7 +24,7 @@ jobs:
           # Also test on macOS and Windows using the latest Python 3
           - os: macos-latest
             python-version: 3.x
-          - os: windows-latest
+          - os: windows-2019
             python-version: 3.x
 
     steps:
