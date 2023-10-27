@@ -15,7 +15,7 @@ from sbol_utilities.component import dna_component_with_sequence, rna_component_
     protein_stability_element, gene, operator, engineered_region, mrna, transcription_factor, \
     strain, ed_simple_chemical, ed_protein
 
-from sbol_utilities.component import ed_restriction_enzyme, backbone, part_in_backbone,  part_in_backbone_from_sbol, \
+from sbol_utilities.component import ed_restriction_enzyme, backbone, backbone_from_sbol, part_in_backbone,  part_in_backbone_from_sbol, \
     digestion, ligation, Assembly_plan_composite_in_backbone_single_enzyme
 from sbol_utilities.helper_functions import find_top_level, toplevel_named, TopLevelNotFound, outgoing_links
 from sbol_utilities.sbol_diff import doc_diff    
@@ -362,6 +362,21 @@ class TestComponent(unittest.TestCase):
         linear_backbone_component.constraints.append(backbone_dropout_meets)
         doc.add([linear_backbone_component, linear_backbone_seq])
         assert doc_diff(doc, hlc_doc) == 0, f'Constructor Error: Linear {backbone_identity}'
+
+        #Test backbone from SBOL
+        hlc_doc = sbol3.Document()
+        doc = sbol3.Document()
+        sbol3.set_namespace('http://sbolstandard.org/testfiles')
+        # build using backbone from SBOL
+        doc.add([circular_backbone_component, circular_backbone_seq])
+        hl_circular_backbone_component, hl_circular_backbone_seq = backbone_from_sbol(identity=backbone_identity, sbol_comp=circular_backbone_component, dropout_location=dropout_location, fusion_site_length=fusion_site_length, linear=False, description=test_description)
+        hlc_doc.add([hl_circular_backbone_component, hl_circular_backbone_seq])
+        assert doc_diff(doc, hlc_doc) == 0, f'Constructor Error: Circular {backbone_identity} from SBOL'
+
+        doc.add([linear_backbone_component, linear_backbone_seq])
+        hl_linear_backbone_component, hl_linear_backbone_seq = backbone_from_sbol(identity=backbone_identity, sbol_comp=linear_backbone_component, dropout_location=dropout_location, fusion_site_length=fusion_site_length, linear=True, description=test_description)
+        hlc_doc.add([hl_linear_backbone_component, hl_linear_backbone_seq])
+        assert doc_diff(doc, hlc_doc) == 0, f'Constructor Error: Linear {backbone_identity} from SBOL'
         
     def test_part_in_backbone_bp011(self):
         """Test the part_in_backbone function"""
@@ -462,53 +477,74 @@ class TestComponent(unittest.TestCase):
         doc.add([podd_backbone,podd_backbone_seq])
         #parts in backbone
         ##get parts from genbank
+        podd1_dir = os.path.join(test_dir, 'test_files', 'podd1.gb')
         j23100_b0034_dir = os.path.join(test_dir, 'test_files', 'j23100_b0034.gb')
         sfgfp_dir = os.path.join(test_dir, 'test_files', 'sfgfp.gb')
+        rhlr_dir = os.path.join(test_dir, 'test_files', 'rhlr.gb')
         b0015_dir = os.path.join(test_dir, 'test_files', 'b0015.gb')
-        j23100_b0034_doc = convert_from_genbank(j23100_b0034_dir, 'https://github.com/Gonza10V')
-        j23100_b0034_ac = [top_level for top_level in j23100_b0034_doc if type(top_level)==sbol3.Component][0]
-        j23100_b0034_ac_seq_str = j23100_b0034_ac.sequences[0].lookup().elements
-        sfgfp_doc = convert_from_genbank(sfgfp_dir, 'https://github.com/Gonza10V')
-        sfgfp_ce = [top_level for top_level in sfgfp_doc if type(top_level)==sbol3.Component][0]
-        sfgfp_ce_seq_str = sfgfp_ce.sequences[0].lookup().elements
+
+        """Test assembly plan class"""
+        doc = sbol3.Document()
+        sbol3.set_namespace('http://sbolstandard.org/testfiles')
+        # Assembly plan setup
+        bsai = ed_restriction_enzyme('BsaI')
+        #lvl1 acceptor
+        podd1_dir = os.path.join(test_dir, 'test_files', 'podd1.gb')
+        podd_doc = convert_from_genbank(podd1_dir, 'https://github.com/Gonza10V')
+        podd_af = [top_level for top_level in podd_doc if type(top_level)==sbol3.Component][0]
+        podd_backbone, podd_backbone_seq = backbone_from_sbol('pOdd_bb', podd_af, [680,1770], 4, False, name='pOdd_bb')
+        doc.add([podd_backbone,podd_backbone_seq])
+        #parts in backbone
+        ##get parts from genbank
+        j23100_dir = os.path.join(test_dir, 'test_files', 'ab_j23100.gb')
+        j23101_dir = os.path.join(test_dir, 'test_files', 'ab_j23101.gb')
+        b0034_dir = os.path.join(test_dir, 'test_files', 'bc_b0034.gb')
+        gfp_dir = os.path.join(test_dir, 'test_files', 'ce_gfp.gb')
+        rfp_dir = os.path.join(test_dir, 'test_files', 'ce_mrfp1.gb')
+        cfp_dir = os.path.join(test_dir, 'test_files', 'ce_ecfp.gb')
+        b0015_dir = os.path.join(test_dir, 'test_files', 'ef_b0015.gb')
+        j23100_doc = convert_from_genbank(j23100_dir, 'https://github.com/Gonza10V')
+        j23100_ab = [top_level for top_level in j23100_doc if type(top_level)==sbol3.Component][0]
+        j23101_doc = convert_from_genbank(j23101_dir, 'https://github.com/Gonza10V')
+        j23101_ab = [top_level for top_level in j23101_doc if type(top_level)==sbol3.Component][0]
+        b0034_doc = convert_from_genbank(b0034_dir, 'https://github.com/Gonza10V')
+        b0034_bc = [top_level for top_level in b0034_doc if type(top_level)==sbol3.Component][0]
+        gfp_doc = convert_from_genbank(gfp_dir, 'https://github.com/Gonza10V')
+        gfp_ce = [top_level for top_level in gfp_doc if type(top_level)==sbol3.Component][0]
+        rfp_doc = convert_from_genbank(rfp_dir, 'https://github.com/Gonza10V')
+        rfp_ce = [top_level for top_level in rfp_doc if type(top_level)==sbol3.Component][0]
+        cfp_doc = convert_from_genbank(cfp_dir, 'https://github.com/Gonza10V')
+        cfp_ce = [top_level for top_level in cfp_doc if type(top_level)==sbol3.Component][0]
         b0015_doc = convert_from_genbank(b0015_dir, 'https://github.com/Gonza10V')
         b0015_ef = [top_level for top_level in b0015_doc if type(top_level)==sbol3.Component][0]
-        b0015_ef_seq_str = b0015_ef.sequences[0].lookup().elements
         ##SBOL parts in backbone
-        j23100_b0034_ac_in_bb, j23100_b0034_ac_in_bb_seq = part_in_backbone_from_sbol('j23100_b0034_ac_in_bb', j23100_b0034_ac, [476,545], [sbol3.SO_PROMOTER, sbol3.SO_RBS], 4, False, name='j23100_b0034_ac_in_bb')
-        doc.add([j23100_b0034_ac_in_bb, j23100_b0034_ac_in_bb_seq])
-        sfgfp_ce_in_bb, sfgfp_ce_in_bb_seq = part_in_backbone_from_sbol('sfgfp_ce_in_bb', sfgfp_ce, [130,854], [sbol3.SO_CDS], 4, False, name='sfgfp_ce_in_bb')
-        doc.add([sfgfp_ce_in_bb, sfgfp_ce_in_bb_seq])
+        j23100_ab_in_bb, j23100_ab_in_bb_seq = part_in_backbone_from_sbol('j23100_ab_in_bb', j23100_ab, [479,513], [sbol3.SO_PROMOTER], 4, False, name='j23100_ab_in_bb')
+        doc.add([j23100_ab_in_bb, j23100_ab_in_bb_seq])
+        j23101_ab_in_bb, j23101_ab_in_bb_seq = part_in_backbone_from_sbol('j23101_ab_in_bb', j23101_ab, [479,513], [sbol3.SO_PROMOTER], 4, False, name='j23101_ab_in_bb')
+        doc.add([j23101_ab_in_bb, j23101_ab_in_bb_seq])
+        b0034_bc_in_bb, b0034_bc_in_bb_seq = part_in_backbone_from_sbol('b0034_bc_in_bb', b0034_bc, [479,499], [sbol3.SO_RBS], 4, False, name='b0034_bc_in_bb')
+        doc.add([b0034_bc_in_bb, b0034_bc_in_bb_seq])
+        gfp_ce_in_bb, gfp_ce_in_bb_seq = part_in_backbone_from_sbol('gfp_ce_in_bb', gfp_ce, [479,1195], [sbol3.SO_CDS], 4, False, name='gfp_ce_in_bb')
+        doc.add([gfp_ce_in_bb, gfp_ce_in_bb_seq])
+        rfp_ce_in_bb, rfp_ce_in_bb_seq = part_in_backbone_from_sbol('rfp_ce_in_bb', rfp_ce, [479,1156], [sbol3.SO_CDS], 4, False, name='rfp_ce_in_bb')
+        doc.add([rfp_ce_in_bb, rfp_ce_in_bb_seq])
+        cfp_ce_in_bb, cfp_ce_in_bb_seq = part_in_backbone_from_sbol('cfp_ce_in_bb', cfp_ce, [479,1198], [sbol3.SO_CDS], 4, False, name='cfp_ce_in_bb')
+        doc.add([cfp_ce_in_bb, cfp_ce_in_bb_seq])
         b0015_ef_in_bb, b0015_ef_in_bb_seq = part_in_backbone_from_sbol('b0015_ef_in_bb', b0015_ef, [518,646], [sbol3.SO_TERMINATOR], 4, False, name='b0015_ef_in_bb')
         doc.add([b0015_ef_in_bb, b0015_ef_in_bb_seq])
+
+
         #Assembly plan
-        test_assembly_plan = Assembly_plan_composite_in_backbone_single_enzyme( 
-                            name='constitutive_gfp_tu',
-                            parts_in_backbone=[j23100_b0034_ac_in_bb, sfgfp_ce_in_bb, b0015_ef_in_bb], 
+        combinatorial_assembly_plan = Assembly_plan_composite_in_backbone_single_enzyme( 
+                            name='combinatorial_rgb_transcriptional_units',
+                            parts_in_backbone=[j23100_ab_in_bb, j23101_ab_in_bb, b0034_bc_in_bb, gfp_ce_in_bb, rfp_ce_in_bb, cfp_ce_in_bb, b0015_ef_in_bb], 
                             acceptor_backbone=podd_backbone,
                             restriction_enzyme=bsai,
                             document=doc)
-        test_assembly_plan.run()
-        #Check assembly plan
-        expected_assembled_j23100_b0034_ac_seq_str = j23100_b0034_ac_seq_str[475:545]
-        assembled_j23100_b0034_ac_seq_str = test_assembly_plan.extracted_parts[0].sequences[0].lookup().elements
-        assert expected_assembled_j23100_b0034_ac_seq_str==assembled_j23100_b0034_ac_seq_str, 'Constructor Error: First extracted part sequence does not match expected sequence'
-
-        expected_assembled_sfgfp_ce_seq_str = sfgfp_ce_seq_str[129:854]
-        assembled_sfgfp_ce_seq_str = test_assembly_plan.extracted_parts[1].sequences[0].lookup().elements
-        assert expected_assembled_sfgfp_ce_seq_str==assembled_sfgfp_ce_seq_str, 'Constructor Error: Second extracted part sequence does not match expected sequence'
-
-        expected_assembled_b0015_ef_seq_str = b0015_ef_seq_str[513:650]
-        assembled_b0015_ef_seq_str = test_assembly_plan.extracted_parts[2].sequences[0].lookup().elements
-        assert expected_assembled_b0015_ef_seq_str==assembled_b0015_ef_seq_str, 'Constructor Error: Third extracted part sequence does not match expected sequence'
-
-        expected_assembled_open_backbone_seq_str = lvl1_pOdd_acceptor_seq[2255:] + lvl1_pOdd_acceptor_seq[:1172]
-        assembled_open_backbone_seq_str = test_assembly_plan.extracted_parts[-1].sequences[0].lookup().elements
-        assert expected_assembled_open_backbone_seq_str==assembled_open_backbone_seq_str, 'Constructor Error: Last extracted part (open backbone) sequence does not match expected sequence'
-
-        expected_composite_seq_str = expected_assembled_open_backbone_seq_str[:-4] + expected_assembled_j23100_b0034_ac_seq_str[:-4] + expected_assembled_sfgfp_ce_seq_str[:-4] + expected_assembled_b0015_ef_seq_str[:-4]
-        assembled_composite_seq_str = test_assembly_plan.composites[0][0].sequences[0].lookup().elements
-        assert expected_composite_seq_str==assembled_composite_seq_str, 'Constructor Error: Composite sequence does not match expected sequence'
-
+        combinatorial_assembly_plan.run()
+        for obj in combinatorial_assembly_plan.document.objects:
+            if obj.identity =='http://sbolstandard.org/testfiles/composite_3_part_8_part_1_j23100_ab_in_bb_part_3_b0034_bc_in_bb_part_6_cfp_ce_in_bb_part_7_b0015_ef_in_bb':
+                obtained_sequence = obj.sequences[0].lookup().elements
+        target_sequence = 'cgctgcatgaagagcctgcagtccggcaaaaaagggcaaggtgtcaccaccctgccctttttctttaaaaccgaaaagattacttcgcgttatgcaggcttcctcgctcactgactcgctgcgctcggtcgttcggctgcggcgagcggtatcagctcactcaaaggcggtaatacggttatccacagaatcaggggataacgcaggaaagaacatgtgagcaaaaggccagcaaaaggccaggaaccgtaaaaaggccgcgttgctggcgtttttccacaggctccgcccccctgacgagcatcacaaaaatcgacgctcaagtcagaggtggcgaaacccgacaggactataaagataccaggcgtttccccctggaagctccctcgtgcgctctcctgttccgaccctgccgcttaccggatacctgtccgcctttctcccttcgggaagcgtggcgctttctcatagctcacgctgtaggtatctcagttcggtgtaggtcgttcgctccaagctgggctgtgtgcacgaaccccccgttcagcccgaccgctgcgccttatccggtaactatcgtcttgagtccaacccggtaagacacgacttatcgccactggcagcagccactggtaacaggattagcagagcgaggtatgtaggcggtgctacagagttcttgaagtggtggcctaactacggctacactagaagaacagtatttggtatctgcgctctgctgaagccagttaccttcggaaaaagagttggtagctcttgatccggcaaacaaaccaccgctggtagcggtggtttttttgtttgcaagcagcagattacgcgcagaaaaaaaggatctcaagaagatcctttgatcttttctacggggtctgacgctcagtggaacgaaaactcacgttaagggattttggtcatgagattatcaaaaaggatcttcacctagatccttttaaattaaaaatgaagttttaaatcaatctaaagtatatatgagtaaacttggtctgacagctcgagtcccgtcaagtcagcgtaatgctctgccagtgttacaaccaattaaccaattctgattagaaaaactcatcgagcatcaaatgaaactgcaatttattcatatcaggattatcaataccatatttttgaaaaagccgtttctgtaatgaaggagaaaactcaccgaggcagttccataggatggcaagatcctggtatcggtctgcgattccgactcgtccaacatcaatacaacctattaatttcccctcgtcaaaaataaggttatcaagtgagaaatcaccatgagtgacgactgaatccggtgagaatggcaaaagcttatgcatttctttccagacttgttcaacaggccagccattacgctcgtcatcaaaatcactcgcatcaaccaaaccgttattcattcgtgattgcgcctgagcgagacgaaatacgcgatcgctgttaaaaggacaattacaaacaggaatcgaatgcaaccggcgcaggaacactgccagcgcatcaacaatattttcacctgaatcaggatattcttctaatacctggaatgctgttttcccggggatcgcagtggtgagtaaccatgcatcatcaggagtacggataaaatgcttgatggtcggaagaggcataaattccgtcagccagtttagtctgaccatctcatctgtaacatcattggcaacgctacctttgccatgtttcagaaacaactctggcgcatcgggcttcccatacaatcgatagattgtcgcacctgattgcccgacattatcgcgagcccatttatacccatataaatcagcatccatgttggaatttaatcgcggcctggagcaagacgtttcccgttgaatatggctcataacaccccttgtattactgtttatgtaagcagacagttttattgttcatgatgatatatttttatcttgtgcaatgtaacatcagagattttgagacacaacgtggctttgttgaataaatcgaacttttgctgagttgaaggatcagctcgagtgccacctgacgtctaagaaaccattattatcatgacattaacctataaaaataggcgtatcacgaggcagaatttcagataaaaaaaatccttagctttcgctaaggatgatttctggaattcgctcttcaatgGGAGttgacggctagctcagtcctaggtacagtgctagcTACTagagaaagaggagaaatactaaatggtgagcaagggcgaggagctgttcaccggggtggtgcccatcctggtcgagctggacggcgacgtgaacggccacaagttcagcgtgtccggcgagggcgagggcgatgccacctacggcaagctgaccctgaagttcatctgcaccaccggcaagctgcccgtgccctggcccaccctcgtgaccaccctgacctggggcgtgcagtgcttcagccgctaccccgaccacatgaagcagcacgacttcttcaagtccgccatgcccgaaggctacgtccaggagcgcaccatcttcttcaaggacgacggcaactacaagacccgcgccgaggtgaagttcgagggcgacaccctggtgaaccgcatcgagctgaagggcatcgacttcaaggaggacggcaacatcctggggcacaagctggagtacaactacatcagccacaacgtctatatcaccgccgacaagcagaagaacggcatcaaggccaacttcaagatccgccacaacatcgaggacggcagcgtgcagctcgccgaccactaccagcagaacacccccatcggcgacggccccgtgctgctgcccgacaaccactacctgagcacccagtccgccctgagcaaagaccccaacgagaagcgcgatcacatggtcctgctggagttcgtgaccgccgccgggatcactctcggcatggacgagctgtacaagtaataaGCTTccaggcatcaaataaaacgaaaggctcagtcgaaagactgggcctttcgttttatctgttgtttgtcggtgaacgctctctactagagtcacactggctcaccttcgggtgggcctttctgcgtttata'
 if __name__ == '__main__':
     unittest.main()
