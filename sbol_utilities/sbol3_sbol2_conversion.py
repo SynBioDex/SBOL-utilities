@@ -475,8 +475,6 @@ class SBOL2To3ConversionVisitor:
         # Map over all other TopLevel properties and extensions not covered by the constructor
         self._convert_toplevel(imp2, imp3)
 
-        # raise NotImplementedError('Conversion of Implementation from SBOL2 to SBOL3 not yet implemented')
-
     def visit_interaction(self, a: sbol2.Interaction):
         # Priority: 2
         raise NotImplementedError('Conversion of Interaction from SBOL2 to SBOL3 not yet implemented')
