@@ -8,3 +8,6 @@ __pycache__/
 
 # test secrets
 test_secret*
+
+.idea/
+*.egg-info/
