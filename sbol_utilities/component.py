@@ -577,7 +577,7 @@ def backbone_from_sbol(identity: Union[str,None], sbol_comp: sbol3.Component, dr
     """Creates a Backbone Component and its Sequence.
 
     :param identity: The identity of the Component. The identity of Sequence is also identity with the suffix '_seq'.
-    :param sequence: The DNA sequence of the Component encoded in IUPAC.
+    :param sbol_comp: The SBOL Component containing the DNA sequence to use.
     :param dropout_location: List of 2 integers that indicates the start and the end of the dropout sequence including overhangs. Note that the index of the first location is 1, as is typical practice in biology, rather than 0, as is typical practice in computer science.
     :param fusion_site_length: Integer of the lenght of the fusion sites (eg. BsaI fusion site lenght is 4, SapI fusion site lenght is 3)
     :param linear: Boolean than indicates if the backbone is linear, by default it is seted to False which means that it has a circular topology.
