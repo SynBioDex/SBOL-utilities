@@ -11,15 +11,15 @@ from sbol_utilities.sbol_diff import file_diff
 
 TEST_FILES = Path(__file__).parent / 'test_files'
 
+
 class TestDirectSBOL2SBOL3Conversion(unittest.TestCase):
 
     # TODO: turn on validation
-
     def test_3to2_conversion(self):
         """Test ability to convert a simple part from SBOL3 to SBOL2"""
         # Load an SBOL3 document and check its contents
         doc3 = sbol3.Document()
-        doc3.read(TEST_FILES /  'BBa_J23101_patched.nt')
+        doc3.read(TEST_FILES / 'BBa_J23101_patched.nt')
         # Convert to SBOL2 and check contents
         doc2 = convert3to2(doc3, True)
         #report = doc2.validate()
