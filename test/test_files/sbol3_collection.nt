@@ -1,0 +1,22 @@
+<https://sbolstandard.org/examples/col1> <http://sbols.org/v3#member> <https://sbolstandard.org/examples/LacI_protein> .
+<https://sbolstandard.org/examples/col1> <http://sbols.org/v3#member> <https://sbolstandard.org/examples/TetR_protein> .
+<https://sbolstandard.org/examples/col1> <http://sbols.org/v3#hasNamespace> <https://sbolstandard.org/examples> .
+<https://sbolstandard.org/examples/col1> <http://sbols.org/v3#displayId> "col1" .
+<https://sbolstandard.org/examples/col1> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://sbols.org/v3#Collection> .
+<https://sbolstandard.org/examples/LacI_protein> <http://sbols.org/v3#role> <https://identifiers.org/GO:0003700> .
+<https://sbolstandard.org/examples/LacI_protein> <http://sbols.org/v3#description> "LacI protein" .
+<https://sbolstandard.org/examples/LacI_protein> <http://sbols.org/v3#name> "LacI" .
+<https://sbolstandard.org/examples/LacI_protein> <http://sbols.org/v3#hasNamespace> <https://sbolstandard.org/examples> .
+<https://sbolstandard.org/examples/LacI_protein> <http://sbols.org/v3#type> <https://identifiers.org/SBO:0000252> .
+<https://sbolstandard.org/examples/LacI_protein> <http://sbols.org/v3#displayId> "LacI_protein" .
+<https://sbolstandard.org/examples/LacI_protein> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://sbols.org/v3#Component> .
+<https://sbolstandard.org/examples/TetR_protein> <http://sbols.org/v3#role> <https://identifiers.org/GO:0003700> .
+<https://sbolstandard.org/examples/TetR_protein> <http://sbols.org/v3#description> "TetR protein" .
+<https://sbolstandard.org/examples/TetR_protein> <http://sbols.org/v3#name> "TetR" .
+<https://sbolstandard.org/examples/TetR_protein> <http://sbols.org/v3#hasNamespace> <https://sbolstandard.org/examples> .
+<https://sbolstandard.org/examples/TetR_protein> <http://sbols.org/v3#type> <https://identifiers.org/SBO:0000252> .
+<https://sbolstandard.org/examples/TetR_protein> <http://sbols.org/v3#displayId> "TetR_protein" .
+<https://sbolstandard.org/examples/TetR_protein> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://sbols.org/v3#Component> .
+<https://sbolstandard.org/examples/TetR_protein> <http://sboltools.org/backport#sbol2version> "1" .
+<https://sbolstandard.org/examples/col1> <http://sboltools.org/backport#sbol2version> "1" .
+<https://sbolstandard.org/examples/LacI_protein> <http://sboltools.org/backport#sbol2version> "1" .
