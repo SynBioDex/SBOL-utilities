@@ -11,6 +11,24 @@ from sbol_utilities.workarounds import get_parent
 from Bio import Restriction
 
 
+def get_subcomponents(c: sbol3.Component) -> List[sbol3.SubComponent]:
+    """Get all Features of Component that are SubComponents
+
+    :param obj: Component to get Features from
+    :return: List of Component Features that are SubComponents
+    """
+    return [f for f in c.features if isinstance(f, sbol3.SubComponent)]
+
+
+def get_subcomponents_by_identity(c: sbol3.Component, ids: List[str]) -> List[sbol3.SubComponent]:
+    """Get all SubComponents of Component that are instances of Components identified in ids
+
+    :param obj: Component to get Subcomponents from
+    :return: List of SubComponents that are instances of Components identified in ids
+    """
+    return [sc for sc in get_subcomponents(c) if sc.identity in ids]
+
+
 # TODO: consider allowing return of LocalSubComponent and ExternallyDefined
 def contained_components(roots: Union[sbol3.TopLevel, Iterable[sbol3.TopLevel]]) -> set[sbol3.Component]:
     """Find the set of all SBOL Components contained within the roots or their children.
