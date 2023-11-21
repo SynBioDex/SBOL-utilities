@@ -129,9 +129,14 @@ class SBOL3To2ConversionVisitor:
         # Priority: 4
         raise NotImplementedError('Conversion of BinaryPrefix from SBOL3 to SBOL2 not yet implemented')
 
-    def visit_collection(self, a: sbol3.Collection):
+    def visit_collection(self, coll3: sbol3.Collection):
         # Priority: 1
-        raise NotImplementedError('Conversion of Collection from SBOL3 to SBOL2 not yet implemented')
+        # Make the Collection object and add it to the document
+        coll2 = sbol2.Collection(coll3.identity)
+        coll2.members = coll3.members
+        self.doc2.addCollection(coll2)
+        # Map over all other TopLevel properties and extensions not covered by the constructor
+        self._convert_toplevel(coll3, coll2)
 
     def visit_combinatorial_derivation(self, a: sbol3.CombinatorialDerivation):
         # Priority: 2
@@ -378,9 +383,13 @@ class SBOL2To3ConversionVisitor:
         # Priority: 2
         raise NotImplementedError('Conversion of Attachment from SBOL2 to SBOL3 not yet implemented')
 
-    def visit_collection(self, a: sbol2.Collection):
+    def visit_collection(self, coll2: sbol2.Collection):
         # Priority: 1
-        raise NotImplementedError('Conversion of Collection from SBOL2 to SBOL3 not yet implemented')
+        # Make the Collection object and add it to the document
+        coll3 = sbol3.Collection(coll2.identity, members=coll2.members)
+        self.doc3.add(coll3)
+        # Map over all other TopLevel properties and extensions not covered by the constructor
+        self._convert_toplevel(coll2, coll3)
 
     def visit_combinatorial_derivation(self, a: sbol2.CombinatorialDerivation):
         # Priority: 2
