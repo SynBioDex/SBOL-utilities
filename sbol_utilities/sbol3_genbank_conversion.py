@@ -780,13 +780,13 @@ class GenBankSBOL3Converter:
                     feat_strand = self.BIO_STRAND_FORWARD
                     # feature strand value which denotes orientation of the location of the feature
                     # By default its 1 for SO_FORWARD orientation of sbol3 feature location, and -1 for SO_REVERSE
-                    if obj_feat_loc.orientation in {sbol3.SO_REVERSE, sbol3.SBOL_REVERSE_COMPLEMENT}:
+                    if obj_feat_loc.orientation in {sbol3.SO_REVERSE, sbol3.SO_REVERSE}:
                         feat_strand = self.BIO_STRAND_REVERSE
                     elif obj_feat_loc.orientation not in {sbol3.SO_FORWARD, sbol3.SBOL_INLINE}:
                         raise ValueError(f"Location orientation: `{obj_feat_loc.orientation}` for feature: \n \
                         `{obj_feat.name}` of component: `{obj.display_id}` is not a valid orientation.\n \
                         Valid orientations are `{sbol3.SO_FORWARD}`, `{sbol3.SO_REVERSE}`, `{sbol3.SBOL_INLINE}`, "
-                                         f"`{sbol3.SBOL_REVERSE_COMPLEMENT}`")
+                                         f"`{sbol3.SO_REVERSE}`")
                     # TODO: Raise custom converter class ERROR for `else:`
                     # creating start and end Positions
                     end_position = ExactPosition(obj_feat_loc.end)

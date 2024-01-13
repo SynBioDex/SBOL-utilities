@@ -248,7 +248,7 @@ def make_composite_component(display_id,part_lists,reverse_complements):
         if not len(part_list)==1:
             raise ValueError(f'Part list should have precisely one element, but is {part_list}')
         sub = sbol3.SubComponent(part_list[0])
-        sub.orientation = (sbol3.SBOL_REVERSE_COMPLEMENT if rc else sbol3.SBOL_INLINE)
+        sub.orientation = (sbol3.SO_REVERSE if rc else sbol3.SBOL_INLINE)
         composite_part.features.append(sub)
         if last_sub: composite_part.constraints.append(sbol3.Constraint(sbol3.SBOL_MEETS,last_sub,sub))
         last_sub = sub
@@ -303,7 +303,7 @@ def make_combinatorial_derivation(document, display_id,part_lists,reverse_comple
             sub = sbol3.SubComponent(part_list[0])
             template.features.append(sub)
         # in either case, orient and order the template elements
-        sub.orientation = (sbol3.SBOL_REVERSE_COMPLEMENT if rc else sbol3.SBOL_INLINE)
+        sub.orientation = (sbol3.SO_REVERSE if rc else sbol3.SBOL_INLINE)
         if template_part_list: template.constraints.append(sbol3.Constraint(sbol3.SBOL_MEETS,template_part_list[-1],sub))
         template_part_list.append(sub)
     # next, add all of the constraints to the template
