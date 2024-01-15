@@ -1,3 +1,4 @@
+from typing import Dict, Optional
 import unicodedata
 import warnings
 import logging
@@ -17,7 +18,7 @@ LINEAR_PRODUCTS_COLLECTION = 'LinearDNAProducts'
 FINAL_PRODUCTS_COLLECTION = 'FinalProducts'
 
 
-def expand_configuration(values: dict) -> dict:
+def expand_configuration(values: Optional[Dict] = None) -> dict:
     """
     Initialize sheet configuration dictionary
     :param values: Dictionary of overrides for defaults
@@ -91,11 +92,21 @@ def read_metadata(wb: openpyxl.Workbook, doc: sbol3.Document, config: dict):
         cp_name = bp_name
         cp_description = bp_description
 
+    if bp_name is None:
+        raise ValueError('Basic parts collection name is required')
+    if bp_description is None:
+        raise ValueError('Basic parts collection description is required')
+    if cp_name is None:
+        raise ValueError('Composite parts collection name is required')
+    if cp_description is None:
+        raise ValueError('Composite parts collection description is required')
+
+    if 
     # Make the collections
-    basic_parts = sbol3.Collection(BASIC_PARTS_COLLECTION, name=bp_name, description=bp_description)
+    basic_parts = sbol3.Collection(BASIC_PARTS_COLLECTION, name=str(bp_name), description=str(bp_description))
     doc.add(basic_parts)
 
-    composite_parts = sbol3.Collection(COMPOSITE_PARTS_COLLECTION, name=cp_name, description=cp_description)
+    composite_parts = sbol3.Collection(COMPOSITE_PARTS_COLLECTION, name=str(cp_name), description=str(cp_description))
     doc.add(composite_parts)
 
     linear_products = sbol3.Collection(LINEAR_PRODUCTS_COLLECTION, name='Linear DNA Products',
@@ -207,11 +218,11 @@ def row_to_basic_part(doc: sbol3.Document, row, basic_parts: sbol3.Collection, l
 # form of a sub-component:
 # X: identifies a component or set thereof
 # RC(X): X is reversed
-reverse_complement_pattern = re.compile('RC\(.+\)')
+REVERSE_COMPLEMENT_PATTERN = re.compile(r'RC\(.+\)')
 # Returns sanitized text without optional reverse complement marker
 def strip_RC(name):
     sanitized = name.strip()
-    match = reverse_complement_pattern.match(sanitized)
+    match = REVERSE_COMPLEMENT_PATTERN.match(sanitized)
     return (sanitized[3:-1] if (match and len(match.group())==len(sanitized)) else sanitized)
 # returns true if part is reverse complement
 def is_RC(name):
@@ -255,17 +266,20 @@ def make_composite_component(display_id,part_lists,reverse_complements):
     # return the completed part
     return composite_part
 
-constraint_pattern = re.compile('Part (\d+) (.+) Part (\d+)')
-constraint_dict = {'same as': sbol3.SBOL_VERIFY_IDENTICAL,
-                   'different from': sbol3.SBOL_DIFFERENT_FROM,
-                   'same orientation as': sbol3.SBOL_SAME_ORIENTATION_AS,
-                   'different orientation from': sbol3.SBOL_SAME_ORIENTATION_AS}
-def make_constraint(constraint, part_list):
-    m = constraint_pattern.match(constraint)
+CONSTRAINT_PATTERN = re.compile(r'Part (\d+) (.+) Part (\d+)')
+CONSTRAINT_DICT = {
+    'same as': sbol3.SBOL_VERIFY_IDENTICAL,
+    'different from': sbol3.SBOL_DIFFERENT_FROM,
+    'same orientation as': sbol3.SBOL_SAME_ORIENTATION_AS,
+    'different orientation from': sbol3.SBOL_SAME_ORIENTATION_AS
+}
+
+def make_constraint(constraint:str, part_list):
+    m = CONSTRAINT_PATTERN.match(constraint)
     if not m:
         raise ValueError(f'Constraint "{constraint}" does not match pattern "Part X relation Part Y"')
     try:
-        restriction = constraint_dict[m.group(2)]
+        restriction = CONSTRAINT_DICT[m.group(2)]
     except KeyError:
         raise ValueError(f'Do not recognize constraint relation in "{constraint}"')
     x = int(m.group(1))
@@ -278,7 +292,7 @@ def make_constraint(constraint, part_list):
     return sbol3.Constraint(restriction, part_list[x-1], part_list[y-1])
 
 
-def make_combinatorial_derivation(document, display_id,part_lists,reverse_complements,constraints):
+def make_combinatorial_derivation(document, display_id, part_lists, reverse_complements, constraints):
     # Make the combinatorial derivation and its template
     template = sbol3.Component(display_id + "_template", sbol3.SBO_DNA)
     document.add(template)
@@ -420,7 +434,7 @@ def make_composite_part(document, row, composite_parts, linear_products, final_p
         plasmid.constraints.append(sbol3.Constraint(sbol3.SBOL_MEETS, backbone_sub, part_sub))
 
 
-def excel_to_sbol(wb: openpyxl.Workbook, config: dict = None) -> sbol3.Document:
+def excel_to_sbol(wb: openpyxl.Workbook, config: Optional[Dict] = None) -> sbol3.Document:
     """
     Take an open Excel file, return an SBOL document
     :param wb: openpyxl pointer to an Excel file
