@@ -19,13 +19,14 @@ misc_binding,SO:0000409
 misc_difference,SO:0000413
 misc_feature,SO:0000001
 misc_marker,SO:0001645
-misc_recom,
-misc_RNA,SO:0000233
-misc_signal,SO:0001411
+misc_recomb,SO:0000298
+misc_RNA,SO:0000673
+misc_signal,SO:0005836
 misc_structure,SO:0000002
 modified_base,SO:0000305
 mRNA,SO:0000234
 N_region,SO:0001835
+old_sequence,SO:0000110
 polyA_signal,SO:0000551
 polyA_site,SO:0000553
 precursor_RNA,SO:0000185
@@ -44,7 +45,7 @@ satellite,SO:0000005
 scRNA,SO:0000013
 sig_peptide,SO:0000418
 snRNA,SO:0000274
-source,SO:0000149
+source,SO:2000061
 stem_loop,SO:0000313
 STS,SO:0000331
 TATA_signal,SO:0000174
@@ -53,7 +54,7 @@ transit_peptide,SO:0000725
 transposon,SO:0001054
 tRNA,SO:0000253
 V_region,SO:0001833
-variation,SO:0001060
+variation,SO:0000109
 -10_signal,SO:0000175
 -35_signal,SO:0000176
 3'clip,SO:0000557

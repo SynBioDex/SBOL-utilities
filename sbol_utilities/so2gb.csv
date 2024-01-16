@@ -54,7 +54,7 @@ https://identifiers.org/SO:0000005,satellite
 https://identifiers.org/SO:0000013,scRNA
 https://identifiers.org/SO:0000418,sig_peptide
 https://identifiers.org/SO:0000274,snRNA
-https://identifiers.org/SO:0000149,source
+https://identifiers.org/SO:2000061,source
 https://identifiers.org/SO:0002206,source
 https://identifiers.org/SO:0000019,stem_loop
 https://identifiers.org/SO:0000313,stem_loop
@@ -77,3 +77,13 @@ https://identifiers.org/SO:0000557,3'clip
 https://identifiers.org/SO:0000205,3'UTR
 https://identifiers.org/SO:0000555,5'clip
 https://identifiers.org/SO:0000204,5'UTR
+https://identifiers.org/SO:0000298,misc_recomb
+https://identifiers.org/SO:0000110,old_sequence
+https://identifiers.org/SO:0005836,misc_signal
+https://identifiers.org/SO:0000275,snoRNA
+https://identifiers.org/SO:0000730,gap
+https://identifiers.org/SO:0000470,J_segment
+https://identifiers.org/SO:0000470,J_gene_segment
+https://identifiers.org/SO:0001037,mobile_genetic_element
+https://identifiers.org/SO:0001086,sequence_uncertainty
+https://identifiers.org/SO:0000466,V_gene_segment
