@@ -840,7 +840,7 @@ class GenBankSBOL3Converter:
                 # create sequence feature object with label qualifier
                 # TODO: create issue for presence of genbank file with features without the "label" qualifier
                 # TODO: feat_strand value ambiguous in case of multiple locations?
-                feature = SeqFeature(location=feat_loc_object, strand=feat_strand, type=feat_role)
+                feature = SeqFeature(location=feat_loc_object, type=feat_role)
                 feature.loc_positions = feat_loc_positions
                 if isinstance(obj_feat, self.FeatureGenBankExtension):
                     keys = sorted(obj_feat.qualifier_key, key=lambda x: int(x.split(":", 1)[0]))
