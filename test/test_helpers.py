@@ -136,6 +136,33 @@ class TestHelpers(unittest.TestCase):
                     'http://sbolstandard.org/testfiles/_4_FPs'}
         self.assertEqual(outgoing_links(doc), expected)
 
+    def test_find_feature(self):
+        test_dir = os.path.dirname(os.path.realpath(__file__))
+        test_file = os.path.join(test_dir, 'test_files', 'BBa_J23101.nt')
+        doc = sbol3.Document()
+        doc.read(test_file)
+        # create the main component which contain the features then add it to sbol3 Document
+        i13504 = sbol3.Component('i13504', sbol3.SBO_DNA)
+        i13504.name = 'iGEM 2016 interlab reporter'
+        i13504.description = 'GFP expression cassette used for 2016 iGEM interlab study'
+        i13504.roles.append(sbol3.SO_NS + '0000804')
+        doc.add(i13504)
+        # creating a feature and add it to the sbol3 Document
+        b0034 = sbol3.Component('B0034', sbol3.SBO_DNA)
+        b0034.name = 'RBS (Elowitz 1999)'
+        b0034.roles = [sbol3.SO_NS + '0000139']
+        doc.add(b0034)
+        i13504.features.append(sbol3.SubComponent(b0034))
+        # creating a feature without adding it to the sbol3 Document
+        e0040 = sbol3.Component('E0040', sbol3.SBO_DNA)
+        e0040.name = 'GFP'
+        e0040.roles = [sbol3.SO_NS + '0000316']
+
+        self.assertEqual(find_feature(i13504,b0034),f'Feature: {b0034} has a known identity')
+        self.assertEqual(find_feature(i13504,e0040),None)
+
+
+
 
 if __name__ == '__main__':
     unittest.main()

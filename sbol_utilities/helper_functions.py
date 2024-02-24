@@ -358,9 +358,19 @@ def outgoing_links(doc: sbol3.Document) -> set[URIRef]:
         doc.traverse(collector)
     return outgoing
 
+
 def is_circular(obj: Union[sbol3.Component, sbol3.LocalSubComponent, sbol3.ExternallyDefined]) -> bool:
     """Check if an SBOL Component or Feature is circular.
     :param obj: design to be checked
     :return: true if circular
     """    
     return any(n==sbol3.SO_CIRCULAR for n in obj.types)
+
+def find_feature(component:sbol3.Component,f:sbol3.Feature) -> sbol3.Feature:
+    """
+    find_feature function used for  finding a feature in your component and check
+    if this feature has a known identity or not.
+    """
+    for i in component.features:
+        if i.instance_of == f.identity:
+            return f'Feature: {f} has a known identity'
