@@ -39,7 +39,7 @@ jobs:
         python -m pip install pytest
         python -m pip install interrogate
     - name: Setup Graphviz
-      uses: ts-graphviz/setup-graphviz@v1
+      uses: ts-graphviz/setup-graphviz
     - name: Show Node.js version
       run: |
         node --version
