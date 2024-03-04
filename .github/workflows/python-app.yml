@@ -39,11 +39,7 @@ jobs:
         python -m pip install pytest
         python -m pip install interrogate
     - name: Setup Graphviz
-      uses: ts-graphviz/setup-graphviz@v2
-    - name: Node update
-      if: runner.os == 'macOS'
-      run: |
-        brew upgrade node
+      uses: jakebeal/setup-graphviz@v1
     - name: Show Node.js version
       run: |
         node --version
