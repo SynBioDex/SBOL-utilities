@@ -40,6 +40,7 @@ jobs:
         python -m pip install interrogate
     - name: Setup Graphviz
       uses: ts-graphviz/setup-graphviz@v2
+    - name: Node update
       run: |
       	if [ "$RUNNER_OS" == "macOS" ]; then
 	     brew upgrade node
