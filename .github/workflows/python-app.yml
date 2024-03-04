@@ -42,9 +42,9 @@ jobs:
       uses: ts-graphviz/setup-graphviz@v2
     - name: Node update
       run: |
-      	if [ "$RUNNER_OS" == "macOS" ]; then
-	     brew upgrade node
-	fi
+        if [ "$RUNNER_OS" == "macOS" ]; then
+          brew upgrade node
+        fi
     - name: Show Node.js version
       run: |
         node --version
