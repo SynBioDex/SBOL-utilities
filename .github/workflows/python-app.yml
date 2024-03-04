@@ -41,7 +41,9 @@ jobs:
     - name: Setup Graphviz
       uses: ts-graphviz/setup-graphviz@v2
       run: |
-      	brew upgrade node
+      	if [ "$RUNNER_OS" == "macOS" ]; then
+	     brew upgrade node
+	fi
     - name: Show Node.js version
       run: |
         node --version
