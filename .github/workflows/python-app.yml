@@ -19,13 +19,13 @@ jobs:
       matrix:
         # Default builds are on Ubuntu
         os: [ubuntu-latest]
-        python-version: ['3.7', '3.8', '3.9', '3.10', '3.11']
+        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12']
         include:
           # Also test on macOS and Windows using the latest Python 3
           - os: macos-latest
-            python-version: 3.11  # Return to 3.x after resolution of https://github.com/RDFLib/pySHACL/issues/212
+            python-version: 3.x
           - os: windows-2019
-            python-version: 3.11  # Return to 3.x after resolution of https://github.com/RDFLib/pySHACL/issues/212
+            python-version: 3.x
 
     steps:
     - uses: actions/checkout@v2
@@ -39,7 +39,7 @@ jobs:
         python -m pip install pytest
         python -m pip install interrogate
     - name: Setup Graphviz
-      uses: jakebeal/setup-graphviz@8887d481c24613b668d922cd6d8635b5003087f2
+      uses: ts-graphviz/setup-graphviz@v2
     - name: Show Node.js version
       run: |
         node --version
