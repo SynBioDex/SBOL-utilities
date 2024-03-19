@@ -41,7 +41,7 @@ jobs:
     - name: Setup Node for Graphviz and JavaScript converter
       uses: actions/setup-node@v4
       with:
-        node-version: 18
+        node-version: 20
     - name: Setup Graphviz
       uses: ts-graphviz/setup-graphviz@v1
     - name: Show Node.js version
