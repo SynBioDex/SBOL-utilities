@@ -434,7 +434,7 @@ def engineered_region(identity: str, features: Union[List[sbol3.SubComponent], L
     if fix_order == True:
         if len(er_component.features) > 1:
             for i in range(len(er_component.features)-1):
-                constraint = sbol3.Constraint(sbol3.SBOL_MEETS, er_component.features[i], er_component.features[i+1])
+                constraint = sbol3.Constraint(sbol3.SBOL_PRECEDES, er_component.features[i], er_component.features[i+1])
                 er_component.constraints.append(constraint)
         else:
             pass
