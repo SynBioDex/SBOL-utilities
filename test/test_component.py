@@ -373,6 +373,8 @@ class TestComponent(unittest.TestCase):
         hlc_doc.add([hl_circular_backbone_component, hl_circular_backbone_seq])
         assert doc_diff(doc, hlc_doc) == 0, f'Constructor Error: Circular {backbone_identity} from SBOL'
 
+        hlc_doc = sbol3.Document()
+        doc = sbol3.Document()
         doc.add([linear_backbone_component, linear_backbone_seq])
         hl_linear_backbone_component, hl_linear_backbone_seq = backbone_from_sbol(identity=backbone_identity, sbol_comp=linear_backbone_component, dropout_location=dropout_location, fusion_site_length=fusion_site_length, linear=True, description=test_description)
         hlc_doc.add([hl_linear_backbone_component, hl_linear_backbone_seq])
