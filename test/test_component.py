@@ -209,7 +209,7 @@ class TestComponent(unittest.TestCase):
         if len(enr_comp.features) > 1:
             for i in range(len(enr_comp.features)-1):
                 constraint = sbol3.Constraint(sbol3.SBOL_PRECEDES, enr_comp.features[i], enr_comp.features[i+1])
-                enr_comp.constraints = [constraint]
+                enr_comp.constraints.append(constraint)
         else:
             pass
         hlc_doc.add(hlc_enr_comp)
