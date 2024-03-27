@@ -1,0 +1,221 @@
+LOCUS       Copy_of_pSB1K01_-_Loop_ 3286 bp ds-DNA     circular     09-NOV-2022
+DEFINITION  .
+KEYWORDS    "accession:pSB1K01"
+COMMENT     Imported from database: Registry of Standard Biological Parts
+            Entry: pSB1K01 Description: pOdd1 Loop Vector based on pSB1K3
+FEATURES             Location/Qualifiers
+     primer          386..399
+                     /label="pOdd1_To_pOdd4_Fw"
+                     /note="sequence: ctggaattcgctcttcacagggagtgagacccaatacgcaaaccgcctct"
+                     /ApEinfo_revcolor="#9eafd2"
+                     /ApEinfo_fwdcolor="#9eafd2"
+     primer_binding  547..566
+                     /label="VF primer binding site"
+                     /ApEinfo_revcolor="#b1ff67"
+                     /ApEinfo_fwdcolor="#b1ff67"
+     primer          547..566
+                     /label="VF2"
+                     /note="sequence: ccacctgacgtctaagaaac"
+                     /ApEinfo_revcolor="#b1ff67"
+                     /ApEinfo_fwdcolor="#b1ff67"
+     primer          complement(651..669)
+                     /label="pOdd_Suff_Rev"
+                     /note="sequence: CGAATTCCAGAAATCATCC"
+                     /ApEinfo_revcolor="#f7977a"
+                     /ApEinfo_fwdcolor="#f7977a"
+     primer          656..681
+                     /label="pOdd1_Insert_Fw"
+                     /note="sequence: atttctggaattcgctcttcaatggg"
+                     /ApEinfo_revcolor="#faac61"
+                     /ApEinfo_fwdcolor="#faac61"
+     primer          656..684
+                     /label="pOdd2_BF_Insert_Fw"
+                     /note="sequence: atttctggaattcgctcttcagcaTACTt"
+                     /ApEinfo_revcolor="#84b0dc"
+                     /ApEinfo_fwdcolor="#84b0dc"
+     primer          656..684
+                     /label="pOdd1_BF_Insert_Fw"
+                     /note="sequence: atttctggaattcgctcttcaatgTACTt"
+                     /ApEinfo_revcolor="#ffef86"
+                     /ApEinfo_fwdcolor="#ffef86"
+     primer          660..709
+                     /label="pOdd1_To_pOdd4_Fw"
+                     /note="sequence: ctggaattcgctcttcacagggagtgagacccaatacgcaaaccgcctct"
+                     /ApEinfo_revcolor="#9eafd2"
+                     /ApEinfo_fwdcolor="#9eafd2"
+     dna             663..668
+                     /label="EcoRI"
+                     /ApEinfo_revcolor="#d6b295"
+                     /ApEinfo_fwdcolor="#d6b295"
+     dna             669..675
+                     /label="SapI"
+                     /ApEinfo_revcolor="#faac61"
+                     /ApEinfo_fwdcolor="#faac61"
+     misc            677..679
+                     /label="5' Fusion Site ATG"
+                     /ApEinfo_revcolor="#c7b0e3"
+                     /ApEinfo_fwdcolor="#c7b0e3"
+     misc            680..683
+                     /label="Fusion Site GGAG"
+                     /ApEinfo_revcolor="#ffef86"
+                     /ApEinfo_fwdcolor="#ffef86"
+     primer          683..696
+                     /label="pOdd1_CF_Fw"
+                     /note="sequence: CTCTTCAATGaatgTGAGACCCAATAC"
+                     /ApEinfo_revcolor="#f7977a"
+                     /ApEinfo_fwdcolor="#f7977a"
+     primer          684..702
+                     /label="pOdd1_BF_OR_BE_Fw"
+                     /note="sequence: CTCTTCAATGtactTGAGACCCAATACGCAAAC"
+                     /ApEinfo_revcolor="#f7977a"
+                     /ApEinfo_fwdcolor="#f7977a"
+     dna             complement(685..690)
+                     /label="BsaI"
+                     /ApEinfo_revcolor="#faac61"
+                     /ApEinfo_fwdcolor="#faac61"
+     misc_feature    691..1759
+                     /label="BBa_J04454"
+                     /ApEinfo_revcolor="#b7e6d7"
+                     /ApEinfo_fwdcolor="#b7e6d7"
+     misc_feature    917..1594
+                     /label="RFP"
+                     /ApEinfo_revcolor="#ffef86"
+                     /ApEinfo_fwdcolor="#ffef86"
+     primer          complement(1739..1756)
+                     /label="pOdd_Pre_Rev"
+                     /note="sequence: AAACGCAGAAAGGCCCAC"
+                     /ApEinfo_revcolor="#f7977a"
+                     /ApEinfo_fwdcolor="#f7977a"
+     primer          complement(1741..1790)
+                     /label="pOdd1_To_pOdd4_Rev"
+                     /note="sequence: ggactgcaggctcttcaaccagcgtgagacctataaacgcagaaaggccc"
+                     /ApEinfo_revcolor="#ff9ccd"
+                     /ApEinfo_fwdcolor="#ff9ccd"
+     dna             1760..1765
+                     /label="BsaI"
+                     /ApEinfo_revcolor="#84b0dc"
+                     /ApEinfo_fwdcolor="#84b0dc"
+     primer          complement(1761..1790)
+                     /label="pOdd1_AE_Insert_Rev"
+                     /note="sequence: ggactgcaggctcttcatgcAAGCtgagac"
+                     /ApEinfo_revcolor="#c6c9d1"
+                     /ApEinfo_fwdcolor="#c6c9d1"
+     misc            1767..1770
+                     /label="Fusion Site CGCT"
+                     /ApEinfo_revcolor="#c6c9d1"
+                     /ApEinfo_fwdcolor="#c6c9d1"
+     primer          complement(1769..1790)
+                     /label="pOdd1_Insert_Rev"
+                     /note="sequence: ggactgcaggctcttcatgcag"
+                     /ApEinfo_revcolor="#85dae9"
+                     /ApEinfo_fwdcolor="#85dae9"
+     primer          complement(1769..1790)
+                     /label="pOdd2_Insert_Rev"
+                     /note="sequence: ggactgcaggctcttcagtaag"
+                     /ApEinfo_revcolor="#f58a5e"
+                     /ApEinfo_fwdcolor="#f58a5e"
+     primer          1770..1787
+                     /label="pOdd1_AE_Fw"
+                     /note="sequence: ATAGGTCTCAgcttGCATGAAGAGCCTGCAG"
+                     /ApEinfo_revcolor="#f7977a"
+                     /ApEinfo_fwdcolor="#f7977a"
+     misc            1771..1773
+                     /label="3' Fusion Site GCA"
+                     /ApEinfo_revcolor="#d59687"
+                     /ApEinfo_fwdcolor="#d59687"
+     primer          1771..1787
+                     /label="pOdd1_AC_Fw"
+                     /note="sequence: ATAGGTCTCAaatgGCATGAAGAGCCTGCAG"
+                     /ApEinfo_revcolor="#f7977a"
+                     /ApEinfo_fwdcolor="#f7977a"
+     dna             complement(1775..1781)
+                     /label="SapI"
+                     /ApEinfo_revcolor="#d6b295"
+                     /ApEinfo_fwdcolor="#d6b295"
+     dna             complement(1782..1787)
+                     /label="PstI"
+                     /ApEinfo_revcolor="#ffef86"
+                     /ApEinfo_fwdcolor="#ffef86"
+     stem_loop       1788..1859
+                     /label="E. coli his operon terminator"
+                     /ApEinfo_revcolor="#b4abac"
+                     /ApEinfo_fwdcolor="#b4abac"
+     primer_binding  complement(1923..1942)
+                     /label="VR primer binding site"
+                     /ApEinfo_revcolor="#ff9ccd"
+                     /ApEinfo_fwdcolor="#ff9ccd"
+     primer          complement(1923..1942)
+                     /label="VR"
+                     /note="sequence: gtattaccgcctttgagtga"
+                     /ApEinfo_revcolor="#c6c9d1"
+                     /ApEinfo_fwdcolor="#c6c9d1"
+     misc            2027..2641
+                     /label="rep (pMB1)"
+                     /ApEinfo_revcolor="#f8d3a9"
+                     /ApEinfo_fwdcolor="#f8d3a9"
+     primer          2356..2370
+                     /label="pOdd1_To_pOdd4_Rev"
+                     /note="sequence: ggactgcaggctcttcaaccagcgtgagacctataaacgcagaaaggccc"
+                     /ApEinfo_revcolor="#ff9ccd"
+                     /ApEinfo_fwdcolor="#ff9ccd"
+     misc            2863..392
+                     /label="Kanamycin resistance marker"
+                     /ApEinfo_revcolor="#faac61"
+                     /ApEinfo_fwdcolor="#faac61"
+ORIGIN
+        1 ccggcgcagg aacactgcca gcgcatcaac aatattttca cctgaatcag gatattcttc
+       61 taatacctgg aatgctgttt tcccggggat cgcagtggtg agtaaccatg catcatcagg
+      121 agtacggata aaatgcttga tggtcggaag aggcataaat tccgtcagcc agtttagtct
+      181 gaccatctca tctgtaacat cattggcaac gctacctttg ccatgtttca gaaacaactc
+      241 tggcgcatcg ggcttcccat acaatcgata gattgtcgca cctgattgcc cgacattatc
+      301 gcgagcccat ttatacccat ataaatcagc atccatgttg gaatttaatc gcggcctgga
+      361 gcaagacgtt tcccgttgaa tatggctcat aacacccctt gtattactgt ttatgtaagc
+      421 agacagtttt attgttcatg atgatatatt tttatcttgt gcaatgtaac atcagagatt
+      481 ttgagacaca acgtggcttt gttgaataaa tcgaactttt gctgagttga aggatcagct
+      541 cgagtgccac ctgacgtcta agaaaccatt attatcatga cattaaccta taaaaatagg
+      601 cgtatcacga ggcagaattt cagataaaaa aaatccttag ctttcgctaa ggatgatttc
+      661 tggaattcgc tcttcaatgg gagtgagacc caatacgcaa accgcctctc cccgcgcgtt
+      721 ggccgattca ttaatgcagc tggcacgaca ggtttcccga ctggaaagcg ggcagtgagc
+      781 gcaacgcaat taatgtgagt tagctcactc attaggcacc ccaggcttta cactttatgc
+      841 ttccggctcg tatgttgtgt ggaattgtga gcggataaca atttcacaca tactagagaa
+      901 agaggagaaa tactagatgg cttcctccga agacgttatc aaagagttca tgcgtttcaa
+      961 agttcgtatg gaaggttccg ttaacggtca cgagttcgaa atcgaaggtg aaggtgaagg
+     1021 tcgtccgtac gaaggtaccc agaccgctaa actgaaagtt accaaaggtg gtccgctgcc
+     1081 gttcgcttgg gacatcctgt ccccgcagtt ccagtacggt tccaaagctt acgttaaaca
+     1141 cccggctgac atcccggact acctgaaact gtccttcccg gaaggtttca aatgggaacg
+     1201 tgttatgaac ttcgaagacg gtggtgttgt taccgttacc caggactcct ccctgcaaga
+     1261 cggtgagttc atctacaaag ttaaactgcg tggtaccaac ttcccgtccg acggtccggt
+     1321 tatgcagaaa aaaaccatgg gttgggaagc ttccaccgaa cgtatgtacc cggaagacgg
+     1381 tgctctgaaa ggtgaaatca aaatgcgtct gaaactgaaa gacggtggtc actacgacgc
+     1441 tgaagttaaa accacctaca tggctaaaaa accggttcag ctgccgggtg cttacaaaac
+     1501 cgacatcaaa ctggacatca cctcccacaa cgaagactac accatcgttg aacagtacga
+     1561 acgtgctgaa ggtcgtcact ccaccggtgc ttaataacgc tgatagtgct agtgtagatc
+     1621 gctactagag ccaggcatca aataaaacga aaggctcagt cgaaagactg ggcctttcgt
+     1681 tttatctgtt gtttgtcggt gaacgctctc tactagagtc acactggctc accttcgggt
+     1741 gggcctttct gcgtttatag gtctcacgct gcatgaagag cctgcagtcc ggcaaaaaag
+     1801 ggcaaggtgt caccaccctg ccctttttct ttaaaaccga aaagattact tcgcgttatg
+     1861 caggcttcct cgctcactga ctcgctgcgc tcggtcgttc ggctgcggcg agcggtatca
+     1921 gctcactcaa aggcggtaat acggttatcc acagaatcag gggataacgc aggaaagaac
+     1981 atgtgagcaa aaggccagca aaaggccagg aaccgtaaaa aggccgcgtt gctggcgttt
+     2041 ttccacaggc tccgcccccc tgacgagcat cacaaaaatc gacgctcaag tcagaggtgg
+     2101 cgaaacccga caggactata aagataccag gcgtttcccc ctggaagctc cctcgtgcgc
+     2161 tctcctgttc cgaccctgcc gcttaccgga tacctgtccg cctttctccc ttcgggaagc
+     2221 gtggcgcttt ctcatagctc acgctgtagg tatctcagtt cggtgtaggt cgttcgctcc
+     2281 aagctgggct gtgtgcacga accccccgtt cagcccgacc gctgcgcctt atccggtaac
+     2341 tatcgtcttg agtccaaccc ggtaagacac gacttatcgc cactggcagc agccactggt
+     2401 aacaggatta gcagagcgag gtatgtaggc ggtgctacag agttcttgaa gtggtggcct
+     2461 aactacggct acactagaag aacagtattt ggtatctgcg ctctgctgaa gccagttacc
+     2521 ttcggaaaaa gagttggtag ctcttgatcc ggcaaacaaa ccaccgctgg tagcggtggt
+     2581 ttttttgttt gcaagcagca gattacgcgc agaaaaaaag gatctcaaga agatcctttg
+     2641 atcttttcta cggggtctga cgctcagtgg aacgaaaact cacgttaagg gattttggtc
+     2701 atgagattat caaaaaggat cttcacctag atccttttaa attaaaaatg aagttttaaa
+     2761 tcaatctaaa gtatatatga gtaaacttgg tctgacagct cgagtcccgt caagtcagcg
+     2821 taatgctctg ccagtgttac aaccaattaa ccaattctga ttagaaaaac tcatcgagca
+     2881 tcaaatgaaa ctgcaattta ttcatatcag gattatcaat accatatttt tgaaaaagcc
+     2941 gtttctgtaa tgaaggagaa aactcaccga ggcagttcca taggatggca agatcctggt
+     3001 atcggtctgc gattccgact cgtccaacat caatacaacc tattaatttc ccctcgtcaa
+     3061 aaataaggtt atcaagtgag aaatcaccat gagtgacgac tgaatccggt gagaatggca
+     3121 aaagcttatg catttctttc cagacttgtt caacaggcca gccattacgc tcgtcatcaa
+     3181 aatcactcgc atcaaccaaa ccgttattca ttcgtgattg cgcctgagcg agacgaaata
+     3241 cgcgatcgct gttaaaagga caattacaaa caggaatcga atgcaa
+//
