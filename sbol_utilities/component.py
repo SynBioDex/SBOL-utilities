@@ -416,7 +416,7 @@ def operator(identity: str, sequence: str, **kwargs) -> Tuple[sbol3.Component, s
     return operator_component, operator_seq
 
 
-def engineered_region(identity: str, features: Union[List[sbol3.SubComponent], List[sbol3.Component]], fix_order: bool=False, **kwargs) \
+def engineered_region(identity: str, features: Union[List[sbol3.SubComponent], List[sbol3.Component]], fix_order: bool=True, **kwargs) \
         -> sbol3.Component:
     """Creates an Engineered Region Component, with features assumed to be in linear order
 
