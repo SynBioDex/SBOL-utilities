@@ -255,36 +255,55 @@ def url_to_identity(url: str) -> str:
     return f'{split[0]}/{sbol3.string_to_display_id(split[1])}'
 
 
-def is_plasmid(obj: Union[sbol3.Component, sbol3.Feature]) -> bool:
-    """Check if an SBOL Component or Feature is a plasmid-like structure, i.e., either circular or having a plasmid role
-
-    :param obj: design to be checked
-    :return: true if plasmid
+def is_backbone(obj: Union[sbol3.Component, sbol3.Feature]) -> bool:
     """
-    def has_plasmid_role(x):
-        # TODO: replace speed-kludge with this proper query after resolution of https://github.com/SynBioDex/tyto/issues/32
-        #return any(r for r in x.roles if tyto.SO.plasmid.is_ancestor_of(r) or tyto.SO.vector_replicon.is_ancestor_of(r))
-        # speed-kludge alternative:
-        plasmid_roles = {tyto.SO.plasmid, tyto.SO.vector_replicon, tyto.SO.plasmid_vector}
-        for r in x.roles:
-            try:
-                regularized = tyto.SO.get_uri_by_term(tyto.SO.get_term_by_uri(r))
-                if regularized in plasmid_roles:
-                    return True
-            except LookupError:
-                pass
-        return False
+    Check if an SBOL Component or Feature represents a backbone structure.
+    This function determines if an object is considered a backbone based on
+    specific criteria, such as roles or types that are indicative of backbone components.
 
-    if has_plasmid_role(obj):  # both components and features have roles that can indicate a plasmid type
+    :param obj: The SBOL Component or Feature to be checked.
+    :return: True if the object is identified as a backbone, False otherwise.
+    """
+    # Define criteria for identifying a backbone.
+    backbone_roles = {tyto.SO.vector_replicon, tyto.SO.engineered_region}
+    backbone_types = {sbol3.SO_CIRCULAR} 
+
+    # Check if the object has any of the roles associated with backbones
+    if any(role in obj.roles for role in backbone_roles):
         return True
-    elif isinstance(obj, sbol3.Component) or isinstance(obj, sbol3.LocalSubComponent) or \
-            isinstance(obj, sbol3.ExternallyDefined):  # if there's a type, check for circularity
-        return sbol3.SO_CIRCULAR in obj.types
-    elif isinstance(obj, sbol3.SubComponent):  # if it's a subcomponent, check its definition
-        return is_plasmid(find_top_level(obj.instance_of))
-    else:
-        return False
 
+    # Check if the object has any of the types associated with backbones
+    if isinstance(obj, (sbol3.Component, sbol3.LocalSubComponent, sbol3.ExternallyDefined)):
+        if any(ty in obj.types for ty in backbone_types):
+            return True
+
+    return False
+
+def is_plasmid(obj: Union[sbol3.Component, sbol3.Feature]) -> bool:
+    """
+    Check if an SBOL Component or Feature is a plasmid-like structure.
+    This function determines if an object is considered a plasmid based on
+    specific criteria, such as roles or types that are indicative of plasmid components.
+
+    :param obj: The SBOL Component or Feature to be checked.
+    :return: True if the object is identified as a plasmid, False otherwise.
+    """
+    # Define criteria for identifying a plasmid. This might include specific roles or types.
+    plasmid_roles = {tyto.SO.plasmid, tyto.SO.circDNA}  # Example roles, adjust as necessary based on SEP 055
+    plasmid_types = {sbol3.SO_CIRCULAR}  # Example type, can be adjusted
+
+    # Check if the object has any of the roles associated with plasmids
+    if any(role in obj.roles for role in plasmid_roles):
+        return True
+
+    # Check if the object has any of the types associated with plasmids
+    if isinstance(obj, (sbol3.Component, sbol3.LocalSubComponent, sbol3.ExternallyDefined)):
+        if any(ty in obj.types for ty in plasmid_types):
+            return True
+
+    # Additional logic could be implemented here based on further criteria from SEP 055
+
+    return False
 
 class SBOL3PassiveVisitor:
     """This base class provides a do-nothing method for every SBOL3 visit type.
