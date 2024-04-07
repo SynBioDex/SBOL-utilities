@@ -12,23 +12,25 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    env:
+      IDT_CREDENTIALS: ${{ secrets.IDT_CREDENTIALS }}
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         # Default builds are on Ubuntu
         os: [ubuntu-latest]
-        python-version: ['3.7', '3.8', '3.9', '3.10']
+        python-version: ['3.7', '3.8', '3.9', '3.10', '3.11']
         include:
           # Also test on macOS and Windows using the latest Python 3
           - os: macos-latest
-            python-version: 3.x
-          - os: windows-latest
-            python-version: 3.x
+            python-version: 3.11  # Return to 3.x after resolution of https://github.com/RDFLib/pySHACL/issues/212
+          - os: windows-2019
+            python-version: 3.11  # Return to 3.x after resolution of https://github.com/RDFLib/pySHACL/issues/212
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
@@ -37,11 +39,16 @@ jobs:
         python -m pip install pytest
         python -m pip install interrogate
     - name: Setup Graphviz
-      uses: ts-graphviz/setup-graphviz@v1
+      uses: ts-graphviz/setup-graphviz@v2
+      with:
+        # Skip running of sometimes problematic brew update command on macOS.
+        # Remove after resolution of https://github.com/ts-graphviz/setup-graphviz/issues/593
+        macos-skip-brew-update: 'true' # default false
     - name: Show Node.js version
       run: |
         node --version
     - name: Test with pytest
       run: |
         pip install .
+        echo "$IDT_CREDENTIALS" > test_secret_idt_credentials.json
         pytest --ignore=test/test_docstr_coverage.py -s

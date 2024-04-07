@@ -57,9 +57,9 @@ The `excel-to-sbol` utility reads an Excel file specifying a library of basic an
 The `sbol-converter` utility converts between any of the SBOL3, SBOL2, GenBank, and FASTA formats.
 
 Additional "macro" utilities convert specifically between SBOL3 and one of the other formats: 
-- `sbol2fasta` and `fasta2sbol` convert from SBOL3 to FASTA and vice versa
-- `sbol2genbank` and `genbank2sbol` convert from SBOL3 to GenBank and vice versa
-- `sbol3to2` and `sbol2to3` convert to and from SBOL2
+- `sbol-to-fasta` and `fasta-to-sbol` convert from SBOL3 to FASTA and vice versa
+- `sbol-to-genbank` and `genbank-to-sbol` convert from SBOL3 to GenBank and vice versa
+- `sbol3-to-sbol2` and `sbol2-to-sbol3` convert to and from SBOL2
 
 ### Expand the combinatorial derivations in an SBOL file
 
@@ -68,6 +68,14 @@ The `sbol-expand-derivations` utility searches through an SBOL file for Combinat
 ### Calculate sequences of DNA components in an SBOL file
 
 The `sbol-calculate-sequences` utility attempts to calculate the sequence of any DNA Component that can be fully specified from the sequences of its sub-components.
+
+### Calculate sequence synthesis complexity for DNA sequences in an SBOL file
+
+The `sbol-calculate-complexity` utility attempts to calculate the synthesis complexity of any DNA sequence in the file, by sending sequences to be evaluated by IDT's sequence calculator service. Sequences whose complexity is known are not re-calculated. 
+
+The system uses the gBlock API, which is intended for sequences from 125 to 3000 bp in length. If it is more than 3000 bp or less than 125 bp your returned score will be 0. A complexity score in the range from 0 to 10 means your sequence is synthesizable, if the score is greater or equal than 10 means it is not synthesizable.
+
+Note that use of this utility requires an account with IDT that is set up to use IDT's online service API (see: https://www.idtdna.com/pages/tools/apidoc)
 
 ### Compute the difference between two SBOL3 documents
 The `sbol-diff` utility computes the difference between two SBOL3 documents
