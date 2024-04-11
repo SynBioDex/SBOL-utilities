@@ -230,9 +230,15 @@ class SBOL3To2ConversionVisitor:
         # Priority: 3
         raise NotImplementedError('Conversion of Model from SBOL3 to SBOL2 not yet implemented')
 
-    def visit_participation(self, a: sbol3.Participation):
-        # Priority: 2
-        raise NotImplementedError('Conversion of Participation from SBOL3 to SBOL2 not yet implemented')
+    def visit_participation(self, participation3: sbol3.Participation) -> sbol2.Participation:
+        participation2 = sbol2.Participation(
+            version=self._sbol2_version(participation3),
+            participant=participation3.participant
+        )
+        for role in participation3.roles:
+            participation2.addRole(role)
+        self._convert_identified(participation3, participation2)
+        return participation2
 
     def visit_plan(self, a: sbol3.Plan):
         # Priority: 3
@@ -508,9 +514,14 @@ class SBOL2To3ConversionVisitor:
         # Priority: 3
         raise NotImplementedError('Conversion of ModuleDefinition from SBOL2 to SBOL3 not yet implemented')
 
-    def visit_participation(self, a: sbol2.Participation):
-        # Priority: 2
-        raise NotImplementedError('Conversion of Participation from SBOL2 to SBOL3 not yet implemented')
+    def visit_participation(self, participation2: sbol2.Participation) -> sbol3.Participation:
+        participation3 = sbol3.Participation(
+            roles=participation2.roles,
+            participant=participation2.participant
+        )
+        self._convert_identified(participation2, participation3)
+        return participation3
+
 
     def visit_plan(self, a: sbol2.Plan):
         # Priority: 3
