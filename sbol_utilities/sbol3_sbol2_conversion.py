@@ -210,9 +210,15 @@ class SBOL3To2ConversionVisitor:
         # Map over all other TopLevel properties and extensions not covered by the constructor
         self._convert_toplevel(imp3, imp2)
 
-    def visit_interaction(self, a: sbol3.Interaction):
-        # Priority: 2
-        raise NotImplementedError('Conversion of Interaction from SBOL3 to SBOL2 not yet implemented')
+    def visit_interaction(self, interaction3: sbol3.Interaction) -> sbol2.Interaction:
+        interaction2 = sbol2.Interaction(version=self._sbol2_version(interaction3), interaction_type=interaction3.types)
+        for p in interaction3.participations:
+            interaction2.participations.append(self.visit_participation(p))
+        for m in interaction3.measures:
+            interaction2.measurements.append(self.visit_measure(m))
+        self._convert_identified(interaction3, interaction2)
+
+        return interaction2
 
     def visit_interface(self, a: sbol3.Interface):
         # Priority: 3

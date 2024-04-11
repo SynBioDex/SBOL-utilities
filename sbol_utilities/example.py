@@ -4,7 +4,7 @@ from sbol_utilities.conversion import convert2to3, convert3to2
 import tyto
 from sbol3_sbol2_conversion import SBOL2To3ConversionVisitor, SBOL3To2ConversionVisitor
 from pprint import pprint
-
+sbol2.property
 sbol3.set_namespace('http://examples.org')
 
 dummy_doc2 = sbol2.Document()
