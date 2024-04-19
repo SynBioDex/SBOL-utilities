@@ -166,6 +166,8 @@ def convert2to3(sbol2_doc: Union[str, sbol2.Document], namespaces=None, use_nati
     doc.traverse(change_orientation)
 
     report = doc.validate()
+    print(doc.objects[0], doc.objects[0].types)
+    print(doc.objects[1], doc.objects[1].types)
     if len(report):
         report_string = "\n".join(str(e) for e in doc.validate())
         raise ValueError(f'Conversion from SBOL2 to SBOL3 produced an invalid document: {report_string}')

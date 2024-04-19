@@ -150,16 +150,27 @@ class SBOL3To2ConversionVisitor:
                     sbol3.SBO_SIMPLE_CHEMICAL: sbol2.BIOPAX_SMALL_MOLECULE,
                     sbol3.SBO_NON_COVALENT_COMPLEX: sbol2.BIOPAX_COMPLEX}
         types2 = [type_map.get(t, t) for t in cp3.types]
-        # Make the Component object and add it to the document
-        cp2 = sbol2.ComponentDefinition(cp3.identity, types2, version=self._sbol2_version(cp3))
-        self.doc2.addComponentDefinition(cp2)
+
+        # Condition to test if it is a ModuleDefinition, probably there are better ways
+        if cp3.interactions:
+            # Make the ModuleDefinition object and add it to the document
+            cp2 = sbol2.ModuleDefinition(cp3.identity, version=self._sbol2_version(cp3))
+            self.doc2.addModuleDefinition(cp2)
+        else:
+            # Make the Component object and add it to the document
+            cp2 = sbol2.ComponentDefinition(cp3.identity, types2, version=self._sbol2_version(cp3))
+            self.doc2.addComponentDefinition(cp2)
+            cp2.sequences = cp3.sequences
+
         # Convert the Component properties not covered by the constructor
         cp2.roles = cp3.roles
-        cp2.sequences = cp3.sequences
+
         if cp3.features:
             raise NotImplementedError('Conversion of Component features from SBOL3 to SBOL2 not yet implemented')
         if cp3.interactions:
-            raise NotImplementedError('Conversion of Component interactions from SBOL3 to SBOL2 not yet implemented')
+            for interaction3 in cp3.interactions:
+                interaction2 = self.visit_interaction(interaction3)
+                cp2.interactions.add(interaction2)
         if cp3.constraints:
             raise NotImplementedError('Conversion of Component constraints from SBOL3 to SBOL2 not yet implemented')
         if cp3.interface:
@@ -211,11 +222,12 @@ class SBOL3To2ConversionVisitor:
         self._convert_toplevel(imp3, imp2)
 
     def visit_interaction(self, interaction3: sbol3.Interaction) -> sbol2.Interaction:
-        interaction2 = sbol2.Interaction(version=self._sbol2_version(interaction3), interaction_type=interaction3.types)
+        interaction2 = sbol2.Interaction(interaction3.identity, version=self._sbol2_version(interaction3), interaction_type=interaction3.types)
         for p in interaction3.participations:
-            interaction2.participations.append(self.visit_participation(p))
+            part2 = self.visit_participation(p)
+            interaction2.participations.add(part2)
         for m in interaction3.measures:
-            interaction2.measurements.append(self.visit_measure(m))
+            interaction2.measurements.add(self.visit_measure(m))
         self._convert_identified(interaction3, interaction2)
 
         return interaction2
@@ -418,7 +430,7 @@ class SBOL2To3ConversionVisitor:
                     sbol2.BIOPAX_COMPLEX: sbol3.SBO_NON_COVALENT_COMPLEX}
         types3 = [type_map.get(t, t) for t in cd2.types]
         # Make the Component object and add it to the document
-        cp3 = sbol3.Component(cd2.identity, types3, namespace=self._sbol3_namespace(cd2),
+        cp3 = sbol3.Component(cd2.persistentIdentity, types3, namespace=self._sbol3_namespace(cd2),
                               roles=cd2.roles, sequences=cd2.sequences)
         self.doc3.add(cp3)
         # Convert the Component properties not covered by the constructor
@@ -496,9 +508,15 @@ class SBOL2To3ConversionVisitor:
         # Map over all other TopLevel properties and extensions not covered by the constructor
         self._convert_toplevel(imp2, imp3)
 
-    def visit_interaction(self, a: sbol2.Interaction):
-        # Priority: 2
-        raise NotImplementedError('Conversion of Interaction from SBOL2 to SBOL3 not yet implemented')
+    def visit_interaction(self, interaction2: sbol2.Interaction) -> sbol3.Interaction:
+
+        interaction3 = sbol3.Interaction(
+            types=interaction2.types,
+            participations=[self.visit_participation(p) for p in interaction2.participations],
+            measures=[self.visit_measure(m) for m in interaction2.measurements]
+            )
+        self._convert_identified(interaction2, interaction3)
+        return interaction3
 
     def visit_maps_to(self, a: sbol2.mapsto.MapsTo):
         # Priority: 3
@@ -516,9 +534,16 @@ class SBOL2To3ConversionVisitor:
         # Priority: 3
         raise NotImplementedError('Conversion of Module from SBOL2 to SBOL3 not yet implemented')
 
-    def visit_module_definition(self, a: sbol2.ModuleDefinition):
-        # Priority: 3
-        raise NotImplementedError('Conversion of ModuleDefinition from SBOL2 to SBOL3 not yet implemented')
+    def visit_module_definition(self, md2: sbol2.ModuleDefinition):
+
+        # Make the Component object and add it to the document
+        interactions = [self.visit_interaction(i) for i in md2.interactions]
+        cp3 = sbol3.Component(md2.persistentIdentity, types=sbol3.SBO_FUNCTIONAL_ENTITY, namespace=self._sbol3_namespace(md2),
+                              roles=md2.roles, interactions=interactions)
+        self.doc3.add(cp3)
+        # Map over all other TopLevel properties and extensions not covered by the constructor
+        self._convert_toplevel(md2, cp3)
+
 
     def visit_participation(self, participation2: sbol2.Participation) -> sbol3.Participation:
         participation3 = sbol3.Participation(
