@@ -166,6 +166,8 @@ class SBOL3To2ConversionVisitor:
         cp2.roles = cp3.roles
 
         if cp3.features:
+            for feature in cp3.features:
+                feature2 = self.visit_sub_component(feature)
             raise NotImplementedError('Conversion of Component features from SBOL3 to SBOL2 not yet implemented')
         if cp3.interactions:
             for interaction3 in cp3.interactions:
@@ -492,9 +494,9 @@ class SBOL2To3ConversionVisitor:
         # Priority: 3
         raise NotImplementedError('Conversion of ExperimentalData from SBOL2 to SBOL3 not yet implemented')
 
-    def visit_functional_component(self, a: sbol2.FunctionalComponent):
-        # Priority: 3
-        raise NotImplementedError('Conversion of FunctionalComponent from SBOL2 to SBOL3 not yet implemented')
+    def visit_functional_component(self, fc2: sbol2.FunctionalComponent) -> sbol3.SubComponent:
+        # TODO: store identity
+        return sbol3.SubComponent(fc2.definition)
 
     def visit_generic_location(self, a: sbol2.GenericLocation):
         # Priority: 3
@@ -538,9 +540,11 @@ class SBOL2To3ConversionVisitor:
 
         # Make the Component object and add it to the document
         interactions = [self.visit_interaction(i) for i in md2.interactions]
+        functional_components = [self.visit_functional_component(fc) for fc in md2.functionalComponents]
         cp3 = sbol3.Component(md2.persistentIdentity, types=sbol3.SBO_FUNCTIONAL_ENTITY, namespace=self._sbol3_namespace(md2),
                               roles=md2.roles, interactions=interactions)
         self.doc3.add(cp3)
+        cp3.features.extend(functional_components)
         # Map over all other TopLevel properties and extensions not covered by the constructor
         self._convert_toplevel(md2, cp3)
 
