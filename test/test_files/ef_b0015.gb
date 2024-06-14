@@ -1,0 +1,95 @@
+LOCUS       EF_B0015                2190 bp ds-DNA     circular     25-OCT-2023
+DEFINITION  .
+COMMENT     From pSB1C00 - Loop universal L0 acceptor and B0015_EF
+FEATURES             Location/Qualifiers
+     misc_feature    385..404
+                     /label="VF Primer binding site"
+                     /ApEinfo_revcolor="#b7e6d7"
+                     /ApEinfo_fwdcolor="#b7e6d7"
+     misc_feature    complement(461..505)
+                     /label="Terminator"
+                     /ApEinfo_revcolor="#c7b0e3"
+                     /ApEinfo_fwdcolor="#c7b0e3"
+     BioBrick        507..512
+                     /label="BsaI Site"
+                     /ApEinfo_revcolor="#f58a5e"
+                     /ApEinfo_fwdcolor="#f58a5e"
+     misc_feature    514..517
+                     /label="E"
+                     /ApEinfo_revcolor="#f8d3a9"
+                     /ApEinfo_fwdcolor="#f8d3a9"
+     terminator      518..646
+                     /label="BBa-B0015 Terminator"
+                     /ApEinfo_revcolor="#ff9ccd"
+                     /ApEinfo_fwdcolor="#ff9ccd"
+     terminator      526..597
+                     /label="rrnB T1 terminator"
+                     /ApEinfo_revcolor="#c7b0e3"
+                     /ApEinfo_fwdcolor="#c7b0e3"
+     terminator      613..640
+                     /label="T7Te terminator"
+                     /ApEinfo_revcolor="#75c6a9"
+                     /ApEinfo_fwdcolor="#75c6a9"
+     misc_feature    647..650
+                     /label="F"
+                     /ApEinfo_revcolor="#f58a5e"
+                     /ApEinfo_fwdcolor="#f58a5e"
+     misc_feature    664..735
+                     /label="His Terminator"
+                     /ApEinfo_revcolor="#ffef86"
+                     /ApEinfo_fwdcolor="#ffef86"
+     misc_feature    complement(799..818)
+                     /label="VR Primer binding site"
+                     /ApEinfo_revcolor="#b1ff67"
+                     /ApEinfo_fwdcolor="#b1ff67"
+     misc_feature    complement(903..1517)
+                     /label="rep (pMB1)"
+                     /ApEinfo_revcolor="#85dae9"
+                     /ApEinfo_fwdcolor="#85dae9"
+     misc_feature    complement(1684..1789)
+                     /label="Terminator T0"
+                     /ApEinfo_revcolor="#c6c9d1"
+                     /ApEinfo_fwdcolor="#c6c9d1"
+     CDS             complement(1802..271)
+                     /label="Cam Resistance"
+                     /ApEinfo_revcolor="#ff9ccd"
+                     /ApEinfo_fwdcolor="#ff9ccd"
+ORIGIN
+        1 aagggtgaac actatcccat atcaccagct caccgtcttt cattgccata cgaaattccg
+       61 gatgagcatt catcaggcgg gcaagaatgt gaataaaggc cggataaaac ttgtgcttat
+      121 ttttctttac ggtctttaaa aaggccgtaa tatccagctg aacggtctgg ttataggtac
+      181 attgagcaac tgactgaaat gcctcaaaat gttctttacg atgccattgg gatatatcaa
+      241 cggtggtata tccagtgatt tttttctcca ttttagcttc cttagctcct gaaaatctcg
+      301 ataactcaaa aaatacgccc ggtagtgatc ttatttcatt atggtgaaag ttggaacctc
+      361 ttacgtgccc gatcaactcg agtgccacct gacgtctaag aaaccattat tatcatgaca
+      421 ttaacctata aaaataggcg tatcacgagg cagaatttca gataaaaaaa atccttagct
+      481 ttcgctaagg atgatttctg gaattcggtc tcgGCTTcca ggcatcaaat aaaacgaaag
+      541 gctcagtcga aagactgggc ctttcgtttt atctgttgtt tgtcggtgaa cgctctctac
+      601 tagagtcaca ctggctcacc ttcgggtggg cctttctgcg tttatacgct CGAGaccctg
+      661 cagtccggca aaaaagggca aggtgtcacc accctgccct ttttctttaa aaccgaaaag
+      721 attacttcgc gttatgcagg cttcctcgct cactgactcg ctgcgctcgg tcgttcggct
+      781 gcggcgagcg gtatcagctc actcaaaggc ggtaatacgg ttatccacag aatcagggga
+      841 taacgcagga aagaacatgt gagcaaaagg ccagcaaaag gccaggaacc gtaaaaaggc
+      901 cgcgttgctg gcgtttttcc acaggctccg cccccctgac gagcatcaca aaaatcgacg
+      961 ctcaagtcag aggtggcgaa acccgacagg actataaaga taccaggcgt ttccccctgg
+     1021 aagctccctc gtgcgctctc ctgttccgac cctgccgctt accggatacc tgtccgcctt
+     1081 tctcccttcg ggaagcgtgg cgctttctca tagctcacgc tgtaggtatc tcagttcggt
+     1141 gtaggtcgtt cgctccaagc tgggctgtgt gcacgaaccc cccgttcagc ccgaccgctg
+     1201 cgccttatcc ggtaactatc gtcttgagtc caacccggta agacacgact tatcgccact
+     1261 ggcagcagcc actggtaaca ggattagcag agcgaggtat gtaggcggtg ctacagagtt
+     1321 cttgaagtgg tggcctaact acggctacac tagaagaaca gtatttggta tctgcgctct
+     1381 gctgaagcca gttaccttcg gaaaaagagt tggtagctct tgatccggca aacaaaccac
+     1441 cgctggtagc ggtggttttt ttgtttgcaa gcagcagatt acgcgcagaa aaaaaggatc
+     1501 tcaagaagat cctttgatct tttctacggg gtctgacgct cagtggaacg aaaactcacg
+     1561 ttaagggatt ttggtcatga gattatcaaa aaggatcttc acctagatcc ttttaaatta
+     1621 aaaatgaagt tttaaatcaa tctaaagtat atatgagtaa acttggtctg acagctcgag
+     1681 gcttggattc tcaccaataa aaaacgcccg gcggcaaccg agcgttctga acaaatccag
+     1741 atggagttct gaggtcatta ctggatctat caacaggagt ccaagcgagc tcgatatcaa
+     1801 attacgcccc gccctgccac tcatcgcagt actgttgtaa ttcattaagc attctgccga
+     1861 catggaagcc atcacaaacg gcatgatgaa cctgaatcgc cagcggcatc agcaccttgt
+     1921 cgccttgcgt ataatatttg cccatggtga aaacgggggc gaagaagttg tccatattgg
+     1981 ccacgtttaa atcaaaactg gtgaaactca cccagggatt ggctgagacg aaaaacatat
+     2041 tctcaataaa ccctttaggg aaataggcca ggttttcacc gtaacacgcc acatcttgcg
+     2101 aatatatgtg tagaaactgc cggaaatcgt cgtggtattc actccagagc gatgaaaacg
+     2161 tttcagtttg ctcatggaaa acggtgtaac
+//

@@ -7,76 +7,35 @@ from pathlib import Path
 import sbol3
 import tyto
 
-from sbol_utilities.component import contained_components, contains, add_feature, add_interaction, constitutive, \
-    regulate, order, in_role, all_in_role, ensure_singleton_feature, by_roles, by_types, is_dna_part, ed_restriction_enzyme
-from sbol_utilities.helper_functions import filter_top_level
+from sbol_utilities.component import contained_components, contains, add_feature, add_interaction, \
+    constitutive, ed_restriction_enzyme, \
+    regulate, order, in_role, all_in_role, ensure_singleton_feature, is_dna_part
 from sbol_utilities.component import dna_component_with_sequence, rna_component_with_sequence, \
     protein_component_with_sequence, media, functional_component, promoter, rbs, cds, terminator, \
     protein_stability_element, gene, operator, engineered_region, mrna, transcription_factor, \
     strain, ed_simple_chemical, ed_protein
 
-from sbol_utilities.component import ed_restriction_enzyme, backbone, part_in_backbone
+from sbol_utilities.component import ed_restriction_enzyme, backbone, backbone_from_sbol, part_in_backbone,  part_in_backbone_from_sbol, \
+    digestion, ligation, Assembly_plan_composite_in_backbone_single_enzyme
 from sbol_utilities.helper_functions import find_top_level, toplevel_named, TopLevelNotFound, outgoing_links
 from sbol_utilities.sbol_diff import doc_diff    
+from sbol_utilities.conversion import convert_from_genbank
 
 
 class TestComponent(unittest.TestCase):
 
-    def test_filter_by_roles(self):
-        """test the filter by roles utility"""
-        doc = sbol3.Document()
-        sbol3.set_namespace('http://sbolstandard.org/testfiles')
-        # create and add 3 components, with 2 having common role of dna
-        comp_1 = sbol3.Component('component_1', sbol3.SBO_DNA, roles=[tyto.SBO.deoxyribonucleic_acid])
-        comp_2 = sbol3.Component('component_2', sbol3.SBO_DNA, roles=[tyto.SO.engineered_region])
-        comp_3 = sbol3.Component('component_3', sbol3.SBO_DNA, roles=[tyto.SO.engineered_region, tyto.SBO.deoxyribonucleic_acid])
-        doc.add(comp_1)
-        doc.add(comp_2)
-        doc.add(comp_3)
-        # only comp_1 and comp_3 must be returned by the function
-        matched = list(filter_top_level(doc, by_roles(tyto.SBO.deoxyribonucleic_acid)))
-        assert(comp_1 in matched and comp_3 in matched and len(matched) == 2)
-
-    def test_filter_by_types(self):
-        """test the filter by types utility"""
-        doc = sbol3.Document()
-        sbol3.set_namespace('http://sbolstandard.org/testfiles')
-        # create and add 3 components, with 2 one of the types as SBO_DNA
-        comp_1 = sbol3.Component('component_1', types=[sbol3.SBO_DNA])
-        comp_2 = sbol3.Component('component_2', types=[sbol3.SBO_DEGRADATION, sbol3.SBO_DNA])
-        comp_3 = sbol3.Component('component_3', types=[sbol3.SBO_FUNCTIONAL_ENTITY])
-        doc.add(comp_1)
-        doc.add(comp_2)
-        doc.add(comp_3)
-        # only comp_1 and comp_3 must be returned by the function
-        matched = list(filter_top_level(doc, by_types(sbol3.SBO_DNA)))
-        assert(comp_1 in matched and comp_2 in matched and len(matched) == 2)
-
     def test_dna_part(self):
         """Test the correctness of is_dna_part check"""
         # create a test dna component
-        doc = sbol3.Document()
-        sbol3.set_namespace('http://sbolstandard.org/testfiles')
+        dna_identity = 'Test_dna_identity'
         dna_sequence = 'Test_dna_sequence'
         dna_description = 'Test_dna_description'
         sbol3.set_namespace('http://sbolstandard.org/testfiles')
         # we don't need dna_sequence object
-        test_dna_component_1, _ = dna_component_with_sequence('test_identity1', dna_sequence, description=dna_description)
-        test_dna_component_2, _ = dna_component_with_sequence('test_identity2', dna_sequence, description=dna_description)
-        test_dna_component_3, _ = dna_component_with_sequence('test_identity3', dna_sequence, description=dna_description)
+        test_dna_component, _ = dna_component_with_sequence(dna_identity, dna_sequence, description=dna_description)
         # adding atleast 1 SO role
-        test_dna_component_1.roles.append(sbol3.SO_GENE)
-        test_dna_component_2.roles.append(sbol3.SBO_DEGRADATION)
-        # created and add 3 components, with 1 satisfying all criteria
-        doc.add(test_dna_component_3)
-        doc.add(test_dna_component_2)
-        doc.add(test_dna_component_1)
-        # use filter_top_level utility to filter objects which are dna parts
-        matched = list(filter_top_level(doc, is_dna_part))
-        # 2nd component had non SO roles, 3rd component had no role
-        assert test_dna_component_1 in matched
-        assert test_dna_component_2 not in matched
-        assert test_dna_component_3 not in matched
+        test_dna_component.roles.append(sbol3.SO_GENE)
+        assert is_dna_part(test_dna_component) 
 
     def test_system_building(self):
         doc = sbol3.Document()
@@ -250,7 +209,7 @@ class TestComponent(unittest.TestCase):
         if len(enr_comp.features) > 1:
             for i in range(len(enr_comp.features)-1):
                 constraint = sbol3.Constraint(sbol3.SBOL_PRECEDES, enr_comp.features[i], enr_comp.features[i+1])
-                enr_comp.constraints = [constraint]
+                enr_comp.constraints.append(constraint)
         else:
             pass
         hlc_doc.add(hlc_enr_comp)
@@ -334,16 +293,19 @@ class TestComponent(unittest.TestCase):
         doc.add(media_comp)
         assert doc_diff(doc, hlc_doc) == 0, f'Constructor Error: {media_identity}'
 
-    def test_sep055(self):
-        """Test construction of components and features using helper functions: for each, build manually and compare."""
-        hlc_doc = sbol3.Document()
-        doc = sbol3.Document()
+    def test_restriction_enzyme_bp011(self):
+        """Test the restriction_enzyme function"""
         sbol3.set_namespace('http://sbolstandard.org/testfiles')
-
         restriction_enzyme_name = 'BsaI'
         restriction_enzyme_definition = 'http://rebase.neb.com/rebase/enz/BsaI.html' # TODO: replace with getting the URI from Enzyme when REBASE identifiers become available in biopython 1.80
         bsai = ed_restriction_enzyme(restriction_enzyme_name)
         assert bsai.definition == restriction_enzyme_definition, 'Constructor Error: ed_restriction_enzyme'
+        
+    def test_backbone_bp011(self):
+        """Test the backbone function"""
+        hlc_doc = sbol3.Document()
+        doc = sbol3.Document()
+        sbol3.set_namespace('http://sbolstandard.org/testfiles')
 
         backbone_identity = 'backbone'
         backbone_sequence = 'aaGGGGttttCCCCaa'
@@ -401,7 +363,25 @@ class TestComponent(unittest.TestCase):
         doc.add([linear_backbone_component, linear_backbone_seq])
         assert doc_diff(doc, hlc_doc) == 0, f'Constructor Error: Linear {backbone_identity}'
 
+        #Test backbone from SBOL
+        hlc_doc = sbol3.Document()
+        doc = sbol3.Document()
+        sbol3.set_namespace('http://sbolstandard.org/testfiles')
+        # build using backbone from SBOL
+        doc.add([circular_backbone_component, circular_backbone_seq])
+        hl_circular_backbone_component, hl_circular_backbone_seq = backbone_from_sbol(identity=backbone_identity, sbol_comp=circular_backbone_component, dropout_location=dropout_location, fusion_site_length=fusion_site_length, linear=False, description=test_description)
+        hlc_doc.add([hl_circular_backbone_component, hl_circular_backbone_seq])
+        assert doc_diff(doc, hlc_doc) == 0, f'Constructor Error: Circular {backbone_identity} from SBOL'
 
+        hlc_doc = sbol3.Document()
+        doc = sbol3.Document()
+        doc.add([linear_backbone_component, linear_backbone_seq])
+        hl_linear_backbone_component, hl_linear_backbone_seq = backbone_from_sbol(identity=backbone_identity, sbol_comp=linear_backbone_component, dropout_location=dropout_location, fusion_site_length=fusion_site_length, linear=True, description=test_description)
+        hlc_doc.add([hl_linear_backbone_component, hl_linear_backbone_seq])
+        assert doc_diff(doc, hlc_doc) == 0, f'Constructor Error: Linear {backbone_identity} from SBOL'
+        
+    def test_part_in_backbone_bp011(self):
+        """Test the part_in_backbone function"""
         hlc_doc = sbol3.Document()
         doc = sbol3.Document()
         sbol3.set_namespace('http://sbolstandard.org/testfiles')
@@ -416,9 +396,11 @@ class TestComponent(unittest.TestCase):
 
         hl_part_in_backbone_circular, hl_part_in_backbone_circular_sequence = part_in_backbone(identity_pib, part=test_promoter, backbone=test_backbone)
         hlc_doc.add([hl_part_in_backbone_circular, hl_part_in_backbone_circular_sequence])
+
         backbone_sequence = test_backbone.sequences[0].lookup().elements
-        open_backbone_sequence_from_location1=backbone_sequence[test_backbone.features[-1].locations[0].start -1 : test_backbone.features[-1].locations[0].end -1]
-        open_backbone_sequence_from_location2=backbone_sequence[test_backbone.features[-1].locations[1].start -1 : test_backbone.features[-1].locations[1].end-1]
+        open_backbone_sequence_from_location1=backbone_sequence[test_backbone.features[-1].locations[0].start -1 : test_backbone.features[-1].locations[0].end]
+        open_backbone_sequence_from_location2=backbone_sequence[test_backbone.features[-1].locations[1].start -1 : test_backbone.features[-1].locations[1].end]
+        
         part_sequence = test_promoter.sequences[0].lookup().elements
         part_in_backbone_seq_str = part_sequence + open_backbone_sequence_from_location2 + open_backbone_sequence_from_location1
         part_in_backbone_component, part_in_backbone_seq = dna_component_with_sequence(identity_pib, part_in_backbone_seq_str)
@@ -442,7 +424,6 @@ class TestComponent(unittest.TestCase):
         hlc_doc.add([test_promoter, test_promoter_seq, test_backbone, test_backbone_seq])
         doc.add([test_promoter, test_promoter_seq, test_backbone, test_backbone_seq])
 
-
         hl_part_in_backbone_linear, hl_part_in_backbone_linear_sequence = part_in_backbone(identity_pib, part=test_promoter, backbone=test_backbone, linear=True)
         hlc_doc.add([hl_part_in_backbone_linear, hl_part_in_backbone_linear_sequence])
 
@@ -460,6 +441,112 @@ class TestComponent(unittest.TestCase):
         part_in_backbone_component_linear.types.append(sbol3.SO_LINEAR)
         doc.add([part_in_backbone_component_linear, part_in_backbone_seq])
         assert doc_diff(doc, hlc_doc) == 0, f'Constructor Error: Linear {identity_pib}'
+        
+    def test_part_in_backbone_from_sbol_bp011(self):
+        hlc_doc = sbol3.Document()
+        sbol3.set_namespace('http://sbolstandard.org/testfiles')
+        test_dir = os.path.dirname(os.path.realpath(__file__))
+        b0015_dir = os.path.join(test_dir, 'test_files', 'b0015.gb')
+        # Part in backbone from SBOL
+        target_b0015_unitary_part_sequence = 'ccaggcatcaaataaaacgaaaggctcagtcgaaagactgggcctttcgttttatctgttgtttgtcggtgaacgctctctactagagtcacactggctcaccttcgggtgggcctttctgcgtttata'
+        b0015_doc = convert_from_genbank(b0015_dir, 'https://github.com/Gonza10V')
+        b0015_ef = [top_level for top_level in b0015_doc if type(top_level)==sbol3.Component][0]
+        hlc_b0015_ef_in_bb, hlc_b0015_ef_in_bb_seq = part_in_backbone_from_sbol('b0015_ef_in_bb', b0015_ef, [518,646], [sbol3.SO_TERMINATOR], 4, False, name='b0015_ef_in_bb')
+        hlc_doc.add([hlc_b0015_ef_in_bb, hlc_b0015_ef_in_bb_seq])
+        for feature in hlc_b0015_ef_in_bb.features:
+            if feature.roles == [sbol3.SO_TERMINATOR, tyto.SO.engineered_insert]:
+                b0015_unitary_part_sequence = feature.locations[0].sequence.lookup().elements[feature.locations[0].start-1:feature.locations[0].end]
+        assert target_b0015_unitary_part_sequence == b0015_unitary_part_sequence , "Unitary part sequence does not match target sequence"
+        assert len(hlc_b0015_ef_in_bb.features) == 3, f"Incorrect number of features, number of features expeted is 3, got {len(hlc_b0015_ef_in_bb.features)}"
+        assert set(hlc_b0015_ef_in_bb.types) == set([sbol3.SBO_DNA, sbol3.SO_CIRCULAR]) , f"Incorrect types, types expected are [sbol3.SBO_DNA, sbol3.SO_CIRCULAR], got {hlc_b0015_ef_in_bb.types}"
+        assert set(hlc_b0015_ef_in_bb.roles) == set([sbol3.SO_DOUBLE_STRANDED, sbol3.SO_TERMINATOR, tyto.SO.plasmid_vector]), f"Incorrect roles, roles expected are [sbol3.SO_DOUBLE_STRANDED, sbol3.SO_TERMINATOR, tyto.SO.plasmid_vector], got {hlc_b0015_ef_in_bb.roles}"
+        features_roles = set()
+        for ft in hlc_b0015_ef_in_bb.features:
+            for role in ft.roles:
+                features_roles.add(role)
+        assert features_roles == set([tyto.SO.insertion_site, sbol3.SO_TERMINATOR, tyto.SO.engineered_insert]), f"Incorrect feature roles, roles expected are [tyto.SO.insertion_site, sbol3.SO_TERMINATOR, tyto.SO.engineered_insert], got {features_roles}"
+        
+    def test_assembly_plan_bp011(self):
+        """Test assembly plan class"""
+        doc = sbol3.Document()
+        sbol3.set_namespace('http://sbolstandard.org/testfiles')
+        test_dir = os.path.dirname(os.path.realpath(__file__))
+        # Assembly plan setup
+        bsai = ed_restriction_enzyme('BsaI')
+        #lvl1 acceptor
+        lvl1_pOdd_acceptor_seq = 'gctcgagtcccgtcaagtcagcgtaatgctctgccagtgttacaaccaattaaccaattctgattagaaaaactcatcgagcatcaaatgaaactgcaatttattcatatcaggattatcaataccatatttttgaaaaagccgtttctgtaatgaaggagaaaactcaccgaggcagttccataggatggcaagatcctggtatcggtctgcgattccgactcgtccaacatcaatacaacctattaatttcccctcgtcaaaaataaggttatcaagtgagaaatcaccatgagtgacgactgaatccggtgagaatggcaaaagcttatgcatttctttccagacttgttcaacaggccagccattacgctcgtcatcaaaatcactcgcatcaaccaaaccgttattcattcgtgattgcgcctgagcgagacgaaatacgcgatcgctgttaaaaggacaattacaaacaggaatcgaatgcaaccggcgcaggaacactgccagcgcatcaacaatattttcacctgaatcaggatattcttctaatacctggaatgctgttttcccggggatcgcagtggtgagtaaccatgcatcatcaggagtacggataaaatgcttgatggtcggaagaggcataaattccgtcagccagtttagtctgaccatctcatctgtaacatcattggcaacgctacctttgccatgtttcagaaacaactctggcgcatcgggcttcccatacaatcgatagattgtcgcacctgattgcccgacattatcgcgagcccatttatacccatataaatcagcatccatgttggaatttaatcgcggcctggagcaagacgtttcccgttgaatatggctcataacaccccttgtattactgtttatgtaagcagacagttttattgttcatgatgatatatttttatcttgtgcaatgtaacatcagagattttgagacacaacgtggctttgttgaataaatcgaacttttgctgagttgaaggatcagctcgagtgccacctgacgtctaagaaaccattattatcatgacattaacctataaaaataggcgtatcacgaggcagaatttcagataaaaaaaatccttagctttcgctaaggatgatttctggaattcgctcttcaatgggagtgagacccaatacgcaaaccgcctctccccgcgcgttggccgattcattaatgcagctggcacgacaggtttcccgactggaaagcgggcagtgagcgcaacgcaattaatgtgagttagctcactcattaggcaccccaggctttacactttatgcttccggctcgtatgttgtgtggaattgtgagcggataacaatttcacacatactagagaaagaggagaaatactagatggcttcctccgaagacgttatcaaagagttcatgcgtttcaaagttcgtatggaaggttccgttaacggtcacgagttcgaaatcgaaggtgaaggtgaaggtcgtccgtacgaaggtacccagaccgctaaactgaaagttaccaaaggtggtccgctgccgttcgcttgggacatcctgtccccgcagttccagtacggttccaaagcttacgttaaacacccggctgacatcccggactacctgaaactgtccttcccggaaggtttcaaatgggaacgtgttatgaacttcgaagacggtggtgttgttaccgttacccaggactcctccctgcaagacggtgagttcatctacaaagttaaactgcgtggtaccaacttcccgtccgacggtccggttatgcagaaaaaaaccatgggttgggaagcttccaccgaacgtatgtacccggaagacggtgctctgaaaggtgaaatcaaaatgcgtctgaaactgaaagacggtggtcactacgacgctgaagttaaaaccacctacatggctaaaaaaccggttcagctgccgggtgcttacaaaaccgacatcaaactggacatcacctcccacaacgaagactacaccatcgttgaacagtacgaacgtgctgaaggtcgtcactccaccggtgcttaataacgctgatagtgctagtgtagatcgctactagagccaggcatcaaataaaacgaaaggctcagtcgaaagactgggcctttcgttttatctgttgtttgtcggtgaacgctctctactagagtcacactggctcaccttcgggtgggcctttctgcgtttataggtctcaGCTTgcatgaagagcctgcagtccggcaaaaaagggcaaggtgtcaccaccctgccctttttctttaaaaccgaaaagattacttcgcgttatgcaggcttcctcgctcactgactcgctgcgctcggtcgttcggctgcggcgagcggtatcagctcactcaaaggcggtaatacggttatccacagaatcaggggataacgcaggaaagaacatgtgagcaaaaggccagcaaaaggccaggaaccgtaaaaaggccgcgttgctggcgtttttccacaggctccgcccccctgacgagcatcacaaaaatcgacgctcaagtcagaggtggcgaaacccgacaggactataaagataccaggcgtttccccctggaagctccctcgtgcgctctcctgttccgaccctgccgcttaccggatacctgtccgcctttctcccttcgggaagcgtggcgctttctcatagctcacgctgtaggtatctcagttcggtgtaggtcgttcgctccaagctgggctgtgtgcacgaaccccccgttcagcccgaccgctgcgccttatccggtaactatcgtcttgagtccaacccggtaagacacgacttatcgccactggcagcagccactggtaacaggattagcagagcgaggtatgtaggcggtgctacagagttcttgaagtggtggcctaactacggctacactagaagaacagtatttggtatctgcgctctgctgaagccagttaccttcggaaaaagagttggtagctcttgatccggcaaacaaaccaccgctggtagcggtggtttttttgtttgcaagcagcagattacgcgcagaaaaaaaggatctcaagaagatcctttgatcttttctacggggtctgacgctcagtggaacgaaaactcacgttaagggattttggtcatgagattatcaaaaaggatcttcacctagatccttttaaattaaaaatgaagttttaaatcaatctaaagtatatatgagtaaacttggtctgaca'
+        podd_backbone, podd_backbone_seq = backbone('pOdd_bb', lvl1_pOdd_acceptor_seq, [1169,2259], 4, False, name='pOdd_bb')
+        doc.add([podd_backbone,podd_backbone_seq])
+        #parts in backbone
+        ##get parts from genbank
+        podd1_dir = os.path.join(test_dir, 'test_files', 'podd1.gb')
+        j23100_b0034_dir = os.path.join(test_dir, 'test_files', 'j23100_b0034.gb')
+        sfgfp_dir = os.path.join(test_dir, 'test_files', 'sfgfp.gb')
+        rhlr_dir = os.path.join(test_dir, 'test_files', 'rhlr.gb')
+        b0015_dir = os.path.join(test_dir, 'test_files', 'b0015.gb')
 
+        """Test assembly plan class"""
+        doc = sbol3.Document()
+        sbol3.set_namespace('http://sbolstandard.org/testfiles')
+        # Assembly plan setup
+        bsai = ed_restriction_enzyme('BsaI')
+        #lvl1 acceptor
+        podd1_dir = os.path.join(test_dir, 'test_files', 'podd1.gb')
+        podd_doc = convert_from_genbank(podd1_dir, 'https://github.com/Gonza10V')
+        podd_af = [top_level for top_level in podd_doc if type(top_level)==sbol3.Component][0]
+        podd_backbone, podd_backbone_seq = backbone_from_sbol('pOdd_bb', podd_af, [680,1770], 4, False, name='pOdd_bb')
+        doc.add([podd_backbone,podd_backbone_seq])
+        #parts in backbone
+        ##get parts from genbank
+        j23100_dir = os.path.join(test_dir, 'test_files', 'ab_j23100.gb')
+        j23101_dir = os.path.join(test_dir, 'test_files', 'ab_j23101.gb')
+        b0034_dir = os.path.join(test_dir, 'test_files', 'bc_b0034.gb')
+        gfp_dir = os.path.join(test_dir, 'test_files', 'ce_gfp.gb')
+        rfp_dir = os.path.join(test_dir, 'test_files', 'ce_mrfp1.gb')
+        cfp_dir = os.path.join(test_dir, 'test_files', 'ce_ecfp.gb')
+        b0015_dir = os.path.join(test_dir, 'test_files', 'ef_b0015.gb')
+        j23100_doc = convert_from_genbank(j23100_dir, 'https://github.com/Gonza10V')
+        j23100_ab = [top_level for top_level in j23100_doc if type(top_level)==sbol3.Component][0]
+        j23101_doc = convert_from_genbank(j23101_dir, 'https://github.com/Gonza10V')
+        j23101_ab = [top_level for top_level in j23101_doc if type(top_level)==sbol3.Component][0]
+        b0034_doc = convert_from_genbank(b0034_dir, 'https://github.com/Gonza10V')
+        b0034_bc = [top_level for top_level in b0034_doc if type(top_level)==sbol3.Component][0]
+        gfp_doc = convert_from_genbank(gfp_dir, 'https://github.com/Gonza10V')
+        gfp_ce = [top_level for top_level in gfp_doc if type(top_level)==sbol3.Component][0]
+        rfp_doc = convert_from_genbank(rfp_dir, 'https://github.com/Gonza10V')
+        rfp_ce = [top_level for top_level in rfp_doc if type(top_level)==sbol3.Component][0]
+        cfp_doc = convert_from_genbank(cfp_dir, 'https://github.com/Gonza10V')
+        cfp_ce = [top_level for top_level in cfp_doc if type(top_level)==sbol3.Component][0]
+        b0015_doc = convert_from_genbank(b0015_dir, 'https://github.com/Gonza10V')
+        b0015_ef = [top_level for top_level in b0015_doc if type(top_level)==sbol3.Component][0]
+        ##SBOL parts in backbone
+        j23100_ab_in_bb, j23100_ab_in_bb_seq = part_in_backbone_from_sbol('j23100_ab_in_bb', j23100_ab, [479,513], [sbol3.SO_PROMOTER], 4, False, name='j23100_ab_in_bb')
+        doc.add([j23100_ab_in_bb, j23100_ab_in_bb_seq])
+        j23101_ab_in_bb, j23101_ab_in_bb_seq = part_in_backbone_from_sbol('j23101_ab_in_bb', j23101_ab, [479,513], [sbol3.SO_PROMOTER], 4, False, name='j23101_ab_in_bb')
+        doc.add([j23101_ab_in_bb, j23101_ab_in_bb_seq])
+        b0034_bc_in_bb, b0034_bc_in_bb_seq = part_in_backbone_from_sbol('b0034_bc_in_bb', b0034_bc, [479,499], [sbol3.SO_RBS], 4, False, name='b0034_bc_in_bb')
+        doc.add([b0034_bc_in_bb, b0034_bc_in_bb_seq])
+        gfp_ce_in_bb, gfp_ce_in_bb_seq = part_in_backbone_from_sbol('gfp_ce_in_bb', gfp_ce, [479,1195], [sbol3.SO_CDS], 4, False, name='gfp_ce_in_bb')
+        doc.add([gfp_ce_in_bb, gfp_ce_in_bb_seq])
+        rfp_ce_in_bb, rfp_ce_in_bb_seq = part_in_backbone_from_sbol('rfp_ce_in_bb', rfp_ce, [479,1156], [sbol3.SO_CDS], 4, False, name='rfp_ce_in_bb')
+        doc.add([rfp_ce_in_bb, rfp_ce_in_bb_seq])
+        cfp_ce_in_bb, cfp_ce_in_bb_seq = part_in_backbone_from_sbol('cfp_ce_in_bb', cfp_ce, [479,1198], [sbol3.SO_CDS], 4, False, name='cfp_ce_in_bb')
+        doc.add([cfp_ce_in_bb, cfp_ce_in_bb_seq])
+        b0015_ef_in_bb, b0015_ef_in_bb_seq = part_in_backbone_from_sbol('b0015_ef_in_bb', b0015_ef, [518,646], [sbol3.SO_TERMINATOR], 4, False, name='b0015_ef_in_bb')
+        doc.add([b0015_ef_in_bb, b0015_ef_in_bb_seq])
+
+
+        #Assembly plan
+        combinatorial_assembly_plan = Assembly_plan_composite_in_backbone_single_enzyme( 
+                            name='combinatorial_rgb_transcriptional_units',
+                            parts_in_backbone=[j23100_ab_in_bb, j23101_ab_in_bb, b0034_bc_in_bb, gfp_ce_in_bb, rfp_ce_in_bb, cfp_ce_in_bb, b0015_ef_in_bb], 
+                            acceptor_backbone=podd_backbone,
+                            restriction_enzyme=bsai,
+                            document=doc)
+        combinatorial_assembly_plan.run()
+        for obj in combinatorial_assembly_plan.document.objects:
+            if obj.identity =='http://sbolstandard.org/testfiles/composite_3_part_8_part_1_j23100_ab_in_bb_part_3_b0034_bc_in_bb_part_6_cfp_ce_in_bb_part_7_b0015_ef_in_bb':
+                obtained_sequence = obj.sequences[0].lookup().elements
+        target_sequence = 'cgctgcatgaagagcctgcagtccggcaaaaaagggcaaggtgtcaccaccctgccctttttctttaaaaccgaaaagattacttcgcgttatgcaggcttcctcgctcactgactcgctgcgctcggtcgttcggctgcggcgagcggtatcagctcactcaaaggcggtaatacggttatccacagaatcaggggataacgcaggaaagaacatgtgagcaaaaggccagcaaaaggccaggaaccgtaaaaaggccgcgttgctggcgtttttccacaggctccgcccccctgacgagcatcacaaaaatcgacgctcaagtcagaggtggcgaaacccgacaggactataaagataccaggcgtttccccctggaagctccctcgtgcgctctcctgttccgaccctgccgcttaccggatacctgtccgcctttctcccttcgggaagcgtggcgctttctcatagctcacgctgtaggtatctcagttcggtgtaggtcgttcgctccaagctgggctgtgtgcacgaaccccccgttcagcccgaccgctgcgccttatccggtaactatcgtcttgagtccaacccggtaagacacgacttatcgccactggcagcagccactggtaacaggattagcagagcgaggtatgtaggcggtgctacagagttcttgaagtggtggcctaactacggctacactagaagaacagtatttggtatctgcgctctgctgaagccagttaccttcggaaaaagagttggtagctcttgatccggcaaacaaaccaccgctggtagcggtggtttttttgtttgcaagcagcagattacgcgcagaaaaaaaggatctcaagaagatcctttgatcttttctacggggtctgacgctcagtggaacgaaaactcacgttaagggattttggtcatgagattatcaaaaaggatcttcacctagatccttttaaattaaaaatgaagttttaaatcaatctaaagtatatatgagtaaacttggtctgacagctcgagtcccgtcaagtcagcgtaatgctctgccagtgttacaaccaattaaccaattctgattagaaaaactcatcgagcatcaaatgaaactgcaatttattcatatcaggattatcaataccatatttttgaaaaagccgtttctgtaatgaaggagaaaactcaccgaggcagttccataggatggcaagatcctggtatcggtctgcgattccgactcgtccaacatcaatacaacctattaatttcccctcgtcaaaaataaggttatcaagtgagaaatcaccatgagtgacgactgaatccggtgagaatggcaaaagcttatgcatttctttccagacttgttcaacaggccagccattacgctcgtcatcaaaatcactcgcatcaaccaaaccgttattcattcgtgattgcgcctgagcgagacgaaatacgcgatcgctgttaaaaggacaattacaaacaggaatcgaatgcaaccggcgcaggaacactgccagcgcatcaacaatattttcacctgaatcaggatattcttctaatacctggaatgctgttttcccggggatcgcagtggtgagtaaccatgcatcatcaggagtacggataaaatgcttgatggtcggaagaggcataaattccgtcagccagtttagtctgaccatctcatctgtaacatcattggcaacgctacctttgccatgtttcagaaacaactctggcgcatcgggcttcccatacaatcgatagattgtcgcacctgattgcccgacattatcgcgagcccatttatacccatataaatcagcatccatgttggaatttaatcgcggcctggagcaagacgtttcccgttgaatatggctcataacaccccttgtattactgtttatgtaagcagacagttttattgttcatgatgatatatttttatcttgtgcaatgtaacatcagagattttgagacacaacgtggctttgttgaataaatcgaacttttgctgagttgaaggatcagctcgagtgccacctgacgtctaagaaaccattattatcatgacattaacctataaaaataggcgtatcacgaggcagaatttcagataaaaaaaatccttagctttcgctaaggatgatttctggaattcgctcttcaatgGGAGttgacggctagctcagtcctaggtacagtgctagcTACTagagaaagaggagaaatactaaatggtgagcaagggcgaggagctgttcaccggggtggtgcccatcctggtcgagctggacggcgacgtgaacggccacaagttcagcgtgtccggcgagggcgagggcgatgccacctacggcaagctgaccctgaagttcatctgcaccaccggcaagctgcccgtgccctggcccaccctcgtgaccaccctgacctggggcgtgcagtgcttcagccgctaccccgaccacatgaagcagcacgacttcttcaagtccgccatgcccgaaggctacgtccaggagcgcaccatcttcttcaaggacgacggcaactacaagacccgcgccgaggtgaagttcgagggcgacaccctggtgaaccgcatcgagctgaagggcatcgacttcaaggaggacggcaacatcctggggcacaagctggagtacaactacatcagccacaacgtctatatcaccgccgacaagcagaagaacggcatcaaggccaacttcaagatccgccacaacatcgaggacggcagcgtgcagctcgccgaccactaccagcagaacacccccatcggcgacggccccgtgctgctgcccgacaaccactacctgagcacccagtccgccctgagcaaagaccccaacgagaagcgcgatcacatggtcctgctggagttcgtgaccgccgccgggatcactctcggcatggacgagctgtacaagtaataaGCTTccaggcatcaaataaaacgaaaggctcagtcgaaagactgggcctttcgttttatctgttgtttgtcggtgaacgctctctactagagtcacactggctcaccttcgggtgggcctttctgcgtttata'
 if __name__ == '__main__':
     unittest.main()
