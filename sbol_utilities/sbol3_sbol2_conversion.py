@@ -349,8 +349,9 @@ class SBOL2To3ConversionVisitor:
         obj3.attachments = [a.identity for a in obj2.attachments]
 
     def _sbol3_identity(self, obj2: sbol2.Identified):
-        if obj2.version and obj2.identity.endswith("/" + obj2.version):
-            return obj2.identity[:-len("/" + obj2.version)]
+        if obj2.version:
+            if obj2.identity.endswith("/" + obj2.version):
+                return obj2.identity[:-len("/" + obj2.version)]
         return obj2.identity
 
     def _sbol3_namespace(self, obj2: sbol2.TopLevel):
