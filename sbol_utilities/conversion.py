@@ -115,11 +115,12 @@ def convert2to3(sbol2_doc: Union[str, sbol2.Document], namespaces=None, use_nati
     # add in the missing namespace fields where possible, defaulting otherwise
     # TODO: add check for non-TopLevel? See https://github.com/SynBioDex/pySBOL3/issues/295
     needs_namespace = {o for o in doc.objects if o.namespace is None}
-    for n in namespaces:
-        assignable = {o for o in needs_namespace if o.identity.startswith(n)}
-        for a in assignable:
-            a.namespace = n
-        needs_namespace = needs_namespace - assignable
+    for s, p, o in g.triples((None, rdflib.RDF.type, None)):
+        if o.startswith(sbol3.PROV_NS):
+            if str(o) in {sbol3.PROV_ASSOCIATION, sbol3.PROV_USAGE}:
+                g.add((s, p, rdflib.URIRef(sbol3.SBOL_IDENTIFIED)))
+            else:
+                g.add((s, p, rdflib.URIRef(sbol3.SBOL_TOP_LEVEL)))
     for o in needs_namespace:  # if no supplied namespace matches, default to scheme//netloc
         # figure out the server to access from the URL
         p = urllib.parse.urlparse(o.identity)
