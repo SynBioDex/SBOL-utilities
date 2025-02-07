@@ -114,13 +114,25 @@ def convert2to3(sbol2_doc: Union[str, sbol2.Document], namespaces=None, use_nati
     # TODO: remove workaround after conversion errors fixed in https://github.com/sboltools/sbolgraph/issues/14
     # add in the missing namespace fields where possible, defaulting otherwise
     # TODO: add check for non-TopLevel? See https://github.com/SynBioDex/pySBOL3/issues/295
-    needs_namespace = {o for o in doc.objects if o.namespace is None}
-    for s, p, o in g.triples((None, rdflib.RDF.type, None)):
-        if o.startswith(sbol3.PROV_NS):
-            if str(o) in {sbol3.PROV_ASSOCIATION, sbol3.PROV_USAGE}:
-                g.add((s, p, rdflib.URIRef(sbol3.SBOL_IDENTIFIED)))
-            else:
-                g.add((s, p, rdflib.URIRef(sbol3.SBOL_TOP_LEVEL)))
+    # Namespace Assignment
+needs_namespace = {o for o in doc.objects if o.namespace is None}
+for n in namespaces:
+    assignable = {o for o in needs_namespace if o.identity.startswith(n)}
+    for a in assignable:
+        a.namespace = n
+    needs_namespace = needs_namespace - assignable
+for o in needs_namespace:
+    p = urllib.parse.urlparse(o.identity)
+    server = urllib.parse.urlunparse([p.scheme, p.netloc, '', '', '', ''])
+    o.namespace = server
+
+# Sequence Inference
+for s in (o for o in doc.objects if isinstance(o, sbol3.Component)):
+    if len(s.sequences) != 1:
+        continue
+    for f in (f for f in s.features if isinstance(f, sbol3.SequenceFeature) or isinstance(f, sbol3.SubComponent)):
+        for loc in f.locations:
+            loc.sequence = s.sequences[0]
     for o in needs_namespace:  # if no supplied namespace matches, default to scheme//netloc
         # figure out the server to access from the URL
         p = urllib.parse.urlparse(o.identity)
