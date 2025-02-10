@@ -11,3 +11,6 @@ test_secret*
 
 .idea/
 *.egg-info/
+
+# Exclude the virtual environment
+venv
