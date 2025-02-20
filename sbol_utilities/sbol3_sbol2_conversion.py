@@ -1,6 +1,8 @@
 import sbol3
 import sbol2
 from sbol2 import mapsto, model, sequenceconstraint
+from sbol_utilities.helper_functions import strip_sbol2_version
+
 
 # Namespaces
 from rdflib import URIRef
@@ -16,6 +18,13 @@ SBOL2_NON_EXTENSION_PROPERTY_PREFIXES = NON_EXTENSION_PROPERTY_PREFIXES.union({
     'http://purl.org/dc/terms/description', 'http://purl.org/dc/terms/title'})
 
 
+def parse_namespace(uri: str) -> str:
+    delimiter = '://' if '://' in uri else ':'
+    scheme, uri = uri.split(delimiter)
+    name = uri.split('/')[0]
+    return delimiter.join([scheme, name])
+
+
 class SBOL3To2ConversionVisitor:
     """This class is used to map every object in an SBOL3 document into an empty SBOL2 document"""
 
@@ -24,7 +33,8 @@ class SBOL3To2ConversionVisitor:
     def __init__(self, doc3: sbol3.Document):
         # Create the target document
         self.doc2 = sbol2.Document()
-        #   # Immediately run the conversion
+
+        # Immediately run the conversion
         self._convert(doc3)
 
     def _convert(self, doc3: sbol3.Document):
@@ -130,9 +140,8 @@ class SBOL3To2ConversionVisitor:
         raise NotImplementedError('Conversion of BinaryPrefix from SBOL3 to SBOL2 not yet implemented')
 
     def visit_collection(self, coll3: sbol3.Collection):
-        # Priority: 1
         # Make the Collection object and add it to the document
-        coll2 = sbol2.Collection(coll3.identity)
+        coll2 = sbol2.Collection(identity)
         coll2.members = coll3.members
         self.doc2.addCollection(coll2)
         # Map over all other TopLevel properties and extensions not covered by the constructor
@@ -301,7 +310,7 @@ class SBOL2To3ConversionVisitor:
     doc3: sbol3.Document
     namespaces: list
 
-    def __init__(self, doc2: sbol2.Document, namespaces: list):
+    def __init__(self, doc2: sbol2.Document, namespaces: list = []):
         # Create the target document
         self.doc3 = sbol3.Document()
         self.namespaces = namespaces
@@ -321,6 +330,19 @@ class SBOL2To3ConversionVisitor:
                                 if not any(p.startswith(prefix) for prefix in SBOL2_NON_EXTENSION_PROPERTY_PREFIXES))
         for p in extension_properties:
             obj3._properties[p] = obj2.properties[p]
+
+    @staticmethod
+    def update_identity(sbol_object2: sbol2.SBOLObject, sbol_object3: sbol3.SBOLObject):
+        """Overwrite pySBOL3 auto-formatted URIs in order to preserve SBOL2 URI format.
+    
+    You can only overwrite the URI of a child object after it has been added to its parent.
+        """   
+        if not isinstance(sbol_object2, sbol2.TopLevel) and not sbol_object2.parent:
+            raise Exception("Overwriting URI failed. Add the child object to its parent before overwriting its identity")
+    
+        sbol_object3._display_id = sbol3.identified.extract_display_id(sbol_object2.persistentIdentity)
+        sbol_object3._identity = sbol_object2.persistentIdentity
+    
 
     def _convert_identified(self, obj2: sbol2.Identified, obj3: sbol3.Identified):
         """Map over the other properties of an Identified object"""
@@ -348,13 +370,13 @@ class SBOL2To3ConversionVisitor:
             if len(namespaces) != 1:
                 raise ValueError(f'Object {obj2.identity} backport namespace property should have precisely one value, '
                                  f'but was {namespaces}')
-            return namespaces[0]
+            return namespaces[0].rstrip('/')
         # Check if the object starts with any of the provided namespaces
         for namespace in self.namespaces:
             if obj2.identity.startswith(namespace):
                 return namespace
         # Otherwise, use default behavior
-        return None
+        return parse_namespace(obj2.identity)
 
     def visit_activity(self, act2: sbol2.Activity):
         # Make the Activity object and add it to the document
@@ -384,9 +406,12 @@ class SBOL2To3ConversionVisitor:
         raise NotImplementedError('Conversion of Attachment from SBOL2 to SBOL3 not yet implemented')
 
     def visit_collection(self, coll2: sbol2.Collection):
-        # Priority: 1
         # Make the Collection object and add it to the document
-        coll3 = sbol3.Collection(coll2.identity, members=coll2.members)
+        identity = coll2.persistentIdentity.replace(
+                       parse_namespace(coll2.persistentIdentity),
+                       self._sbol3_namespace(coll2)
+                   )
+        coll3 = sbol3.Collection(identity, members=coll2.members)
         self.doc3.add(coll3)
         # Map over all other TopLevel properties and extensions not covered by the constructor
         self._convert_toplevel(coll2, coll3)
@@ -405,26 +430,41 @@ class SBOL2To3ConversionVisitor:
                     sbol2.BIOPAX_SMALL_MOLECULE: sbol3.SBO_SIMPLE_CHEMICAL,
                     sbol2.BIOPAX_COMPLEX: sbol3.SBO_NON_COVALENT_COMPLEX}
         types3 = [type_map.get(t, t) for t in cd2.types]
+
         # Make the Component object and add it to the document
-        cp3 = sbol3.Component(cd2.identity, types3, namespace=self._sbol3_namespace(cd2),
+        identity = cd2.persistentIdentity.replace(
+                       parse_namespace(cd2.persistentIdentity),
+                       self._sbol3_namespace(cd2)
+                   )
+        cp3 = sbol3.Component(identity, types3, namespace=self._sbol3_namespace(cd2),
                               roles=cd2.roles, sequences=cd2.sequences)
         self.doc3.add(cp3)
-        # Convert the Component properties not covered by the constructor
-        if cd2.components:
-            raise NotImplementedError('Conversion of ComponentDefinition components '
-                                      'from SBOL2 to SBOL3 not yet implemented')
-        if cd2.sequenceAnnotations:
-            raise NotImplementedError('Conversion of ComponentDefinition sequenceAnnotations '
-                                      'from SBOL2 to SBOL3 not yet implemented')
+
+        for sc2 in cd2.components:
+            sc3 = self.visit_component(sc2)
+            cp3.features.append(sc3)
+            self.update_identity(sc2, sc3)
+
+        for sa2 in cd2.sequenceAnnotations:
+            f, locations = self.visit_sequence_annotation(sa2)
+            cp3.features.append(f)
+            self.update_identity(sa2, f)
+            for l2, l3 in zip(sa2.locations, locations):
+                l3._identity = None
+                l3._display_id = None
+                f.locations.append(l3)
+                self.update_identity(l2, l3)
+
         if cd2.sequenceConstraints:
             raise NotImplementedError('Conversion of ComponentDefinition sequenceConstraints '
                                       'from SBOL2 to SBOL3 not yet implemented')
         # Map over all other TopLevel properties and extensions not covered by the constructor
         self._convert_toplevel(cd2, cp3)
 
-    def visit_component(self, a: sbol2.Component):
-        # Priority: 2
-        raise NotImplementedError('Conversion of Component from SBOL2 to SBOL3 not yet implemented')
+    def visit_component(self, sc2: sbol2.Component):
+        sc3 = sbol3.SubComponent(strip_sbol2_version(sc2.definition))
+        self._convert_identified(sc2, sc3)
+        return sc3
 
     def visit_cut(self, a: sbol2.Cut):
         # Priority: 2
@@ -468,9 +508,11 @@ class SBOL2To3ConversionVisitor:
         # Priority: 3
         raise NotImplementedError('Conversion of ExperimentalData from SBOL2 to SBOL3 not yet implemented')
 
-    def visit_functional_component(self, a: sbol2.FunctionalComponent):
-        # Priority: 3
-        raise NotImplementedError('Conversion of FunctionalComponent from SBOL2 to SBOL3 not yet implemented')
+    def visit_functional_component(self, fc: sbol2.FunctionalComponent):
+        sc = sbol3.SubComponent(fc.definition)
+        # TODO: backport access property
+        self._convert_identified(fc, sc)
+        return sc
 
     def visit_generic_location(self, a: sbol2.GenericLocation):
         # Priority: 3
@@ -484,9 +526,14 @@ class SBOL2To3ConversionVisitor:
         # Map over all other TopLevel properties and extensions not covered by the constructor
         self._convert_toplevel(imp2, imp3)
 
-    def visit_interaction(self, a: sbol2.Interaction):
-        # Priority: 2
-        raise NotImplementedError('Conversion of Interaction from SBOL2 to SBOL3 not yet implemented')
+    def visit_interaction(self, i2: sbol2.Interaction):
+        i3 = sbol3.Interaction(i2.types)
+        for p2 in i2.participations:
+            p3 = self.visit_participation(p2)
+            i3.participations.append(p3)
+
+        self._convert_identified(i2, i3)
+        return i3
 
     def visit_maps_to(self, a: sbol2.mapsto.MapsTo):
         # Priority: 3
@@ -504,21 +551,49 @@ class SBOL2To3ConversionVisitor:
         # Priority: 3
         raise NotImplementedError('Conversion of Module from SBOL2 to SBOL3 not yet implemented')
 
-    def visit_module_definition(self, a: sbol2.ModuleDefinition):
-        # Priority: 3
-        raise NotImplementedError('Conversion of ModuleDefinition from SBOL2 to SBOL3 not yet implemented')
+    def visit_module_definition(self, md: sbol2.ModuleDefinition):
+        # Make the Component object and add it to the document
+        c3 = sbol3.Component(md.persistentIdentity, types=md.type, roles=md.roles, namespace=self._sbol3_namespace(md))
 
-    def visit_participation(self, a: sbol2.Participation):
-        # Priority: 2
-        raise NotImplementedError('Conversion of Participation from SBOL2 to SBOL3 not yet implemented')
+        for i2 in md.interactions:
+            i3 = self.visit_interaction(i2)
+            c3.interactions.append(i3)
+            self.update_identity(i2, i3)
+
+        c3.interface = sbol3.Interface()
+        for fc in md.functionalComponents:
+            sc = self.visit_functional_component(fc)
+            c3.features.append(sc)
+            self.update_identity(fc, sc)
+            if fc.direction == 'http://sbols.org/v2#in' or fc.direction == 'http://sbols.org/v2#inout':
+                c3.interface.inputs.append(sc)
+            if fc.direction == 'http://sbols.org/v2#out' or fc.direction == 'http://sbols.org/v2#inout':
+                c3.interface.outputs.append(sc)
+            if fc.direction == 'http://sbols.org/v2#none':
+                c3.interface.nondirectionals.append(sc)
+        self.doc3.add(c3)
+
+    def visit_participation(self, p2: sbol2.Participation):
+        p3 = sbol3.Participation(p2.roles, strip_sbol2_version(p2.participant))
+        self._convert_identified(p2, p3)
+        return p3
 
     def visit_plan(self, a: sbol2.Plan):
         # Priority: 3
         raise NotImplementedError('Conversion of Plan from SBOL2 to SBOL3 not yet implemented')
 
-    def visit_range(self, a: sbol2.Range):
-        # Priority: 2
-        raise NotImplementedError('Conversion of Range from SBOL2 to SBOL3 not yet implemented')
+    def visit_range(self, r2: sbol2.Range):
+        # TODO: is this correct?
+        if r2.sequence:
+            seq_ref = r2.sequence
+        elif r2.parent.parent.sequence:
+            seq_ref = r2.parent.parent.sequence.identity
+        else:
+            seq_ref = sbol3.PYSBOL3_MISSING
+        r3 = sbol3.Range(seq_ref, r2.start, r2.end)
+        self._convert_identified(r2, r3)
+        return r3
+        
 
     def visit_sequence(self, seq2: sbol2.Sequence):
         # Remap encoding if it's one of the ones that needs remapping; otherwise pass through unchanged
@@ -527,16 +602,33 @@ class SBOL2To3ConversionVisitor:
                         sbol2.SBOL_ENCODING_SMILES: sbol3.SMILES_ENCODING}
         encoding3 = encoding_map.get(seq2.encoding, seq2.encoding)
         # Make the Sequence object and add it to the document
-        seq3 = sbol3.Sequence(seq2.identity, namespace=self._sbol3_namespace(seq2),
+        identity = seq2.persistentIdentity.replace(
+                       parse_namespace(seq2.persistentIdentity),
+                       self._sbol3_namespace(seq2)
+                   )
+
+        seq3 = sbol3.Sequence(identity, namespace=self._sbol3_namespace(seq2),
                               elements=seq2.elements, encoding=encoding3)
         self.doc3.add(seq3)
         # Map over all other TopLevel properties and extensions not covered by the constructor
         self._convert_toplevel(seq2, seq3)
 
-    def visit_sequence_annotation(self, seq2: sbol2.SequenceAnnotation):
-        # Priority: 1
-        raise NotImplementedError('Conversion of SequenceAnnotation from SBOL2 to SBOL3 not yet implemented')
+    def visit_sequence_annotation(self, sa2: sbol2.SequenceAnnotation):
+        # component URIRef 0..1
+        # orientation URI 0..1
+        locations = []
+        for l2 in sa2.locations:
+            if type(l2) == sbol2.Range:
+                l3 = self.visit_range(l2)
+            else:
+                raise NotImplementedError('Conversion of {type(l2)} from SBOL2 to SBOL3 not yet implemented')
+            locations.append(l3)
 
+        f3 = sbol3.SequenceFeature(locations)
+        f3.roles = sa2.roles
+        self._convert_identified(sa2, f3)
+        return f3, locations
+ 
     def visit_sequence_constraint(self, seq2: sbol2.sequenceconstraint.SequenceConstraint):
         # Priority: 2
         raise NotImplementedError('Conversion of SequenceConstraint from SBOL2 to SBOL3 not yet implemented')
