@@ -70,7 +70,7 @@ def convert_identities2to3(sbol3_data: str) -> str:
     return g.serialize(format="xml")
 
 
-def convert2to3(sbol2_doc: Union[str, sbol2.Document], namespaces=None, use_native_converter: bool = False) \
+def convert2to3(sbol2_doc: Union[str, sbol2.Document], namespaces=None, use_native_converter: bool = True) \
         -> sbol3.Document:
     """Convert an SBOL2 document to an equivalent SBOL3 document
 
@@ -417,7 +417,7 @@ def command_line_converter(args_dict: Dict[str, Any]):
     elif input_file_type == 'SBOL2':
         doc2 = sbol2.Document()
         doc2.read(input_file)
-        doc3 = convert2to3(doc2, [namespace] if namespace else None)
+        doc3 = convert2to3(doc2, [namespace] if namespace else [])
     elif input_file_type == 'SBOL3':
         doc3 = sbol3.Document()
         doc3.read(input_file)
