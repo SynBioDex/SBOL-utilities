@@ -48,3 +48,15 @@ jobs:
         pip install .
         echo "$IDT_CREDENTIALS" > test_secret_idt_credentials.json
         pytest --ignore=test/test_docstr_coverage.py -s
+    - name: Archive production artifacts
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: artifact
+        path: |
+          expected.sbol
+          generated.sbol
+    - name: Download all workflow run artifacts
+      if: failure()
+      uses: actions/download-artifact@v4
+
