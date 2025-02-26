@@ -42,7 +42,7 @@ setup(name='sbol-utilities',
             'tyto>=1.4',
             'openpyxl',
             'requests',
-            'sbol_factory>=1.1'
+            'sbol_factory>=1.1.2'
             ],
       extras_require={  # requirements for development
           'dev': ['pytest', 'interrogate']
