@@ -170,7 +170,7 @@ def idt_calculate_sequence_complexity_scores(accessor: IDTAccountAccessor, seque
 
     # Create report generation activity
     doc = need_scores[0].document
-    timestamp = datetime.datetime.utcnow().isoformat(timespec='seconds') + 'Z'
+    timestamp = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None).isoformat(timespec='seconds') + 'Z'
     report_id = f'{COMPLEXITY_SCORE_NAMESPACE}/Complexity_Report_{timestamp.replace(":", "").replace("-", "")}_' \
                 f'{str(uuid.uuid4())[0:8]}'
     report_generation = sbol3.Activity(report_id, end_time=timestamp, types=[REPORT_ACTIVITY_TYPE])
