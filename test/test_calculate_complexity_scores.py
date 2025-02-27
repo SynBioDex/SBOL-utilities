@@ -31,22 +31,6 @@ def same_except_timestamps(doc1: sbol3.Document, doc2: sbol3.Document) -> bool:
     replaced_subject = 'http://igem.org/IDT_complexity_score/Complexity_Report_20230516T194547Z_a2efceb0'
     # Return true only if all differences are time-stamps or the activity name
     ignored_predicates = {sbol3.PROV_ENDED_AT_TIME, sbol3.SBOL_DISPLAY_ID}
-    for t1, t2 in zip(sorted(first_graph), sorted(second_graph)):
-        s1, p1, o1 = t1
-        s2, p2, o2 = t2
-        if s1 == s2 and o1 == o2 and p1 == p2:
-            continue
-        if str(p1) in ignored_predicates:
-            continue
-        if (str(s1) == replaced_subject and o1 == o2 and p1 == p2):
-            continue
-        if s1 == s2 and str(o1) == replaced_subject and p1 == p2:
-            continue
-        print(">", t1)
-        print("=")
-        print("<", t2)
-        print()
-    print(len(first_graph), len(second_graph))
     return all(p1 == p2 and (str(p1) in ignored_predicates or
                              (str(s1) == replaced_subject and o1 == o2) or
                              (s1 == s2 and str(o1) == replaced_subject))
@@ -97,10 +81,8 @@ class TestIDTCalculateComplexityScore(unittest.TestCase):
         # Compare expected results to actual output file
         expected = sbol3.Document()
         expected.read(test_dir / 'test_files' / 'Comparison_file_Complexity_Scores.nt')
-        expected.write('expected.sbol', file_format='turtle')
         generated = sbol3.Document()
         generated.read(temp_name)
-        generated.write('generated.sbol', file_format='turtle')
         self.assertTrue(same_except_timestamps(expected, generated))
 
 
