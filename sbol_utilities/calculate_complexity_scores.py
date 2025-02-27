@@ -113,7 +113,7 @@ class IDTAccountAccessor:
         score_list = []
         for score_set in scores:
             for sequence_scores in score_set:
-                complexity_score = sum(score.get('Score') for score in sequence_scores)
+                complexity_score = round(sum(score.get('Score') for score in sequence_scores), 1)
                 score_list.append(complexity_score)
         # Associate each sequence to its score
         return dict(zip(sequences, score_list))
