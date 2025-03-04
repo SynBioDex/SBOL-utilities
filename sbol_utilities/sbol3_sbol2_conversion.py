@@ -441,11 +441,13 @@ class SBOL2To3ConversionVisitor:
                               roles=cd2.roles, sequences=cd2.sequences)
         self.doc3.add(cp3)
 
+        # Convert Components to Features
         for sc2 in cd2.components:
             sc3 = self.visit_component(sc2)
             cp3.features.append(sc3)
             self.update_identity(sc2, sc3)
 
+        # Convert SequenceAnnotations to Features
         for sa2 in cd2.sequenceAnnotations:
             f, locations = self.visit_sequence_annotation(sa2)
             cp3.features.append(f)
