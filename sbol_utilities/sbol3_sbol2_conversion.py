@@ -141,7 +141,7 @@ class SBOL3To2ConversionVisitor:
 
     def visit_collection(self, coll3: sbol3.Collection):
         # Make the Collection object and add it to the document
-        coll2 = sbol2.Collection(identity)
+        coll2 = sbol2.Collection(coll3.identity)
         coll2.members = coll3.members
         self.doc2.addCollection(coll2)
         # Map over all other TopLevel properties and extensions not covered by the constructor
