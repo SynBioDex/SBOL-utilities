@@ -411,7 +411,7 @@ class SBOL2To3ConversionVisitor:
                        parse_namespace(coll2.persistentIdentity),
                        self._sbol3_namespace(coll2)
                    )
-        coll3 = sbol3.Collection(identity, members=coll2.members)
+        coll3 = sbol3.Collection(identity, members=coll2.members, namespace=self._sbol3_namespace(coll2))
         self.doc3.add(coll3)
         # Map over all other TopLevel properties and extensions not covered by the constructor
         self._convert_toplevel(coll2, coll3)
@@ -436,6 +436,7 @@ class SBOL2To3ConversionVisitor:
                        parse_namespace(cd2.persistentIdentity),
                        self._sbol3_namespace(cd2)
                    )
+
         cp3 = sbol3.Component(identity, types3, namespace=self._sbol3_namespace(cd2),
                               roles=cd2.roles, sequences=cd2.sequences)
         self.doc3.add(cp3)

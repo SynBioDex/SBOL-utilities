@@ -5,13 +5,13 @@
     <sbol:persistentIdentity rdf:resource="https://sbolstandard.org/examples/TetR_protein"/>
     <dcterms:title>TetR</dcterms:title>
     <sbol:displayId>TetR_protein</sbol:displayId>
-    <backport:sbol3namespace rdf:resource="https://sbolstandard.org/examples"/>
+    <backport:sbol3namespace rdf:resource="https://sbolstandard.org"/>
     <sbol:role rdf:resource="https://identifiers.org/GO:0003700"/>
     <dcterms:description>TetR protein</dcterms:description>
   </sbol:ComponentDefinition>
   <sbol:Implementation rdf:about="https://sbolstandard.org/examples/impl1">
     <sbol:built rdf:resource="https://sbolstandard.org/examples/TetR_protein"/>
-    <backport:sbol3namespace rdf:resource="https://sbolstandard.org/examples"/>
+    <backport:sbol3namespace rdf:resource="https://sbolstandard.org"/>
     <sbol:persistentIdentity rdf:resource="https://sbolstandard.org/examples/impl1"/>
     <sbol:version>1</sbol:version>
     <sbol:displayId>impl1</sbol:displayId>
