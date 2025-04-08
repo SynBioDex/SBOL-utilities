@@ -61,6 +61,8 @@ Additional "macro" utilities convert specifically between SBOL3 and one of the o
 - `sbol-to-genbank` and `genbank-to-sbol` convert from SBOL3 to GenBank and vice versa
 - `sbol3-to-sbol2` and `sbol2-to-sbol3` convert to and from SBOL2
 
+Details on contributing to the SBOL2-SBOL3 converter can be found [here](SBOLCONVERTER.MD).
+
 ### Expand the combinatorial derivations in an SBOL file
 
 The `sbol-expand-derivations` utility searches through an SBOL file for CombinatorialDerivation objects and expands them to create a library of all of the specific constructs.
