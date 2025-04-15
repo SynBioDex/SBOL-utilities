@@ -22,8 +22,8 @@ class TestDirectSBOL2SBOL3Conversion(unittest.TestCase):
         doc3.read(TEST_FILES / 'BBa_J23101_patched.nt')
         # Convert to SBOL2 and check contents
         doc2 = convert3to2(doc3, True)
-        #report = doc2.validate()
-        #self.assertEqual(len(report), 0, f'Validation failed: {report}')
+        # report = doc2.validate()
+        # self.assertEqual(len(report), 0, f'Validation failed: {report}')
         with tempfile.TemporaryDirectory() as tmpdir:
             tmp2 = Path(tmpdir) / 'doc2.xml'
             doc2.write(tmp2)
@@ -60,8 +60,8 @@ class TestDirectSBOL2SBOL3Conversion(unittest.TestCase):
         doc3.read(TEST_FILES / 'sbol3_implementation.nt')
         # Convert to SBOL2 and check contents
         doc2 = convert3to2(doc3, True)
-        #report = doc2.validate()
-        #self.assertEqual(len(report), 0, f'Validation failed: {report}')
+        # report = doc2.validate()
+        # self.assertEqual(len(report), 0, f'Validation failed: {report}')
         with tempfile.TemporaryDirectory() as tmpdir:
             tmp2 = Path(tmpdir) / 'doc2.xml'
             doc2.write(tmp2)
@@ -98,8 +98,8 @@ class TestDirectSBOL2SBOL3Conversion(unittest.TestCase):
         doc3.read(TEST_FILES / 'sbol3_collection.nt')
         # Convert to SBOL2 and check contents
         doc2 = convert3to2(doc3, True)
-        #report = doc2.validate()
-        #self.assertEqual(len(report), 0, f'Validation failed: {report}')
+        # report = doc2.validate()
+        # self.assertEqual(len(report), 0, f'Validation failed: {report}')
         with tempfile.TemporaryDirectory() as tmpdir:
             tmp2 = Path(tmpdir) / 'doc2.xml'
             doc2.write(tmp2)
@@ -128,6 +128,37 @@ class TestDirectSBOL2SBOL3Conversion(unittest.TestCase):
             tmp2 = Path(tmpdir) / 'doc2_loop.xml'
             doc2_loop.write(tmp2)
             self.assertFalse(file_diff(str(tmp2), str(TEST_FILES / 'sbol_3to2_collection.xml')))
+
+    # @unittest.skip("Feature in Progress")
+    def test_3to2_subcomponent_test(self):
+        """Test ability to convert a sub_component from SBOL3 to SBOL2"""
+        # Load an SBOL3 document and check its contents
+        doc3 = sbol3.Document()
+        doc3.read(TEST_FILES / 'subcomponent_test_3.nt')
+
+        # Convert to SBOL2 and check contents
+        doc2 = sbol2.Document()
+        doc2 = convert3to2(doc3, use_native_converter=True)
+
+        # report = doc2.validate()
+        # self.assertEqual(len(report), 0, f'Validation failed: {report}')
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp2 = Path(tmpdir) / 'doc2.xml'
+            doc2.write(tmp2)
+            with open(tmp2, "r") as file:
+                # Read the contents of the file
+                file_contents = file.read()
+
+            # self.assertFalse(file_diff(str(tmp2), str(TEST_FILES / 'sbol_3to2_collection.xml')))
+
+            doc3_loop = convert2to3(doc2, use_native_converter=True)
+            self.assertEqual(len(doc3_loop.validate()), 0)
+            tmp3 = Path(tmpdir) / 'doc3_loop.nt'
+            doc3_loop.write(tmp3)
+
+            self.assertFalse(file_diff(str(tmp3), str(TEST_FILES / 'subcomponent_test_3.nt')))
+
+    # ToDo: add a test with two components, each with two subcomponents
 
 
 if __name__ == '__main__':
