@@ -36,12 +36,7 @@ To work on the SBOL Converter, you'll need to install it locally. Follow these s
     source venv/bin/activate
     ```
 
-3.  **Install Dependencies:**
-    ```bash
-    pip install -r requirements.txt
-    ```
-
-4. **Install libraries locally:**
+3. **Install libraries locally:**
 
     You may also have to `setuptools` using:
     ```bash
@@ -53,7 +48,7 @@ To work on the SBOL Converter, you'll need to install it locally. Follow these s
     python setup.py install
     ```
 
-5. **Ensure that you are able to run the tests:**
+4. **Ensure that you are able to run the tests:**
     ```bash
     python test/test_conversion.py
     ```
