@@ -417,7 +417,7 @@ def command_line_converter(args_dict: Dict[str, Any]):
     elif input_file_type == 'SBOL2':
         doc2 = sbol2.Document()
         doc2.read(input_file)
-        doc3 = convert2to3(doc2, [namespace] if namespace else None)
+        doc3 = convert2to3(doc2, [namespace] if namespace else [])
     elif input_file_type == 'SBOL3':
         doc3 = sbol3.Document()
         doc3.read(input_file)

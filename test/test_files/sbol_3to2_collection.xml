@@ -4,7 +4,7 @@
     <sbol:persistentIdentity rdf:resource="https://sbolstandard.org/examples/col1"/>
     <sbol:displayId>col1</sbol:displayId>
     <sbol:version>1</sbol:version>
-    <backport:sbol3namespace rdf:resource="https://sbolstandard.org/examples"/>
+    <backport:sbol3namespace rdf:resource="https://sbolstandard.org"/>
     <sbol:member rdf:resource="https://sbolstandard.org/examples/TetR_protein"/>
   </sbol:Collection>
   <sbol:ComponentDefinition rdf:about="https://sbolstandard.org/examples/LacI_protein">
@@ -13,7 +13,7 @@
     <sbol:persistentIdentity rdf:resource="https://sbolstandard.org/examples/LacI_protein"/>
     <sbol:type rdf:resource="http://www.biopax.org/release/biopax-level3.owl#Protein"/>
     <dcterms:description>LacI protein</dcterms:description>
-    <backport:sbol3namespace rdf:resource="https://sbolstandard.org/examples"/>
+    <backport:sbol3namespace rdf:resource="https://sbolstandard.org"/>
     <sbol:displayId>LacI_protein</sbol:displayId>
     <sbol:version>1</sbol:version>
   </sbol:ComponentDefinition>
@@ -23,7 +23,7 @@
     <dcterms:title>TetR</dcterms:title>
     <sbol:version>1</sbol:version>
     <sbol:persistentIdentity rdf:resource="https://sbolstandard.org/examples/TetR_protein"/>
-    <backport:sbol3namespace rdf:resource="https://sbolstandard.org/examples"/>
+    <backport:sbol3namespace rdf:resource="https://sbolstandard.org"/>
     <dcterms:description>TetR protein</dcterms:description>
     <sbol:role rdf:resource="https://identifiers.org/GO:0003700"/>
   </sbol:ComponentDefinition>
