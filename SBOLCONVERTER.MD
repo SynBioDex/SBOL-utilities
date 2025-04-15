@@ -50,6 +50,6 @@ To work on the SBOL Converter, you'll need to install it locally. Follow these s
 
 4. **Ensure that you are able to run the tests:**
     ```bash
-    python test/test_conversion.py
+    python test/test_sbol2_sbol3_direct.py
     ```
     
