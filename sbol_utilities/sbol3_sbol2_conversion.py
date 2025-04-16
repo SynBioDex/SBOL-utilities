@@ -97,6 +97,13 @@ class SBOL3To2ConversionVisitor:
     def _sbol2_version(obj: sbol3.Identified):
         if not hasattr(obj, 'sbol2_version'):
             obj.sbol2_version = sbol3.TextProperty(obj, BACKPORT2_VERSION, 0, 1)
+        return obj.sbol2_version or None
+
+    def _sbol2_identity(self, obj3: sbol3.Identified):
+        identity = obj3.identity
+        if self._sbol2_version(obj3):
+            # TODO replace fragile string manipulation with robust path handling
+            identity = identity.replace(obj3.namespace + "/" + self._sbol2_version(obj3), obj3.namespace)
             identity = identity + "/" + self._sbol2_version(obj3)
         return identity
 
@@ -365,6 +372,13 @@ class SBOL2To3ConversionVisitor:
 
     def _sbol3_identity(self, obj2: sbol2.Identified):
 
+        # Getting only persistentIdentity will remove /<version> from the identity
+        identity = obj2.persistentIdentity
+
+        # Get namespace for sbol3 conversion
+        curr_namespace = parse_namespace(identity)
+        sbol3_namespace = self._sbol3_namespace(obj2)
+
         # check for SBOL2 version and move it to middle of path
         if obj2.version:
             # TODO fix fragile string parsing with robust path handling
@@ -445,10 +459,7 @@ class SBOL2To3ConversionVisitor:
         types3 = [type_map.get(t, t) for t in cd2.types]
 
         # Make the Component object and add it to the document
-                       self._sbol3_namespace(cd2)
-                   )
-
-        cp3 = sbol3.Component(identity, types3, namespace=self._sbol3_namespace(cd2),
+        cp3 = sbol3.Component(self._sbol3_identity(cd2), types3, namespace=self._sbol3_namespace(cd2),
                               roles=cd2.roles, sequences=cd2.sequences)
         self.doc3.add(cp3)
 
