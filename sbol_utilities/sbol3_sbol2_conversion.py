@@ -97,8 +97,8 @@ class SBOL3To2ConversionVisitor:
     def _sbol2_version(obj: sbol3.Identified):
         if not hasattr(obj, 'sbol2_version'):
             obj.sbol2_version = sbol3.TextProperty(obj, BACKPORT2_VERSION, 0, 1)
-        # TODO: since version is optional, if it's missing, should this be returning '1' or None?
-        return obj.sbol2_version or '1'
+            identity = identity + "/" + self._sbol2_version(obj3)
+        return identity
 
     def visit_activity(self, act3: sbol3.Activity):
         # Make the Activity object and add it to the document
@@ -160,7 +160,7 @@ class SBOL3To2ConversionVisitor:
                     sbol3.SBO_NON_COVALENT_COMPLEX: sbol2.BIOPAX_COMPLEX}
         types2 = [type_map.get(t, t) for t in cp3.types]
         # Make the Component object and add it to the document
-        cp2 = sbol2.ComponentDefinition(cp3.identity, types2, version=self._sbol2_version(cp3))
+        cp2 = sbol2.ComponentDefinition(self._sbol2_identity(cp3), types2, version=self._sbol2_version(cp3))
         self.doc2.addComponentDefinition(cp2)
         # Convert the Component properties not covered by the constructor
         cp2.roles = cp3.roles
@@ -363,6 +363,18 @@ class SBOL2To3ConversionVisitor:
         self._convert_identified(obj2, obj3)
         obj3.attachments = [a.identity for a in obj2.attachments]
 
+    def _sbol3_identity(self, obj2: sbol2.Identified):
+
+        # check for SBOL2 version and move it to middle of path
+        if obj2.version:
+            # TODO fix fragile string parsing with robust path handling
+            identity = obj2.persistentIdentity.replace(curr_namespace, sbol3_namespace + "/" + obj2.version)
+        else:
+            identity = obj2.persistentIdentity.replace(curr_namespace, sbol3_namespace)
+
+        return identity
+
+
     def _sbol3_namespace(self, obj2: sbol2.TopLevel):
         # If a namespace is explicitly set, that takes priority
         if BACKPORT3_NAMESPACE in obj2.properties:
@@ -433,8 +445,6 @@ class SBOL2To3ConversionVisitor:
         types3 = [type_map.get(t, t) for t in cd2.types]
 
         # Make the Component object and add it to the document
-        identity = cd2.persistentIdentity.replace(
-                       parse_namespace(cd2.persistentIdentity),
                        self._sbol3_namespace(cd2)
                    )
 
