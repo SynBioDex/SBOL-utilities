@@ -193,6 +193,7 @@ class SBOL3To2ConversionVisitor:
         raise NotImplementedError('Conversion of Constraint from SBOL3 to SBOL2 not yet implemented')
 
     def visit_cut(self, cut3: sbol3.Cut):
+        """Convert a Cut object from SBOL3 to SBOL2"""
         orientation2 = self._sbol2_orientation(cut3.orientation)
         cut2 = sbol2.Cut(cut3.identity, at=cut3.at, version=self._sbol2_version(cut3))
         cut2.orientation = orientation2
@@ -204,6 +205,7 @@ class SBOL3To2ConversionVisitor:
             obj.accept(self)
 
     def visit_entire_sequence(self, entireseq3: sbol3.EntireSequence):
+        """Convert a EntireSequence SBOL3 object to GenericLocation SBOL2 object"""
         # Priority: 3
         orientation2 = self._sbol2_orientation(entireseq3.orientation)
         genloc2 = sbol2.GenericLocation(entireseq3.identity, version=self._sbol2_version(entireseq3))
@@ -265,6 +267,7 @@ class SBOL3To2ConversionVisitor:
         raise NotImplementedError('Conversion of PrefixedUnit from SBOL3 to SBOL2 not yet implemented')
 
     def visit_range(self, range3: sbol3.Range):
+        """Convert a Range object from SBOL3 to SBOL2"""
         # Priority: 2
         orientation2 = self._sbol2_orientation(range3.orientation)
         range2 = sbol2.Range(range3.identity, range3.start, range3.end, self._sbol2_version(range3))
@@ -492,6 +495,7 @@ class SBOL2To3ConversionVisitor:
         return sc3
 
     def visit_cut(self, cut2: sbol2.Cut):
+        """Convert a Cut object from SBOL2 to SBOL3"""
         # Priority: 2
         orientation3 = self._sbol3_orientation(cut2.orientation)
         cut3 = sbol3.Cut(sequence=cut2.sequence, at=cut2.at,
@@ -544,6 +548,7 @@ class SBOL2To3ConversionVisitor:
         return sc
 
     def visit_generic_location(self, genloc2: sbol2.GenericLocation):
+        """Convert a GenericLocation SBOL2 object to EntireSequence SBOL3 object"""
         # Priority: 3
         orientation3 = self._sbol3_orientation(genloc2.orientation)
         entseq3 = sbol3.EntireSequence(sequence=genloc2.sequence,
@@ -617,6 +622,7 @@ class SBOL2To3ConversionVisitor:
         raise NotImplementedError('Conversion of Plan from SBOL2 to SBOL3 not yet implemented')
 
     def visit_range(self, range2: sbol2.Range):
+        """Convert a Range object from SBOL2 to SBOL3"""
         orientation3 = self._sbol3_orientation(range2.orientation)
         range3 = sbol3.Range(sequence=range2.sequence, start=range2.start, end=range2.end,
                              orientation=orientation3, identity=range2.identity)
@@ -643,6 +649,11 @@ class SBOL2To3ConversionVisitor:
         self._convert_toplevel(seq2, seq3)
 
     def visit_sequence_annotation(self, sa2: sbol2.SequenceAnnotation):
+        """Convert a SequenceAnnotation object from SBOL2 to SBOL3
+
+        SBOL 2.x SequenceAnnotation objects map to SBOL 3.x SequenceFeature objects if they do not have a component.
+        If they do have a component, their locations are added to the corresponding SBOL3 SubComponent.
+        """
         # component URIRef 0..1
         # orientation URI 0..1
         locations = []
