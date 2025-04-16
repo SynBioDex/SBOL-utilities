@@ -100,6 +100,12 @@ class SBOL3To2ConversionVisitor:
         # TODO: since version is optional, if it's missing, should this be returning '1' or None?
         return obj.sbol2_version or '1'
 
+    @staticmethod
+    def _sbol2_orientation(obj3: str):
+        orientation_map = {sbol3.SBOL_INLINE: sbol2.SBOL_ORIENTATION_INLINE,
+                           sbol3.SBOL_REVERSE_COMPLEMENT: sbol2.SBOL_ORIENTATION_REVERSE_COMPLEMENT}
+        return orientation_map[obj3]
+
     def visit_activity(self, act3: sbol3.Activity):
         # Make the Activity object and add it to the document
         act2 = sbol2.Activity(act3.identity, version=self._sbol2_version(act3))
@@ -186,17 +192,24 @@ class SBOL3To2ConversionVisitor:
         # Priority: 2
         raise NotImplementedError('Conversion of Constraint from SBOL3 to SBOL2 not yet implemented')
 
-    def visit_cut(self, a: sbol3.Cut):
-        # Priority: 2
-        raise NotImplementedError('Conversion of Cut from SBOL3 to SBOL2 not yet implemented')
+    def visit_cut(self, cut3: sbol3.Cut):
+        orientation2 = self._sbol2_orientation(cut3.orientation)
+        cut2 = sbol2.Cut(cut3.identity, at=cut3.at, version=self._sbol2_version(cut3))
+        cut2.orientation = orientation2
+        cut2.sequence = cut3.sequence
+        return cut2
 
     def visit_document(self, doc3: sbol3.Document):
         for obj in doc3.objects:
             obj.accept(self)
 
-    def visit_entire_sequence(self, a: sbol3.EntireSequence):
+    def visit_entire_sequence(self, entireseq3: sbol3.EntireSequence):
         # Priority: 3
-        raise NotImplementedError('Conversion of EntireSequence from SBOL3 to SBOL2 not yet implemented')
+        orientation2 = self._sbol2_orientation(entireseq3.orientation)
+        genloc2 = sbol2.GenericLocation(entireseq3.identity, version=self._sbol2_version(entireseq3))
+        genloc2.sequence = entireseq3.sequence
+        genloc2.orientation = orientation2
+        return genloc2
 
     def visit_experiment(self, a: sbol3.Experiment):
         # Priority: 3
@@ -251,9 +264,13 @@ class SBOL3To2ConversionVisitor:
         # Priority: 4
         raise NotImplementedError('Conversion of PrefixedUnit from SBOL3 to SBOL2 not yet implemented')
 
-    def visit_range(self, a: sbol3.Range):
+    def visit_range(self, range3: sbol3.Range):
         # Priority: 2
-        raise NotImplementedError('Conversion of Range from SBOL3 to SBOL2 not yet implemented')
+        orientation2 = self._sbol2_orientation(range3.orientation)
+        range2 = sbol2.Range(range3.identity, range3.start, range3.end, self._sbol2_version(range3))
+        range2.orientation = orientation2
+        range2.sequence = range3.sequence
+        return range2
 
     def visit_si_prefix(self, a: sbol3.SIPrefix):
         # Priority: 4
@@ -343,6 +360,11 @@ class SBOL2To3ConversionVisitor:
         sbol_object3._display_id = sbol3.identified.extract_display_id(sbol_object2.persistentIdentity)
         sbol_object3._identity = sbol_object2.persistentIdentity
     
+    @staticmethod
+    def _sbol3_orientation(obj2: str):
+        orientation_map = {sbol2.SBOL_ORIENTATION_INLINE: sbol3.SBOL_INLINE,
+                        sbol2.SBOL_ORIENTATION_REVERSE_COMPLEMENT: sbol3.SBOL_REVERSE_COMPLEMENT}
+        return orientation_map[obj2]
 
     def _convert_identified(self, obj2: sbol2.Identified, obj3: sbol3.Identified):
         """Map over the other properties of an Identified object"""
@@ -469,9 +491,13 @@ class SBOL2To3ConversionVisitor:
         self._convert_identified(sc2, sc3)
         return sc3
 
-    def visit_cut(self, a: sbol2.Cut):
+    def visit_cut(self, cut2: sbol2.Cut):
         # Priority: 2
-        raise NotImplementedError('Conversion of Cut from SBOL2 to SBOL3 not yet implemented')
+        orientation3 = self._sbol3_orientation(cut2.orientation)
+        cut3 = sbol3.Cut(sequence=cut2.sequence, at=cut2.at,
+                         orientation=orientation3, identity=cut2.identity)
+        self._convert_identified(cut2, cut3)
+        return cut3
 
     def visit_document(self, doc2: sbol2.Document):
         for obj in doc2.componentDefinitions:
@@ -517,9 +543,14 @@ class SBOL2To3ConversionVisitor:
         self._convert_identified(fc, sc)
         return sc
 
-    def visit_generic_location(self, a: sbol2.GenericLocation):
+    def visit_generic_location(self, genloc2: sbol2.GenericLocation):
         # Priority: 3
-        raise NotImplementedError('Conversion of GenericLocation from SBOL2 to SBOL3 not yet implemented')
+        orientation3 = self._sbol3_orientation(genloc2.orientation)
+        entseq3 = sbol3.EntireSequence(sequence=genloc2.sequence,
+                             orientation=orientation3, identity=genloc2.identity)
+        self._convert_identified(genloc2, entseq3)
+        return entseq3
+
 
     def visit_implementation(self, imp2: sbol2.Implementation):
         # Priority: 1
@@ -585,21 +616,12 @@ class SBOL2To3ConversionVisitor:
         # Priority: 3
         raise NotImplementedError('Conversion of Plan from SBOL2 to SBOL3 not yet implemented')
 
-    def visit_range(self, r2: sbol2.Range):
-        # TODO: is this correct?
-        if r2.sequence:
-            seq_ref = r2.sequence
-        elif r2.parent.parent.sequence:
-            seq_ref = r2.parent.parent.sequence.identity
-        else:
-            cdef = r2.parent.parent
-            ns = self._sbol3_namespace(cdef)
-            seq_stub = sbol3.Sequence(f'{ns}/{cdef.displayId}Seq/', namespace=ns)
-            cdef.sequence = seq_stup
-            cdef.doc.add(seq_stub)
-        r3 = sbol3.Range(seq_ref, r2.start, r2.end)
-        self._convert_identified(r2, r3)
-        return r3
+    def visit_range(self, range2: sbol2.Range):
+        orientation3 = self._sbol3_orientation(range2.orientation)
+        range3 = sbol3.Range(sequence=range2.sequence, start=range2.start, end=range2.end,
+                             orientation=orientation3, identity=range2.identity)
+        self._convert_identified(range2, range3)
+        return range3
         
 
     def visit_sequence(self, seq2: sbol2.Sequence):
@@ -624,12 +646,16 @@ class SBOL2To3ConversionVisitor:
         # component URIRef 0..1
         # orientation URI 0..1
         locations = []
-        for l2 in sa2.locations:
-            if type(l2) == sbol2.Range:
-                l3 = self.visit_range(l2)
+        for location2 in sa2.locations:
+            if isinstance(location2, sbol2.Range):
+                location3 = self.visit_range(location2)
+            elif isinstance(location2, sbol2.Cut):
+                location3 = self.visit_cut(location2)
+            elif isinstance(location2, sbol2.GenericLocation):
+                location3 = self.visit_generic_location(location2)
             else:
-                raise NotImplementedError('Conversion of {type(l2)} from SBOL2 to SBOL3 not yet implemented')
-            locations.append(l3)
+                raise ValueError(f'Conversion of {type(location2)} as a location from SBOL2 to SBOL3 is invalid.')
+            locations.append(location3)
 
         f3 = sbol3.SequenceFeature(locations)
         f3.roles = sa2.roles
