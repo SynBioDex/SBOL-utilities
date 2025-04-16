@@ -1,5 +1,8 @@
+from sbol2 import Config, ConfigOptions
+
 import tempfile
 from pathlib import Path
+
 
 import unittest
 
@@ -129,6 +132,24 @@ class TestDirectSBOL2SBOL3Conversion(unittest.TestCase):
             doc2_loop.write(tmp2)
             self.assertFalse(file_diff(str(tmp2), str(TEST_FILES / 'sbol_3to2_collection.xml')))
 
+    def test_2to3_and_3to2_model_conversion(self):
+        """Test ability to convert a model from SBOL2 to SBOL3"""
+        # Load an SBOL2 document and check its contents
+        Config.setOption(ConfigOptions.SBOL_COMPLIANT_URIS, False)
+        Config.setOption(ConfigOptions.SBOL_TYPED_URIS, False)
+        doc2 = sbol2.Document()
+        doc2.read(TEST_FILES / 'example_model_sbol2.xml')
+        model2 = doc2.models[0]
+        doc3 = convert2to3(doc2, use_native_converter=True)
+        self.assertEqual(len(doc3.validate()), 0)
+        doc3.write(TEST_FILES / 'generated_model_sbol3.ttl',file_format='turtle')
+        doc2_loop = convert3to2(doc3, True)
+        model2_loop = doc2_loop.models[0]
+        self.assertEqual(model2.language, model2_loop.language)
+        self.assertEqual(model2.framework, model2_loop.framework)
+        self.assertEqual(model2.source, model2_loop.source)
+        self.assertEqual(model2.name, model2_loop.name)
+        
 
 if __name__ == '__main__':
     unittest.main()

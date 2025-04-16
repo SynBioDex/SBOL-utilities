@@ -1,0 +1,10 @@
+@prefix sbol: <http://sbols.org/v3#> .
+
+<http://www.sbolstandard.org/examples/pIKE_Toggle_1> a sbol:Model ;
+    sbol:displayId "pIKE_Toggle_1" ;
+    sbol:framework <http://identifiers.org/biomodels.sbo/SBO:0000062> ;
+    sbol:hasNamespace <http://www.sbolstandard.org/examples> ;
+    sbol:language <http://identifiers.org/edam/format_2585> ;
+    sbol:name "pIKE_Toggle_1 toggle switch" ;
+    sbol:source <http://virtualparts.org/part/pIKE_Toggle_1> .
+

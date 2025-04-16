@@ -1,3 +1,4 @@
+import sbol2.model
 import sbol3
 import sbol2
 from sbol2 import mapsto, model, sequenceconstraint
@@ -226,9 +227,16 @@ class SBOL3To2ConversionVisitor:
         # Priority: 3
         raise NotImplementedError('Conversion of Measure from SBOL3 to SBOL2 not yet implemented')
 
-    def visit_model(self, a: sbol3.Model):
-        # Priority: 3
-        raise NotImplementedError('Conversion of Model from SBOL3 to SBOL2 not yet implemented')
+    def visit_model(self, model3: sbol3.Model):
+    # Priority: 3
+        model2 = sbol2.model.Model(uri=model3.identity, source=model3.source, 
+                            language=model3.language, framework=model3.framework)
+        self.doc2.add(model2)
+        # Map over all other TopLevel properties and extensions not covered by the constructor
+        self._convert_toplevel(model3, model2)
+        # seq2 = sbol2.Sequence(seq3.identity, seq3.elements, 
+        #                       encoding=encoding2, 
+        #                       version=self._sbol2_version(seq3))
 
     def visit_participation(self, a: sbol3.Participation):
         # Priority: 2
@@ -257,7 +265,9 @@ class SBOL3To2ConversionVisitor:
                         sbol3.SMILES_ENCODING: sbol2.SBOL_ENCODING_SMILES}
         encoding2 = encoding_map.get(seq3.encoding, seq3.encoding)
         # Make the Sequence object and add it to the document
-        seq2 = sbol2.Sequence(seq3.identity, seq3.elements, encoding=encoding2, version=self._sbol2_version(seq3))
+        seq2 = sbol2.Sequence(seq3.identity, seq3.elements, 
+                              encoding=encoding2, 
+                              version=self._sbol2_version(seq3))
         self.doc2.addSequence(seq2)
         # Map over all other TopLevel properties and extensions not covered by the constructor
         self._convert_toplevel(seq3, seq2)
@@ -496,9 +506,19 @@ class SBOL2To3ConversionVisitor:
         # Priority: 3
         raise NotImplementedError('Conversion of Measure from SBOL2 to SBOL3 not yet implemented')
 
-    def visit_model(self, a: sbol2.model.Model):
+    def visit_model(self, model2: sbol2.model.Model):
         # Priority: 3
-        raise NotImplementedError('Conversion of Model from SBOL2 to SBOL3 not yet implemented')
+        
+        model3 = sbol3.Model(model2.identity, source=model2.source, language=model2.language,   
+                             framework=model2.framework)
+        self.doc3.add(model3)
+        
+        # Map over all other TopLevel properties and extensions not covered by the constructor
+        self._convert_toplevel(model2, model3)
+
+
+
+
 
     def visit_module(self, a: sbol2.Module):
         # Priority: 3
