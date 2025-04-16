@@ -95,11 +95,13 @@ class SBOL3To2ConversionVisitor:
 
     @staticmethod
     def _sbol2_version(obj: sbol3.Identified):
+        """Check if an SBOL3 object has a backport SBOL2 version"""
         if not hasattr(obj, 'sbol2_version'):
             obj.sbol2_version = sbol3.TextProperty(obj, BACKPORT2_VERSION, 0, 1)
         return obj.sbol2_version or None
 
     def _sbol2_identity(self, obj3: sbol3.Identified):
+        """Generate an SBOL2 identity for an SBOL3 object"""
         identity = obj3.identity
         if self._sbol2_version(obj3):
             # TODO replace fragile string manipulation with robust path handling
@@ -159,6 +161,7 @@ class SBOL3To2ConversionVisitor:
         raise NotImplementedError('Conversion of CombinatorialDerivation from SBOL3 to SBOL2 not yet implemented')
 
     def visit_component(self, cp3: sbol3.Component):
+        """Convert SBOL3 Component into SBOL2 Component Definition"""
         # Remap type if it's one of the ones that needs remapping; otherwise pass through unchanged
         type_map = {sbol3.SBO_DNA: sbol2.BIOPAX_DNA,  # TODO: distinguish BioPAX Dna from DnaRegion
                     sbol3.SBO_RNA: sbol2.BIOPAX_RNA,  # TODO: distinguish BioPAX Rna from RnaRegion
@@ -371,6 +374,7 @@ class SBOL2To3ConversionVisitor:
         obj3.attachments = [a.identity for a in obj2.attachments]
 
     def _sbol3_identity(self, obj2: sbol2.Identified):
+        """Generate an SBOL3 identity for an SBOL2 object"""
 
         # Getting only persistentIdentity will remove /<version> from the identity
         identity = obj2.persistentIdentity
@@ -448,6 +452,7 @@ class SBOL2To3ConversionVisitor:
         raise NotImplementedError('Conversion of CombinatorialDerivation from SBOL2 to SBOL3 not yet implemented')
 
     def visit_component_definition(self, cd2: sbol2.ComponentDefinition):
+        """Convert SBOL2 Component Definition into SBOL3 Component"""
         # Remap type if it's one of the ones that needs remapping; otherwise pass through unchanged
         type_map = {sbol2.BIOPAX_DNA: sbol3.SBO_DNA,
                     'http://www.biopax.org/release/biopax-level3.owl#Dna': sbol3.SBO_DNA,  # TODO: make reversible
