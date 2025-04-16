@@ -52,4 +52,23 @@ To work on the SBOL Converter, you'll need to install it locally. Follow these s
     ```bash
     python test/test_sbol2_sbol3_direct.py
     ```
-    
+
+## Writing Tests
+
+It's recommended that you prepare a test and a test file before starting to write your converter code.
+
+To make a new test:
+
+- Take a file from [SBOL Test Suite](https://github.com/SynBioDex/SBOLTestSuite), or make one using pySBOL2 (suggested: use the existing [SBOL Notebooks](https://github.com/SynBioDex/SBOL-Notebooks))
+
+- In case you're using pySBOL2, make sure to have these configurations:
+    ```
+    Config.setOption(ConfigOptions.SBOL_COMPLIANT_URIS, True)
+    Config.setOption(ConfigOptions.SBOL_TYPED_URIS, False)
+    ```
+
+- Validate the file with the [online Validator](https://validator.sbolstandard.org/). It shouldn't throw any validation errors
+
+- Put the file in the `test/test_files`
+
+- Write a new test function in `test_sbol2_sbol3_direct.py` (follow what the other tests are doing: create a document based on the file, call conversion, convert back to original SBOL version, and check for differences)
