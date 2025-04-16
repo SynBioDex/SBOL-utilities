@@ -372,9 +372,10 @@ class SBOL2To3ConversionVisitor:
                                  f'but was {namespaces}')
             return namespaces[0].rstrip('/')
         # Check if the object starts with any of the provided namespaces
-        for namespace in self.namespaces:
-            if obj2.identity.startswith(namespace):
-                return namespace
+        if self.namespaces:
+            for namespace in self.namespaces:
+                if obj2.identity.startswith(namespace):
+                    return namespace
         # Otherwise, use default behavior
         return parse_namespace(obj2.identity)
 
