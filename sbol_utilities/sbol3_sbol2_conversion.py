@@ -83,6 +83,12 @@ class SBOL3To2ConversionVisitor:
         obj2.description = self._value_or_property(obj3, obj3.description, 'http://purl.org/dc/terms/description')
         obj2.wasDerivedFrom = obj3.derived_from
         obj2.wasGeneratedBy = obj3.generated_by
+
+        if obj2.version:
+            # TODO replace fragile string manipulation with robust path handling
+            # Will break for URIs that don't use / as separator
+            obj2.persistentIdentity = "/".join(obj2.persistentIdentity.split("/")[:-1])
+
         # Turn measures into extension properties
         if obj3.measures:
             raise NotImplementedError('Conversion of measures from SBOL3 to SBOL2 not yet implemented')
