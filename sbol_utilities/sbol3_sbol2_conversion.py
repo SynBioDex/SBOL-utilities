@@ -117,7 +117,7 @@ class SBOL3To2ConversionVisitor:
 
     def visit_activity(self, act3: sbol3.Activity):
         # Make the Activity object and add it to the document
-        act2 = sbol2.Activity(act3.identity, version=self._sbol2_version(act3))
+        act2 = sbol2.Activity(self._sbol2_identity(act3), version=self._sbol2_version(act3))
         self.doc2.activities.add(act2)
         if act3.types:
             if len(act3.types) > 1:
@@ -282,7 +282,7 @@ class SBOL3To2ConversionVisitor:
                         sbol3.SMILES_ENCODING: sbol2.SBOL_ENCODING_SMILES}
         encoding2 = encoding_map.get(seq3.encoding, seq3.encoding)
         # Make the Sequence object and add it to the document
-        seq2 = sbol2.Sequence(seq3.identity, seq3.elements, encoding=encoding2, version=self._sbol2_version(seq3))
+        seq2 = sbol2.Sequence(self._sbol2_identity(seq3), seq3.elements, encoding=encoding2, version=self._sbol2_version(seq3))
         self.doc2.addSequence(seq2)
         # Map over all other TopLevel properties and extensions not covered by the constructor
         self._convert_toplevel(seq3, seq2)
@@ -417,7 +417,7 @@ class SBOL2To3ConversionVisitor:
 
     def visit_activity(self, act2: sbol2.Activity):
         # Make the Activity object and add it to the document
-        act3 = sbol3.Activity(act2.identity, namespace=self._sbol3_namespace(act2),
+        act3 = sbol3.Activity(self._sbol3_identity(act2), namespace=self._sbol3_namespace(act2),
                               start_time=act2.startedAtTime, end_time=act2.endedAtTime)
         self.doc3.add(act3)
         # Convert child objects after adding to document
@@ -585,7 +585,7 @@ class SBOL2To3ConversionVisitor:
 
     def visit_module_definition(self, md: sbol2.ModuleDefinition):
         # Make the Component object and add it to the document
-        c3 = sbol3.Component(md.persistentIdentity, types=md.type, roles=md.roles, namespace=self._sbol3_namespace(md))
+        c3 = sbol3.Component(self._sbol3_identity(md), types=md.type, roles=md.roles, namespace=self._sbol3_namespace(md))
 
         for i2 in md.interactions:
             i3 = self.visit_interaction(i2)
@@ -638,12 +638,7 @@ class SBOL2To3ConversionVisitor:
                         sbol2.SBOL_ENCODING_SMILES: sbol3.SMILES_ENCODING}
         encoding3 = encoding_map.get(seq2.encoding, seq2.encoding)
         # Make the Sequence object and add it to the document
-        identity = seq2.persistentIdentity.replace(
-                       parse_namespace(seq2.persistentIdentity),
-                       self._sbol3_namespace(seq2)
-                   )
-
-        seq3 = sbol3.Sequence(identity, namespace=self._sbol3_namespace(seq2),
+        seq3 = sbol3.Sequence(self._sbol3_identity(seq2), namespace=self._sbol3_namespace(seq2),
                               elements=seq2.elements, encoding=encoding3)
         self.doc3.add(seq3)
         # Map over all other TopLevel properties and extensions not covered by the constructor
