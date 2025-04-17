@@ -1,5 +1,8 @@
+from sbol2 import Config, ConfigOptions
+
 import tempfile
 from pathlib import Path
+
 
 import unittest
 
@@ -17,7 +20,7 @@ class TestDirectSBOL2SBOL3Conversion(unittest.TestCase):
     # TODO: turn on validation
 
     # J23101.xml is not SBOL compliant. Leaving conversions involving it for after the compliant converter is done
-    '''
+    
     def test_3to2_conversion(self):
         """Test ability to convert a simple part from SBOL3 to SBOL2"""
         # Load an SBOL3 document and check its contents
@@ -36,10 +39,10 @@ class TestDirectSBOL2SBOL3Conversion(unittest.TestCase):
             tmp3 = Path(tmpdir) / 'doc3_loop.nt'
             doc3_loop.write(tmp3)
             self.assertFalse(file_diff(str(tmp3), str(TEST_FILES / 'BBa_J23101_patched.nt')))
-    '''
+    
 
     # J23101.xml is not SBOL compliant. Leaving conversions involving it for after the compliant converter is done
-    '''
+    
     def test_2to3_conversion(self):
         """Test ability to convert a simple part from SBOL2 to SBOL3"""
         # Load an SBOL2 document and check its contents
@@ -58,10 +61,10 @@ class TestDirectSBOL2SBOL3Conversion(unittest.TestCase):
             tmp2 = Path(tmpdir) / 'doc2_loop.xml'
             doc2_loop.write(tmp2)
             self.assertFalse(file_diff(str(tmp2), str(TEST_FILES / 'BBa_J23101.xml')))
-    '''
+
 
     # sbol_3to2_implementation.xml is not SBOL compliant. Leaving conversions involving it for after the compliant converter is done
-    '''
+
     def test_3to2_implementation_conversion(self):
         """Test ability to convert an implementation from SBOL3 to SBOL2"""
         # Load an SBOL3 document and check its contents
@@ -80,10 +83,10 @@ class TestDirectSBOL2SBOL3Conversion(unittest.TestCase):
             tmp3 = Path(tmpdir) / 'doc3_loop.nt'
             doc3_loop.write(tmp3)
             self.assertFalse(file_diff(str(tmp3), str(TEST_FILES / 'sbol3_implementation.nt')))
-    '''
+
 
     # sbol_3to2_implementation.xml is not SBOL compliant. Leaving conversions involving it for after the compliant converter is done
-    '''
+
     def test_2to3_implementation_conversion(self):
         """Test ability to convert an implementation from SBOL2 to SBOL3"""
         # Load an SBOL2 document and check its contents
@@ -102,10 +105,10 @@ class TestDirectSBOL2SBOL3Conversion(unittest.TestCase):
             tmp2 = Path(tmpdir) / 'doc2_loop.xml'
             doc2_loop.write(tmp2)
             self.assertFalse(file_diff(str(tmp2), str(TEST_FILES / 'sbol_3to2_implementation.xml')))
-    '''
+
 
     # sbol_3to2_collection.xml is not SBOL compliant. Leaving conversions involving it for after the compliant converter is done
-    '''
+
     # sbol_3to2_collection.xml is not SBOL compliant. Leaving conversions involving it for after the compliant converter is done
     def test_3to2_collection_conversion(self):
         """Test ability to convert a collection from SBOL3 to SBOL2"""
@@ -125,10 +128,10 @@ class TestDirectSBOL2SBOL3Conversion(unittest.TestCase):
             tmp3 = Path(tmpdir) / 'doc3_loop.nt'
             doc3_loop.write(tmp3)
             self.assertFalse(file_diff(str(tmp3), str(TEST_FILES / 'sbol3_collection.nt')))
-    '''
+
 
     # sbol_3to2_collection.xml is not SBOL compliant. Leaving conversions involving it for after the compliant converter is done
-    '''
+    
     def test_2to3_collection_conversion(self):
         """Test ability to convert a collection from SBOL2 to SBOL3"""
         # Load an SBOL2 document and check its contents
@@ -147,7 +150,25 @@ class TestDirectSBOL2SBOL3Conversion(unittest.TestCase):
             tmp2 = Path(tmpdir) / 'doc2_loop.xml'
             doc2_loop.write(tmp2)
             self.assertFalse(file_diff(str(tmp2), str(TEST_FILES / 'sbol_3to2_collection.xml')))
-    '''
+
+    def test_2to3_and_3to2_model_conversion(self):
+        """Test ability to convert a model from SBOL2 to SBOL3"""
+        # Load an SBOL2 document and check its contents
+        Config.setOption(ConfigOptions.SBOL_COMPLIANT_URIS, False)
+        Config.setOption(ConfigOptions.SBOL_TYPED_URIS, False)
+        doc2 = sbol2.Document()
+        doc2.read(TEST_FILES / 'example_model_sbol2.xml')
+        model2 = doc2.models[0]
+        doc3 = convert2to3(doc2, use_native_converter=True)
+        self.assertEqual(len(doc3.validate()), 0)
+        doc3.write(TEST_FILES / 'generated_model_sbol3.ttl',file_format='turtle')
+        doc2_loop = convert3to2(doc3, True)
+        model2_loop = doc2_loop.models[0]
+        self.assertEqual(model2.language, model2_loop.language)
+        self.assertEqual(model2.framework, model2_loop.framework)
+        self.assertEqual(model2.source, model2_loop.source)
+        self.assertEqual(model2.name, model2_loop.name)
+        
 
 if __name__ == '__main__':
     unittest.main()

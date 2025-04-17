@@ -1,0 +1,10 @@
+@prefix sbol: <http://sbols.org/v3#> .
+@prefix ex: <http://example.org/> .
+@prefix edam: <http://identifiers.org/edam/> .
+@prefix sbo: <http://identifiers.org/biomodels.sbo/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+ex:mymodel a sbol:Model ;
+    sbol:source <https://models.example.org/my_model.sbml> ;
+    sbol:language edam:format_2585 ;
+    sbol:framework sbo:SBO:0000064 .
