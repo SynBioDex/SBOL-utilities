@@ -1,0 +1,4 @@
+<https://github.com/SynBioDex/SBOL-Notebooks/empty_component_definition> <http://sbols.org/v3#displayId> "empty_component_definition" .
+<https://github.com/SynBioDex/SBOL-Notebooks/empty_component_definition> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://sbols.org/v3#Component> .
+<https://github.com/SynBioDex/SBOL-Notebooks/empty_component_definition> <http://sbols.org/v3#type> <https://identifiers.org/SBO:0000251> .
+<https://github.com/SynBioDex/SBOL-Notebooks/empty_component_definition> <http://sbols.org/v3#hasNamespace> <https://github.com> .
