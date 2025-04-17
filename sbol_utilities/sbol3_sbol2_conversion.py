@@ -85,7 +85,7 @@ class SBOL3To2ConversionVisitor:
         obj2.wasGeneratedBy = obj3.generated_by
 
         if obj2.version:
-            # TODO replace fragile string manipulation with robust path handling
+            # TODO replace fragile string manipulation with robust path handling (https://github.com/SynBioDex/SBOL-utilities/issues/316)
             # Will break for URIs that don't use / as separator
             obj2.persistentIdentity = "/".join(obj2.persistentIdentity.split("/")[:-1])
 
@@ -110,7 +110,7 @@ class SBOL3To2ConversionVisitor:
         """Generate an SBOL2 identity for an SBOL3 object"""
         identity = obj3.identity
         if self._sbol2_version(obj3):
-            # TODO replace fragile string manipulation with robust path handling
+            # TODO replace fragile string manipulation with robust path handling (https://github.com/SynBioDex/SBOL-utilities/issues/316)
             identity = identity.replace(obj3.namespace + "/" + self._sbol2_version(obj3), obj3.namespace)
             identity = identity + "/" + self._sbol2_version(obj3)
         return identity
@@ -133,7 +133,7 @@ class SBOL3To2ConversionVisitor:
                                       'Bug: https://github.com/SynBioDex/pySBOL3/issues/437')
         act2.usages = [usage.accept(self) for usage in act3.usage]
         act2.associations = [assoc.accept(self) for assoc in act3.association]
-        # TODO: pySBOL3 is currently missing wasInformedBy (https://github.com/SynBioDex/pySBOL3/issues/436
+        # TODO: pySBOL3 is currently missing wasInformedBy (https://github.com/SynBioDex/pySBOL3/issues/436)
         # act2.wasInformedBy = act3.informed_by
         # Map over all other TopLevel properties and extensions not covered by the constructor
         self._convert_toplevel(act3, act2)
@@ -391,7 +391,7 @@ class SBOL2To3ConversionVisitor:
 
         # check for SBOL2 version and move it to middle of path
         if obj2.version:
-            # TODO fix fragile string parsing with robust path handling
+            # TODO fix fragile string parsing with robust path handling (https://github.com/SynBioDex/SBOL-utilities/issues/316)
             identity = obj2.persistentIdentity.replace(curr_namespace, sbol3_namespace + "/" + obj2.version)
         else:
             identity = obj2.persistentIdentity.replace(curr_namespace, sbol3_namespace)
