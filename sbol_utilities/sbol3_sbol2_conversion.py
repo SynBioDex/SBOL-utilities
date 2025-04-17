@@ -156,7 +156,7 @@ class SBOL3To2ConversionVisitor:
 
     def visit_collection(self, coll3: sbol3.Collection):
         # Make the Collection object and add it to the document
-        coll2 = sbol2.Collection(coll3.identity)
+        coll2 = sbol2.Collection(self._sbol2_identity(coll3))
         coll2.members = coll3.members
         self.doc2.addCollection(coll2)
         # Map over all other TopLevel properties and extensions not covered by the constructor
@@ -444,11 +444,7 @@ class SBOL2To3ConversionVisitor:
 
     def visit_collection(self, coll2: sbol2.Collection):
         # Make the Collection object and add it to the document
-        identity = coll2.persistentIdentity.replace(
-                       parse_namespace(coll2.persistentIdentity),
-                       self._sbol3_namespace(coll2)
-                   )
-        coll3 = sbol3.Collection(identity, members=coll2.members, namespace=self._sbol3_namespace(coll2))
+        coll3 = sbol3.Collection(self._sbol3_identity(coll2), members=coll2.members, namespace=self._sbol3_namespace(coll2))
         self.doc3.add(coll3)
         # Map over all other TopLevel properties and extensions not covered by the constructor
         self._convert_toplevel(coll2, coll3)
