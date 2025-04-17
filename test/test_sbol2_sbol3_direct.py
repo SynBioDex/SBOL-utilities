@@ -20,7 +20,7 @@ class TestDirectSBOL2SBOL3Conversion(unittest.TestCase):
     # TODO: turn on validation
 
     # J23101.xml is not SBOL compliant. Leaving conversions involving it for after the compliant converter is done
-    '''
+    
     def test_3to2_conversion(self):
         """Test ability to convert a simple part from SBOL3 to SBOL2"""
         # Load an SBOL3 document and check its contents
@@ -39,10 +39,10 @@ class TestDirectSBOL2SBOL3Conversion(unittest.TestCase):
             tmp3 = Path(tmpdir) / 'doc3_loop.nt'
             doc3_loop.write(tmp3)
             self.assertFalse(file_diff(str(tmp3), str(TEST_FILES / 'BBa_J23101_patched.nt')))
-    '''
+    
 
     # J23101.xml is not SBOL compliant. Leaving conversions involving it for after the compliant converter is done
-    '''
+    
     def test_2to3_conversion(self):
         """Test ability to convert a simple part from SBOL2 to SBOL3"""
         # Load an SBOL2 document and check its contents
@@ -61,10 +61,10 @@ class TestDirectSBOL2SBOL3Conversion(unittest.TestCase):
             tmp2 = Path(tmpdir) / 'doc2_loop.xml'
             doc2_loop.write(tmp2)
             self.assertFalse(file_diff(str(tmp2), str(TEST_FILES / 'BBa_J23101.xml')))
-    '''
+
 
     # sbol_3to2_implementation.xml is not SBOL compliant. Leaving conversions involving it for after the compliant converter is done
-    '''
+
     def test_3to2_implementation_conversion(self):
         """Test ability to convert an implementation from SBOL3 to SBOL2"""
         # Load an SBOL3 document and check its contents
@@ -83,10 +83,10 @@ class TestDirectSBOL2SBOL3Conversion(unittest.TestCase):
             tmp3 = Path(tmpdir) / 'doc3_loop.nt'
             doc3_loop.write(tmp3)
             self.assertFalse(file_diff(str(tmp3), str(TEST_FILES / 'sbol3_implementation.nt')))
-    '''
+
 
     # sbol_3to2_implementation.xml is not SBOL compliant. Leaving conversions involving it for after the compliant converter is done
-    '''
+
     def test_2to3_implementation_conversion(self):
         """Test ability to convert an implementation from SBOL2 to SBOL3"""
         # Load an SBOL2 document and check its contents
@@ -105,10 +105,10 @@ class TestDirectSBOL2SBOL3Conversion(unittest.TestCase):
             tmp2 = Path(tmpdir) / 'doc2_loop.xml'
             doc2_loop.write(tmp2)
             self.assertFalse(file_diff(str(tmp2), str(TEST_FILES / 'sbol_3to2_implementation.xml')))
-    '''
+
 
     # sbol_3to2_collection.xml is not SBOL compliant. Leaving conversions involving it for after the compliant converter is done
-    '''
+
     # sbol_3to2_collection.xml is not SBOL compliant. Leaving conversions involving it for after the compliant converter is done
     def test_3to2_collection_conversion(self):
         """Test ability to convert a collection from SBOL3 to SBOL2"""
@@ -128,10 +128,10 @@ class TestDirectSBOL2SBOL3Conversion(unittest.TestCase):
             tmp3 = Path(tmpdir) / 'doc3_loop.nt'
             doc3_loop.write(tmp3)
             self.assertFalse(file_diff(str(tmp3), str(TEST_FILES / 'sbol3_collection.nt')))
-    '''
+
 
     # sbol_3to2_collection.xml is not SBOL compliant. Leaving conversions involving it for after the compliant converter is done
-    '''
+    
     def test_2to3_collection_conversion(self):
         """Test ability to convert a collection from SBOL2 to SBOL3"""
         # Load an SBOL2 document and check its contents
