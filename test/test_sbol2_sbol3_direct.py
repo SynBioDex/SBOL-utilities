@@ -40,12 +40,15 @@ class TestDirectSBOL2SBOL3Conversion(unittest.TestCase):
             self.assertEqual(len(report), 0, f'Validation failed: {report}')
 
     def test_2to3_J23101_conversion(self):
+        """Test ability to convert a simple part from SBOL2 to SBOL3"""
         self.handle_2to3_conversion('BBa_J23101.xml', 'BBa_J23101_patched.nt')
 
     def test_2to3_implementation_conversion(self):
+        """Test ability to convert an Implementation from SBOL2 to SBOL3"""
         self.handle_2to3_conversion('sbol_3to2_implementation.xml', 'sbol3_implementation.nt')
 
     def test_2to3_collection_conversion(self):
+        """Test ability to convert a Collection from SBOL2 to SBOL3"""
         self.handle_2to3_conversion('sbol_3to2_collection.xml', 'sbol3_collection.nt')
 
 
@@ -78,12 +81,15 @@ class TestDirectSBOL3SBOL2Conversion(unittest.TestCase):
     # a DateTime. Reference: SBOL Version 2.3.0 Section 12.8.1 on page 73 : https://synbiohub.org/public/igem/igem2sbol
     @unittest.expectedFailure
     def test_3to2_J23101_conversion(self):
+        """Test ability to convert a simple part from SBOL3 to SBOL2"""
         self.handle_3to2_conversion('BBa_J23101_patched.nt', 'BBa_J23101.xml')
 
     def test_3to2_implementation_conversion(self):
+        """Test ability to convert an Implementation from SBOL3 to SBOL2"""
         self.handle_3to2_conversion('sbol3_implementation.nt', 'sbol_3to2_implementation.xml')
 
     def test_3to2_collection_conversion(self):
+        """Test ability to convert a Collection from SBOL3 to SBOL2"""
         self.handle_3to2_conversion('sbol3_collection.nt', 'sbol_3to2_collection.xml')
 
 
