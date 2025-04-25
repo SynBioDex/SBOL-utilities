@@ -15,7 +15,7 @@ TEST_FILES = Path(__file__).parent / 'test_files'
 class TestDirectSBOL2SBOL3Conversion(unittest.TestCase):
 
     def handle_2to3_conversion(self, test_filename, rubric_filename):
-        """Provides a re-usable test handler for converting SBOL3 to SBOL2 with different test files
+        """Provides a re-usable test handler for converting SBOL2 to SBOL3 with different test files
         test_filename: Name of an SBOL2 test file
         rubric_filename: Name of an SBOL3 file with expected conversion
     """
