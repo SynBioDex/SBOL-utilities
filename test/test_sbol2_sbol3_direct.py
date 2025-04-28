@@ -42,10 +42,6 @@ class TestDirectSBOL2SBOL3Conversion(unittest.TestCase):
             doc2_loop.write(tmp2)
             self.assertFalse(file_diff(str(tmp2), str(TEST_FILES / test_filename)))
 
-    # Currently fails with the following validation error:
-    # sbol-12403: Strong Validation Error: The endedAtTime property of an Activity object is OPTIONAL and MAY contain
-    # a DateTime. Reference: SBOL Version 2.3.0 Section 12.8.1 on page 73 : https://synbiohub.org/public/igem/igem2sbol
-    @unittest.expectedFailure
     def test_2to3_J23101_conversion(self):
         """Test ability to convert a simple part from SBOL2 to SBOL3"""
         self.handle_2to3_conversion('BBa_J23101.xml', 'BBa_J23101_patched.nt')
@@ -87,10 +83,6 @@ class TestDirectSBOL3SBOL2Conversion(unittest.TestCase):
             doc3_loop.write(tmp3)
             self.assertFalse(file_diff(str(tmp3), str(TEST_FILES / test_filename)))
 
-    # Currently fails with the following validation error:
-    # sbol-12403: Strong Validation Error: The endedAtTime property of an Activity object is OPTIONAL and MAY contain
-    # a DateTime. Reference: SBOL Version 2.3.0 Section 12.8.1 on page 73 : https://synbiohub.org/public/igem/igem2sbol
-    @unittest.expectedFailure
     def test_3to2_J23101_conversion(self):
         """Test ability to convert a simple part from SBOL3 to SBOL2"""
         self.handle_3to2_conversion('BBa_J23101_patched.nt', 'BBa_J23101.xml')
