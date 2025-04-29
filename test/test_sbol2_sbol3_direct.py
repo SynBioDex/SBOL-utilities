@@ -197,7 +197,7 @@ class TestDirectSBOL2SBOL3Conversion(unittest.TestCase):
             with tempfile.TemporaryDirectory() as tmpdir:
                 tmp3 = Path(tmpdir) / 'doc3.nt'
                 doc3.write(tmp3)
-                #self.assertFalse(file_diff(str(tmp3), str(TEST_FILES / 'BBa_J23101_patched.nt')))
+                self.assertFalse(file_diff(str(tmp3), str(TEST_FILES / 'minimal_sbol2_collection.nt')))
                 doc2_loop = convert3to2(doc3, True)
                 # report = doc2.validate()
                 # self.assertEqual(len(report), 0, f'Validation failed: {report}')
@@ -217,7 +217,7 @@ class TestDirectSBOL2SBOL3Conversion(unittest.TestCase):
             with tempfile.TemporaryDirectory() as tmpdir:
                 tmp3 = Path(tmpdir) / 'doc3.nt'
                 doc3.write(tmp3)
-                #self.assertFalse(file_diff(str(tmp3), str(TEST_FILES / 'BBa_J23101_patched.nt')))
+                self.assertFalse(file_diff(str(tmp3), str(TEST_FILES / 'sbol_3to2_implementation_compliant.nt')))
                 doc2_loop = convert3to2(doc3, True)
                 # report = doc2.validate()
                 # self.assertEqual(len(report), 0, f'Validation failed: {report}')
@@ -237,7 +237,7 @@ class TestDirectSBOL2SBOL3Conversion(unittest.TestCase):
             with tempfile.TemporaryDirectory() as tmpdir:
                 tmp3 = Path(tmpdir) / 'doc3.nt'
                 doc3.write(tmp3)
-                #self.assertFalse(file_diff(str(tmp3), str(TEST_FILES / 'BBa_J23101_patched.nt')))
+                self.assertFalse(file_diff(str(tmp3), str(TEST_FILES / 'seq_componentDefinition.nt')))
                 doc2_loop = convert3to2(doc3, True)
                 # report = doc2.validate()
                 # self.assertEqual(len(report), 0, f'Validation failed: {report}')
