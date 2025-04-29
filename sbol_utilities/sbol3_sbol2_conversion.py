@@ -83,6 +83,12 @@ class SBOL3To2ConversionVisitor:
         obj2.description = self._value_or_property(obj3, obj3.description, 'http://purl.org/dc/terms/description')
         obj2.wasDerivedFrom = obj3.derived_from
         obj2.wasGeneratedBy = obj3.generated_by
+
+        if obj2.version:
+            # TODO replace fragile string manipulation with robust path handling (https://github.com/SynBioDex/SBOL-utilities/issues/316)
+            # Will break for URIs that don't use / as separator
+            obj2.persistentIdentity = "/".join(obj2.persistentIdentity.split("/")[:-1])
+
         # Turn measures into extension properties
         if obj3.measures:
             raise NotImplementedError('Conversion of measures from SBOL3 to SBOL2 not yet implemented')
@@ -95,14 +101,23 @@ class SBOL3To2ConversionVisitor:
 
     @staticmethod
     def _sbol2_version(obj: sbol3.Identified):
+        """Check if an SBOL3 object has a backport SBOL2 version"""
         if not hasattr(obj, 'sbol2_version'):
             obj.sbol2_version = sbol3.TextProperty(obj, BACKPORT2_VERSION, 0, 1)
-        # TODO: since version is optional, if it's missing, should this be returning '1' or None?
-        return obj.sbol2_version or '1'
+        return obj.sbol2_version or None
+
+    def _sbol2_identity(self, obj3: sbol3.Identified):
+        """Generate an SBOL2 identity for an SBOL3 object"""
+        identity = obj3.identity
+        if self._sbol2_version(obj3):
+            # TODO replace fragile string manipulation with robust path handling (https://github.com/SynBioDex/SBOL-utilities/issues/316)
+            identity = identity.replace(obj3.namespace + "/" + self._sbol2_version(obj3), obj3.namespace)
+            identity = identity + "/" + self._sbol2_version(obj3)
+        return identity
 
     def visit_activity(self, act3: sbol3.Activity):
         # Make the Activity object and add it to the document
-        act2 = sbol2.Activity(act3.identity, version=self._sbol2_version(act3))
+        act2 = sbol2.Activity(self._sbol2_identity(act3), version=self._sbol2_version(act3))
         self.doc2.activities.add(act2)
         if act3.types:
             if len(act3.types) > 1:
@@ -118,7 +133,7 @@ class SBOL3To2ConversionVisitor:
                                       'Bug: https://github.com/SynBioDex/pySBOL3/issues/437')
         act2.usages = [usage.accept(self) for usage in act3.usage]
         act2.associations = [assoc.accept(self) for assoc in act3.association]
-        # TODO: pySBOL3 is currently missing wasInformedBy (https://github.com/SynBioDex/pySBOL3/issues/436
+        # TODO: pySBOL3 is currently missing wasInformedBy (https://github.com/SynBioDex/pySBOL3/issues/436)
         # act2.wasInformedBy = act3.informed_by
         # Map over all other TopLevel properties and extensions not covered by the constructor
         self._convert_toplevel(act3, act2)
@@ -141,7 +156,7 @@ class SBOL3To2ConversionVisitor:
 
     def visit_collection(self, coll3: sbol3.Collection):
         # Make the Collection object and add it to the document
-        coll2 = sbol2.Collection(coll3.identity)
+        coll2 = sbol2.Collection(self._sbol2_identity(coll3))
         coll2.members = coll3.members
         self.doc2.addCollection(coll2)
         # Map over all other TopLevel properties and extensions not covered by the constructor
@@ -152,6 +167,7 @@ class SBOL3To2ConversionVisitor:
         raise NotImplementedError('Conversion of CombinatorialDerivation from SBOL3 to SBOL2 not yet implemented')
 
     def visit_component(self, cp3: sbol3.Component):
+        """Convert SBOL3 Component into SBOL2 Component Definition"""
         # Remap type if it's one of the ones that needs remapping; otherwise pass through unchanged
         type_map = {sbol3.SBO_DNA: sbol2.BIOPAX_DNA,  # TODO: distinguish BioPAX Dna from DnaRegion
                     sbol3.SBO_RNA: sbol2.BIOPAX_RNA,  # TODO: distinguish BioPAX Rna from RnaRegion
@@ -160,7 +176,7 @@ class SBOL3To2ConversionVisitor:
                     sbol3.SBO_NON_COVALENT_COMPLEX: sbol2.BIOPAX_COMPLEX}
         types2 = [type_map.get(t, t) for t in cp3.types]
         # Make the Component object and add it to the document
-        cp2 = sbol2.ComponentDefinition(cp3.identity, types2, version=self._sbol2_version(cp3))
+        cp2 = sbol2.ComponentDefinition(self._sbol2_identity(cp3), types2, version=self._sbol2_version(cp3))
         self.doc2.addComponentDefinition(cp2)
         # Convert the Component properties not covered by the constructor
         cp2.roles = cp3.roles
@@ -213,7 +229,7 @@ class SBOL3To2ConversionVisitor:
     def visit_implementation(self, imp3: sbol3.Implementation):
         # Priority: 1
         # Make the Implement object and add it to the document
-        imp2 = sbol2.Implementation(imp3.identity, version=self._sbol2_version(imp3))
+        imp2 = sbol2.Implementation(self._sbol2_identity(imp3), version=self._sbol2_version(imp3))
         imp2.built = imp3.built
         self.doc2.addImplementation(imp2)
         # Map over all other TopLevel properties and extensions not covered by the constructor
@@ -266,7 +282,7 @@ class SBOL3To2ConversionVisitor:
                         sbol3.SMILES_ENCODING: sbol2.SBOL_ENCODING_SMILES}
         encoding2 = encoding_map.get(seq3.encoding, seq3.encoding)
         # Make the Sequence object and add it to the document
-        seq2 = sbol2.Sequence(seq3.identity, seq3.elements, encoding=encoding2, version=self._sbol2_version(seq3))
+        seq2 = sbol2.Sequence(self._sbol2_identity(seq3), seq3.elements, encoding=encoding2, version=self._sbol2_version(seq3))
         self.doc2.addSequence(seq2)
         # Map over all other TopLevel properties and extensions not covered by the constructor
         self._convert_toplevel(seq3, seq2)
@@ -363,6 +379,26 @@ class SBOL2To3ConversionVisitor:
         self._convert_identified(obj2, obj3)
         obj3.attachments = [a.identity for a in obj2.attachments]
 
+    def _sbol3_identity(self, obj2: sbol2.Identified):
+        """Generate an SBOL3 identity for an SBOL2 object"""
+
+        # Getting only persistentIdentity will remove /<version> from the identity
+        identity = obj2.persistentIdentity
+
+        # Get namespace for sbol3 conversion
+        curr_namespace = parse_namespace(identity)
+        sbol3_namespace = self._sbol3_namespace(obj2)
+
+        # check for SBOL2 version and move it to middle of path
+        if obj2.version:
+            # TODO fix fragile string parsing with robust path handling (https://github.com/SynBioDex/SBOL-utilities/issues/316)
+            identity = obj2.persistentIdentity.replace(curr_namespace, sbol3_namespace + "/" + obj2.version)
+        else:
+            identity = obj2.persistentIdentity.replace(curr_namespace, sbol3_namespace)
+
+        return identity
+
+
     def _sbol3_namespace(self, obj2: sbol2.TopLevel):
         # If a namespace is explicitly set, that takes priority
         if BACKPORT3_NAMESPACE in obj2.properties:
@@ -372,15 +408,16 @@ class SBOL2To3ConversionVisitor:
                                  f'but was {namespaces}')
             return namespaces[0].rstrip('/')
         # Check if the object starts with any of the provided namespaces
-        for namespace in self.namespaces:
-            if obj2.identity.startswith(namespace):
-                return namespace
+        if self.namespaces:
+            for namespace in self.namespaces:
+                if obj2.identity.startswith(namespace):
+                    return namespace
         # Otherwise, use default behavior
         return parse_namespace(obj2.identity)
 
     def visit_activity(self, act2: sbol2.Activity):
         # Make the Activity object and add it to the document
-        act3 = sbol3.Activity(act2.identity, namespace=self._sbol3_namespace(act2),
+        act3 = sbol3.Activity(self._sbol3_identity(act2), namespace=self._sbol3_namespace(act2),
                               start_time=act2.startedAtTime, end_time=act2.endedAtTime)
         self.doc3.add(act3)
         # Convert child objects after adding to document
@@ -407,11 +444,7 @@ class SBOL2To3ConversionVisitor:
 
     def visit_collection(self, coll2: sbol2.Collection):
         # Make the Collection object and add it to the document
-        identity = coll2.persistentIdentity.replace(
-                       parse_namespace(coll2.persistentIdentity),
-                       self._sbol3_namespace(coll2)
-                   )
-        coll3 = sbol3.Collection(identity, members=coll2.members, namespace=self._sbol3_namespace(coll2))
+        coll3 = sbol3.Collection(self._sbol3_identity(coll2), members=coll2.members, namespace=self._sbol3_namespace(coll2))
         self.doc3.add(coll3)
         # Map over all other TopLevel properties and extensions not covered by the constructor
         self._convert_toplevel(coll2, coll3)
@@ -421,6 +454,7 @@ class SBOL2To3ConversionVisitor:
         raise NotImplementedError('Conversion of CombinatorialDerivation from SBOL2 to SBOL3 not yet implemented')
 
     def visit_component_definition(self, cd2: sbol2.ComponentDefinition):
+        """Convert SBOL2 Component Definition into SBOL3 Component"""
         # Remap type if it's one of the ones that needs remapping; otherwise pass through unchanged
         type_map = {sbol2.BIOPAX_DNA: sbol3.SBO_DNA,
                     'http://www.biopax.org/release/biopax-level3.owl#Dna': sbol3.SBO_DNA,  # TODO: make reversible
@@ -432,12 +466,7 @@ class SBOL2To3ConversionVisitor:
         types3 = [type_map.get(t, t) for t in cd2.types]
 
         # Make the Component object and add it to the document
-        identity = cd2.persistentIdentity.replace(
-                       parse_namespace(cd2.persistentIdentity),
-                       self._sbol3_namespace(cd2)
-                   )
-
-        cp3 = sbol3.Component(identity, types3, namespace=self._sbol3_namespace(cd2),
+        cp3 = sbol3.Component(self._sbol3_identity(cd2), types3, namespace=self._sbol3_namespace(cd2),
                               roles=cd2.roles, sequences=cd2.sequences)
         self.doc3.add(cp3)
 
@@ -524,7 +553,7 @@ class SBOL2To3ConversionVisitor:
     def visit_implementation(self, imp2: sbol2.Implementation):
         # Priority: 1
         # Make the Implementation object and add it to the document
-        imp3 = sbol3.Implementation(imp2.identity, namespace=self._sbol3_namespace(imp2), built=imp2.built)
+        imp3 = sbol3.Implementation(self._sbol3_identity(imp2), namespace=self._sbol3_namespace(imp2), built=imp2.built)
         self.doc3.add(imp3)
         # Map over all other TopLevel properties and extensions not covered by the constructor
         self._convert_toplevel(imp2, imp3)
@@ -556,7 +585,7 @@ class SBOL2To3ConversionVisitor:
 
     def visit_module_definition(self, md: sbol2.ModuleDefinition):
         # Make the Component object and add it to the document
-        c3 = sbol3.Component(md.persistentIdentity, types=md.type, roles=md.roles, namespace=self._sbol3_namespace(md))
+        c3 = sbol3.Component(self._sbol3_identity(md), types=md.type, roles=md.roles, namespace=self._sbol3_namespace(md))
 
         for i2 in md.interactions:
             i3 = self.visit_interaction(i2)
@@ -609,12 +638,7 @@ class SBOL2To3ConversionVisitor:
                         sbol2.SBOL_ENCODING_SMILES: sbol3.SMILES_ENCODING}
         encoding3 = encoding_map.get(seq2.encoding, seq2.encoding)
         # Make the Sequence object and add it to the document
-        identity = seq2.persistentIdentity.replace(
-                       parse_namespace(seq2.persistentIdentity),
-                       self._sbol3_namespace(seq2)
-                   )
-
-        seq3 = sbol3.Sequence(identity, namespace=self._sbol3_namespace(seq2),
+        seq3 = sbol3.Sequence(self._sbol3_identity(seq2), namespace=self._sbol3_namespace(seq2),
                               elements=seq2.elements, encoding=encoding3)
         self.doc3.add(seq3)
         # Map over all other TopLevel properties and extensions not covered by the constructor
