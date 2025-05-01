@@ -42,6 +42,7 @@ class TestDirectSBOL2SBOL3Conversion(unittest.TestCase):
             doc2_loop.write(tmp2)
             self.assertFalse(file_diff(str(tmp2), str(TEST_FILES / test_filename)))
 
+    # See https://github.com/SynBioDex/SBOL-Validator/issues/142
     def test_2to3_J23101_conversion(self):
         """Test ability to convert a simple part from SBOL2 to SBOL3"""
         try:
@@ -94,6 +95,7 @@ class TestDirectSBOL3SBOL2Conversion(unittest.TestCase):
             doc3_loop.write(tmp3)
             self.assertFalse(file_diff(str(tmp3), str(TEST_FILES / test_filename)))
 
+    # https://github.com/SynBioDex/SBOL-Validator/issues/142
     def test_3to2_J23101_conversion(self):
         """Test ability to convert a simple part from SBOL3 to SBOL2"""
         try:
