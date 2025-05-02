@@ -2,6 +2,7 @@ import sbol3
 import sbol2
 from sbol2 import mapsto, model, sequenceconstraint
 from sbol_utilities.helper_functions import strip_sbol2_version
+from typing import Union, List
 
 
 # Namespaces
@@ -326,10 +327,10 @@ class SBOL2To3ConversionVisitor:
     doc3: sbol3.Document
     namespaces: list
 
-    def __init__(self, doc2: sbol2.Document, namespaces: list = []):
+    def __init__(self, doc2: sbol2.Document, namespaces: Union[None, List] = None):
         # Create the target document
         self.doc3 = sbol3.Document()
-        self.namespaces = namespaces
+        self.namespaces = namespaces or []
         #   # Immediately run the conversion
         self._convert(doc2)
 
