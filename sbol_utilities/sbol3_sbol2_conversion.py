@@ -566,8 +566,11 @@ class SBOL2To3ConversionVisitor:
                 self.update_identity(l2, l3)
 
         if cd2.sequenceConstraints:
-            raise NotImplementedError('Conversion of ComponentDefinition sequenceConstraints '
-                                      'from SBOL2 to SBOL3 not yet implemented')
+            for sc2 in cd2.sequenceConstraints:
+                sc3 = self.visit_sequence_constraint(sc2, cp3)
+                cp3.constraints.append(sc3)
+                self.update_identity(sc2, sc3)
+
         # Map over all other TopLevel properties and extensions not covered by the constructor
         self._convert_toplevel(cd2, cp3)
 
@@ -762,9 +765,13 @@ class SBOL2To3ConversionVisitor:
         self._convert_identified(sa2, f3)
         return f3, locations
  
-    def visit_sequence_constraint(self, seq2: sbol2.sequenceconstraint.SequenceConstraint):
-        # Priority: 2
-        raise NotImplementedError('Conversion of SequenceConstraint from SBOL2 to SBOL3 not yet implemented')
+    def visit_sequence_constraint(self, seq2: sbol2.sequenceconstraint.SequenceConstraint, cp3: sbol3.Component):
+        subject = cp3.find(seq2.subject)
+        object = cp3.find(seq2.object)
+        restriction = seq2.restriction.replace('/v2', '/v3')
+        constraint = sbol3.Constraint(restriction, subject, object, name=seq2.name)
+        self._convert_identified(obj2=seq2, obj3=constraint)
+        return constraint
 
     def visit_usage(self, a: sbol2.Usage):
         # Priority: 3
