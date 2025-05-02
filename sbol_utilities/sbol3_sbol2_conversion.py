@@ -624,7 +624,7 @@ class SBOL2To3ConversionVisitor:
             cdef = r2.parent.parent
             ns = self._sbol3_namespace(cdef)
             seq_stub = sbol3.Sequence(f'{ns}/{cdef.displayId}Seq/', namespace=ns)
-            cdef.sequence = seq_stup
+            cdef.sequence = seq_stub
             cdef.doc.add(seq_stub)
         r3 = sbol3.Range(seq_ref, r2.start, r2.end)
         self._convert_identified(r2, r3)
