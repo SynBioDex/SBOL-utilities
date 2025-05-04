@@ -2,6 +2,7 @@ import sbol3
 import sbol2
 from sbol2 import mapsto, model, sequenceconstraint
 from sbol_utilities.helper_functions import strip_sbol2_version
+from typing import Union, List
 
 
 # Namespaces
@@ -326,10 +327,10 @@ class SBOL2To3ConversionVisitor:
     doc3: sbol3.Document
     namespaces: list
 
-    def __init__(self, doc2: sbol2.Document, namespaces: list = []):
+    def __init__(self, doc2: sbol2.Document, namespaces: Union[None, List] = None):
         # Create the target document
         self.doc3 = sbol3.Document()
-        self.namespaces = namespaces
+        self.namespaces = namespaces or []
         #   # Immediately run the conversion
         self._convert(doc2)
 
@@ -488,8 +489,11 @@ class SBOL2To3ConversionVisitor:
                 self.update_identity(l2, l3)
 
         if cd2.sequenceConstraints:
-            raise NotImplementedError('Conversion of ComponentDefinition sequenceConstraints '
-                                      'from SBOL2 to SBOL3 not yet implemented')
+            for sc2 in cd2.sequenceConstraints:
+                sc3 = self.visit_sequence_constraint(sc2, cp3)
+                cp3.constraints.append(sc3)
+                self.update_identity(sc2, sc3)
+
         # Map over all other TopLevel properties and extensions not covered by the constructor
         self._convert_toplevel(cd2, cp3)
 
@@ -624,7 +628,7 @@ class SBOL2To3ConversionVisitor:
             cdef = r2.parent.parent
             ns = self._sbol3_namespace(cdef)
             seq_stub = sbol3.Sequence(f'{ns}/{cdef.displayId}Seq/', namespace=ns)
-            cdef.sequence = seq_stup
+            cdef.sequence = seq_stub
             cdef.doc.add(seq_stub)
         r3 = sbol3.Range(seq_ref, r2.start, r2.end)
         self._convert_identified(r2, r3)
@@ -660,9 +664,13 @@ class SBOL2To3ConversionVisitor:
         self._convert_identified(sa2, f3)
         return f3, locations
  
-    def visit_sequence_constraint(self, seq2: sbol2.sequenceconstraint.SequenceConstraint):
-        # Priority: 2
-        raise NotImplementedError('Conversion of SequenceConstraint from SBOL2 to SBOL3 not yet implemented')
+    def visit_sequence_constraint(self, seq2: sbol2.sequenceconstraint.SequenceConstraint, cp3: sbol3.Component):
+        subject = cp3.find(seq2.subject)
+        object = cp3.find(seq2.object)
+        restriction = seq2.restriction.replace('/v2', '/v3')
+        constraint = sbol3.Constraint(restriction, subject, object, name=seq2.name)
+        self._convert_identified(obj2=seq2, obj3=constraint)
+        return constraint
 
     def visit_usage(self, a: sbol2.Usage):
         # Priority: 3
