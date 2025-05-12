@@ -45,6 +45,7 @@ class IDTAccountAccessor:
         self.password = password
         self.client_id = client_id
         self.client_secret = client_secret
+        self.base_url = None
         self.token = self._get_idt_access_token()
 
     @staticmethod
