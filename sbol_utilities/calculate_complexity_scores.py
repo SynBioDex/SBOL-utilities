@@ -23,10 +23,11 @@ REPORT_ACTIVITY_TYPE = 'https://github.com/SynBioDex/SBOL-utilities/compute-sequ
 class IDTAccountAccessor:
     """Class that wraps access to the IDT API"""
 
-    _TOKEN_URL = 'https://www.idtdna.com/Identityserver/connect/token'
-    """API URL for obtaining session tokens"""
-    _SCORE_URL = 'https://www.idtdna.com/api/complexities/screengBlockSequences'
-    """APR URL for obtaining sequence scores"""
+    _SUBDOMAINS = ['https://www.idtdna.com/', 'https://eu.idtdna.com/', 'https://sg.idtdna.com/']
+    _TOKEN_ENDPOINT = 'Identityserver/connect/token'
+    """API ENDPOINT for obtaining session tokens"""
+    _SCORE_ENDPOINT = 'api/complexities/screengBlockSequences'
+    """API ENDPOINT for obtaining sequence scores"""
     _BLOCK_SIZE = 1  # TODO: determine if it is possible to run multiple sequences in a single query
     SCORE_TIMEOUT = 120
     """Number of seconds to wait for score query requests to complete"""
