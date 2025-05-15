@@ -72,3 +72,8 @@ To make a new test:
 - Put the file in the `test/test_files`
 
 - Write a new test function in `test_sbol2_sbol3_direct.py` (follow what the other tests are doing: create a document based on the file, call conversion, convert back to original SBOL version, and check for differences)
+
+- Now you can write the new converter functionality to make that test pass
+
+- Note that after completing the converter code, there will still be errors saying the objects are missing backport triples from the roundtrip conversion.
+    To deal with those you need to add backport variables to your objects in the XML file. Add `xmlns:backport="http://sboltools.org/backport#"` to the namespaces at the beginning of the file and `<backport:sbol3namespace rdf:resource="https://github.com"/>` to each object
