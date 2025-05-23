@@ -12,13 +12,21 @@ from sbol_utilities.sbol_diff import file_diff
 TEST_FILES = Path(__file__).parent / 'test_files'
 
 
-class SBOLValidationError(Exception): pass
+class SBOLValidationError(Exception):
+    """This exception class is intended for use within the context of TestCases to raise failures due to invalid SBOL
+    documents."""
+    pass
 
 
-class SBOL2to3ConversionError(Exception): pass
+class SBOL2to3ConversionError(Exception):
+    """This exception class is intended for use within the context of TestCases to raise failures converting SBOL2
+    documents to SBOL3."""
+    pass
 
-
-class SBOL3to2ConversionError(Exception): pass
+class SBOL3to2ConversionError(Exception):
+    """This exception class is intended for use within the context of TestCases to raise failures converting SBOL3
+    documents to SBOL2."""
+    pass
 
 
 class TestDirectSBOL2SBOL3Conversion(unittest.TestCase):
@@ -254,10 +262,10 @@ class TestDirectSBOL2SBOL3Conversion(unittest.TestCase):
                 doc2_loop.write(tmp2)
                 self.assertFalse(file_diff(str(tmp2), str(TEST_FILES / 'seq_componentDefinition.xml')))
 
-    def handle_2to3_conversion(self, test_filename, rubric_filename):
+    def handle_2to3_conversion(self, test_filename: str, comparison_filename: str):
         """Provides a re-usable test handler for converting SBOL2 to SBOL3 with different test files
-        test_filename: Name of an SBOL2 test file
-        rubric_filename: Name of an SBOL3 file with expected conversion
+        :param test_filename: Name of an SBOL2 test file
+        :param comparison_filename: Name of an SBOL3 file with expected conversion
     """
         """Test ability to convert a simple part from SBOL2 to SBOL3"""
 
@@ -274,7 +282,7 @@ class TestDirectSBOL2SBOL3Conversion(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             tmp3 = Path(tmpdir) / 'doc3.nt'
             doc3.write(tmp3)
-            if file_diff(str(tmp3), str(TEST_FILES / rubric_filename)):
+            if file_diff(str(tmp3), str(TEST_FILES / comparison_filename)):
                 raise SBOL2to3ConversionError()
 
             # Round-trip back to SBOL2 and check contents
@@ -294,10 +302,10 @@ class TestDirectSBOL2SBOL3Conversion(unittest.TestCase):
 
 class TestDirectSBOL3SBOL2Conversion(unittest.TestCase):
 
-    def handle_3to2_conversion(self, test_filename, rubric_filename):
+    def handle_3to2_conversion(self, test_filename: str, comparison_filename: str):
         """Provides a re-usable test handler for converting SBOL3 to SBOL2 with different test files
-        test_filename: Name of an SBOL3 test file
-        rubric_filename: Name of an SBOL2 file with expected conversion
+        :param test_filename: Name of an SBOL3 test file
+        :param comparison_filename: Name of an SBOL2 file with expected conversion
     """
         # Load an SBOL3 document and check its contents
         doc3 = sbol3.Document()
@@ -312,7 +320,7 @@ class TestDirectSBOL3SBOL2Conversion(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             tmp2 = Path(tmpdir) / 'doc2.xml'
             doc2.write(tmp2)
-            if file_diff(str(tmp2), str(TEST_FILES / rubric_filename)):
+            if file_diff(str(tmp2), str(TEST_FILES / comparison_filename)):
                 raise SBOL3to2ConversionError()
  
             # Round-trip back to SBOL3 and check contents
