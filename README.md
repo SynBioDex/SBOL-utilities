@@ -24,6 +24,25 @@ Certain utilities also have non-Python dependencies, which must be installed sep
 - `graph-sbol` requires [Graphviz](https://graphviz.org/) to be able to render diagrams.
 - `sbol-converter` requires [node.js](https://nodejs.org/en/) to be able to locally run Javascript.
 
+## 🔗 Mapping: Command-Line Tools to Python Modules
+
+This table provides a quick reference to help developers understand where each command-line utility is implemented within the Python package.
+
+| **Command-line Tool**       | **Python Module**                                 | **Entry Point Function** |
+| --------------------------- | ------------------------------------------------- | ------------------------ |
+| `excel-to-sbol`             | `sbol_utilities.excel_to_sbol`                    | `main`                   |
+| `graph-sbol`                | `sbol_utilities.graph_sbol`                       | `main`                   |
+| `sbol-expand-derivations`   | `sbol_utilities.expand_combinatorial_derivations` | `main`                   |
+| `sbol-calculate-sequences`  | `sbol_utilities.calculate_sequences`              | `main`                   |
+| `sbol-calculate-complexity` | `sbol_utilities.calculate_complexity_scores`      | `main`                   |
+| `sbol-converter`            | `sbol_utilities.conversion`                       | `main`                   |
+| `sbol2-to-sbol3`            | `sbol_utilities.conversion`                       | `sbol2to3`               |
+| `sbol3-to-sbol2`            | `sbol_utilities.conversion`                       | `sbol3to2`               |
+| `sbol-to-genbank`           | `sbol_utilities.conversion`                       | `sbol2genbank`           |
+| `genbank-to-sbol`           | `sbol_utilities.conversion`                       | `genbank2sbol`           |
+| `sbol-to-fasta`             | `sbol_utilities.conversion`                       | `sbol2fasta`             |
+| `fasta-to-sbol`             | `sbol_utilities.conversion`                       | `fasta2sbol`             |
+| `sbol-diff`                 | `sbol_utilities.sbol_diff`                        | `main`                   |
 
 ## Utilities
 
