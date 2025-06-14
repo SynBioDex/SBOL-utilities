@@ -175,24 +175,36 @@ class SBOL3To2ConversionVisitor:
                     sbol3.SBO_SIMPLE_CHEMICAL: sbol2.BIOPAX_SMALL_MOLECULE,
                     sbol3.SBO_NON_COVALENT_COMPLEX: sbol2.BIOPAX_COMPLEX}
         types2 = [type_map.get(t, t) for t in cp3.types]
-        # Make the Component object and add it to the document
-        cp2 = sbol2.ComponentDefinition(self._sbol2_identity(cp3), types2, version=self._sbol2_version(cp3))
-        self.doc2.addComponentDefinition(cp2)
-        # Convert the Component properties not covered by the constructor
-        cp2.roles = cp3.roles
-        cp2.sequences = cp3.sequences
-        if cp3.features:
-            raise NotImplementedError('Conversion of Component features from SBOL3 to SBOL2 not yet implemented')
-        if cp3.interactions:
-            raise NotImplementedError('Conversion of Component interactions from SBOL3 to SBOL2 not yet implemented')
-        if cp3.constraints:
-            raise NotImplementedError('Conversion of Component constraints from SBOL3 to SBOL2 not yet implemented')
-        if cp3.interface:
-            raise NotImplementedError('Conversion of Component interface from SBOL3 to SBOL2 not yet implemented')
-        if cp3.models:
-            raise NotImplementedError('Conversion of Component models from SBOL3 to SBOL2 not yet implemented')
-        # Map over all other TopLevel properties and extensions not covered by the constructor
-        self._convert_toplevel(cp3, cp2)
+
+        # Determine whether Component maps to a ComponentDefinition or ModuleDefinition
+        if sbol3.SBO_FUNCTIONAL_ENTITY not in cp3.types:
+            # Make the Component object and add it to the document
+            cp2 = sbol2.ComponentDefinition(self._sbol2_identity(cp3), types2, version=self._sbol2_version(cp3))
+
+            # Convert the Component properties not covered by the constructor
+            cp2.roles = cp3.roles
+            cp2.sequences = cp3.sequences
+            for f in cp3.features:
+                raise NotImplementedError('Conversion of Component features from SBOL3 to SBOL2 not yet implemented')
+            if cp3.interactions:
+                raise NotImplementedError('Conversion of Component interactions from SBOL3 to SBOL2 not yet implemented')
+            if cp3.constraints:
+                raise NotImplementedError('Conversion of Component constraints from SBOL3 to SBOL2 not yet implemented')
+            if cp3.interface:
+                raise NotImplementedError('Conversion of Component interface from SBOL3 to SBOL2 not yet implemented')
+            if cp3.models:
+                raise NotImplementedError('Conversion of Component models from SBOL3 to SBOL2 not yet implemented')
+            self.doc2.addComponentDefinition(cp2)
+            self._convert_toplevel(cp3, cp2)
+        else:
+            # Component maps to an SBOL2 ModuleDefinition
+            mdef2 = sbol2.ModuleDefinition(self._sbol2_identity(cp3),
+                                           version=self._sbol2_version(cp3))
+            mdef2.roles = cp3.roles
+            mdef2.models = cp3.models
+            self.doc2.addComponentDefinition(mdef2)
+            self._convert_toplevel(cp3, mdef2)
+
 
     def visit_component_reference(self, a: sbol3.ComponentReference):
         # Priority: 3
@@ -584,8 +596,8 @@ class SBOL2To3ConversionVisitor:
         raise NotImplementedError('Conversion of Module from SBOL2 to SBOL3 not yet implemented')
 
     def visit_module_definition(self, md: sbol2.ModuleDefinition):
-        # Make the Component object and add it to the document
-        c3 = sbol3.Component(self._sbol3_identity(md), types=md.type, roles=md.roles, namespace=self._sbol3_namespace(md))
+        # ModuleDefinitions convert to SBOL3 Components annotated as "functional entities"
+        c3 = sbol3.Component(self._sbol3_identity(md), types=[sbol3.SBO_FUNCTIONAL_ENTITY], roles=md.roles, namespace=self._sbol3_namespace(md))
 
         for i2 in md.interactions:
             i3 = self.visit_interaction(i2)
