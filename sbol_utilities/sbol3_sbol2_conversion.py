@@ -604,17 +604,18 @@ class SBOL2To3ConversionVisitor:
             c3.interactions.append(i3)
             self.update_identity(i2, i3)
 
-        c3.interface = sbol3.Interface()
-        for fc in md.functionalComponents:
-            sc = self.visit_functional_component(fc)
-            c3.features.append(sc)
-            self.update_identity(fc, sc)
-            if fc.direction == 'http://sbols.org/v2#in' or fc.direction == 'http://sbols.org/v2#inout':
-                c3.interface.inputs.append(sc)
-            if fc.direction == 'http://sbols.org/v2#out' or fc.direction == 'http://sbols.org/v2#inout':
-                c3.interface.outputs.append(sc)
-            if fc.direction == 'http://sbols.org/v2#none':
-                c3.interface.nondirectionals.append(sc)
+        if md.functionalComponents:
+            c3.interface = sbol3.Interface()
+            for fc in md.functionalComponents:
+                sc = self.visit_functional_component(fc)
+                c3.features.append(sc)
+                self.update_identity(fc, sc)
+                if fc.direction == 'http://sbols.org/v2#in' or fc.direction == 'http://sbols.org/v2#inout':
+                    c3.interface.inputs.append(sc)
+                if fc.direction == 'http://sbols.org/v2#out' or fc.direction == 'http://sbols.org/v2#inout':
+                    c3.interface.outputs.append(sc)
+                if fc.direction == 'http://sbols.org/v2#none':
+                    c3.interface.nondirectionals.append(sc)
         self.doc3.add(c3)
 
     def visit_participation(self, p2: sbol2.Participation):
