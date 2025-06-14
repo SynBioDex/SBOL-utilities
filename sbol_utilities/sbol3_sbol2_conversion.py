@@ -617,6 +617,7 @@ class SBOL2To3ConversionVisitor:
                 if fc.direction == 'http://sbols.org/v2#none':
                     c3.interface.nondirectionals.append(sc)
         self.doc3.add(c3)
+        self._convert_toplevel(md, c3)
 
     def visit_participation(self, p2: sbol2.Participation):
         p3 = sbol3.Participation(p2.roles, strip_sbol2_version(p2.participant))
