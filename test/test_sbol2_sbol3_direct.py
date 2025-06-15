@@ -299,6 +299,9 @@ class TestDirectSBOL2SBOL3Conversion(unittest.TestCase):
     def test_implementation_conversion(self):
         self.handle_2to3_conversion('sbol_3to2_implementation_compliant.xml', 'sbol_3to2_implementation_compliant.nt')
 
+    def test_moduledefinition_conversion(self):
+        self.handle_2to3_conversion('sbol_3to2_moduledefinition.xml', 'sbol_3to2_moduledefinition.nt')
+
 
 class TestDirectSBOL3SBOL2Conversion(unittest.TestCase):
 
