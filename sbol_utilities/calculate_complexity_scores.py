@@ -23,10 +23,11 @@ REPORT_ACTIVITY_TYPE = 'https://github.com/SynBioDex/SBOL-utilities/compute-sequ
 class IDTAccountAccessor:
     """Class that wraps access to the IDT API"""
 
-    _TOKEN_URL = 'https://www.idtdna.com/Identityserver/connect/token'
-    """API URL for obtaining session tokens"""
-    _SCORE_URL = 'https://www.idtdna.com/api/complexities/screengBlockSequences'
-    """APR URL for obtaining sequence scores"""
+    _SUBDOMAINS = ['https://www.idtdna.com/', 'https://eu.idtdna.com/', 'https://sg.idtdna.com/']
+    _TOKEN_ENDPOINT = 'Identityserver/connect/token'
+    """API ENDPOINT for obtaining session tokens"""
+    _SCORE_ENDPOINT = 'api/complexities/screengBlockSequences'
+    """API ENDPOINT for obtaining sequence scores"""
     _BLOCK_SIZE = 1  # TODO: determine if it is possible to run multiple sequences in a single query
     SCORE_TIMEOUT = 120
     """Number of seconds to wait for score query requests to complete"""
@@ -44,6 +45,7 @@ class IDTAccountAccessor:
         self.password = password
         self.client_id = client_id
         self.client_secret = client_secret
+        self.base_url = None
         self.token = self._get_idt_access_token()
 
     @staticmethod
@@ -64,12 +66,14 @@ class IDTAccountAccessor:
         logging.info('Connecting to IDT API')
         data = {'grant_type': 'password', 'username': self.username, 'password': self.password, 'scope': 'test'}
         auth = HTTPBasicAuth(self.client_id, self.client_secret)
-        result = post(IDTAccountAccessor._TOKEN_URL, data, auth=auth, timeout=IDTAccountAccessor.SCORE_TIMEOUT)
 
-        if 'access_token' in result.json():
-            return result.json()['access_token']
-        else:
-            raise ValueError('Access token for IDT API could not be generated. Check your credentials.')
+        for domain in IDTAccountAccessor._SUBDOMAINS:
+            result = post(f'{domain}{IDTAccountAccessor._TOKEN_ENDPOINT}', data, auth=auth, timeout=IDTAccountAccessor.SCORE_TIMEOUT)
+            if result.status_code == 200:
+                self.base_url = domain
+                return result.json()['access_token']
+
+        raise ValueError('Access token for IDT API could not be generated. Check your credentials.')
 
     def get_sequence_scores(self, sequences: list[sbol3.Sequence]) -> list:
         """Retrieve synthesis complexity scores of sequences from the IDT API
@@ -89,7 +93,7 @@ class IDTAccountAccessor:
         results = []
         for idx, partition in enumerate(partitions_sequences):
             logging.debug('Sequence score request %i of %i', idx+1, len(partitions_sequences))
-            resp = post(IDTAccountAccessor._SCORE_URL, json=partition, timeout=IDTAccountAccessor.SCORE_TIMEOUT,
+            resp = post(f'{self.base_url}{IDTAccountAccessor._SCORE_ENDPOINT}', json=partition, timeout=IDTAccountAccessor.SCORE_TIMEOUT,
                         headers={'Authorization': 'Bearer {}'.format(self.token),
                                  'Content-Type': 'application/json; charset=utf-8'})
             response_list = resp.json()
