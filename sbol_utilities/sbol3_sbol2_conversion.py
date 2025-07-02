@@ -177,6 +177,8 @@ class SBOL3To2ConversionVisitor:
         types2 = [type_map.get(t, t) for t in cp3.types]
 
         # Determine whether Component maps to a ComponentDefinition or ModuleDefinition
+        # TODO: An individual SBOL3 Component may actually map into SBOL2 as both a ComponentDefinition and a
+        # ModuleDefinition. Currently this method only converts to one or the other. See #246
         if sbol3.SBO_FUNCTIONAL_ENTITY not in cp3.types:
             # Make the Component object and add it to the document
             cp2 = sbol2.ComponentDefinition(self._sbol2_identity(cp3), types2, version=self._sbol2_version(cp3))
