@@ -364,3 +364,19 @@ def is_circular(obj: Union[sbol3.Component, sbol3.LocalSubComponent, sbol3.Exter
     :return: true if circular
     """    
     return any(n==sbol3.SO_CIRCULAR for n in obj.types)
+
+
+def find_feature(doc: sbol3.Document, matching: Callable[[sbol3.Feature], bool]) -> Optional[sbol3.Feature]:
+    """
+    Search for a feature in the given SBOL document that matches the condition specified by the `matching` callable.
+    
+    :param doc: The SBOL document to search within.
+    :param matching: A callable that takes an sbol3.Feature as input and returns True if the feature matches the desired condition.
+    :return: The first sbol3.Feature that matches the condition, or None if no matching feature is found.
+    """
+    for obj in doc.objects:
+        if isinstance(obj, sbol3.Component):
+            for feature in obj.features:
+                if matching(feature):
+                    return feature
+    return None
