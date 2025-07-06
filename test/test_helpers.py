@@ -1,6 +1,8 @@
 import unittest
 import os
 from pathlib import Path
+import sbol3
+import tyto
 
 from sbol_utilities import component
 
@@ -30,6 +32,36 @@ class TestHelpers(unittest.TestCase):
         self.assertEqual(design_file_type('full path/full/path/something.genbank'), 'GenBank')
         self.assertEqual(strip_filetype_suffix('http://foo/bar/baz.gb'), 'http://foo/bar/baz')
         self.assertEqual(strip_filetype_suffix('http://foo/bar/baz.qux'), 'http://foo/bar/baz.qux')
+
+    def test_is_composite(self):
+        """Test the is_composite function."""
+        # Set up a test SBOL document and namespace
+        doc = sbol3.Document()
+        sbol3.set_namespace('http://sbolstandard.org/test')
+        # Case 1: Valid composite component (Has DNA type + Assembly Plan)
+        comp1 = sbol3.Component('comp1', types=[tyto.SO.DNA])
+        assembly_activity = sbol3.Activity('activity1')
+        assembly_activity.types.append("http://sbols.org/v3#assemblyPlan")
+        assembly_activity.types.append(sbol3.SBOL_DESIGN)
+        # Add activity to the document
+        doc.add(assembly_activity)
+        comp1.generated_by.append(sbol3.ReferencedObject(assembly_activity.identity))  
+        doc.add(comp1)
+        self.assertTrue(is_composite(comp1), "Expected comp1 to be composite")
+        # Case 2: Not composite (No DNA type, but has Assembly Plan)
+        comp2 = sbol3.Component('comp2', types=[tyto.SO.RNA])  # RNA type instead of DNA
+        comp2.generated_by.append(sbol3.ReferencedObject(assembly_activity.identity))
+        doc.add(comp2)
+        self.assertFalse(is_composite(comp2), "Expected comp2 to NOT be composite")
+        # Case 3: Not composite (Has DNA type, but no Assembly Plan)
+        comp3 = sbol3.Component('comp3', types=[tyto.SO.DNA])
+        doc.add(comp3)
+        self.assertFalse(is_composite(comp3), "Expected comp3 to NOT be composite")
+        # Case 4: Not composite (No DNA type, No Assembly Plan)
+        comp4 = sbol3.Component('comp4', types=[tyto.SO.RNA])
+        doc.add(comp4)
+        self.assertFalse(is_composite(comp4), "Expected comp4 to NOT be composite")
+
 
     def test_filtering_top_level_objects(self):
         """Check filtering Top Level Objects by a condition"""
