@@ -22,11 +22,6 @@ REPORT_ACTIVITY_TYPE = 'https://github.com/SynBioDex/SBOL-utilities/compute-sequ
 
 
 class BaseAccountAccessor(ABC):
-    @staticmethod
-    @abstractmethod
-    def from_json(json_object):
-        pass
-
     @abstractmethod
     def get_sequence_complexity(self, sequences: List[sbol3.Sequence]) -> Dict[sbol3.Sequence, Optional[float]]:
         pass
@@ -70,20 +65,6 @@ class IDTAccountAccessor(AuthenticatedAccountAccessor):
         self.client_secret = client_secret
         self.base_url = None
         self.token = self._setup_authentication()
-
-    @staticmethod
-    def from_json(json_object) -> IDTAccountAccessor:
-        """Initialize IDT account accessor from a JSON object with field values
-
-        :param json_object: object with account information
-        :return: Account accessor object
-        """
-        return IDTAccountAccessor(
-            username=json_object['username'],
-            password=json_object['password'],
-            client_id=json_object['ClientID'],
-            client_secret=json_object['ClientSecret'],
-        )
 
     def _setup_authentication(self) -> str:
         """Get access token for IDT API (see: https://www.idtdna.com/pages/tools/apidoc)
@@ -175,8 +156,6 @@ class IDTAccountAccessor(AuthenticatedAccountAccessor):
         return 'IDT'
 
 
-
-
 def get_complexity_score(seq: sbol3.Sequence) -> Optional[float]:
     """Given a sequence, return its previously computed complexity score, if such exists
 
@@ -261,35 +240,83 @@ def idt_calculate_complexity_scores(accessor: IDTAccountAccessor, doc: sbol3.Doc
     return idt_calculate_sequence_complexity_scores(accessor, sequences)
 
 
+PROVIDER_CLASSES = {'idt': IDTAccountAccessor}
+
+
+def handle_class_instantiation(provider: str, **credentials):
+    provider_cls = PROVIDER_CLASSES.get(provider)
+    if not provider_cls:
+        raise ValueError(f'Unsupported Provider: {provider}')
+    return provider_cls(**credentials)
+
+
 def main():
     """
     Main wrapper: read from input file, invoke idt_calculate_complexity_scores, then write to output file
     """
+
     parser = argparse.ArgumentParser()
+
     parser.add_argument(
         '-c',
         '--credentials',
         help="""JSON file containing IDT API access credentials.
-To obtain access credentials, follow the directions at https://www.idtdna.com/pages/tools/apidoc
-The values of the IDT access credentials should be stored in a JSON of the following form:
-{ "username": "username", "password": "password", "ClientID": "####", "ClientSecret": "XXXXXXXXXXXXXXXXXXX" }"
-""",
+    To obtain access credentials, follow the directions at https://www.idtdna.com/pages/tools/apidoc
+    The values of the IDT access credentials should be stored in a JSON of the following form:
+    { "username": "username", "password": "password", "ClientID": "####", "ClientSecret": "XXXXXXXXXXXXXXXXXXX" }
+    """,
     )
-    parser.add_argument('--username', help='Username of your IDT account (if not using JSON credentials)')
-    parser.add_argument('--password', help='Password of your IDT account (if not using JSON credentials)')
-    parser.add_argument('--ClientID', help='ClientID of your IDT account (if not using JSON credentials)')
-    parser.add_argument('--ClientSecret', help='ClientSecret of your IDT account (if not using JSON credentials)')
-    parser.add_argument('input_file', help='Absolute path to sbol file with sequences')
+
+    parser.add_argument(
+        '--provider', choices=['idt', 'twist'], required=True, help='Provider to calculate DNA Complexity score'
+    )
+
+    # IDT credentials
+    idt_creds = parser.add_argument_group('IDT Credentials', 'Arguments related to IDT')
+    idt_creds.add_argument('--idt-username', required=False, dest='idt_username', help='IDT account username')
+    idt_creds.add_argument('--idt-password', required=False, dest='idt_password', help='IDT account password')
+    idt_creds.add_argument('--idt-client-id', required=False, dest='idt_client_id', help='IDT client ID')
+    idt_creds.add_argument('--idt-client-secret', required=False, dest='idt_client_secret', help='IDT client secret')
+
+    # TWIST credentials
+    twist_creds = parser.add_argument_group('TWIST Credentials', 'Arguments related to TWIST')
+    twist_creds.add_argument('--twist-email', required=False, dest='twist_email', help='Twist account email')
+    twist_creds.add_argument('--twist-api-key', required=False, dest='twist_api_key', help='Twist api key')
+    twist_creds.add_argument('--twist-user-token', required=False, dest='twist_user_token', help='Twist user token')
+
+    # Positional and other arguments
+    parser.add_argument('input_file', help='Absolute path to SBOL file with sequences')
     parser.add_argument('output_name', help='Name of SBOL file to be written')
     parser.add_argument(
         '-t',
         '--file-type',
         dest='file_type',
         default=sbol3.SORTED_NTRIPLES,
-        help='Name of SBOL file to output to (excluding type)',
+        help='SBOL serialization format (e.g., sorted_ntriples, json, etc.)',
     )
     parser.add_argument('--verbose', '-v', dest='verbose', action='count', default=0)
+
     args_dict = vars(parser.parse_args())
+
+    # --- Credential validation logic and create valid credentials dict ---
+    credentials_dict = {}
+    all_keys = {
+        'twist': ['twist_email', 'twist_api_key', 'twist_user_token'],
+        'idt': ['idt_username', 'idt_password', 'idt_client_id', 'idt_client_secret'],
+    }
+    if not args_dict['credentials']:
+        provider_keys = all_keys.get(args_dict['provider'], [])
+        missing = [name for name in provider_keys if not args_dict.get(name)]
+        if missing:
+            parser.error(
+                f'Missing required {args_dict["provider"].upper()}: {", ".join("--" + m.replace("_", "-") for m in missing)}'
+            )
+        else:
+            credentials_dict = {k.removeprefix(f'{args_dict["provider"]}_'): args_dict[k] for k in provider_keys}
+    else:
+        with open(file=args_dict['credentials'], encoding='utf-8') as f:
+            creds = json.load(f)
+        credentials_dict = creds[args_dict['provider']]
 
     # Extract arguments:
     verbosity = args_dict['verbose']
@@ -299,13 +326,7 @@ The values of the IDT access credentials should be stored in a JSON of the follo
     input_file = args_dict['input_file']
     output_name = args_dict['output_name']
 
-    if args_dict['credentials'] != None:
-        with open(args_dict['credentials']) as credentials:
-            idt_accessor = IDTAccountAccessor.from_json(json.load(credentials))
-    else:
-        idt_accessor = IDTAccountAccessor(
-            args_dict['username'], args_dict['password'], args_dict['ClientID'], args_dict['ClientSecret']
-        )
+    accessor = handle_class_instantiation(args_dict['provider'], **credentials_dict)
 
     extension = type_to_standard_extension[args_dict['file_type']]
     outfile_name = output_name if output_name.endswith(extension) else output_name + extension
@@ -314,7 +335,7 @@ The values of the IDT access credentials should be stored in a JSON of the follo
     logging.info('Reading SBOL file ' + input_file)
     doc = sbol3.Document()
     doc.read(input_file)
-    results = idt_calculate_complexity_scores(idt_accessor, doc)
+    results = idt_calculate_complexity_scores(accessor, doc)
     doc.write(outfile_name, args_dict['file_type'])
     logging.info('SBOL file written to %s with %i new scores calculated', outfile_name, len(results))
 
