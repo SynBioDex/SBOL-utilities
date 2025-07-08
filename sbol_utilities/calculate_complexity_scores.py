@@ -187,8 +187,8 @@ def get_complexity_scores(
     return score_map
 
 
-def idt_calculate_sequence_complexity_scores(
-    accessor: IDTAccountAccessor, sequences: list[sbol3.Sequence]
+def calculate_sequence_complexity_scores(
+    accessor: BaseAccountAccessor, sequences: list[sbol3.Sequence]
 ) -> dict[sbol3.Sequence, float]:
     """Given a list of sequences, compute the complexity scores for any sequences not currently scored
     by sending the sequences to IDT's online service for calculating sequence synthesis complexity.
@@ -227,7 +227,7 @@ def idt_calculate_sequence_complexity_scores(
     return score_dictionary
 
 
-def idt_calculate_complexity_scores(accessor: IDTAccountAccessor, doc: sbol3.Document) -> dict[sbol3.Sequence, float]:
+def calculate_complexity_scores(accessor: BaseAccountAccessor, doc: sbol3.Document) -> dict[sbol3.Sequence, float]:
     """Given an SBOL Document, compute the complexity scores for any sequences in the Document not currently scored
     by sending the sequences to IDT's online service for calculating sequence synthesis complexity.
     Also records the complexity computation with an activity
@@ -237,7 +237,6 @@ def idt_calculate_complexity_scores(accessor: IDTAccountAccessor, doc: sbol3.Doc
     :return: Dictionary mapping Sequences to complexity scores
     """
     sequences = [obj for obj in doc if isinstance(obj, sbol3.Sequence)]
-    return idt_calculate_sequence_complexity_scores(accessor, sequences)
 
 
 PROVIDER_CLASSES = {'idt': IDTAccountAccessor}
@@ -335,7 +334,7 @@ def main():
     logging.info('Reading SBOL file ' + input_file)
     doc = sbol3.Document()
     doc.read(input_file)
-    results = idt_calculate_complexity_scores(accessor, doc)
+    results = calculate_complexity_scores(accessor, doc)
     doc.write(outfile_name, args_dict['file_type'])
     logging.info('SBOL file written to %s with %i new scores calculated', outfile_name, len(results))
 

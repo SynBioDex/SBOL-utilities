@@ -17,8 +17,8 @@ import sbol3
 from unittest.mock import patch
 from sbol_utilities.calculate_complexity_scores import (
     IDTAccountAccessor,
-    idt_calculate_complexity_scores,
-    idt_calculate_sequence_complexity_scores,
+    calculate_complexity_scores,
+    calculate_sequence_complexity_scores,
     get_complexity_scores,
 )
 import sbol_utilities.sbol_diff
@@ -52,7 +52,7 @@ class TestIDTCalculateComplexityScore(unittest.TestCase):
     @unittest.skipIf(
         sys.platform == 'win32', reason='Not working on Windows https://github.com/SynBioDex/SBOL-utilities/issues/221'
     )
-    def test_IDT_calculate_complexity_score(self):
+    def test_calculate_complexity_score(self):
         """Test that a library-call invocation of complexity scoring works"""
         test_dir = Path(__file__).parent
         with open(test_dir.parent / 'test_secret_idt_credentials.json') as test_credentials:
@@ -66,14 +66,14 @@ class TestIDTCalculateComplexityScore(unittest.TestCase):
         scores = get_complexity_scores(sequences)
         self.assertEqual(scores, dict())
         # Compute sequences for
-        results = idt_calculate_sequence_complexity_scores(idt_accessor, sequences)
+        results = calculate_sequence_complexity_scores(idt_accessor, sequences)
         self.assertEqual(len(results), 1)
         self.assertEqual(results[sequences[0]], 0)  # score is zero because the sequence both short and easy
         scores = get_complexity_scores(sequences)
         self.assertEqual(scores, results)
 
         # Compute results again: results should be blank, because the calculation is already made
-        results = idt_calculate_complexity_scores(idt_accessor, doc)
+        results = calculate_complexity_scores(idt_accessor, doc)
         self.assertEqual(len(results), 0)
         self.assertEqual(results, dict())
         scores = get_complexity_scores(sequences)
