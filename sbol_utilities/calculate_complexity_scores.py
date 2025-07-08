@@ -191,10 +191,10 @@ def calculate_sequence_complexity_scores(
     accessor: BaseAccountAccessor, sequences: list[sbol3.Sequence]
 ) -> dict[sbol3.Sequence, float]:
     """Given a list of sequences, compute the complexity scores for any sequences not currently scored
-    by sending the sequences to IDT's online service for calculating sequence synthesis complexity.
+    by sending the sequences to provider's online service for calculating sequence synthesis complexity.
     Also records the complexity computation with an activity
 
-    :param accessor: IDT API access object
+    :param accessor: provider API access object
     :param sequences: list of SBOL Sequences to evaluate
     :return: Dictionary mapping Sequences to complexity scores for newly computed sequences
     """
@@ -229,14 +229,15 @@ def calculate_sequence_complexity_scores(
 
 def calculate_complexity_scores(accessor: BaseAccountAccessor, doc: sbol3.Document) -> dict[sbol3.Sequence, float]:
     """Given an SBOL Document, compute the complexity scores for any sequences in the Document not currently scored
-    by sending the sequences to IDT's online service for calculating sequence synthesis complexity.
+    by sending the sequences to the provider's online service for calculating sequence synthesis complexity.
     Also records the complexity computation with an activity
 
-    :param accessor: IDT API access object
+    :param accessor: Provider API access object
     :param doc: SBOL document with sequences of interest in it
     :return: Dictionary mapping Sequences to complexity scores
     """
     sequences = [obj for obj in doc if isinstance(obj, sbol3.Sequence)]
+    return calculate_sequence_complexity_scores(accessor, sequences)
 
 
 PROVIDER_CLASSES = {'idt': IDTAccountAccessor}
@@ -251,7 +252,7 @@ def handle_class_instantiation(provider: str, **credentials):
 
 def main():
     """
-    Main wrapper: read from input file, invoke idt_calculate_complexity_scores, then write to output file
+    Main wrapper: read from input file, invoke calculate_complexity_scores, then write to output file
     """
 
     parser = argparse.ArgumentParser()
@@ -259,10 +260,10 @@ def main():
     parser.add_argument(
         '-c',
         '--credentials',
-        help="""JSON file containing IDT API access credentials.
-    To obtain access credentials, follow the directions at https://www.idtdna.com/pages/tools/apidoc
-    The values of the IDT access credentials should be stored in a JSON of the following form:
-    { "username": "username", "password": "password", "ClientID": "####", "ClientSecret": "XXXXXXXXXXXXXXXXXXX" }
+        help="""JSON file containing API access credentials.
+    To obtain access credentials, follow the directions at the synthesis provider's website.
+    The values of the access credentials should be stored in a JSON of the following form:
+    { "provider_name": { "key": "value", ... } }
     """,
     )
 
