@@ -8,7 +8,6 @@ from sbol_utilities.helper_functions import *
 
 
 class TestHelpers(unittest.TestCase):
-
     def test_url_sanitization(self):
         # SBOL2 version stripping:
         uri = 'https://synbiohub.programmingbiology.org/public/Eco1C1G1T1/LmrA/1'
@@ -118,22 +117,89 @@ class TestHelpers(unittest.TestCase):
             found_object = find_top_level(c1.sequences[0])
             self.assertEqual(sequence, found_object)
 
+    def test_generate_hash(self):
+        """Test the generate_hash function"""
+        # Create a test attachment
+        test_dir = os.path.dirname(os.path.realpath(__file__))
+        test_file = os.path.join(test_dir, 'test_files', 'test_attachment.xml')
+        doc = sbol3.Document()
+        doc.read(test_file)
+        attachment: sbol3.Attachment = doc.find('exp1_growth_data')
+
+        # 1. Test with a valid file and default algorithm (sha1)
+        hash = generate_hash(attachment)
+        expected_hash_sha1 = '8d297ddafd1955b6095356582c13a58f23a1a133'
+        expected_hash_algorithm = 'sha1'
+        expected_source = 'https://raw.githubusercontent.com/SynBioDex/SBOL-Notebooks/1e4d133dfeb313695f2cee394a580d2569ce6892/examples/sbol2/CreatingSBOL2Objects/plate_reader_exp1.csv'
+        expected_format = 'http://edamontology.org/format_3752'
+        self.assertEqual(
+            hash,
+            expected_hash_sha1,
+            msg='SHA1 Hash of the Attachment file, is not "8d297ddafd1955b6095356582c13a58f23a1a133"',
+        )
+        self.assertEqual(
+            attachment.hash_algorithm,
+            expected_hash_algorithm,
+            msg='hash_algorithm property of the Attachment Object does not match "sha1"',
+        )
+        self.assertEqual(attachment.source, expected_source, msg='Source of Attachment object should remain unchaged')
+        self.assertEqual(
+            expected_format, attachment.format, msg='Format of the Attachment object should remain unchanged'
+        )
+
+        # 2. Test with sha256 algorithm
+        hash = generate_hash(attachment, algorithm='sha256')
+        expected_hash_sha1 = 'c531131f1bfc4c56b1d49a8caf389ac744263582163df2a6aab45916f2eab045'
+        expected_hash_algorithm = 'sha256'
+        expected_source = 'https://raw.githubusercontent.com/SynBioDex/SBOL-Notebooks/1e4d133dfeb313695f2cee394a580d2569ce6892/examples/sbol2/CreatingSBOL2Objects/plate_reader_exp1.csv'
+        expected_format = 'http://edamontology.org/format_3752'
+        self.assertEqual(
+            hash,
+            expected_hash_sha1,
+            msg='SHA256 Hash of the Attachment file, is not "c531131f1bfc4c56b1d49a8caf389ac744263582163df2a6aab45916f2eab045"',
+        )
+        self.assertEqual(
+            attachment.hash_algorithm,
+            expected_hash_algorithm,
+            msg='hash_algorithm property of the Attachment Object does not match "sha256"',
+        )
+        self.assertEqual(attachment.source, expected_source, msg='Source of Attachment object should remain unchaged')
+        self.assertEqual(
+            expected_format, attachment.format, msg='Format of the Attachment object should remain unchanged'
+        )
+
+        # 3. Test with a non-existent file
+        attachment.source = 'non_existent_file.txt'
+        with self.assertRaises(RuntimeError):
+            generate_hash(attachment)
+
+        # 4. Test with an invalid algorithm
+        attachment.source = test_file
+        with self.assertRaises(ValueError):
+            generate_hash(attachment, algorithm='md5')
+
+        # 5. Test with a non-attachment object
+        with self.assertRaises(TypeError):
+            generate_hash('not_an_attachment')
+
     def test_outgoing(self):
         """Test the outgoing_links function"""
         doc = sbol3.Document()
         test_dir = Path(__file__).parent
         doc.read(str(test_dir / 'test_files' / 'incomplete_constraints_library.nt'))
 
-        expected = {'http://parts.igem.org/E0040',
-                    'http://parts.igem.org/J23105_sequence',
-                    'http://parts.igem.org/J23109',
-                    'http://sbolstandard.org/testfiles/B0030_sequence',
-                    'http://sbolstandard.org/testfiles/B0031',
-                    'http://sbolstandard.org/testfiles/Multicolor_expression_template',
-                    'http://sbolstandard.org/testfiles/Multicolor_expression_template/LocalSubComponent1',
-                    'http://sbolstandard.org/testfiles/UNSX_UP',
-                    'http://sbolstandard.org/testfiles/UNSX_sequence',
-                    'http://sbolstandard.org/testfiles/_4_FPs'}
+        expected = {
+            'http://parts.igem.org/E0040',
+            'http://parts.igem.org/J23105_sequence',
+            'http://parts.igem.org/J23109',
+            'http://sbolstandard.org/testfiles/B0030_sequence',
+            'http://sbolstandard.org/testfiles/B0031',
+            'http://sbolstandard.org/testfiles/Multicolor_expression_template',
+            'http://sbolstandard.org/testfiles/Multicolor_expression_template/LocalSubComponent1',
+            'http://sbolstandard.org/testfiles/UNSX_UP',
+            'http://sbolstandard.org/testfiles/UNSX_sequence',
+            'http://sbolstandard.org/testfiles/_4_FPs',
+        }
         self.assertEqual(outgoing_links(doc), expected)
 
 
