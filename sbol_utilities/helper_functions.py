@@ -376,7 +376,7 @@ def generate_hash(obj: sbol3.Attachment, algorithm: str = 'sha1') -> str:
     Generate a SHA-family hash for the content of an SBOL Attachment.
 
     This function calculates a hash (SHA-1, SHA-2 variants) of the file or
-    resource referenced by the `source` attribute of an `Attachment` object.
+    resource referenced by the `source` attribute of an `Attachment` object, and updates the hash, and hash-algorithm property of the Attachment Object.
     The source can be a local file path or a URL.
 
     param obj : sbol3.Attachment
@@ -450,5 +450,8 @@ def generate_hash(obj: sbol3.Attachment, algorithm: str = 'sha1') -> str:
 
     except Exception as e:
         raise RuntimeError(f"Failed to generate hash for '{file_path}': {e}")
+
+    obj.hash = hasher.hexdigest()
+    obj.hash_algorithm = algorithm
 
     return hasher.hexdigest()
