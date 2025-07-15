@@ -207,6 +207,39 @@ class SBOL3To2ConversionVisitor:
             self.doc2.addComponentDefinition(mdef2)
             self._convert_toplevel(cp3, mdef2)
 
+            # SubComponents in the Interface are converted into public FunctionalComponents
+            if cp3.interface:
+                self.visit_interface(cp3.interface, mdef2)
+
+            # Other cases in which SubComponents are back-converted into FunctionalComponents
+            for f in cp3.features:
+                if not hasattr(f, 'backport_direction'):
+                    f.backport_direction = sbol3.URIProperty(f, f'{BACKPORT_NAMESPACE}sbol2_direction', 0, 1)
+                if not hasattr(f, 'backport_access'):
+                    f.backport_access = sbol3.URIProperty(f, f'{BACKPORT_NAMESPACE}sbol2_access', 0, 1)
+                
+                # SubComponents which originated from private FunctionalComponents
+                if f.backport_access == sbol2.SBOL_ACCESS_PRIVATE:
+                    fc = sbol2.FunctionalComponent(self._sbol2_identity(f),
+                                                   f.instance_of,
+                                                   sbol2.SBOL_ACCESS_PRIVATE,
+                                                   f.backport_direction)
+                    fc.definition = f.instance_of  # See pySBOL2 #430
+                    mdef2.functionalComponents.add(fc)
+             
+                # The following covers an edge case in which SubComponents are back-converted into FunctionalComponents 
+                # that are both nondirectional and public, which is a bit of an oxymoron
+                # semantically, but still syntactically valid
+                elif f.backport_access == sbol2.SBOL_ACCESS_PUBLIC and f.backport_direction == sbol2.SBOL_DIRECTION_NONE:
+                    fc = sbol2.FunctionalComponent(self._sbol2_identity(f),
+                                                   f.instance_of,
+                                                   sbol2.SBOL_ACCESS_PUBLIC,
+                                                   sbol2.SBOL_DIRECTION_NONE)
+                    fc.definition = f.instance_of  # See pySBOL2 #430
+                    mdef2.functionalComponents.add(fc)
+
+
+  
 
     def visit_component_reference(self, a: sbol3.ComponentReference):
         # Priority: 3
@@ -253,9 +286,30 @@ class SBOL3To2ConversionVisitor:
         # Priority: 2
         raise NotImplementedError('Conversion of Interaction from SBOL3 to SBOL2 not yet implemented')
 
-    def visit_interface(self, a: sbol3.Interface):
-        # Priority: 3
-        raise NotImplementedError('Conversion of Interface from SBOL3 to SBOL2 not yet implemented')
+    def visit_interface(self, i3: sbol3.Interface, mdef2: sbol2.ModuleDefinition):
+        for sc in [sc_uri.lookup() for sc_uri in i3.inputs]:
+            fc = sbol2.FunctionalComponent(self._sbol2_identity(sc),
+                                           sc.instance_of,
+                                           sbol2.SBOL_ACCESS_PUBLIC,
+                                           sbol2.SBOL_DIRECTION_IN)
+            fc.definition = sc.instance_of  # See pySBOL2 #430
+            mdef2.functionalComponents.add(fc)
+
+        for sc in [sc_uri.lookup() for sc_uri in i3.outputs]:
+            fc = sbol2.FunctionalComponent(self._sbol2_identity(sc),
+                                           sc.instance_of,
+                                           sbol2.SBOL_ACCESS_PUBLIC,
+                                           sbol2.SBOL_DIRECTION_OUT)
+            fc.definition = sc.instance_of  # See pySBOL2 #430
+            mdef2.functionalComponents.add(fc)
+        for sc in [sc_uri.lookup() for sc_uri in i3.nondirectionals]:
+            fc = sbol2.FunctionalComponent(self._sbol2_identity(sc),
+                                           sc.instance_of,
+                                           sbol2.SBOL_ACCESS_PUBLIC,
+                                           sbol2.SBOL_DIRECTION_IN_OUT)
+            fc.definition = sc.instance_of  # See pySBOL2 #430
+            mdef2.functionalComponents.add(fc)
+
 
     def visit_local_sub_component(self, a: sbol3.LocalSubComponent):
         # Priority: 2
