@@ -606,18 +606,41 @@ class SBOL2To3ConversionVisitor:
             c3.interactions.append(i3)
             self.update_identity(i2, i3)
 
-        if md.functionalComponents:
-            c3.interface = sbol3.Interface()
-            for fc in md.functionalComponents:
-                sc = self.visit_functional_component(fc)
-                c3.features.append(sc)
-                self.update_identity(fc, sc)
-                if fc.direction == 'http://sbols.org/v2#in' or fc.direction == 'http://sbols.org/v2#inout':
-                    c3.interface.inputs.append(sc)
-                if fc.direction == 'http://sbols.org/v2#out' or fc.direction == 'http://sbols.org/v2#inout':
-                    c3.interface.outputs.append(sc)
-                if fc.direction == 'http://sbols.org/v2#none':
-                    c3.interface.nondirectionals.append(sc)
+        # Create an Interface only if there is a public FC
+        for fc in md.functionalComponents:
+            if fc.access == sbol2.SBOL_ACCESS_PUBLIC:
+                c3.interface = sbol3.Interface()
+                break
+
+        for fc in md.functionalComponents:
+            sc = self.visit_functional_component(fc)
+            c3.features.append(sc)
+            self.update_identity(fc, sc)
+
+            # Register "public" SubComponents in the Interface
+            if fc.access == sbol2.SBOL_ACCESS_PUBLIC:
+                if fc.direction == sbol2.SBOL_DIRECTION_IN:
+                    c3.interface.inputs.append(sc.identity)
+                elif fc.direction == sbol2.SBOL_DIRECTION_OUT:
+                    c3.interface.outputs.append(sc.identity)
+                elif fc.direction == sbol2.SBOL_DIRECTION_IN_OUT:
+                    c3.interface.nondirectionals.append(sc.identity)
+                elif fc.direction == sbol2.SBOL_DIRECTION_NONE:
+                    # FunctionalComponents that are public and nondirectional
+                    # are a case that was not intended but sometimes used
+                    sc.backport_direction = sbol3.URIProperty(sc, f'{BACKPORT_NAMESPACE}sbol2_direction', 0, 1,
+                                                              initial_value=sbol2.SBOL_DIRECTION_NONE)
+                    sc.backport_access = sbol3.URIProperty(sc, f'{BACKPORT_NAMESPACE}sbol2_access', 0, 1,
+                                                           initial_value=sbol2.SBOL_ACCESS_PUBLIC)
+            # To make SubComponents converted from private FunctionalComponents 
+            # distinguishable from other types of SubComponents, we capture
+            # their attributes as backport annotations
+            elif fc.access == sbol2.SBOL_ACCESS_PRIVATE:
+                sc.backport_access = sbol3.URIProperty(sc, f'{BACKPORT_NAMESPACE}sbol2_access', 0, 1,
+                                                       initial_value=sbol2.SBOL_ACCESS_PRIVATE)
+                sc.backport_direction = sbol3.URIProperty(sc, f'{BACKPORT_NAMESPACE}sbol2_direction', 0, 1,
+                                                          initial_value=fc.direction)
+
         self.doc3.add(c3)
         self._convert_toplevel(md, c3)
 
