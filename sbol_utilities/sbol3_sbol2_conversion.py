@@ -203,7 +203,7 @@ class SBOL3To2ConversionVisitor:
             mdef2 = sbol2.ModuleDefinition(self._sbol2_identity(cp3),
                                            version=self._sbol2_version(cp3))
             mdef2.roles = cp3.roles
-            mdef2.models = cp3.models
+            mdef2.models = cp3.models  # TODO: post-fix up link, see #326
             self.doc2.addComponentDefinition(mdef2)
             self._convert_toplevel(cp3, mdef2)
 
