@@ -602,22 +602,11 @@ class SBOL2To3ConversionVisitor:
         c3 = sbol3.Component(self._sbol3_identity(md), types=[sbol3.SBO_FUNCTIONAL_ENTITY], roles=md.roles, namespace=self._sbol3_namespace(md))
 
         for i2 in md.interactions:
-            i3 = self.visit_interaction(i2)
-            c3.interactions.append(i3)
-            self.update_identity(i2, i3)
+            raise NotImplementedError('Conversion of Interaction from SBOL2 to SBOL3 not yet implemented')
 
         if md.functionalComponents:
-            c3.interface = sbol3.Interface()
-            for fc in md.functionalComponents:
-                sc = self.visit_functional_component(fc)
-                c3.features.append(sc)
-                self.update_identity(fc, sc)
-                if fc.direction == 'http://sbols.org/v2#in' or fc.direction == 'http://sbols.org/v2#inout':
-                    c3.interface.inputs.append(sc)
-                if fc.direction == 'http://sbols.org/v2#out' or fc.direction == 'http://sbols.org/v2#inout':
-                    c3.interface.outputs.append(sc)
-                if fc.direction == 'http://sbols.org/v2#none':
-                    c3.interface.nondirectionals.append(sc)
+            raise NotImplementedError('Conversion of FunctionalComponent from SBOL2 to SBOL3 not yet implemented')
+
         self.doc3.add(c3)
         self._convert_toplevel(md, c3)
 
