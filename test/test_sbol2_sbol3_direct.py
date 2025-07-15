@@ -340,6 +340,8 @@ class TestDirectSBOL3SBOL2Conversion(unittest.TestCase):
     def test_implementation_conversion(self):
         self.handle_3to2_conversion('sbol_3to2_implementation_compliant.nt', 'sbol_3to2_implementation_compliant.xml')
 
+    def test_moduledefinition_conversion(self):
+        self.handle_3to2_conversion('sbol_3to2_moduledefinition.nt', 'sbol_3to2_moduledefinition.xml')
                 
 if __name__ == '__main__':
     unittest.main()
