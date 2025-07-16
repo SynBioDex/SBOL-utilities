@@ -7,6 +7,7 @@ import sbol2
 import sbol3
 
 from sbol_utilities.conversion import convert2to3, convert3to2
+from sbol_utilities.sbol3_sbol2_conversion import SBOL3To2ConversionVisitor, BACKPORT2_VERSION
 from sbol_utilities.sbol_diff import file_diff
 
 TEST_FILES = Path(__file__).parent / 'test_files'
@@ -337,6 +338,23 @@ class TestDirectSBOL3SBOL2Conversion(unittest.TestCase):
     def test_implementation_conversion(self):
         self.handle_3to2_conversion('sbol_3to2_implementation_compliant.nt', 'sbol_3to2_implementation_compliant.xml')
 
-                
+    def test_identity_conversion(self):
+        """Test that 3->2 conversion of identity URIs conforms to SBOL-compliant URI structure."""
+        visitor = SBOL3To2ConversionVisitor(sbol3.Document())
+        c = sbol3.Component('http://example.com/foo', sbol3.SBO_DNA)
+        self.assertEqual(visitor._sbol2_identity(c), 'http://example.com/foo')
+        c.sbol2_version = '1'
+        self.assertEqual(visitor._sbol2_identity(c), 'http://example.com/foo/1')
+
+        # Test a non-TopLevel object
+        sc = sbol3.SubComponent(c.identity)
+        # URI is not initialized
+        with self.assertRaises(ValueError):
+            visitor._sbol2_identity(sc)
+        # URI is initialized upon addition to parent
+        c.features.append(sc)
+        self.assertEqual(visitor._sbol2_identity(sc), 'http://example.com/foo/SubComponent1')
+
+ 
 if __name__ == '__main__':
     unittest.main()
