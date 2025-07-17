@@ -135,12 +135,12 @@ class TestHelpers(unittest.TestCase):
         self.assertEqual(
             hash,
             expected_hash_sha3_256,
-            msg='SHA1 Hash of the Attachment file, is not "07c003cb7f02ac70366823a683b684b810025eee866a2816fe70f239eba9ee59"',
+            msg='SHA3-256 Hash of the Attachment file, is not "07c003cb7f02ac70366823a683b684b810025eee866a2816fe70f239eba9ee59"',
         )
         self.assertEqual(
             attachment.hash_algorithm,
             expected_hash_algorithm,
-            msg='hash_algorithm property of the Attachment Object does not match "sha1"',
+            msg='hash_algorithm property of the Attachment Object does not match "sha3_256"',
         )
         self.assertEqual(attachment.source, expected_source, msg='Source of Attachment object should remain unchaged')
         self.assertEqual(
@@ -149,13 +149,13 @@ class TestHelpers(unittest.TestCase):
 
         # 2. Test with sha256 algorithm
         hash = generate_hash(attachment, algorithm='sha256')
-        expected_hash_sha3_256 = 'c531131f1bfc4c56b1d49a8caf389ac744263582163df2a6aab45916f2eab045'
+        expected_hash_sha_256 = 'c531131f1bfc4c56b1d49a8caf389ac744263582163df2a6aab45916f2eab045'
         expected_hash_algorithm = 'sha256'
         expected_source = 'https://raw.githubusercontent.com/SynBioDex/SBOL-Notebooks/1e4d133dfeb313695f2cee394a580d2569ce6892/examples/sbol2/CreatingSBOL2Objects/plate_reader_exp1.csv'
         expected_format = 'http://edamontology.org/format_3752'
         self.assertEqual(
             hash,
-            expected_hash_sha3_256,
+            expected_hash_sha_256,
             msg='SHA256 Hash of the Attachment file, is not "c531131f1bfc4c56b1d49a8caf389ac744263582163df2a6aab45916f2eab045"',
         )
         self.assertEqual(
