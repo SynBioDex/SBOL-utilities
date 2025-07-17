@@ -126,16 +126,16 @@ class TestHelpers(unittest.TestCase):
         doc.read(test_file)
         attachment: sbol3.Attachment = doc.find('exp1_growth_data')
 
-        # 1. Test with a valid file and default algorithm (sha1)
+        # 1. Test with a valid file and default algorithm (sha3_256)
         hash = generate_hash(attachment)
-        expected_hash_sha1 = '8d297ddafd1955b6095356582c13a58f23a1a133'
-        expected_hash_algorithm = 'sha1'
+        expected_hash_sha3_256 = '07c003cb7f02ac70366823a683b684b810025eee866a2816fe70f239eba9ee59'
+        expected_hash_algorithm = 'sha3_256'
         expected_source = 'https://raw.githubusercontent.com/SynBioDex/SBOL-Notebooks/1e4d133dfeb313695f2cee394a580d2569ce6892/examples/sbol2/CreatingSBOL2Objects/plate_reader_exp1.csv'
         expected_format = 'http://edamontology.org/format_3752'
         self.assertEqual(
             hash,
-            expected_hash_sha1,
-            msg='SHA1 Hash of the Attachment file, is not "8d297ddafd1955b6095356582c13a58f23a1a133"',
+            expected_hash_sha3_256,
+            msg='SHA1 Hash of the Attachment file, is not "07c003cb7f02ac70366823a683b684b810025eee866a2816fe70f239eba9ee59"',
         )
         self.assertEqual(
             attachment.hash_algorithm,
@@ -149,13 +149,13 @@ class TestHelpers(unittest.TestCase):
 
         # 2. Test with sha256 algorithm
         hash = generate_hash(attachment, algorithm='sha256')
-        expected_hash_sha1 = 'c531131f1bfc4c56b1d49a8caf389ac744263582163df2a6aab45916f2eab045'
+        expected_hash_sha3_256 = 'c531131f1bfc4c56b1d49a8caf389ac744263582163df2a6aab45916f2eab045'
         expected_hash_algorithm = 'sha256'
         expected_source = 'https://raw.githubusercontent.com/SynBioDex/SBOL-Notebooks/1e4d133dfeb313695f2cee394a580d2569ce6892/examples/sbol2/CreatingSBOL2Objects/plate_reader_exp1.csv'
         expected_format = 'http://edamontology.org/format_3752'
         self.assertEqual(
             hash,
-            expected_hash_sha1,
+            expected_hash_sha3_256,
             msg='SHA256 Hash of the Attachment file, is not "c531131f1bfc4c56b1d49a8caf389ac744263582163df2a6aab45916f2eab045"',
         )
         self.assertEqual(
