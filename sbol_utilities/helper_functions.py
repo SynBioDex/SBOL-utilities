@@ -4,6 +4,11 @@ import itertools
 from collections.abc import Generator
 from contextlib import contextmanager
 from typing import Iterable, Union, Optional, Callable
+import hashlib
+import urllib.request
+import urllib.error
+import os
+import socket
 
 import sbol3
 from rdflib import URIRef
@@ -364,3 +369,93 @@ def is_circular(obj: Union[sbol3.Component, sbol3.LocalSubComponent, sbol3.Exter
     :return: true if circular
     """    
     return any(n==sbol3.SO_CIRCULAR for n in obj.types)
+
+
+def generate_hash(obj: sbol3.Attachment, algorithm: str = 'sha3_256') -> str:
+    """
+    Generate a SHA-family hash for the content of an SBOL Attachment.
+
+    This function calculates a hash (SHA-1, SHA-2 variants) of the file or
+    resource referenced by the `source` attribute of an `Attachment` object, and updates the hash, and hash-algorithm property of the Attachment Object.
+    The source can be a local file path or a URL.
+
+    param obj : sbol3.Attachment
+        The SBOL Attachment object whose source will be hashed.
+    param algorithm : str
+        The SHA-family algorithm to use (e.g., 'sha1', 'sha256', etc.).
+
+    returns: str
+        The hexadecimal digest of the file or URL content.
+
+    raises:
+        ValueError: If the algorithm is not supported.
+        TypeError: If the provided object is not an instance of sbol3.Attachment.
+        AttributeError: If the object does not have a 'source' attribute.
+        FileNotFoundError: If the source is a local file and it does not exist.
+        RuntimeError: If reading the source fails (e.g., due to I/O or network errors).
+        TimeoutError: If a network request to a URL source times out.
+    """
+
+    SUPPORTED_SHA_ALGORITHMS = [
+        'sha1',
+        'sha224',
+        'sha256',
+        'sha384',
+        'sha512',
+        'sha512_224',
+        'sha512_256',
+        'sha3_224',
+        'sha3_256',
+        'sha3_384',
+        'sha3_512',
+    ]
+    # Validate algorithm
+    algorithm = algorithm.lower().replace('-', '_')
+    if algorithm not in SUPPORTED_SHA_ALGORITHMS:
+        raise ValueError(f"Unsupported algorithm '{algorithm}'. Supported: {', '.join(SUPPORTED_SHA_ALGORITHMS)}")
+
+    # Ensure correct object type
+    try:
+        if not isinstance(obj, sbol3.Attachment):
+            raise TypeError(f'Expected an sbol3.Attachment object, but got {type(obj).__name__}')
+        file_path = str(obj.source)
+    except AttributeError:
+        raise AttributeError("The provided object does not have a 'source' attribute.")
+
+    # Initialize hasher
+    try:
+        hasher = hashlib.new(algorithm)
+    except Exception as e:
+        raise ValueError(f"Failed to initialize hasher for algorithm '{algorithm}': {e}")
+
+    # Read and hash content
+    try:
+        if file_path.startswith(('http://', 'https://')):
+            # Source is a URL
+            try:
+                with urllib.request.urlopen(file_path, timeout=10) as response:
+                    for chunk in iter(lambda: response.read(4096), b''):
+                        hasher.update(chunk)
+
+            except urllib.error.HTTPError as e:
+                raise RuntimeError(f"HTTP error accessing URL '{file_path}': {e.code} {e.reason}")
+            except urllib.error.URLError as e:
+                raise RuntimeError(f"URL error accessing '{file_path}': {e.reason}")
+            except socket.timeout:
+                raise TimeoutError(f"Connection to '{file_path}' timed out")
+        else:
+            # Source is a local file
+            if not os.path.isfile(file_path):
+                raise FileNotFoundError(f"Attachment source not found: '{file_path}'")
+
+            with open(file_path, 'rb') as f:
+                for chunk in iter(lambda: f.read(4096), b''):
+                    hasher.update(chunk)
+
+    except Exception as e:
+        raise RuntimeError(f"Failed to generate hash for '{file_path}': {e}")
+
+    obj.hash = hasher.hexdigest()
+    obj.hash_algorithm = algorithm
+
+    return hasher.hexdigest()

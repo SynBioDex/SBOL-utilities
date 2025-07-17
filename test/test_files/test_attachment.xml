@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rdf:RDF
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:sbol="http://sbols.org/v3#"
+>
+  <rdf:Description rdf:about="https://github.com/SynBioDex/SBOL-Notebooks/exp1_growth_data">
+    <sbol:displayId>exp1_growth_data</sbol:displayId>
+    <rdf:type rdf:resource="http://sbols.org/v3#Attachment"/>
+    <sbol:hasNamespace rdf:resource="https://github.com/SynBioDex/SBOL-Notebooks"/>
+    <sbol:source rdf:resource="https://raw.githubusercontent.com/SynBioDex/SBOL-Notebooks/1e4d133dfeb313695f2cee394a580d2569ce6892/examples/sbol2/CreatingSBOL2Objects/plate_reader_exp1.csv"/>
+    <sbol:format rdf:resource="http://edamontology.org/format_3752"/>
+    <sbol:size rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">147</sbol:size>
+    <sbol:hash>c531131f1bfc4c56b1d49a8caf389ac744263582163df2a6aab45916f2eab045</sbol:hash>
+    <sbol:hashAlgorithm>sha256</sbol:hashAlgorithm>
+  </rdf:Description>
+</rdf:RDF>
