@@ -371,7 +371,7 @@ def is_circular(obj: Union[sbol3.Component, sbol3.LocalSubComponent, sbol3.Exter
     return any(n==sbol3.SO_CIRCULAR for n in obj.types)
 
 
-def generate_hash(obj: sbol3.Attachment, algorithm: str = 'sha1') -> str:
+def generate_hash(obj: sbol3.Attachment, algorithm: str = 'sha3_256') -> str:
     """
     Generate a SHA-family hash for the content of an SBOL Attachment.
 
@@ -404,9 +404,13 @@ def generate_hash(obj: sbol3.Attachment, algorithm: str = 'sha1') -> str:
         'sha512',
         'sha512_224',
         'sha512_256',
+        'sha3_224',
+        'sha3_256',
+        'sha3_384',
+        'sha3_512',
     ]
     # Validate algorithm
-    algorithm = algorithm.lower()
+    algorithm = algorithm.lower().replace('-', '_')
     if algorithm not in SUPPORTED_SHA_ALGORITHMS:
         raise ValueError(f"Unsupported algorithm '{algorithm}'. Supported: {', '.join(SUPPORTED_SHA_ALGORITHMS)}")
 
