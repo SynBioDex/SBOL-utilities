@@ -109,9 +109,12 @@ class SBOL3To2ConversionVisitor:
     def _sbol2_identity(self, obj3: sbol3.Identified):
         """Generate an SBOL2 identity for an SBOL3 object"""
         identity = obj3.identity
+        if not identity:
+            raise ValueError(f'Object of type {type(obj3)} has an uninitialized identity')
+        namespace = parse_namespace(identity)
         if self._sbol2_version(obj3):
             # TODO replace fragile string manipulation with robust path handling (https://github.com/SynBioDex/SBOL-utilities/issues/316)
-            identity = identity.replace(obj3.namespace + "/" + self._sbol2_version(obj3), obj3.namespace)
+            identity = identity.replace(namespace + "/" + self._sbol2_version(obj3), namespace)
             identity = identity + "/" + self._sbol2_version(obj3)
         return identity
 
