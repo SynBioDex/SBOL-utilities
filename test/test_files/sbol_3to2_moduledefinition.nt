@@ -1,0 +1,7 @@
+<http://synbiohub.bbn.com/1/md> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://sbols.org/v3#Component> .
+<http://synbiohub.bbn.com/1/md> <http://sbols.org/v3#description> "A simple ModuleDefinition" .
+<http://synbiohub.bbn.com/1/md> <http://sbols.org/v3#displayId> "md" .
+<http://synbiohub.bbn.com/1/md> <http://sbols.org/v3#hasNamespace> <http://synbiohub.bbn.com> .
+<http://synbiohub.bbn.com/1/md> <http://sboltools.org/backport#sbol2version> "1" .
+<http://synbiohub.bbn.com/1/md> <http://sbols.org/v3#role> <https://www.openmath.org/cd/logic1#nand> .
+<http://synbiohub.bbn.com/1/md> <http://sbols.org/v3#type> <https://identifiers.org/SBO:0000241> .
