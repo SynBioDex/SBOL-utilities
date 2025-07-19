@@ -2,8 +2,15 @@
 
 To run these tests, you will need IDT access credentials (see: https://www.idtdna.com/pages/tools/apidoc)
 The values of the IDT access credentials should be stored in a file in the top level directory called
-'test_secret_idt_credentials.json', with the contents of the form:
-{ "username": "username", "password": "password", "ClientID": "####", "ClientSecret": "XXXXXXXXXXXXXXXXXXX" }
+'test_secret_credentials.json', with the contents of the form:
+{
+    "idt" : {
+        "username": "username",
+        "password": "password",
+        "client_id": "####",
+        "client_secret": "XXXXXXXXXXXXXXXXXXX"
+    }
+}
 """
 
 from pathlib import Path
@@ -55,8 +62,10 @@ class TestIDTCalculateComplexityScore(unittest.TestCase):
     def test_calculate_complexity_score(self):
         """Test that a library-call invocation of complexity scoring works"""
         test_dir = Path(__file__).parent
-        with open(test_dir.parent / 'test_secret_idt_credentials.json') as test_credentials:
-            idt_accessor = IDTAccountAccessor(**json.load(test_credentials)['idt'])
+        with open(test_dir.parent / 'test_secret_credentials.json') as test_credentials:
+            test_credentials_json = json.load(test_credentials)
+            print(test_credentials_json['idt'])
+            idt_accessor = IDTAccountAccessor.from_json(test_credentials_json['idt'])
 
         doc = sbol3.Document()
         doc.read(test_dir / 'test_files' / 'BBa_J23101.nt')
@@ -91,7 +100,7 @@ class TestIDTCalculateComplexityScore(unittest.TestCase):
             '--provider',
             'idt',
             '--credentials',
-            str(test_dir.parent / 'test_secret_idt_credentials.json'),
+            str(test_dir.parent / 'test_secret_credentials.json'),
             str(test_dir / 'test_files' / 'Test_file_Complexity_Scores.nt'),
             temp_name,
         ]
