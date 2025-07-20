@@ -226,8 +226,10 @@ class SBOL3To2ConversionVisitor:
                     fc = sbol2.FunctionalComponent(self._sbol2_identity(f),
                                                    f.instance_of,
                                                    sbol2.SBOL_ACCESS_PRIVATE,
-                                                   f.backport_direction)
+                                                   f.backport_direction,
+                                                   version=self._sbol2_version(f))
                     fc.definition = f.instance_of  # See pySBOL2 #430
+                    self._convert_identified(f, fc)
                     mdef2.functionalComponents.add(fc)
              
                 # The following covers an edge case in which SubComponents are back-converted into FunctionalComponents 
@@ -237,8 +239,10 @@ class SBOL3To2ConversionVisitor:
                     fc = sbol2.FunctionalComponent(self._sbol2_identity(f),
                                                    f.instance_of,
                                                    sbol2.SBOL_ACCESS_PUBLIC,
-                                                   sbol2.SBOL_DIRECTION_NONE)
+                                                   sbol2.SBOL_DIRECTION_NONE,
+                                                   version=self._sbol2_version(f))
                     fc.definition = f.instance_of  # See pySBOL2 #430
+                    self._convert_identified(f, fc)
                     mdef2.functionalComponents.add(fc)
 
 
@@ -294,23 +298,29 @@ class SBOL3To2ConversionVisitor:
             fc = sbol2.FunctionalComponent(self._sbol2_identity(sc),
                                            sc.instance_of,
                                            sbol2.SBOL_ACCESS_PUBLIC,
-                                           sbol2.SBOL_DIRECTION_IN)
+                                           sbol2.SBOL_DIRECTION_IN,
+                                           version=self._sbol2_version(sc))
             fc.definition = sc.instance_of  # See pySBOL2 #430
+            self._convert_identified(sc, fc)
             mdef2.functionalComponents.add(fc)
 
         for sc in [sc_uri.lookup() for sc_uri in i3.outputs]:
             fc = sbol2.FunctionalComponent(self._sbol2_identity(sc),
                                            sc.instance_of,
                                            sbol2.SBOL_ACCESS_PUBLIC,
-                                           sbol2.SBOL_DIRECTION_OUT)
+                                           sbol2.SBOL_DIRECTION_OUT,
+                                           version=self._sbol2_version(sc))
             fc.definition = sc.instance_of  # See pySBOL2 #430
+            self._convert_identified(sc, fc)
             mdef2.functionalComponents.add(fc)
         for sc in [sc_uri.lookup() for sc_uri in i3.nondirectionals]:
             fc = sbol2.FunctionalComponent(self._sbol2_identity(sc),
                                            sc.instance_of,
                                            sbol2.SBOL_ACCESS_PUBLIC,
-                                           sbol2.SBOL_DIRECTION_IN_OUT)
+                                           sbol2.SBOL_DIRECTION_IN_OUT,
+                                           version=self._sbol2_version(sc))
             fc.definition = sc.instance_of  # See pySBOL2 #430
+            self._convert_identified(sc, fc)
             mdef2.functionalComponents.add(fc)
 
 
