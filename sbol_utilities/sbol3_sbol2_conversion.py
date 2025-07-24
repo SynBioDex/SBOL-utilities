@@ -5,7 +5,7 @@ from sbol_utilities.helper_functions import strip_sbol2_version
 
 
 # Namespaces
-from rdflib import URIRef
+from rdflib import URIRef, Literal
 
 BACKPORT_NAMESPACE = 'http://sboltools.org/backport#'
 BACKPORT2_VERSION = f'{BACKPORT_NAMESPACE}sbol2version'
@@ -150,8 +150,38 @@ class SBOL3To2ConversionVisitor:
         raise NotImplementedError('Conversion of Association from SBOL3 to SBOL2 not yet implemented')
 
     def visit_attachment(self, a: sbol3.Attachment):
-        # Priority: 2
-        raise NotImplementedError('Conversion of Attachment from SBOL3 to SBOL2 not yet implemented')
+        # Make the Attachment object and add it to the document
+        att2 = sbol2.Attachment(self._sbol2_identity(a), source=a.source, version=self._sbol2_version(a))
+        self.doc2.addAttachment(att2)
+        
+        # Handle hash and hash_algorithm properties
+        if a.hash:
+            # Check if hash_algorithm is specified
+            hash_algorithm = a.hash_algorithm
+            
+            # Check if it's SHA1 (SBOL2 only supports SHA1)
+            # Common SHA1 identifiers
+            sha1_identifiers = [
+                'SHA1',
+                'sha1',
+                'SHA-1',
+                'sha-1'
+            ]
+            
+            if any(sha1_id in str(hash_algorithm) for sha1_id in sha1_identifiers):
+                # It's SHA1, so we can set it directly in SBOL2
+                att2.hash = a.hash
+            else:
+                # It's not SHA1, add as backport extension properties
+                att2.properties[BACKPORT_NAMESPACE + 'hash'] = [Literal(a.hash)]
+                att2.properties[BACKPORT_NAMESPACE + 'hashAlgorithm'] = [Literal(hash_algorithm)]
+        
+        att2.format = a.format
+        att2.size = a.size
+            
+        # Map over all other TopLevel properties and extensions not covered by the constructor
+        self._convert_toplevel(a, att2)
+
 
     def visit_binary_prefix(self, a: sbol3.BinaryPrefix):
         # Priority: 4
