@@ -150,25 +150,14 @@ class SBOL3To2ConversionVisitor:
         raise NotImplementedError('Conversion of Association from SBOL3 to SBOL2 not yet implemented')
 
     def visit_attachment(self, a: sbol3.Attachment):
-        # Make the Attachment object and add it to the document
         att2 = sbol2.Attachment(self._sbol2_identity(a), source=a.source, version=self._sbol2_version(a))
         self.doc2.addAttachment(att2)
         
-        # Handle hash and hash_algorithm properties
         if a.hash:
-            # Check if hash_algorithm is specified
+            # Check if it's SHA1 (SBOL2 only supports SHA1)
             hash_algorithm = a.hash_algorithm
             
-            # Check if it's SHA1 (SBOL2 only supports SHA1)
-            # Common SHA1 identifiers
-            sha1_identifiers = [
-                'SHA1',
-                'sha1',
-                'SHA-1',
-                'sha-1'
-            ]
-            
-            if any(sha1_id in str(hash_algorithm) for sha1_id in sha1_identifiers):
+            if hash_algorithm.replace("-", "").replace(" ", "").lower() == 'sha1':
                 # It's SHA1, so we can set it directly in SBOL2
                 att2.hash = a.hash
             else:
@@ -176,10 +165,9 @@ class SBOL3To2ConversionVisitor:
                 att2.properties[BACKPORT_NAMESPACE + 'hash'] = [Literal(a.hash)]
                 att2.properties[BACKPORT_NAMESPACE + 'hashAlgorithm'] = [Literal(hash_algorithm)]
         
-        att2.format = a.format
+        att2.format = str(a.format)
         att2.size = a.size
             
-        # Map over all other TopLevel properties and extensions not covered by the constructor
         self._convert_toplevel(a, att2)
 
 
@@ -571,8 +559,21 @@ class SBOL2To3ConversionVisitor:
         raise NotImplementedError('Conversion of Association from SBOL2 to SBOL3 not yet implemented')
 
     def visit_attachment(self, a: sbol2.Attachment):
-        # Priority: 2
-        raise NotImplementedError('Conversion of Attachment from SBOL2 to SBOL3 not yet implemented')
+        att3 = sbol3.Attachment(self._sbol3_identity(a), namespace=self._sbol3_namespace(a), source=a.source)
+        self.doc3.add(att3)
+        
+        # Check for backported hash properties first (higher priority)
+        if BACKPORT_NAMESPACE + 'hash' in a.properties:
+            att3.hash = a.properties[BACKPORT_NAMESPACE + 'hash'][0]
+            att3.hash_algorithm = a.properties[BACKPORT_NAMESPACE + 'hashAlgorithm'][0]
+        elif a.hash:
+            att3.hash = a.hash
+            att3.hash_algorithm = 'sha1'
+        
+        att3.format = str(a.format)
+        att3.size = a.size
+            
+        self._convert_toplevel(a, att3)
 
     def visit_collection(self, coll2: sbol2.Collection):
         # Make the Collection object and add it to the document
