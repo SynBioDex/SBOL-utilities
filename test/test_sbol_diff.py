@@ -51,6 +51,18 @@ class TestSbolDiff(unittest.TestCase):
         expected = 1
         self.assertEqual(expected, actual)
 
+    def test_diff_ignores_backport_properties(self):
+        """Test that backport properties are ignored when comparing documents"""
+        # These two files differ only by backport properties
+        # test_attachment_sbol2.xml has no backport properties
+        # test_attachment_sbol2_converted_loop.xml has backport:sbol3namespace property
+        file1 = os.path.join(TEST_FILES_DIR, 'test_attachment_sbol2.xml')
+        file2 = os.path.join(TEST_FILES_DIR, 'test_attachment_sbol2_converted_loop.xml')
+
+        # Files should be considered identical when backport properties are ignored
+        result = sbol_utilities.sbol_diff.file_diff(file1, file2, silent=True)
+        self.assertEqual(0, result, "Files should be identical when ignoring backport properties")
+
 
 if __name__ == '__main__':
     unittest.main()
