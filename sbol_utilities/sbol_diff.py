@@ -16,9 +16,36 @@ def _load_rdf(fpath: Union[str, bytes, os.PathLike]) -> rdflib.Graph:
     return graph1
 
 
+def _remove_backport_properties(graph: rdflib.Graph) -> rdflib.Graph:
+    """
+    Remove all backport properties from an RDF graph
+    
+    :param graph: the RDF graph to clean
+    :return: the graph with backport properties removed
+    """
+    # Define the backport namespace URI
+    backport_namespace = rdflib.Namespace("http://sboltools.org/backport#")
+    
+    # Find all triples with backport predicates
+    triples_to_remove = []
+    for s, p, o in graph:
+        if str(p).startswith(str(backport_namespace)):
+            triples_to_remove.append((s, p, o))
+    
+    # Remove the backport triples
+    for triple in triples_to_remove:
+        graph.remove(triple)
+    
+    return graph
+
+
 def _diff_graphs(g1: rdflib.Graph, g2: rdflib.Graph) -> Tuple[rdflib.Graph, rdflib.Graph, rdflib.Graph]:
-    iso1 = rdflib.compare.to_isomorphic(g1)
-    iso2 = rdflib.compare.to_isomorphic(g2)
+    # Remove backport properties from both graphs before comparison
+    g1_clean = _remove_backport_properties(g1)
+    g2_clean = _remove_backport_properties(g2)
+    
+    iso1 = rdflib.compare.to_isomorphic(g1_clean)
+    iso2 = rdflib.compare.to_isomorphic(g2_clean)
     rdf_diff = rdflib.compare.graph_diff(iso1, iso2)
     return rdf_diff
 
