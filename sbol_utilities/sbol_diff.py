@@ -93,18 +93,17 @@ def validate_backport_properties(g: rdflib.Graph, document_version: str) -> bool
 
 def _remove_selective_backport_properties(graph: rdflib.Graph) -> rdflib.Graph:
     """
-    Remove backport properties selectively based on target version
+    Remove all backport properties from the graph
 
     :param graph: the RDF graph to clean
-    :param target_version: 'sbol2' or 'sbol3' - determines which backport properties to remove
-    :return: the graph with selective backport properties removed
+    :return: the graph with backport properties removed
     """
 
     # Find triples to remove
     triples_to_remove = []
     for s, p, o in graph:
         predicate_str = str(p)
-        if predicate_str == BACKPORT_NAMESPACE:
+        if predicate_str.startswith(BACKPORT_NAMESPACE):
             triples_to_remove.append((s, p, o))
 
     # Remove the identified triples
