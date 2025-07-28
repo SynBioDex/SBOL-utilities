@@ -14,7 +14,6 @@ ESL_SBOL_PATH = os.path.join(TEST_FILES_DIR, 'expanded_simple_library.nt')
 
 
 class TestSbolDiff(unittest.TestCase):
-
     def test_command_line(self):
         """Test command line invocation of sbol_diff utility"""
         test_args = ['sbol_diff', ESL_SBOL_PATH, ESL_SBOL_PATH]
@@ -53,15 +52,12 @@ class TestSbolDiff(unittest.TestCase):
 
     def test_diff_ignores_backport_properties(self):
         """Test that backport properties are ignored when comparing documents"""
-        # These two files differ only by backport properties
-        # test_attachment_sbol2.xml has no backport properties
-        # test_attachment_sbol2_converted_loop.xml has backport:sbol3namespace property
         file1 = os.path.join(TEST_FILES_DIR, 'test_attachment_sbol2.xml')
         file2 = os.path.join(TEST_FILES_DIR, 'test_attachment_sbol2_converted_loop.xml')
 
-        # Files should be considered identical when backport properties are ignored
         result = sbol_utilities.sbol_diff.file_diff(file1, file2, silent=True)
-        self.assertEqual(0, result, "Files should be identical when ignoring backport properties")
+        self.assertEqual(0, result, 'Files should be identical when ignoring backport properties')
+
     def test_detect_sbol_version(self):
         """Test SBOL version detection functionality"""
         # Test SBOL2 document detection
@@ -70,6 +66,16 @@ class TestSbolDiff(unittest.TestCase):
         version2 = sbol_utilities.sbol_diff._detect_sbol_version(graph2_xml)
         self.assertEqual('sbol2', version2, 'Should detect SBOL2 document')
 
+        # Test SBOL3 document detection
+        sbol3_file_xml = os.path.join(TEST_FILES_DIR, 'sbol3_collection.xml')
+        graph3_xml = sbol_utilities.sbol_diff._load_rdf(sbol3_file_xml)
+        version3 = sbol_utilities.sbol_diff._detect_sbol_version(graph3_xml)
+        self.assertEqual('sbol3', version3, 'Should detect SBOL3 document')
+
+        sbol3_file_nt = os.path.join(TEST_FILES_DIR, 'sbol3_collection.nt')
+        graph3_nt = sbol_utilities.sbol_diff._load_rdf(sbol3_file_nt)
+        version3_nt = sbol_utilities.sbol_diff._detect_sbol_version(graph3_nt)
+        self.assertEqual('sbol3', version3_nt, 'Should detect SBOL3 document')
 
 if __name__ == '__main__':
     unittest.main()
