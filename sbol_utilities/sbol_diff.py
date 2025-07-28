@@ -20,7 +20,7 @@ def _load_rdf(fpath: Union[str, bytes, os.PathLike]) -> rdflib.Graph:
 
 def _detect_sbol_version(graph: rdflib.Graph) -> Optional[str]:
     """
-    Detect the SBOL version of a document from its RDF namespace declarations
+    Detect the SBOL version of a document from its RDF namespace declarations and URIs
 
     :param graph: the RDF graph to analyze
     :return: 'sbol2', 'sbol3', or None if version cannot be determined
@@ -29,11 +29,20 @@ def _detect_sbol_version(graph: rdflib.Graph) -> Optional[str]:
     sbol2_namespace = 'http://sbols.org/v2#'
     sbol3_namespace = 'http://sbols.org/v3#'
 
-    # Check bound namespaces
-    for prefix, namespace in graph.namespaces():
+    # Check bound namespaces first
+    for _, namespace in graph.namespaces():
         if str(namespace) == sbol2_namespace:
             return 'sbol2'
         elif str(namespace) == sbol3_namespace:
+            return 'sbol3'
+
+    # If no namespace bindings found, check for SBOL URIs in the actual triples
+    for _, p, _ in graph:
+        # Check predicates for SBOL namespace URIs
+        predicate_str = str(p)
+        if sbol2_namespace in predicate_str:
+            return 'sbol2'
+        elif sbol3_namespace in predicate_str:
             return 'sbol3'
 
     return None
@@ -44,6 +53,7 @@ def _check_inappropriate_backport_properties(graph: rdflib.Graph, document_versi
     Check if a document contains inappropriate backport properties for its version
 
     :param graph: the RDF graph to check
+    :param document_version: 'sbol2' or 'sbol3' indicating the document version
     :return: tuple of (has_inappropriate_properties, list_of_inappropriate_properties)
     """
     inappropriate_properties = []
