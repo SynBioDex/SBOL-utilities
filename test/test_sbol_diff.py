@@ -62,6 +62,13 @@ class TestSbolDiff(unittest.TestCase):
         # Files should be considered identical when backport properties are ignored
         result = sbol_utilities.sbol_diff.file_diff(file1, file2, silent=True)
         self.assertEqual(0, result, "Files should be identical when ignoring backport properties")
+    def test_detect_sbol_version(self):
+        """Test SBOL version detection functionality"""
+        # Test SBOL2 document detection
+        sbol2_file_xml = os.path.join(TEST_FILES_DIR, 'sbol2_collection.xml')
+        graph2_xml = sbol_utilities.sbol_diff._load_rdf(sbol2_file_xml)
+        version2 = sbol_utilities.sbol_diff._detect_sbol_version(graph2_xml)
+        self.assertEqual('sbol2', version2, 'Should detect SBOL2 document')
 
 
 if __name__ == '__main__':
