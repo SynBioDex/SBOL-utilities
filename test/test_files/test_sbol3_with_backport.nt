@@ -1,0 +1,5 @@
+<https://example.org/sbol3_test> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://sbols.org/v3#Component> .
+<https://example.org/sbol3_test> <http://sbols.org/v3#displayId> "sbol3_test" .
+<https://example.org/sbol3_test> <http://sbols.org/v3#hasNamespace> <https://example.org> .
+<https://example.org/sbol3_test> <http://sbols.org/v3#type> <https://identifiers.org/SBO:0000251> .
+<https://example.org/sbol3_test> <http://sboltools.org/backport#sbol2version> "1" . 
