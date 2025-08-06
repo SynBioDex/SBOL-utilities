@@ -206,10 +206,44 @@ class SBOL3To2ConversionVisitor:
             mdef2 = sbol2.ModuleDefinition(self._sbol2_identity(cp3),
                                            version=self._sbol2_version(cp3))
             mdef2.roles = cp3.roles
-            mdef2.models = cp3.models  # TODO: post-fix up link, see #326
+            mdef2.models = cp3.models
             self.doc2.addComponentDefinition(mdef2)
             self._convert_toplevel(cp3, mdef2)
 
+            # SubComponents in the Interface are converted into public FunctionalComponents
+            if cp3.interface:
+                self.visit_interface(cp3.interface, mdef2)
+
+            # Other cases in which SubComponents are back-converted into FunctionalComponents
+            for f in cp3.features:
+                if not hasattr(f, 'backport_direction'):
+                    f.backport_direction = sbol3.URIProperty(f, f'{BACKPORT_NAMESPACE}sbol2_direction', 0, 1)
+                if not hasattr(f, 'backport_access'):
+                    f.backport_access = sbol3.URIProperty(f, f'{BACKPORT_NAMESPACE}sbol2_access', 0, 1)
+                
+                # SubComponents which originated from private FunctionalComponents
+                if f.backport_access == sbol2.SBOL_ACCESS_PRIVATE:
+                    fc = sbol2.FunctionalComponent(self._sbol2_identity(f),
+                                                   f.instance_of,
+                                                   sbol2.SBOL_ACCESS_PRIVATE,
+                                                   f.backport_direction,
+                                                   version=self._sbol2_version(f))
+                    fc.definition = f.instance_of  # See pySBOL2 #430
+                    self._convert_identified(f, fc)
+                    mdef2.functionalComponents.add(fc)
+             
+                # The following covers an edge case in which SubComponents are back-converted into FunctionalComponents 
+                # that are both nondirectional and public, which is a bit of an oxymoron
+                # semantically, but still syntactically valid
+                elif f.backport_access == sbol2.SBOL_ACCESS_PUBLIC and f.backport_direction == sbol2.SBOL_DIRECTION_NONE:
+                    fc = sbol2.FunctionalComponent(self._sbol2_identity(f),
+                                                   f.instance_of,
+                                                   sbol2.SBOL_ACCESS_PUBLIC,
+                                                   sbol2.SBOL_DIRECTION_NONE,
+                                                   version=self._sbol2_version(f))
+                    fc.definition = f.instance_of  # See pySBOL2 #430
+                    self._convert_identified(f, fc)
+                    mdef2.functionalComponents.add(fc)
 
     def visit_component_reference(self, a: sbol3.ComponentReference):
         # Priority: 3
@@ -256,9 +290,36 @@ class SBOL3To2ConversionVisitor:
         # Priority: 2
         raise NotImplementedError('Conversion of Interaction from SBOL3 to SBOL2 not yet implemented')
 
-    def visit_interface(self, a: sbol3.Interface):
-        # Priority: 3
-        raise NotImplementedError('Conversion of Interface from SBOL3 to SBOL2 not yet implemented')
+    def visit_interface(self, i3: sbol3.Interface, mdef2: sbol2.ModuleDefinition):
+        for sc in [sc_uri.lookup() for sc_uri in i3.inputs]:
+            fc = sbol2.FunctionalComponent(self._sbol2_identity(sc),
+                                           sc.instance_of,
+                                           sbol2.SBOL_ACCESS_PUBLIC,
+                                           sbol2.SBOL_DIRECTION_IN,
+                                           version=self._sbol2_version(sc))
+            fc.definition = sc.instance_of  # See pySBOL2 #430
+            self._convert_identified(sc, fc)
+            mdef2.functionalComponents.add(fc)
+
+        for sc in [sc_uri.lookup() for sc_uri in i3.outputs]:
+            fc = sbol2.FunctionalComponent(self._sbol2_identity(sc),
+                                           sc.instance_of,
+                                           sbol2.SBOL_ACCESS_PUBLIC,
+                                           sbol2.SBOL_DIRECTION_OUT,
+                                           version=self._sbol2_version(sc))
+            fc.definition = sc.instance_of  # See pySBOL2 #430
+            self._convert_identified(sc, fc)
+            mdef2.functionalComponents.add(fc)
+        for sc in [sc_uri.lookup() for sc_uri in i3.nondirectionals]:
+            fc = sbol2.FunctionalComponent(self._sbol2_identity(sc),
+                                           sc.instance_of,
+                                           sbol2.SBOL_ACCESS_PUBLIC,
+                                           sbol2.SBOL_DIRECTION_IN_OUT,
+                                           version=self._sbol2_version(sc))
+            fc.definition = sc.instance_of  # See pySBOL2 #430
+            self._convert_identified(sc, fc)
+            mdef2.functionalComponents.add(fc)
+
 
     def visit_local_sub_component(self, a: sbol3.LocalSubComponent):
         # Priority: 2
@@ -605,11 +666,44 @@ class SBOL2To3ConversionVisitor:
         c3 = sbol3.Component(self._sbol3_identity(md), types=[sbol3.SBO_FUNCTIONAL_ENTITY], roles=md.roles, namespace=self._sbol3_namespace(md))
 
         for i2 in md.interactions:
-            raise NotImplementedError('Conversion of Interaction from SBOL2 to SBOL3 not yet implemented')
+            i3 = self.visit_interaction(i2)
+            c3.interactions.append(i3)
+            self.update_identity(i2, i3)
 
-        if md.functionalComponents:
-            raise NotImplementedError('Conversion of FunctionalComponent from SBOL2 to SBOL3 not yet implemented')
+        # Create an Interface only if there is a public FC
+        for fc in md.functionalComponents:
+            if fc.access == sbol2.SBOL_ACCESS_PUBLIC:
+                c3.interface = sbol3.Interface()
+                break
 
+        for fc in md.functionalComponents:
+            sc = self.visit_functional_component(fc)
+            c3.features.append(sc)
+            self.update_identity(fc, sc)
+
+            # Register "public" SubComponents in the Interface
+            if fc.access == sbol2.SBOL_ACCESS_PUBLIC:
+                if fc.direction == sbol2.SBOL_DIRECTION_IN:
+                    c3.interface.inputs.append(sc.identity)
+                elif fc.direction == sbol2.SBOL_DIRECTION_OUT:
+                    c3.interface.outputs.append(sc.identity)
+                elif fc.direction == sbol2.SBOL_DIRECTION_IN_OUT:
+                    c3.interface.nondirectionals.append(sc.identity)
+                elif fc.direction == sbol2.SBOL_DIRECTION_NONE:
+                    # FunctionalComponents that are public and nondirectional
+                    # are a case that was not intended but sometimes used
+                    sc.backport_direction = sbol3.URIProperty(sc, f'{BACKPORT_NAMESPACE}sbol2_direction', 0, 1,
+                                                              initial_value=sbol2.SBOL_DIRECTION_NONE)
+                    sc.backport_access = sbol3.URIProperty(sc, f'{BACKPORT_NAMESPACE}sbol2_access', 0, 1,
+                                                           initial_value=sbol2.SBOL_ACCESS_PUBLIC)
+            # To make SubComponents converted from private FunctionalComponents 
+            # distinguishable from other types of SubComponents, we capture
+            # their attributes as backport annotations
+            elif fc.access == sbol2.SBOL_ACCESS_PRIVATE:
+                sc.backport_access = sbol3.URIProperty(sc, f'{BACKPORT_NAMESPACE}sbol2_access', 0, 1,
+                                                       initial_value=sbol2.SBOL_ACCESS_PRIVATE)
+                sc.backport_direction = sbol3.URIProperty(sc, f'{BACKPORT_NAMESPACE}sbol2_direction', 0, 1,
+                                                          initial_value=fc.direction)
         self.doc3.add(c3)
         self._convert_toplevel(md, c3)
 
