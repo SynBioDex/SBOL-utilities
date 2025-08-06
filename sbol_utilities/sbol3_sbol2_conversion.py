@@ -245,9 +245,6 @@ class SBOL3To2ConversionVisitor:
                     self._convert_identified(f, fc)
                     mdef2.functionalComponents.add(fc)
 
-
-  
-
     def visit_component_reference(self, a: sbol3.ComponentReference):
         # Priority: 3
         raise NotImplementedError('Conversion of ComponentReference from SBOL3 to SBOL2 not yet implemented')
@@ -707,7 +704,6 @@ class SBOL2To3ConversionVisitor:
                                                        initial_value=sbol2.SBOL_ACCESS_PRIVATE)
                 sc.backport_direction = sbol3.URIProperty(sc, f'{BACKPORT_NAMESPACE}sbol2_direction', 0, 1,
                                                           initial_value=fc.direction)
-
         self.doc3.add(c3)
         self._convert_toplevel(md, c3)
 

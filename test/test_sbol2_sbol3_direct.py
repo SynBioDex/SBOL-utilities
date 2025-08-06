@@ -350,7 +350,6 @@ class TestDirectSBOL3SBOL2Conversion(unittest.TestCase):
     def test_functionalcomponent_conversion(self):
         self.handle_3to2_conversion('sbol_3to2_functionalcomponent.nt', 'sbol_3to2_functionalcomponent.xml')
 
-            
     def test_identity_conversion(self):
         """Test that 3->2 conversion of identity URIs conforms to SBOL-compliant URI structure."""
         visitor = SBOL3To2ConversionVisitor(sbol3.Document())
