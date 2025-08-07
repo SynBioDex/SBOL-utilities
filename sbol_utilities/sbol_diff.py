@@ -93,24 +93,21 @@ def validate_backport_properties(g: rdflib.Graph, document_version: str) -> bool
 
 def _remove_selective_backport_properties(graph: rdflib.Graph) -> rdflib.Graph:
     """
-    Remove all backport properties from the graph
+    Create a new graph with all backport properties from the original graph removed.
 
     :param graph: the RDF graph to clean
-    :return: the graph with backport properties removed
+    :return: a new graph with backport properties removed
     """
+    clean_graph = rdflib.Graph()
+    for prefix, namespace in graph.namespaces():
+        clean_graph.bind(prefix, namespace)
 
-    # Find triples to remove
-    triples_to_remove = []
     for s, p, o in graph:
         predicate_str = str(p)
-        if predicate_str.startswith(BACKPORT_NAMESPACE):
-            triples_to_remove.append((s, p, o))
+        if not predicate_str.startswith(BACKPORT_NAMESPACE):
+            clean_graph.add((s, p, o))
 
-    # Remove the identified triples
-    for triple in triples_to_remove:
-        graph.remove(triple)
-
-    return graph
+    return clean_graph
 
 
 def _diff_graphs(g1: rdflib.Graph, g2: rdflib.Graph) -> Tuple[rdflib.Graph, rdflib.Graph, rdflib.Graph]:
