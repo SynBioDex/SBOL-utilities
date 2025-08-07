@@ -264,9 +264,18 @@ class SBOL3To2ConversionVisitor:
 
     def visit_sequence_feature(self, seqfeat3: sbol3.SequenceFeature) -> sbol2.SequenceFeature:
         # Priority: 1
+        # SBOL 2.x SequenceAnnotation objects map to SBOL 3.x SequenceFeature objects if they do not have a component. 
+        # If they do have a component, their locations are added to the corresponding SBOL3 SubComponent.
+
         # Create SBOL2 SequenceAnnotation 
-        seqanno2 = sbol2.SequenceAnnotation(uri=seqfeat3.identity, version=self._sbol2_version(sbol3))
-        # Extract SBOL3 SequenceFeature properties
+        seqanno2 = sbol2.SequenceAnnotation(identity=seqfeat3.identity,
+            roles = seqfeat3.roles,
+            orientation = seqfeat3.orientation,
+            name = seqfeat3.name,
+            description = seqfeat3.description,
+            wasDerivedFrom = seqfeat3.derived_from,
+            wasGeneratedBy = seqfeat3.generated_by,
+            version=self._sbol2_version(seqfeat3) )
         if seqfeat3.locations:  
             for loc3 in seqfeat3.locations:
                 if type(loc3) is sbol3.location.Range:
@@ -277,13 +286,10 @@ class SBOL3To2ConversionVisitor:
                     # convert to GenericLocation
                     raise NotImplementedError('Conversion of EntireSequence from SBOL3 to SBOL2 not yet implemented')
                 else: raise ValueError('Unknown location type, SequenceFeature cannot convert to SBOL2')
-            #seqanno2.locations = locs2
-            raise NotImplementedError('Conversion of Component features from SBOL3 to SBOL2 not yet implemented')
-        if seqfeat3.roles:
-            # Convert roles to SBOL2
-            # seqanno2.roles = roles2
-            # wait for the implementation of the conversion of roles
-            raise NotImplementedError('Conversion of Component features from SBOL3 to SBOL2 not yet implemented')
+        # convert measures
+        if seqfeat3.measures:
+            raise NotImplementedError('Conversion of measures from SBOL3 to SBOL2 not yet implemented')
+        # convert type_uri??
         self.doc2.add(seqanno2)
         self._convert_toplevel(seqfeat3, seqanno2)
 
@@ -556,15 +562,48 @@ class SBOL2To3ConversionVisitor:
 
     def visit_sequence_annotation(self, seqanno2: sbol2.SequenceAnnotation) -> sbol3.SequenceFeature:
         # Priority: 1
+        # SBOL 2.x SequenceAnnotation objects map to SBOL 3.x SequenceFeature objects if they do not have a component. 
+        # If they do have a component, their locations are added to the corresponding SBOL3 SubComponent.
+
         # Create SBOL3 SequenceFeature
         if seqanno2.components:
             # convert to subcomponent
-            pass
+            sequenceannotation_subcomponent = sbol3.SubComponent(instance_of=seqanno2.components[0], location=seqanno2.locations)
+            if seqanno2.locations:  
+                for loc2 in seqanno2.locations:
+                    if type(loc2) is sbol2.location.Range:
+                        raise NotImplementedError('Conversion of Range from SBOL2 to SBOL3 not yet implemented')
+                    elif type(loc2) is sbol2.location.Cut:
+                        raise NotImplementedError('Conversion of Cut from SBOL2 to SBOL3 not yet implemented')
+                    elif type(loc2) is sbol2.location.EntireSequence:
+                        # convert to GenericLocation
+                        raise NotImplementedError('Conversion of EntireSequence from SBOL2 to SBOL3 not yet implemented')
+                    else: raise ValueError('Unknown location type, SequenceAnnotation cannot convert to SBOL3')
+            self.doc3.add(sequenceannotation_subcomponent)
+            self._convert_toplevel(seqanno2, sequenceannotation_subcomponent)
+
         else: # convert to SequenceFeature
-            seqanno3 = sbol3.SequenceFeature(identity=seqanno2.uri, namespace=self._sbol3_namespace(seqanno2))
-            raise NotImplementedError('Conversion of SequenceAnnotation from SBOL2 to SBOL3 not yet implemented')
-        self.doc3.add(seqanno3)
-        self._convert_toplevel(seqanno2, seqanno3)
+            seqfeat3 = sbol3.SequenceFeature(identity=seqanno2.identity, namespace=self._sbol3_namespace(seqanno2),
+                roles = seqanno2.roles,
+                orientation = seqanno2.orientation,
+                name = seqanno2.name,
+                description = seqanno2.description,
+                derived_from = seqanno2.wasDerivedFrom,
+                generated_by = seqanno2.wasGeneratedBy
+                )
+            if seqanno2.locations:  
+                for loc2 in seqanno2.locations:
+                    if type(loc2) is sbol2.location.Range:
+                        raise NotImplementedError('Conversion of Range from SBOL2 to SBOL3 not yet implemented')
+                    elif type(loc2) is sbol2.location.Cut:
+                        raise NotImplementedError('Conversion of Cut from SBOL2 to SBOL3 not yet implemented')
+                    elif type(loc2) is sbol2.location.EntireSequence:
+                        # convert to GenericLocation
+                        raise NotImplementedError('Conversion of EntireSequence from SBOL2 to SBOL3 not yet implemented')
+                    else: raise ValueError('Unknown location type, SequenceAnnotation cannot convert to SBOL3')
+            self.doc3.add(seqfeat3)
+            self._convert_toplevel(seqanno2, seqfeat3)
+
     def visit_sequence_constraint(self, seq2: sbol2.sequenceconstraint.SequenceConstraint):
         # Priority: 2
         raise NotImplementedError('Conversion of SequenceConstraint from SBOL2 to SBOL3 not yet implemented')
