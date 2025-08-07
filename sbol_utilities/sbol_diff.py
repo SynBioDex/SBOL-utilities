@@ -110,7 +110,8 @@ def _remove_selective_backport_properties(graph: rdflib.Graph) -> rdflib.Graph:
     return clean_graph
 
 
-def _diff_graphs(g1: rdflib.Graph, g2: rdflib.Graph) -> Tuple[rdflib.Graph, rdflib.Graph, rdflib.Graph]:
+def _diff_graphs(g1: rdflib.Graph, g2: rdflib.Graph,
+                 strip_backport_properties: bool = False) -> Tuple[rdflib.Graph, rdflib.Graph, rdflib.Graph]:
     # Remove backport properties from both graphs before comparison
     g1_sbol_version = _detect_sbol_version(g1)
     g2_sbol_version = _detect_sbol_version(g2)
@@ -123,11 +124,14 @@ def _diff_graphs(g1: rdflib.Graph, g2: rdflib.Graph) -> Tuple[rdflib.Graph, rdfl
     if g2_sbol_version:
         validate_backport_properties(g2, g2_sbol_version)
 
-    g1_clean = _remove_selective_backport_properties(g1)
-    g2_clean = _remove_selective_backport_properties(g2)
+    g1_to_compare = g1
+    g2_to_compare = g2
+    if strip_backport_properties:
+        g1_to_compare = _remove_selective_backport_properties(g1)
+        g2_to_compare = _remove_selective_backport_properties(g2)
 
-    iso1 = rdflib.compare.to_isomorphic(g1_clean)
-    iso2 = rdflib.compare.to_isomorphic(g2_clean)
+    iso1 = rdflib.compare.to_isomorphic(g1_to_compare)
+    iso2 = rdflib.compare.to_isomorphic(g2_to_compare)
     rdf_diff = rdflib.compare.graph_diff(iso1, iso2)
     return rdf_diff
 
@@ -149,8 +153,9 @@ def _report_diffs(desc1: str, in1: rdflib.Graph, desc2: str, in2: rdflib.Graph) 
         _report_triples(header, in2)
 
 
-def _diff_rdf(desc1: str, g1: rdflib.Graph, desc2: str, g2: rdflib.Graph, silent: bool = False) -> int:
-    _, in1, in2 = _diff_graphs(g1, g2)
+def _diff_rdf(desc1: str, g1: rdflib.Graph, desc2: str, g2: rdflib.Graph, silent: bool = False,
+              strip_backport_properties: bool = False) -> int:
+    _, in1, in2 = _diff_graphs(g1, g2, strip_backport_properties=strip_backport_properties)
     if not in1 and not in2:
         return 0
     else:
@@ -159,28 +164,34 @@ def _diff_rdf(desc1: str, g1: rdflib.Graph, desc2: str, g2: rdflib.Graph, silent
         return 1
 
 
-def file_diff(fpath1: str, fpath2: str, silent: bool = False) -> int:
+def file_diff(fpath1: str, fpath2: str, silent: bool = False,
+              strip_backport_properties: bool = False) -> int:
     """
     Compute and report the difference between two SBOL3 files
 
     :param fpath1: path to the first SBOL3 file
     :param fpath2: path to the second SBOL3 file
     :param silent: whether to report differences to stdout
+    :param strip_backport_properties: whether to strip backport properties before comparing
     :return: 1 if there are differences, 0 if they are the same
     """
-    return _diff_rdf(fpath1, _load_rdf(fpath1), fpath2, _load_rdf(fpath2), silent=silent)
+    return _diff_rdf(fpath1, _load_rdf(fpath1), fpath2, _load_rdf(fpath2), silent=silent,
+                     strip_backport_properties=strip_backport_properties)
 
 
-def doc_diff(doc1: sbol3.Document, doc2: sbol3.Document, silent: bool = False) -> int:
+def doc_diff(doc1: sbol3.Document, doc2: sbol3.Document, silent: bool = False,
+             strip_backport_properties: bool = False) -> int:
     """
     Compute and report the difference between two SBOL3 documents
 
     :param doc1: the first SBOL3 document
     :param doc2: the second SBOL3 document
     :param silent: whether to report differences to stdout
+    :param strip_backport_properties: whether to strip backport properties before comparing
     :return: 1 if there are differences, 0 if they are the same
     """
-    return _diff_rdf('Document 1', doc1.graph(), 'Document 2', doc2.graph(), silent=silent)
+    return _diff_rdf('Document 1', doc1.graph(), 'Document 2', doc2.graph(), silent=silent,
+                     strip_backport_properties=strip_backport_properties)
 
 
 def _init_logging(debug=False):
@@ -198,6 +209,8 @@ def _parse_args(args: Optional[Sequence[str]] = None):
     parser.add_argument('file1', metavar='FILE1', help='First Input File')
     parser.add_argument('file2', metavar='FILE2', help='Second Input File')
     parser.add_argument('-s', '--silent', action='store_true', help='Generate no output, only status')
+    parser.add_argument('--strip-backport-properties', action='store_true',
+                        help='Strip backport properties before comparing')
     parser.add_argument('--debug', action='store_true', help='Enable debug logging (default: disabled)')
     args = parser.parse_args(args)
     return args
@@ -212,7 +225,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     """
     args = _parse_args(argv)
     _init_logging(args.debug)
-    return file_diff(args.file1, args.file2, silent=args.silent)
+    return file_diff(args.file1, args.file2, silent=args.silent,
+                     strip_backport_properties=args.strip_backport_properties)
 
 
 if __name__ == '__main__':
