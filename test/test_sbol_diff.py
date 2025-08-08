@@ -28,6 +28,18 @@ class TestSbolDiff(unittest.TestCase):
         with patch.object(sys, 'argv', test_args):
             status = sbol_utilities.sbol_diff.main()
         self.assertEqual(1, status)
+        # Test command line with stripping enabled
+        file1 = os.path.join(TEST_FILES_DIR, 'test_attachment_sbol2.xml')
+        file2 = os.path.join(TEST_FILES_DIR, 'test_attachment_sbol2_converted_loop.xml')
+        test_args = ['sbol_diff', '--strip-backport-properties', '-s', file1, file2]
+        with patch.object(sys, 'argv', test_args):
+            status = sbol_utilities.sbol_diff.main()
+        self.assertEqual(0, status, 'Stripping should lead to no differences')
+        # Test command line with stripping disabled (default)
+        test_args = ['sbol_diff', '-s', file1, file2]
+        with patch.object(sys, 'argv', test_args):
+            status = sbol_utilities.sbol_diff.main()
+        self.assertEqual(1, status, 'Not stripping should lead to differences')
 
     def test_file_diff(self):
         """Invoke sbol_utilities.sbol_diff.file_diff directly"""
@@ -51,13 +63,18 @@ class TestSbolDiff(unittest.TestCase):
         expected = 1
         self.assertEqual(expected, actual)
 
-    def test_diff_ignores_backport_properties(self):
-        """Test that backport properties are ignored when comparing documents"""
+    def test_diff_backport_properties_stripping(self):
+        """Test that backport properties are handled correctly based on the flag"""
         file1 = os.path.join(TEST_FILES_DIR, 'test_attachment_sbol2.xml')
         file2 = os.path.join(TEST_FILES_DIR, 'test_attachment_sbol2_converted_loop.xml')
 
-        result = sbol_utilities.sbol_diff.file_diff(file1, file2, silent=True)
-        self.assertEqual(0, result, 'Files should be identical when ignoring backport properties')
+        # By default, backport properties are NOT stripped, so files should differ
+        result_no_strip = sbol_utilities.sbol_diff.file_diff(file1, file2, silent=True)
+        self.assertEqual(1, result_no_strip, 'Files should be different when not stripping backport properties')
+
+        # When stripping is enabled, files should be identical
+        result_strip = sbol_utilities.sbol_diff.file_diff(file1, file2, silent=True, strip_backport_properties=True)
+        self.assertEqual(0, result_strip, 'Files should be identical when ignoring backport properties')
 
     def test_detect_sbol_version(self):
         """Test SBOL version detection functionality"""
@@ -145,7 +162,7 @@ class TestSbolDiff(unittest.TestCase):
         self.assertEqual(0, result, 'Identical documents with no version should show no differences')
 
     def test_remove_selective_backport_properties(self):
-        """Test that selective backport property removal works correctly"""
+        """Test that selective backport property removal works correctly and does not modify original"""
         test_file = os.path.join(TEST_FILES_DIR, 'test_attachment_sbol2_converted_loop.xml')
         graph = sbol_utilities.sbol_diff._load_rdf(test_file)
 
@@ -156,10 +173,18 @@ class TestSbolDiff(unittest.TestCase):
 
         cleaned_graph = sbol_utilities.sbol_diff._remove_selective_backport_properties(graph)
 
-        backport_triples_after = [
+        # Check that the cleaned graph has no backport properties
+        backport_triples_after_cleaned = [
             (s, p, o) for s, p, o in cleaned_graph if str(p).startswith('http://sboltools.org/backport#')
         ]
-        self.assertEqual(len(backport_triples_after), 0, 'All backport properties should be removed')
+        self.assertEqual(len(backport_triples_after_cleaned), 0, 'All backport properties should be removed from new graph')
+
+        # Check that the original graph is unmodified
+        backport_triples_after_original = [
+            (s, p, o) for s, p, o in graph if str(p).startswith('http://sboltools.org/backport#')
+        ]
+        self.assertEqual(len(backport_triples_before), len(backport_triples_after_original),
+                         'Original graph should not be modified')
 
 
 if __name__ == '__main__':
