@@ -66,11 +66,12 @@ def _check_inappropriate_backport_properties(graph: rdflib.Graph, document_versi
 
 def validate_backport_properties(g: rdflib.Graph, document_version: str) -> bool:
     """
-    Validate that a document does not contain inappropriate backport properties
+    Validate that a document does not contain inappropriate backport properties for its version.
 
-    :param fpath: path to the SBOL file to validate
-    :return: True if validation passes (no inappropriate backport properties found)
-    :raises ValueError: if inappropriate backport properties are found
+    :param g: The RDF graph to validate.
+    :param document_version: 'sbol2' or 'sbol3' indicating the document version.
+    :return: True if validation passes (no inappropriate backport properties found).
+    :raises ValueError: if inappropriate backport properties are found.
     """
     has_inappropriate, inappropriate_properties = _check_inappropriate_backport_properties(g, document_version)
 
@@ -110,10 +111,9 @@ def _diff_graphs(g1: rdflib.Graph, g2: rdflib.Graph,
     """
     Compare two RDF graphs and identify their differences, with special handling for SBOL documents.
 
-    The function first checks if both graphs represent the same version of SBOL. If they differ,
-    a TypeError is raised. It can optionally strip away backport properties before comparison
-    to ignore certain version-specific details. The comparison is based on isomorphism,
-    meaning the graph structure is considered, not just the raw RDF statements.
+    It can optionally strip away backport properties before comparison to ignore certain
+    version-specific details. The comparison is based on isomorphism, meaning the graph
+    structure is considered, not just the raw RDF statements.
 
     :param g1: The first RDF graph to compare.
     :param g2: The second RDF graph to compare.
@@ -123,7 +123,6 @@ def _diff_graphs(g1: rdflib.Graph, g2: rdflib.Graph,
              - both: Statements that are common to both graphs.
              - in_g1: Statements that are only in the first graph.
              - in_g2: Statements that are only in the second graph.
-    :raises TypeError: If the two graphs are detected to be of different SBOL versions.
     """
     g1_sbol_version = _detect_sbol_version(g1)
     g2_sbol_version = _detect_sbol_version(g2)
@@ -171,13 +170,13 @@ def _diff_rdf(desc1: str, g1: rdflib.Graph, desc2: str, g2: rdflib.Graph, silent
 def file_diff(fpath1: str, fpath2: str, silent: bool = False,
               strip_backport_properties: bool = False) -> int:
     """
-    Compute and report the difference between two SBOL3 files
+    Compute and report the difference between two SBOL files.
 
-    :param fpath1: path to the first SBOL3 file
-    :param fpath2: path to the second SBOL3 file
-    :param silent: whether to report differences to stdout
-    :param strip_backport_properties: whether to strip backport properties before comparing
-    :return: 1 if there are differences, 0 if they are the same
+    :param fpath1: path to the first SBOL file.
+    :param fpath2: path to the second SBOL file.
+    :param silent: whether to report differences to stdout.
+    :param strip_backport_properties: whether to strip backport properties before comparing.
+    :return: 1 if there are differences, 0 if they are the same.
     """
     return _diff_rdf(fpath1, _load_rdf(fpath1), fpath2, _load_rdf(fpath2), silent=silent,
                      strip_backport_properties=strip_backport_properties)
@@ -222,10 +221,10 @@ def _parse_args(args: Optional[Sequence[str]] = None):
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
     """
-    Command line interface to sbol_diff
+    Command line interface to sbol_diff.
 
-    @param argv: command line arguments
-    @return: 1 if there are differences, 0 if they are the same
+    :param argv: command line arguments.
+    :return: 1 if there are differences, 0 if they are the same.
     """
     args = _parse_args(argv)
     _init_logging(args.debug)
