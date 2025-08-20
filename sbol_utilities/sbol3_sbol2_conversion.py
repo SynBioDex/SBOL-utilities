@@ -228,7 +228,9 @@ class SBOL3To2ConversionVisitor:
                                                    sbol2.SBOL_ACCESS_PRIVATE,
                                                    f.backport_direction,
                                                    version=self._sbol2_version(f))
-                    fc.definition = f.instance_of  # See pySBOL2 #430
+                    # Assign property after construction due to https://github.com/SynBioDex/pySBOL2/issues/430
+                    # TODO: move assignment to constructor after issue is resolved
+                    fc.definition = f.instance_of
                     self._convert_identified(f, fc)
                     mdef2.functionalComponents.add(fc)
              
@@ -241,7 +243,9 @@ class SBOL3To2ConversionVisitor:
                                                    sbol2.SBOL_ACCESS_PUBLIC,
                                                    sbol2.SBOL_DIRECTION_NONE,
                                                    version=self._sbol2_version(f))
-                    fc.definition = f.instance_of  # See pySBOL2 #430
+                    # Assign property after construction due to https://github.com/SynBioDex/pySBOL2/issues/430
+                    # TODO: move assignment to constructor after issue is resolved
+                    fc.definition = f.instance_of
                     self._convert_identified(f, fc)
                     mdef2.functionalComponents.add(fc)
 
@@ -304,7 +308,9 @@ class SBOL3To2ConversionVisitor:
                                            sbol2.SBOL_ACCESS_PUBLIC,
                                            sbol2.SBOL_DIRECTION_IN,
                                            version=self._sbol2_version(sc))
-            fc.definition = sc.instance_of  # See pySBOL2 #430
+            # Assign property after construction due to https://github.com/SynBioDex/pySBOL2/issues/430
+            # TODO: move assignment to constructor after issue is resolved
+            fc.definition = sc.instance_of
             self._convert_identified(sc, fc)
             mdef2.functionalComponents.add(fc)
 
@@ -314,7 +320,9 @@ class SBOL3To2ConversionVisitor:
                                            sbol2.SBOL_ACCESS_PUBLIC,
                                            sbol2.SBOL_DIRECTION_OUT,
                                            version=self._sbol2_version(sc))
-            fc.definition = sc.instance_of  # See pySBOL2 #430
+            # Assign property after construction due to https://github.com/SynBioDex/pySBOL2/issues/430
+            # TODO: move assignment to constructor after issue is resolved
+            fc.definition = sc.instance_of
             self._convert_identified(sc, fc)
             mdef2.functionalComponents.add(fc)
         for sc in [sc_uri.lookup() for sc_uri in i3.nondirectionals]:
@@ -323,7 +331,9 @@ class SBOL3To2ConversionVisitor:
                                            sbol2.SBOL_ACCESS_PUBLIC,
                                            sbol2.SBOL_DIRECTION_IN_OUT,
                                            version=self._sbol2_version(sc))
-            fc.definition = sc.instance_of  # See pySBOL2 #430
+            # Assign property after construction due to https://github.com/SynBioDex/pySBOL2/issues/430
+            # TODO: move assignment to constructor after issue is resolved
+            fc.definition = sc.instance_of
             self._convert_identified(sc, fc)
             mdef2.functionalComponents.add(fc)
 
@@ -345,7 +355,9 @@ class SBOL3To2ConversionVisitor:
                                  participant=p3.participant, 
                                  version=self._sbol2_version(p3))
         p2.roles = p3.roles
-        p2.participant = self._sbol2_identity(p3.participant.lookup())  # TODO: See pySBOL2 #430
+        # Assign property after construction due to https://github.com/SynBioDex/pySBOL2/issues/430
+        # TODO: move assignment to constructor after issue is resolved
+        p2.participant = self._sbol2_identity(p3.participant.lookup())
         self._convert_identified(p3, p2)
         return p2
 
