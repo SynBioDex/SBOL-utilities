@@ -25,25 +25,20 @@ def _detect_sbol_version(graph: rdflib.Graph) -> Optional[str]:
     :param graph: the RDF graph to analyze
     :return: 'sbol2', 'sbol3', or None if version cannot be determined
     """
-    # Look for SBOL namespace declarations
     sbol2_namespace = 'http://sbols.org/v2#'
     sbol3_namespace = 'http://sbols.org/v3#'
 
-    # Check bound namespaces first
-    for _, namespace in graph.namespaces():
-        if str(namespace) == sbol2_namespace:
-            return 'sbol2'
-        elif str(namespace) == sbol3_namespace:
-            return 'sbol3'
+    namespaces = {str(ns) for _, ns in graph.namespaces()}
 
-    # If no namespace bindings found, check for SBOL URIs in the actual triples
-    for _, p, _ in graph:
-        # Check predicates for SBOL namespace URIs
-        predicate_str = str(p)
-        if sbol2_namespace in predicate_str:
-            return 'sbol2'
-        elif sbol3_namespace in predicate_str:
-            return 'sbol3'
+    if sbol2_namespace in namespaces:
+        return 'sbol2'
+    if sbol3_namespace in namespaces:
+        return 'sbol3'
+
+    if all(str(p).startswith(sbol2_namespace) for _, p, _ in graph):
+        return 'sbol2'
+    if all(str(p).startswith(sbol3_namespace) for _, p, _ in graph):
+        return 'sbol3'
 
     return None
 
