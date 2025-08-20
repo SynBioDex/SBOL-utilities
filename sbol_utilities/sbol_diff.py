@@ -128,14 +128,6 @@ def _diff_graphs(g1: rdflib.Graph, g2: rdflib.Graph,
     g1_sbol_version = _detect_sbol_version(g1)
     g2_sbol_version = _detect_sbol_version(g2)
 
-    if g1_sbol_version != g2_sbol_version:
-        raise TypeError('SBOL documents are of different versions, cannot compare')
-
-    if g1_sbol_version:
-        validate_backport_properties(g1, g1_sbol_version)
-    if g2_sbol_version:
-        validate_backport_properties(g2, g2_sbol_version)
-
     g1_to_compare = g1
     g2_to_compare = g2
     if strip_backport_properties:
