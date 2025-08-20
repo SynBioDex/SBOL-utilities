@@ -107,7 +107,24 @@ def _remove_selective_backport_properties(graph: rdflib.Graph) -> rdflib.Graph:
 
 def _diff_graphs(g1: rdflib.Graph, g2: rdflib.Graph,
                  strip_backport_properties: bool = False) -> Tuple[rdflib.Graph, rdflib.Graph, rdflib.Graph]:
-    # Remove backport properties from both graphs before comparison
+    """
+    Compare two RDF graphs and identify their differences, with special handling for SBOL documents.
+
+    The function first checks if both graphs represent the same version of SBOL. If they differ,
+    a TypeError is raised. It can optionally strip away backport properties before comparison
+    to ignore certain version-specific details. The comparison is based on isomorphism,
+    meaning the graph structure is considered, not just the raw RDF statements.
+
+    :param g1: The first RDF graph to compare.
+    :param g2: The second RDF graph to compare.
+    :param strip_backport_properties: If True, remove backport properties before comparison.
+                                      Defaults to False.
+    :return: A tuple of three graphs: (both, in_g1, in_g2).
+             - both: Statements that are common to both graphs.
+             - in_g1: Statements that are only in the first graph.
+             - in_g2: Statements that are only in the second graph.
+    :raises TypeError: If the two graphs are detected to be of different SBOL versions.
+    """
     g1_sbol_version = _detect_sbol_version(g1)
     g2_sbol_version = _detect_sbol_version(g2)
 
