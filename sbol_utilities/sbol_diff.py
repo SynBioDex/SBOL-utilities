@@ -28,17 +28,13 @@ def _detect_sbol_version(graph: rdflib.Graph) -> Optional[str]:
     sbol2_namespace = 'http://sbols.org/v2#'
     sbol3_namespace = 'http://sbols.org/v3#'
 
-    namespaces = {str(ns) for _, ns in graph.namespaces()}
+    namespaces = {str(ns) for _, ns in graph.namespaces()} | {str(p) for _, p, _ in graph}
 
-    if sbol2_namespace in namespaces:
-        return 'sbol2'
-    if sbol3_namespace in namespaces:
-        return 'sbol3'
-
-    if all(str(p).startswith(sbol2_namespace) for _, p, _ in graph):
-        return 'sbol2'
-    if all(str(p).startswith(sbol3_namespace) for _, p, _ in graph):
-        return 'sbol3'
+    for namespace in namespaces:
+        if sbol2_namespace in namespace:
+            return 'sbol2'
+        if sbol3_namespace in namespace:
+            return 'sbol3'
 
     return None
 
@@ -53,12 +49,9 @@ def _check_inappropriate_backport_properties(graph: rdflib.Graph, document_versi
     """
     inappropriate_properties = []
 
-    # Check for inappropriate backport properties
-    for s, p, _ in graph:
+    for _, p, _ in graph:
         predicate_str = str(p)
-        subject_str = str(s)
-        if predicate_str == BACKPORT_NAMESPACE and document_version in subject_str:
-            # SBOL2 document should not have sbol2version backport properties
+        if BACKPORT_NAMESPACE in predicate_str and document_version in predicate_str:
             inappropriate_properties.append(predicate_str)
 
     return len(inappropriate_properties) > 0, inappropriate_properties
