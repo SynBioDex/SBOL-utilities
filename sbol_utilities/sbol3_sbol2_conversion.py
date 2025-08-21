@@ -661,6 +661,7 @@ class SBOL2To3ConversionVisitor:
         self._convert_toplevel(imp2, imp3)
 
     def visit_interaction(self, i2: sbol2.Interaction):
+        # Make the Interaction. NOTE: Conversion of child Participations is handled in visit_module_definition
         i3 = sbol3.Interaction(i2.types)
         self._convert_identified(i2, i3)
         return i3
