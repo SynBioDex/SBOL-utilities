@@ -5,6 +5,7 @@ import sys
 import time
 from typing import Union, Tuple, Optional, Sequence
 
+from rdflib.namespace import split_uri
 import rdflib.compare
 import sbol3
 
@@ -18,26 +19,32 @@ def _load_rdf(fpath: Union[str, bytes, os.PathLike]) -> rdflib.Graph:
     return graph1
 
 
-def _detect_sbol_version(graph: rdflib.Graph) -> Optional[str]:
+def _detect_sbol_version(graph: rdflib.Graph):
     """
-    Detect the SBOL version of a document from its RDF namespace declarations and URIs
+    Detect the SBOL version of a document from its RDF namespace declarations and URIs.
 
     :param graph: the RDF graph to analyze
-    :return: 'sbol2', 'sbol3', or None if version cannot be determined
+    :return: 'sbol2', 'sbol3', or None if version cannot be determined or is mixed
     """
     sbol2_namespace = 'http://sbols.org/v2#'
     sbol3_namespace = 'http://sbols.org/v3#'
 
-    namespaces = {str(ns) for _, ns in graph.namespaces()} | {str(p) for _, p, _ in graph}
+    # Collect namespaces from both declared prefixes and predicate URIs
+    namespaces = {str(ns) for _, ns in graph.namespaces()} | {
+        split_uri(p)[0] for _, p, _ in graph
+    }
 
-    for namespace in namespaces:
-        if sbol2_namespace in namespace:
-            return 'sbol2'
-        if sbol3_namespace in namespace:
-            return 'sbol3'
+    has_v2 = any(sbol2_namespace in ns for ns in namespaces)
+    has_v3 = any(sbol3_namespace in ns for ns in namespaces)
 
-    return None
-
+    if has_v2 and has_v3:
+        return None
+    elif has_v2:
+        return 'sbol2'
+    elif has_v3:
+        return 'sbol3'
+    else:
+        return None
 
 def _check_inappropriate_backport_properties(graph: rdflib.Graph, document_version) -> Tuple[bool, list]:
     """
