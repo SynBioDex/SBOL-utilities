@@ -306,6 +306,9 @@ class TestDirectSBOL2SBOL3Conversion(unittest.TestCase):
     def test_functionalcomponent_conversion(self):
         self.handle_2to3_conversion('sbol_3to2_functionalcomponent.xml', 'sbol_3to2_functionalcomponent.nt')
 
+    def test_interaction_conversion(self):
+        self.handle_2to3_conversion('sbol_3to2_interaction.xml', 'sbol_3to2_interaction.nt')
+
 
 class TestDirectSBOL3SBOL2Conversion(unittest.TestCase):
 
@@ -366,6 +369,9 @@ class TestDirectSBOL3SBOL2Conversion(unittest.TestCase):
         # URI is initialized upon addition to parent
         c.features.append(sc)
         self.assertEqual(visitor._sbol2_identity(sc), 'http://example.com/foo/SubComponent1')
+
+    def test_interaction_conversion(self):
+        self.handle_3to2_conversion('sbol_3to2_interaction.nt', 'sbol_3to2_interaction.xml')
 
  
 if __name__ == '__main__':

@@ -228,7 +228,9 @@ class SBOL3To2ConversionVisitor:
                                                    sbol2.SBOL_ACCESS_PRIVATE,
                                                    f.backport_direction,
                                                    version=self._sbol2_version(f))
-                    fc.definition = f.instance_of  # See pySBOL2 #430
+                    # Assign property after construction due to https://github.com/SynBioDex/pySBOL2/issues/430
+                    # TODO: move assignment to constructor after issue is resolved
+                    fc.definition = f.instance_of
                     self._convert_identified(f, fc)
                     mdef2.functionalComponents.add(fc)
              
@@ -241,9 +243,14 @@ class SBOL3To2ConversionVisitor:
                                                    sbol2.SBOL_ACCESS_PUBLIC,
                                                    sbol2.SBOL_DIRECTION_NONE,
                                                    version=self._sbol2_version(f))
-                    fc.definition = f.instance_of  # See pySBOL2 #430
+                    # Assign property after construction due to https://github.com/SynBioDex/pySBOL2/issues/430
+                    # TODO: move assignment to constructor after issue is resolved
+                    fc.definition = f.instance_of
                     self._convert_identified(f, fc)
                     mdef2.functionalComponents.add(fc)
+
+        for i in cp3.interactions:
+            mdef2.interactions.add(self.visit_interaction(i))
 
     def visit_component_reference(self, a: sbol3.ComponentReference):
         # Priority: 3
@@ -286,9 +293,13 @@ class SBOL3To2ConversionVisitor:
         # Map over all other TopLevel properties and extensions not covered by the constructor
         self._convert_toplevel(imp3, imp2)
 
-    def visit_interaction(self, a: sbol3.Interaction):
-        # Priority: 2
-        raise NotImplementedError('Conversion of Interaction from SBOL3 to SBOL2 not yet implemented')
+    def visit_interaction(self, i3: sbol3.Interaction):
+        i2 = sbol2.Interaction(self._sbol2_identity(i3), i3.types, version=self._sbol2_version(i3))
+        for p3 in i3.participations:
+            p2 = self.visit_participation(p3)
+            i2.participations.add(p2)
+        self._convert_identified(i3, i2)
+        return i2
 
     def visit_interface(self, i3: sbol3.Interface, mdef2: sbol2.ModuleDefinition):
         for sc in [sc_uri.lookup() for sc_uri in i3.inputs]:
@@ -297,7 +308,9 @@ class SBOL3To2ConversionVisitor:
                                            sbol2.SBOL_ACCESS_PUBLIC,
                                            sbol2.SBOL_DIRECTION_IN,
                                            version=self._sbol2_version(sc))
-            fc.definition = sc.instance_of  # See pySBOL2 #430
+            # Assign property after construction due to https://github.com/SynBioDex/pySBOL2/issues/430
+            # TODO: move assignment to constructor after issue is resolved
+            fc.definition = sc.instance_of
             self._convert_identified(sc, fc)
             mdef2.functionalComponents.add(fc)
 
@@ -307,7 +320,9 @@ class SBOL3To2ConversionVisitor:
                                            sbol2.SBOL_ACCESS_PUBLIC,
                                            sbol2.SBOL_DIRECTION_OUT,
                                            version=self._sbol2_version(sc))
-            fc.definition = sc.instance_of  # See pySBOL2 #430
+            # Assign property after construction due to https://github.com/SynBioDex/pySBOL2/issues/430
+            # TODO: move assignment to constructor after issue is resolved
+            fc.definition = sc.instance_of
             self._convert_identified(sc, fc)
             mdef2.functionalComponents.add(fc)
         for sc in [sc_uri.lookup() for sc_uri in i3.nondirectionals]:
@@ -316,7 +331,9 @@ class SBOL3To2ConversionVisitor:
                                            sbol2.SBOL_ACCESS_PUBLIC,
                                            sbol2.SBOL_DIRECTION_IN_OUT,
                                            version=self._sbol2_version(sc))
-            fc.definition = sc.instance_of  # See pySBOL2 #430
+            # Assign property after construction due to https://github.com/SynBioDex/pySBOL2/issues/430
+            # TODO: move assignment to constructor after issue is resolved
+            fc.definition = sc.instance_of
             self._convert_identified(sc, fc)
             mdef2.functionalComponents.add(fc)
 
@@ -333,9 +350,16 @@ class SBOL3To2ConversionVisitor:
         # Priority: 3
         raise NotImplementedError('Conversion of Model from SBOL3 to SBOL2 not yet implemented')
 
-    def visit_participation(self, a: sbol3.Participation):
-        # Priority: 2
-        raise NotImplementedError('Conversion of Participation from SBOL3 to SBOL2 not yet implemented')
+    def visit_participation(self, p3: sbol3.Participation):
+        p2 = sbol2.Participation(uri=self._sbol2_identity(p3),
+                                 participant=p3.participant, 
+                                 version=self._sbol2_version(p3))
+        p2.roles = p3.roles
+        # Assign property after construction due to https://github.com/SynBioDex/pySBOL2/issues/430
+        # TODO: move assignment to constructor after issue is resolved
+        p2.participant = self._sbol2_identity(p3.participant.lookup())
+        self._convert_identified(p3, p2)
+        return p2
 
     def visit_plan(self, a: sbol3.Plan):
         # Priority: 3
@@ -637,11 +661,8 @@ class SBOL2To3ConversionVisitor:
         self._convert_toplevel(imp2, imp3)
 
     def visit_interaction(self, i2: sbol2.Interaction):
+        # Make the Interaction. NOTE: Conversion of child Participations is handled in visit_module_definition
         i3 = sbol3.Interaction(i2.types)
-        for p2 in i2.participations:
-            p3 = self.visit_participation(p2)
-            i3.participations.append(p3)
-
         self._convert_identified(i2, i3)
         return i3
 
@@ -669,6 +690,11 @@ class SBOL2To3ConversionVisitor:
             i3 = self.visit_interaction(i2)
             c3.interactions.append(i3)
             self.update_identity(i2, i3)
+
+            for p2 in i2.participations:
+                p3 = self.visit_participation(p2)
+                i3.participations.append(p3)
+                self.update_identity(p2, p3)
 
         # Create an Interface only if there is a public FC
         for fc in md.functionalComponents:
