@@ -121,7 +121,7 @@ class TestHelpers(unittest.TestCase):
         """Test the generate_hash function"""
         # Create a test attachment
         test_dir = os.path.dirname(os.path.realpath(__file__))
-        test_file = os.path.join(test_dir, 'test_files', 'test_attachment.xml')
+        test_file = os.path.join(test_dir, 'test_files', 'test_attachment_sbol3.xml')
         doc = sbol3.Document()
         doc.read(test_file)
         attachment: sbol3.Attachment = doc.find('exp1_growth_data')

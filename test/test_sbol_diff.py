@@ -3,6 +3,7 @@ import sys
 import unittest
 from unittest.mock import patch
 
+import rdflib
 import sbol3
 
 import sbol_utilities.sbol_diff
@@ -14,7 +15,6 @@ ESL_SBOL_PATH = os.path.join(TEST_FILES_DIR, 'expanded_simple_library.nt')
 
 
 class TestSbolDiff(unittest.TestCase):
-
     def test_command_line(self):
         """Test command line invocation of sbol_diff utility"""
         test_args = ['sbol_diff', ESL_SBOL_PATH, ESL_SBOL_PATH]
@@ -28,6 +28,18 @@ class TestSbolDiff(unittest.TestCase):
         with patch.object(sys, 'argv', test_args):
             status = sbol_utilities.sbol_diff.main()
         self.assertEqual(1, status)
+        # Test command line with stripping enabled
+        file1 = os.path.join(TEST_FILES_DIR, 'test_attachment_sbol2.xml')
+        file2 = os.path.join(TEST_FILES_DIR, 'test_attachment_sbol2_converted_loop.xml')
+        test_args = ['sbol_diff', '--strip-backport-properties', '-s', file1, file2]
+        with patch.object(sys, 'argv', test_args):
+            status = sbol_utilities.sbol_diff.main()
+        self.assertEqual(0, status, 'Stripping should lead to no differences')
+        # Test command line with stripping disabled (default)
+        test_args = ['sbol_diff', '-s', file1, file2]
+        with patch.object(sys, 'argv', test_args):
+            status = sbol_utilities.sbol_diff.main()
+        self.assertEqual(1, status, 'Not stripping should lead to differences')
 
     def test_file_diff(self):
         """Invoke sbol_utilities.sbol_diff.file_diff directly"""
@@ -50,6 +62,100 @@ class TestSbolDiff(unittest.TestCase):
         actual = sbol_utilities.sbol_diff.doc_diff(esl_doc, sl_doc, silent=True)
         expected = 1
         self.assertEqual(expected, actual)
+
+    def test_diff_backport_properties_stripping(self):
+        """Test that backport properties are handled correctly based on the flag"""
+        file1 = os.path.join(TEST_FILES_DIR, 'test_attachment_sbol2.xml')
+        file2 = os.path.join(TEST_FILES_DIR, 'test_attachment_sbol2_converted_loop.xml')
+
+        # By default, backport properties are NOT stripped, so files should differ
+        result_no_strip = sbol_utilities.sbol_diff.file_diff(file1, file2, silent=True)
+        self.assertEqual(1, result_no_strip, 'Files should be different when not stripping backport properties')
+
+        # When stripping is enabled, files should be identical
+        result_strip = sbol_utilities.sbol_diff.file_diff(file1, file2, silent=True, strip_backport_properties=True)
+        self.assertEqual(0, result_strip, 'Files should be identical when ignoring backport properties')
+
+    def test_detect_sbol_version(self):
+        """Test SBOL version detection functionality"""
+        # Test SBOL2 document detection
+        sbol2_file_xml = os.path.join(TEST_FILES_DIR, 'sbol2_collection.xml')
+        graph2_xml = sbol_utilities.sbol_diff._load_rdf(sbol2_file_xml)
+        version2 = sbol_utilities.sbol_diff._detect_sbol_version(graph2_xml)
+        self.assertEqual('sbol2', version2, 'Should detect SBOL2 document')
+
+        # Test SBOL3 document detection
+        sbol3_file_xml = os.path.join(TEST_FILES_DIR, 'sbol3_collection.xml')
+        graph3_xml = sbol_utilities.sbol_diff._load_rdf(sbol3_file_xml)
+        version3 = sbol_utilities.sbol_diff._detect_sbol_version(graph3_xml)
+        self.assertEqual('sbol3', version3, 'Should detect SBOL3 document')
+
+        sbol3_file_nt = os.path.join(TEST_FILES_DIR, 'sbol3_collection.nt')
+        graph3_nt = sbol_utilities.sbol_diff._load_rdf(sbol3_file_nt)
+        version3_nt = sbol_utilities.sbol_diff._detect_sbol_version(graph3_nt)
+        self.assertEqual('sbol3', version3_nt, 'Should detect SBOL3 document')
+
+    def test_validate_backport_properties(self):
+        """Test the backport property validation logic based on its specific implementation."""
+        # A clean graph with no backport properties. Should pass.
+        clean_sbol3_doc = os.path.join(TEST_FILES_DIR, 'sbol3_collection.xml')
+        clean_graph = sbol_utilities.sbol_diff._load_rdf(clean_sbol3_doc)
+        self.assertTrue(sbol_utilities.sbol_diff.validate_backport_properties(clean_graph, 'sbol2'))
+
+        # A graph with a backport property.
+        backport_sbol3_doc = os.path.join(TEST_FILES_DIR, 'empty_componentDefinition.xml')
+        backport_graph = sbol_utilities.sbol_diff._load_rdf(backport_sbol3_doc)
+        self.assertTrue(sbol_utilities.sbol_diff.validate_backport_properties(backport_graph, 'sbol2'),
+                        "Validation should pass for predicates that START WITH the backport namespace.")
+
+        # A graph with an invalid backport property.
+        failing_sbol3_doc = os.path.join(TEST_FILES_DIR, 'empty_componentDefinition.xml')
+        failing_graph = sbol_utilities.sbol_diff._load_rdf(failing_sbol3_doc)
+        with self.assertRaisesRegex(ValueError, "inappropriate backport properties"):
+            sbol_utilities.sbol_diff.validate_backport_properties(failing_graph, 'sbol3')
+
+    def test_detect_version_with_no_clear_indicators(self):
+        """Test version detection when document has no clear version indicators"""
+        graph = rdflib.Graph()
+        version = sbol_utilities.sbol_diff._detect_sbol_version(graph)
+        self.assertIsNone(version, 'Should return None when version cannot be determined')
+
+        no_version_file = os.path.join(TEST_FILES_DIR, 'test_no_version_indicators.nt')
+        graph = sbol_utilities.sbol_diff._load_rdf(no_version_file)
+        version = sbol_utilities.sbol_diff._detect_sbol_version(graph)
+        self.assertIsNone(version, 'Should return None for non-SBOL document')
+
+    def test_diff_with_documents_no_version_detected(self):
+        """Test behavior when version cannot be detected for documents"""
+        no_version_file = os.path.join(TEST_FILES_DIR, 'test_no_version_indicators.nt')
+
+        result = sbol_utilities.sbol_diff.file_diff(no_version_file, no_version_file, silent=True)
+        self.assertEqual(0, result, 'Identical documents with no version should show no differences')
+
+    def test_remove_selective_backport_properties(self):
+        """Test that selective backport property removal works correctly and does not modify original"""
+        test_file = os.path.join(TEST_FILES_DIR, 'test_attachment_sbol2_converted_loop.xml')
+        graph = sbol_utilities.sbol_diff._load_rdf(test_file)
+
+        backport_triples_before = [
+            (s, p, o) for s, p, o in graph if str(p).startswith('http://sboltools.org/backport#')
+        ]
+        self.assertGreater(len(backport_triples_before), 0, 'Document should have backport properties')
+
+        cleaned_graph = sbol_utilities.sbol_diff._remove_selective_backport_properties(graph)
+
+        # Check that the cleaned graph has no backport properties
+        backport_triples_after_cleaned = [
+            (s, p, o) for s, p, o in cleaned_graph if str(p).startswith('http://sboltools.org/backport#')
+        ]
+        self.assertEqual(len(backport_triples_after_cleaned), 0, 'All backport properties should be removed from new graph')
+
+        # Check that the original graph is unmodified
+        backport_triples_after_original = [
+            (s, p, o) for s, p, o in graph if str(p).startswith('http://sboltools.org/backport#')
+        ]
+        self.assertEqual(len(backport_triples_before), len(backport_triples_after_original),
+                         'Original graph should not be modified')
 
 
 if __name__ == '__main__':

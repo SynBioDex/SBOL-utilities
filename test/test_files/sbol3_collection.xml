@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rdf:RDF
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:sbol="http://sbols.org/v3#"
+>
+  <rdf:Description rdf:about="https://github.com/SynBioDex/SBOL-Notebooks/collection_1">
+    <sbol:displayId>collection_1</sbol:displayId>
+    <rdf:type rdf:resource="http://sbols.org/v3#Collection"/>
+    <sbol:hasNamespace rdf:resource="https://github.com/SynBioDex/SBOL-Notebooks"/>
+    <sbol:member rdf:resource="https://github.com/SynBioDex/SBOL-Notebooks/member_1"/>
+  </rdf:Description>
+</rdf:RDF>
