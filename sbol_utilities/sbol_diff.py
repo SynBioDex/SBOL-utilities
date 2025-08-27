@@ -4,12 +4,19 @@ import os
 import sys
 import time
 from typing import Union, Tuple, Optional, Sequence
+from enum import Enum
 
 from rdflib.namespace import split_uri
 import rdflib.compare
 import sbol3
 
 BACKPORT_NAMESPACE = 'http://sboltools.org/backport#'
+
+
+class SBOLVersion(str, Enum):
+    """An enum for SBOL versions"""
+    SBOL2 = 'sbol2'
+    SBOL3 = 'sbol3'
 
 
 def _load_rdf(fpath: Union[str, bytes, os.PathLike]) -> rdflib.Graph:
@@ -19,7 +26,7 @@ def _load_rdf(fpath: Union[str, bytes, os.PathLike]) -> rdflib.Graph:
     return graph1
 
 
-def _detect_sbol_version(graph: rdflib.Graph):
+def _detect_sbol_version(graph: rdflib.Graph) -> Optional[SBOLVersion]:
     """
     Detect the SBOL version of a document from its RDF namespace declarations and URIs.
 
@@ -40,9 +47,9 @@ def _detect_sbol_version(graph: rdflib.Graph):
     if has_v2 and has_v3:
         return None
     elif has_v2:
-        return 'sbol2'
+        return SBOLVersion.SBOL2
     elif has_v3:
-        return 'sbol3'
+        return SBOLVersion.SBOL3
     else:
         return None
 
