@@ -131,9 +131,6 @@ def _diff_graphs(g1: rdflib.Graph, g2: rdflib.Graph,
              - in_g1: Statements that are only in the first graph.
              - in_g2: Statements that are only in the second graph.
     """
-    g1_sbol_version = _detect_sbol_version(g1)
-    g2_sbol_version = _detect_sbol_version(g2)
-
     g1_to_compare = g1
     g2_to_compare = g2
     if strip_backport_properties:
