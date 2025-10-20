@@ -262,7 +262,7 @@ class SBOL3To2ConversionVisitor:
         # Map over all other TopLevel properties and extensions not covered by the constructor
         self._convert_toplevel(seq3, seq2)
 
-    def visit_sequence_feature(self, seqfeat3: sbol3.SequenceFeature) -> sbol2.SequenceFeature:
+    def visit_sequence_feature(self, seqfeat3: sbol3.SequenceFeature) -> sbol2.SequenceAnnotation:
         # Priority: 1
         # SBOL 2.x SequenceAnnotation objects map to SBOL 3.x SequenceFeature objects if they do not have a component. 
         # If they do have a component, their locations are added to the corresponding SBOL3 SubComponent.
@@ -276,6 +276,9 @@ class SBOL3To2ConversionVisitor:
             wasDerivedFrom = seqfeat3.derived_from,
             wasGeneratedBy = seqfeat3.generated_by,
             version=self._sbol2_version(seqfeat3) )
+        
+        # component in SequenceAnnotation is directed linked to a Component, in SequenceFeature its is through Locations
+        # convert locations
         if seqfeat3.locations:  
             for loc3 in seqfeat3.locations:
                 if type(loc3) is sbol3.location.Range:
@@ -286,6 +289,7 @@ class SBOL3To2ConversionVisitor:
                     # convert to GenericLocation
                     raise NotImplementedError('Conversion of EntireSequence from SBOL3 to SBOL2 not yet implemented')
                 else: raise ValueError('Unknown location type, SequenceFeature cannot convert to SBOL2')
+        else: raise ValueError('SequenceFeature must have at least one location')
         # convert measures
         if seqfeat3.measures:
             raise NotImplementedError('Conversion of measures from SBOL3 to SBOL2 not yet implemented')
