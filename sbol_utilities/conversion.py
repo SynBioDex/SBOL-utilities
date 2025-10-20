@@ -417,7 +417,7 @@ def command_line_converter(args_dict: Dict[str, Any]):
     elif input_file_type == 'SBOL2':
         doc2 = sbol2.Document()
         doc2.read(input_file)
-        doc3 = convert2to3(doc2, [namespace] if namespace else [])
+        doc3 = convert2to3(doc2, [namespace] if namespace else [], args_dict['force_new_converter'])
     elif input_file_type == 'SBOL3':
         doc3 = sbol3.Document()
         doc3.read(input_file)
@@ -431,7 +431,7 @@ def command_line_converter(args_dict: Dict[str, Any]):
     elif output_file_type == 'GenBank':
         convert_to_genbank(doc3, output_file, args_dict['allow_genbank_online'], args_dict['force_new_converter'])
     elif output_file_type == 'SBOL2':
-        doc2 = convert3to2(doc3)
+        doc2 = convert3to2(doc3, args_dict['force_new_converter'])
         validate_online = sbol2.Config.getOption(sbol2.ConfigOptions.VALIDATE_ONLINE)
         try:
             sbol2.Config.setOption(sbol2.ConfigOptions.VALIDATE_ONLINE, False)
@@ -511,6 +511,8 @@ def sbol2to3():
                         help='Namespace URL, optional for conversions from SBOL2')
     parser.add_argument('-o', '--output', dest='output_file', default='out',
                         help='Name of output file to be written')
+    parser.add_argument('--force-new-converter', dest='force_new_converter', action='store_true', default=False,
+                        help='Force the usage of new (offline) converter instead of legacy (online) converter.')
     parser.add_argument('--verbose', '-v', dest='verbose', action='count', default=0,
                         help="Print running explanation of conversion process")
     args_dict = vars(parser.parse_args())
@@ -562,6 +564,8 @@ def sbol3to2():
     parser.add_argument('input_file', help='Genetic design file used as input')
     parser.add_argument('-o', '--output', dest='output_file', default='out',
                         help='Name of output file to be written')
+    parser.add_argument('--force-new-converter', dest='force_new_converter', action='store_true', default=False,
+                        help='Force the usage of new (offline) converter instead of legacy (online) converter.')
     parser.add_argument('--verbose', '-v', dest='verbose', action='count', default=0,
                         help="Print running explanation of conversion process")
     args_dict = vars(parser.parse_args())
