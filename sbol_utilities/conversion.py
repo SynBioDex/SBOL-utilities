@@ -511,6 +511,8 @@ def sbol2to3():
                         help='Namespace URL, optional for conversions from SBOL2')
     parser.add_argument('-o', '--output', dest='output_file', default='out',
                         help='Name of output file to be written')
+    parser.add_argument('--force-new-converter', dest='force_new_converter', action='store_true', default=False,
+                        help='Force the usage of new (offline) converter instead of legacy (online) converter.')
     parser.add_argument('--verbose', '-v', dest='verbose', action='count', default=0,
                         help="Print running explanation of conversion process")
     args_dict = vars(parser.parse_args())
@@ -562,6 +564,8 @@ def sbol3to2():
     parser.add_argument('input_file', help='Genetic design file used as input')
     parser.add_argument('-o', '--output', dest='output_file', default='out',
                         help='Name of output file to be written')
+    parser.add_argument('--force-new-converter', dest='force_new_converter', action='store_true', default=False,
+                        help='Force the usage of new (offline) converter instead of legacy (online) converter.')
     parser.add_argument('--verbose', '-v', dest='verbose', action='count', default=0,
                         help="Print running explanation of conversion process")
     args_dict = vars(parser.parse_args())
