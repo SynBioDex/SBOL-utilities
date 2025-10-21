@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rdf:RDF
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:sbol="http://sbols.org/v3#"
+>
+  <rdf:Description rdf:about="https://github.com/component1">
+    <sbol:displayId>component1</sbol:displayId>
+    <rdf:type rdf:resource="http://sbols.org/v3#Component"/>
+    <sbol:hasNamespace rdf:resource="https://github.com/"/>
+    <sbol:type rdf:resource="https://identifiers.org/SBO:0000251"/>
+    <sbol:hasSequence rdf:resource="https://github.com/sequence1"/>
+    <sbol:hasFeature rdf:resource="https://github.com/component1/SequenceFeature1"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://github.com/sequence1">
+    <sbol:displayId>sequence1</sbol:displayId>
+    <rdf:type rdf:resource="http://sbols.org/v3#Sequence"/>
+    <sbol:hasNamespace rdf:resource="https://github.com/"/>
+    <sbol:elements>gattaca</sbol:elements>
+    <sbol:encoding rdf:resource="https://identifiers.org/edam:format_1207"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://github.com/component1/SequenceFeature1/Range1">
+    <sbol:displayId>Range1</sbol:displayId>
+    <rdf:type rdf:resource="http://sbols.org/v3#Range"/>
+    <sbol:hasSequence rdf:resource="https://github.com/sequence1"/>
+    <sbol:start rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">1</sbol:start>
+    <sbol:end rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">3</sbol:end>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://github.com/component1/SequenceFeature1">
+    <sbol:displayId>SequenceFeature1</sbol:displayId>
+    <sbol:name>promoter_feature</sbol:name>
+    <rdf:type rdf:resource="http://sbols.org/v3#SequenceFeature"/>
+    <sbol:role rdf:resource="https://identifiers.org/SO:0000167"/>
+    <sbol:hasLocation rdf:resource="https://github.com/component1/SequenceFeature1/Range1"/>
+  </rdf:Description>
+</rdf:RDF>
