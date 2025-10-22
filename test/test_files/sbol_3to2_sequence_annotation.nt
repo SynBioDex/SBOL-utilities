@@ -1,0 +1,33 @@
+<rdf:RDF xmlns:brick="https://brickschema.org/schema/Brick#" xmlns:csvw="http://www.w3.org/ns/csvw#" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcat="http://www.w3.org/ns/dcat#" xmlns:dcmitype="http://purl.org/dc/dcmitype/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:dcam="http://purl.org/dc/dcam/" xmlns:doap="http://usefulinc.com/ns/doap#" xmlns:foaf="http://xmlns.com/foaf/0.1/" xmlns:geo="http://www.opengis.net/ont/geosparql#" xmlns:odrl="http://www.w3.org/ns/odrl/2/" xmlns:org="http://www.w3.org/ns/org#" xmlns:prof="http://www.w3.org/ns/dx/prof/" xmlns:prov="http://www.w3.org/ns/prov#" xmlns:qb="http://purl.org/linked-data/cube#" xmlns:schema="https://schema.org/" xmlns:sh="http://www.w3.org/ns/shacl#" xmlns:skos="http://www.w3.org/2004/02/skos/core#" xmlns:sosa="http://www.w3.org/ns/sosa/" xmlns:ssn="http://www.w3.org/ns/ssn/" xmlns:time="http://www.w3.org/2006/time#" xmlns:vann="http://purl.org/vocab/vann/" xmlns:void="http://rdfs.org/ns/void#" xmlns:wgs="https://www.w3.org/2003/01/geo/wgs84_pos#" xmlns:owl="http://www.w3.org/2002/07/owl#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#" xmlns:xsd="http://www.w3.org/2001/XMLSchema#" xmlns:backport="http://sboltools.org/backport#" xmlns:sbol="http://sbols.org/v2#">
+  <sbol:Sequence rdf:about="https://github.com/sequence1">
+    <sbol:persistentIdentity rdf:resource="https://github.com/sequence1"/>
+    <sbol:elements>gattaca</sbol:elements>
+    <sbol:displayId>sequence1</sbol:displayId>
+    <backport:sbol3namespace rdf:resource="https://github.com/"/>
+    <sbol:encoding rdf:resource="http://www.chem.qmul.ac.uk/iubmb/misc/naseq.html"/>
+  </sbol:Sequence>
+  <sbol:ComponentDefinition rdf:about="https://github.com/component1">
+    <sbol:displayId>component1</sbol:displayId>
+    <sbol:sequenceAnnotation>
+      <sbol:SequenceAnnotation rdf:about="https://github.com/component1/SequenceFeature1">
+        <sbol:location>
+          <sbol:Range rdf:about="https://github.com/component1/SequenceFeature1/Range1">
+            <sbol:displayId>Range1</sbol:displayId>
+            <sbol:persistentIdentity rdf:resource="https://github.com/component1/SequenceFeature1/Range1"/>
+            <sbol:end>3</sbol:end>
+            <sbol:start>1</sbol:start>
+          </sbol:Range>
+        </sbol:location>
+        <sbol:displayId>SequenceFeature1</sbol:displayId>
+        <dcterms:title>promoter_feature</dcterms:title>
+        <sbol:role rdf:resource="https://identifiers.org/SO:0000167"/>
+        <sbol:persistentIdentity rdf:resource="https://github.com/component1/SequenceFeature1"/>
+      </sbol:SequenceAnnotation>
+    </sbol:sequenceAnnotation>
+    <sbol:type rdf:resource="http://www.biopax.org/release/biopax-level3.owl#DnaRegion"/>
+    <backport:sbol3identity rdf:resource="https://github.com/component1"/>
+    <sbol:persistentIdentity rdf:resource="https://github.com/component1"/>
+    <backport:sbol3namespace rdf:resource="https://github.com/"/>
+    <sbol:sequence rdf:resource="https://github.com/sequence1"/>
+  </sbol:ComponentDefinition>
+</rdf:RDF>

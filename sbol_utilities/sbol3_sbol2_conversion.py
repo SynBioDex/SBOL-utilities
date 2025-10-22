@@ -389,9 +389,37 @@ class SBOL3To2ConversionVisitor:
         # Map over all other TopLevel properties and extensions not covered by the constructor
         self._convert_toplevel(seq3, seq2)
 
-    def visit_sequence_feature(self, a: sbol3.SequenceFeature):
-        # Priority: 1
-        raise NotImplementedError('Conversion of SequenceFeature from SBOL3 to SBOL2 not yet implemented')
+    def visit_sequence_feature(self, seqfeat3: sbol3.SequenceFeature):
+       # Priority: 1
+       # SBOL 2.x SequenceAnnotation objects map to SBOL 3.x SequenceFeature objects if they do not have a component.
+       # If they do have a component, their locations are added to the corresponding SBOL3 SubComponent.
+
+       # convert locations
+       locations2 = []
+       if seqfeat3.locations: 
+           for loc3 in seqfeat3.locations:
+               if type(loc3) is sbol3.location.Range:
+                   raise NotImplementedError('Conversion of Range from SBOL3 to SBOL2 not yet implemented')
+               elif type(loc3) is sbol3.location.Cut:
+                   raise NotImplementedError('Conversion of Cut from SBOL3 to SBOL2 not yet implemented')
+               elif type(loc3) is sbol3.location.EntireSequence:
+                   raise NotImplementedError('Conversion of EntireSequence from SBOL3 to SBOL2 not yet implemented')
+               else: raise ValueError(f'Unknown location type {type(loc3)}, SequenceFeature cannot convert to SBOL2')
+       else: raise ValueError('SequenceFeature must have at least one location')
+
+       # Create SBOL2 SequenceAnnotation
+       seqanno2 = sbol2.SequenceAnnotation(identity=self._sbol3_identity(seqfeat3),
+                                           locations = locations2,
+                                           roles = seqfeat3.roles,
+                                           name = seqfeat3.name,  
+                                           description = seqfeat3.description,
+                                           wasDerivedFrom = seqfeat3.derived_from,
+                                           wasGeneratedBy = seqfeat3.generated_by,
+                                           version=self._sbol2_version(seqfeat3) )
+      
+       self._convert_identified(seqfeat3, seqanno2)
+       return seqanno2, locations2
+
 
     def visit_singular_unit(self, a: sbol3.SingularUnit):
         # Priority: 4
@@ -752,7 +780,7 @@ class SBOL2To3ConversionVisitor:
             cdef = r2.parent.parent
             ns = self._sbol3_namespace(cdef)
             seq_stub = sbol3.Sequence(f'{ns}/{cdef.displayId}Seq/', namespace=ns)
-            cdef.sequence = seq_stup
+            cdef.sequence = seq_stub
             cdef.doc.add(seq_stub)
         r3 = sbol3.Range(seq_ref, r2.start, r2.end)
         self._convert_identified(r2, r3)
@@ -772,21 +800,53 @@ class SBOL2To3ConversionVisitor:
         # Map over all other TopLevel properties and extensions not covered by the constructor
         self._convert_toplevel(seq2, seq3)
 
-    def visit_sequence_annotation(self, sa2: sbol2.SequenceAnnotation):
-        # component URIRef 0..1
-        # orientation URI 0..1
-        locations = []
-        for l2 in sa2.locations:
-            if type(l2) == sbol2.Range:
-                l3 = self.visit_range(l2)
-            else:
-                raise NotImplementedError('Conversion of {type(l2)} from SBOL2 to SBOL3 not yet implemented')
-            locations.append(l3)
+    def visit_sequence_annotation(self, seqanno2: sbol2.SequenceAnnotation):
+        # Priority: 1
+        # SBOL 2.x SequenceAnnotation objects map to SBOL 3.x SequenceFeature objects if they do not have a component.
+        # If they do have a component, their locations are added to the corresponding SBOL3 SubComponent.
 
-        f3 = sbol3.SequenceFeature(locations)
-        f3.roles = sa2.roles
-        self._convert_identified(sa2, f3)
-        return f3, locations
+        # convert locations
+        locations3 = []
+        if seqanno2.locations: 
+           for loc2 in seqanno2.locations:
+               if type(loc2) is sbol2.location.Range:
+                   l3 = self.visit_range(loc2)
+               elif type(loc2) is sbol2.location.Cut:
+                   raise NotImplementedError('Conversion of Cut from SBOL2 to SBOL3 not yet implemented')
+               elif type(loc2) is sbol2.location.GenericLocation:
+                   raise NotImplementedError('Conversion of GenericLocation from SBOL2 to SBOL3 not yet implemented')
+               else: raise ValueError(f'Unknown location type {type(loc2)}, SequenceAnnotation cannot convert to SBOL3')
+               locations3.append(l3)
+        else:
+           raise ValueError('SequenceAnnotation must have at least one location')
+      
+       # Create SBOL3 SequenceFeature
+        if seqanno2.component:
+           feature3 = sbol3.SubComponent(namespace=self._sbol3_namespace(seqanno2),       
+                                           instance_of=seqanno2.component, #
+                                           locations=locations3,
+                                           roles=seqanno2.roles,
+                                           name=seqanno2.name,
+                                           description=seqanno2.description,
+                                           derived_from=seqanno2.wasDerivedFrom,
+                                           generated_by=seqanno2.wasGeneratedBy
+                                           )
+          
+        else: 
+            feature3 = sbol3.SequenceFeature(namespace=self._sbol3_namespace(seqanno2),
+                                           identity=self._sbol3_identity(seqanno2),
+                                           locations=locations3,
+                                           roles=seqanno2.roles,
+                                           name=seqanno2.name,
+                                           description=seqanno2.description,
+                                           derived_from=seqanno2.wasDerivedFrom,
+                                           generated_by=seqanno2.wasGeneratedBy
+                                       )
+
+
+        self._convert_identified(seqanno2, feature3)
+        return feature3, locations3
+
  
     def visit_sequence_constraint(self, seq2: sbol2.sequenceconstraint.SequenceConstraint):
         # Priority: 2
