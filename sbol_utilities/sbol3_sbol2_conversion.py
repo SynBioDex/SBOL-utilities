@@ -403,10 +403,8 @@ class SBOL3To2ConversionVisitor:
                                            roles = seqfeat3.roles,
                                            version=self._sbol2_version(seqfeat3) 
                                            )
-      
        self._convert_identified(seqfeat3, seqanno2)
        return seqanno2, locations2
-
 
     def visit_singular_unit(self, a: sbol3.SingularUnit):
         # Priority: 4
@@ -791,26 +789,28 @@ class SBOL2To3ConversionVisitor:
         # Priority: 1
         # SBOL 2.x SequenceAnnotation objects map to SBOL 3.x SequenceFeature objects if they do not have a component.
         # If they do have a component, their locations are added to the corresponding SBOL3 SubComponent.
-
+        def _handle_locations(loc2):
+            if type(loc2) is sbol2.location.Range:
+                return self.visit_range(loc2)
+            elif type(loc2) is sbol2.location.Cut:
+                raise NotImplementedError('Conversion of Cut from SBOL2 to SBOL3 not yet implemented')
+            elif type(loc2) is sbol2.location.GenericLocation:
+                raise NotImplementedError('Conversion of GenericLocation from SBOL2 to SBOL3 not yet implemented')
+            else: raise ValueError(f'Unknown location type {type(loc2)}, SequenceAnnotation cannot convert to SBOL3')
         # convert locations
-        locations3 = [loc2.accept(self) for loc2 in seqanno2.locations]
+        locations3 = [_handle_locations(loc2) for loc2 in seqanno2.locations]
       
        # Create SBOL3 SequenceFeature
         if seqanno2.component:
-           feature3 = sbol3.SubComponent(namespace=self._sbol3_namespace(seqanno2),       
-                                           instance_of=seqanno2.component, #
+           feature3 = sbol3.SubComponent(instance_of=seqanno2.component, #TODO: verify if this is correct
                                            locations=locations3,
                                            roles=seqanno2.roles,
                                            )
-          
         else: 
-            feature3 = sbol3.SequenceFeature(namespace=self._sbol3_namespace(seqanno2),
-                                           identity=self._sbol3_identity(seqanno2),
+            feature3 = sbol3.SequenceFeature(identity=self._sbol3_identity(seqanno2),
                                            locations=locations3,
                                            roles=seqanno2.roles,
                                        )
-
-
         self._convert_identified(seqanno2, feature3)
         return feature3, locations3
 
