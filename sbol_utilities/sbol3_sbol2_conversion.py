@@ -395,27 +395,14 @@ class SBOL3To2ConversionVisitor:
        # If they do have a component, their locations are added to the corresponding SBOL3 SubComponent.
 
        # convert locations
-       locations2 = []
-       if seqfeat3.locations: 
-           for loc3 in seqfeat3.locations:
-               if type(loc3) is sbol3.location.Range:
-                   raise NotImplementedError('Conversion of Range from SBOL3 to SBOL2 not yet implemented')
-               elif type(loc3) is sbol3.location.Cut:
-                   raise NotImplementedError('Conversion of Cut from SBOL3 to SBOL2 not yet implemented')
-               elif type(loc3) is sbol3.location.EntireSequence:
-                   raise NotImplementedError('Conversion of EntireSequence from SBOL3 to SBOL2 not yet implemented')
-               else: raise ValueError(f'Unknown location type {type(loc3)}, SequenceFeature cannot convert to SBOL2')
-       else: raise ValueError('SequenceFeature must have at least one location')
+       locations2 = [loc3.accept(self) for loc3 in seqfeat3.locations]
 
        # Create SBOL2 SequenceAnnotation
        seqanno2 = sbol2.SequenceAnnotation(identity=self._sbol3_identity(seqfeat3),
                                            locations = locations2,
                                            roles = seqfeat3.roles,
-                                           name = seqfeat3.name,  
-                                           description = seqfeat3.description,
-                                           wasDerivedFrom = seqfeat3.derived_from,
-                                           wasGeneratedBy = seqfeat3.generated_by,
-                                           version=self._sbol2_version(seqfeat3) )
+                                           version=self._sbol2_version(seqfeat3) 
+                                           )
       
        self._convert_identified(seqfeat3, seqanno2)
        return seqanno2, locations2
@@ -806,19 +793,7 @@ class SBOL2To3ConversionVisitor:
         # If they do have a component, their locations are added to the corresponding SBOL3 SubComponent.
 
         # convert locations
-        locations3 = []
-        if seqanno2.locations: 
-           for loc2 in seqanno2.locations:
-               if type(loc2) is sbol2.location.Range:
-                   l3 = self.visit_range(loc2)
-               elif type(loc2) is sbol2.location.Cut:
-                   raise NotImplementedError('Conversion of Cut from SBOL2 to SBOL3 not yet implemented')
-               elif type(loc2) is sbol2.location.GenericLocation:
-                   raise NotImplementedError('Conversion of GenericLocation from SBOL2 to SBOL3 not yet implemented')
-               else: raise ValueError(f'Unknown location type {type(loc2)}, SequenceAnnotation cannot convert to SBOL3')
-               locations3.append(l3)
-        else:
-           raise ValueError('SequenceAnnotation must have at least one location')
+        locations3 = [loc2.accept(self) for loc2 in seqanno2.locations]
       
        # Create SBOL3 SequenceFeature
         if seqanno2.component:
@@ -826,10 +801,6 @@ class SBOL2To3ConversionVisitor:
                                            instance_of=seqanno2.component, #
                                            locations=locations3,
                                            roles=seqanno2.roles,
-                                           name=seqanno2.name,
-                                           description=seqanno2.description,
-                                           derived_from=seqanno2.wasDerivedFrom,
-                                           generated_by=seqanno2.wasGeneratedBy
                                            )
           
         else: 
@@ -837,10 +808,6 @@ class SBOL2To3ConversionVisitor:
                                            identity=self._sbol3_identity(seqanno2),
                                            locations=locations3,
                                            roles=seqanno2.roles,
-                                           name=seqanno2.name,
-                                           description=seqanno2.description,
-                                           derived_from=seqanno2.wasDerivedFrom,
-                                           generated_by=seqanno2.wasGeneratedBy
                                        )
 
 
