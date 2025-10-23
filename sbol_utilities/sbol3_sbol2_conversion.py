@@ -398,10 +398,10 @@ class SBOL3To2ConversionVisitor:
        locations2 = [loc3.accept(self) for loc3 in seqfeat3.locations]
 
        # Create SBOL2 SequenceAnnotation
-       seqanno2 = sbol2.SequenceAnnotation(identity=self._sbol3_identity(seqfeat3),
-                                           locations = locations2,
-                                           roles = seqfeat3.roles,
-                                           version=self._sbol2_version(seqfeat3) 
+       seqanno2 = sbol2.SequenceAnnotation(uri=self._sbol3_identity(seqfeat3),
+                                           locations=locations2,
+                                           roles=seqfeat3.roles,
+                                           version=self._sbol2_version(seqfeat3)
                                            )
        self._convert_identified(seqfeat3, seqanno2)
        return seqanno2, locations2
