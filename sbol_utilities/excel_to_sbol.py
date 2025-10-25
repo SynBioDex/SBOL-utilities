@@ -107,9 +107,13 @@ def read_metadata(wb: openpyxl.Workbook, doc: sbol3.Document, config: dict):
     doc.add(final_products)
 
     # also collect any necessary data tables from extra sheets
-    source_table = {row[config['source_name_col']].value: row[config['source_uri_col']].value
-                    for row in wb[config['sources_sheet']].iter_rows(min_row=config['sources_first_row'])
-                    if row[config['source_literal_col']].value}
+    source_table = {}
+    try:
+        source_table = {row[config['source_name_col']].value: row[config['source_uri_col']].value
+                        for row in wb[config['sources_sheet']].iter_rows(min_row=config['sources_first_row'])
+                        if row[config['source_literal_col']].value}
+    except IndexError as e:
+        logging.warning(f"An error occurred while reading the sources sheet, possibly due to a missing column: {e}")
 
     # return the set of created collections
     return basic_parts, composite_parts, linear_products, final_products, source_table
