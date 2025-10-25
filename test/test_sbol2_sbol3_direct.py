@@ -309,6 +309,9 @@ class TestDirectSBOL2SBOL3Conversion(unittest.TestCase):
     def test_interaction_conversion(self):
         self.handle_2to3_conversion('sbol_3to2_interaction.xml', 'sbol_3to2_interaction.nt')
 
+    def test_seq_annotation_conversion(self):
+        self.handle_2to3_conversion('sbol_3to2_sequence_annotation.nt', 'sbol_3to2_sequence_feature.nt')
+
 
 class TestDirectSBOL3SBOL2Conversion(unittest.TestCase):
 
@@ -373,6 +376,8 @@ class TestDirectSBOL3SBOL2Conversion(unittest.TestCase):
     def test_interaction_conversion(self):
         self.handle_3to2_conversion('sbol_3to2_interaction.nt', 'sbol_3to2_interaction.xml')
 
- 
+    def test_seq_feature_conversion(self):
+        self.handle_3to2_conversion('sbol_3to2_sequence_feature.xml', 'sbol_3to2_sequence_annotation.nt')
+
 if __name__ == '__main__':
     unittest.main()
