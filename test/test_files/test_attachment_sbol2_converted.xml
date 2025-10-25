@@ -1,16 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <rdf:RDF
+   xmlns:ns1="http://sboltools.org/backport#"
    xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
    xmlns:sbol="http://sbols.org/v3#"
 >
-  <rdf:Description rdf:about="http://example.org/attachment1">
-    <sbol:displayId>attachment1</sbol:displayId>
+  <rdf:Description rdf:about="https://github.com/1/SynBioDex/SBOL-Notebooks/Attachment/exp1_growth_data">
+    <sbol:displayId>exp1_growth_data</sbol:displayId>
     <rdf:type rdf:resource="http://sbols.org/v3#Attachment"/>
-    <sbol:hasNamespace rdf:resource="http://example.org"/>
+    <sbol:hasNamespace rdf:resource="https://github.com"/>
     <sbol:source rdf:resource="https://raw.githubusercontent.com/SynBioDex/SBOL-Notebooks/1e4d133dfeb313695f2cee394a580d2569ce6892/examples/sbol2/CreatingSBOL2Objects/plate_reader_exp1.csv"/>
     <sbol:format rdf:resource="http://edamontology.org/format_3752"/>
     <sbol:size rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">147</sbol:size>
-    <sbol:hash>c531131f1bfc4c56b1d49a8caf389ac744263582163df2a6aab45916f2eab045</sbol:hash>
-    <sbol:hashAlgorithm>sha256</sbol:hashAlgorithm>
+    <sbol:hash>8d297ddafd1955b6095356582c13a58f23a1a133</sbol:hash>
+    <sbol:hashAlgorithm>sha1</sbol:hashAlgorithm>
+    <ns1:sbol2version>1</ns1:sbol2version>
   </rdf:Description>
 </rdf:RDF>

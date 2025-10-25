@@ -124,7 +124,7 @@ class TestHelpers(unittest.TestCase):
         test_file = os.path.join(test_dir, 'test_files', 'test_attachment_sbol3.xml')
         doc = sbol3.Document()
         doc.read(test_file)
-        attachment: sbol3.Attachment = doc.find('exp1_growth_data')
+        attachment: sbol3.Attachment = doc.find('attachment1')
 
         # 1. Test with a valid file and default algorithm (sha3_256)
         hash = generate_hash(attachment)

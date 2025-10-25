@@ -283,7 +283,7 @@ class TestDirectSBOL2SBOL3Conversion(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             tmp3 = Path(tmpdir) / 'doc3.nt'
             doc3.write(tmp3)
-            if file_diff(str(tmp3), str(TEST_FILES / comparison_filename)):
+            if file_diff(str(tmp3), str(TEST_FILES / comparison_filename), strip_backport_properties=True):
                 raise SBOL2to3ConversionError()
 
             # Round-trip back to SBOL2 and check contents
@@ -294,7 +294,7 @@ class TestDirectSBOL2SBOL3Conversion(unittest.TestCase):
 
             tmp2 = Path(tmpdir) / 'doc2_loop.xml'
             doc2_loop.write(tmp2)
-            if file_diff(str(tmp2), str(TEST_FILES / test_filename)):
+            if file_diff(str(tmp2), str(TEST_FILES / test_filename), strip_backport_properties=True):
                 raise SBOL3to2ConversionError()
 
     def test_implementation_conversion(self):
@@ -309,6 +309,9 @@ class TestDirectSBOL2SBOL3Conversion(unittest.TestCase):
     def test_interaction_conversion(self):
         self.handle_2to3_conversion('sbol_3to2_interaction.xml', 'sbol_3to2_interaction.nt')
 
+    def test_attachment_conversion(self):
+        """Test ability to convert SBOL2 attachment objects to SBOL3"""
+        self.handle_2to3_conversion('test_attachment_sbol2.xml', 'test_attachment_sbol2_converted.xml')
 
 class TestDirectSBOL3SBOL2Conversion(unittest.TestCase):
 
@@ -330,7 +333,7 @@ class TestDirectSBOL3SBOL2Conversion(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             tmp2 = Path(tmpdir) / 'doc2.xml'
             doc2.write(tmp2)
-            if file_diff(str(tmp2), str(TEST_FILES / comparison_filename)):
+            if file_diff(str(tmp2), str(TEST_FILES / comparison_filename), strip_backport_properties=True):
                 raise SBOL3to2ConversionError()
  
             # Round-trip back to SBOL3 and check contents
@@ -341,7 +344,7 @@ class TestDirectSBOL3SBOL2Conversion(unittest.TestCase):
 
             tmp3 = Path(tmpdir) / 'doc3_loop.nt'
             doc3_loop.write(tmp3)
-            if file_diff(str(tmp3), str(TEST_FILES / test_filename)):
+            if file_diff(str(tmp3), str(TEST_FILES / test_filename), strip_backport_properties=True):
                 raise SBOL2to3ConversionError()
 
     def test_implementation_conversion(self):
@@ -373,6 +376,9 @@ class TestDirectSBOL3SBOL2Conversion(unittest.TestCase):
     def test_interaction_conversion(self):
         self.handle_3to2_conversion('sbol_3to2_interaction.nt', 'sbol_3to2_interaction.xml')
 
+    def test_attachment_conversion(self):
+        """Test ability to convert SBOL3 attachment objects to SBOL2"""
+        self.handle_3to2_conversion('test_attachment_sbol3.xml', 'test_attachment_sbol3_converted.xml')
  
 if __name__ == '__main__':
     unittest.main()

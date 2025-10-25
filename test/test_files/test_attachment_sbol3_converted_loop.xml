@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rdf:RDF
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:sbol="http://sbols.org/v3#"
+>
+  <rdf:Description rdf:about="http://example.org/attachment1">
+    <sbol:displayId>attachment1</sbol:displayId>
+    <sbol:name>Dummy Attachment</sbol:name>
+    <sbol:description>A dummy attachment object</sbol:description>
+    <rdf:type rdf:resource="http://sbols.org/v3#Attachment"/>
+    <sbol:hasNamespace rdf:resource="http://example.org"/>
+    <sbol:source rdf:resource="http://example.org/source_file.txt"/>
+    <sbol:format rdf:resource="file:///Users/harshsharma/Desktop/100xdevs/gsoc/SBOL-utilities/test/test_files/text/plain"/>
+    <sbol:size rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">1024</sbol:size>
+  </rdf:Description>
+  <rdf:Description rdf:about="http://example.org/promoter1">
+    <sbol:displayId>promoter1</sbol:displayId>
+    <sbol:name>Dummy Promoter</sbol:name>
+    <sbol:description>A dummy promoter component for demonstration purposes</sbol:description>
+    <rdf:type rdf:resource="http://sbols.org/v3#Component"/>
+    <sbol:hasNamespace rdf:resource="http://example.org"/>
+    <sbol:type rdf:resource="https://identifiers.org/SBO:0000598"/>
+  </rdf:Description>
+</rdf:RDF>
