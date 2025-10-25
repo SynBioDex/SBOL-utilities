@@ -12,8 +12,6 @@ on:
 
 jobs:
   build:
-    env:
-      IDT_CREDENTIALS: ${{ secrets.IDT_CREDENTIALS }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -43,8 +41,35 @@ jobs:
     - name: Show Node.js version
       run: |
         node --version
-    - name: Test with pytest
+    - name: Test with pytest (excluding external API tests)
+      run: |
+        pip install .
+        pytest --ignore=test/test_docstr_coverage.py --ignore=test/test_calculate_complexity_scores.py -s
+
+  # Separate job for external API tests that only runs on one platform to avoid rate limiting
+  # This prevents multiple simultaneous API calls to external services (like IDT complexity scoring)
+  # that could result in rate limiting or service failures (fixes issue #368)
+  external-api-tests:
+    runs-on: ubuntu-latest
+    env:
+      IDT_CREDENTIALS: ${{ secrets.IDT_CREDENTIALS }}
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install pytest
+    - name: Setup Graphviz
+      uses: ts-graphviz/setup-graphviz@v2
+    - name: Show Node.js version
+      run: |
+        node --version
+    - name: Test external API functionality (complexity scoring)
       run: |
         pip install .
         echo "$IDT_CREDENTIALS" > test_secret_idt_credentials.json
-        pytest --ignore=test/test_docstr_coverage.py -s
+        pytest test/test_calculate_complexity_scores.py -s
