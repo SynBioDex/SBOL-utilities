@@ -22,6 +22,11 @@ REPORT_ACTIVITY_TYPE = 'https://github.com/SynBioDex/SBOL-utilities/compute-sequ
 
 
 class BaseAccountAccessor(ABC):
+    @staticmethod
+    @abstractmethod
+    def from_json(json_object):
+        pass
+
     @abstractmethod
     def get_sequence_complexity(self, sequences: List[sbol3.Sequence]) -> Dict[sbol3.Sequence, Optional[float]]:
         pass
@@ -66,6 +71,20 @@ class IDTAccountAccessor(AuthenticatedAccountAccessor):
         self.base_url = None
         self.token = self._setup_authentication()
 
+    @staticmethod
+    def from_json(json_object) -> IDTAccountAccessor:
+        """Initialize IDT account accessor from a JSON object with field values
+
+        :param json_object: object with account information
+        :return: Account accessor object
+        """
+        return IDTAccountAccessor(
+            username=json_object['username'],
+            password=json_object['password'],
+            client_id=json_object['ClientID'],
+            client_secret=json_object['ClientSecret'],
+        )
+
     def _setup_authentication(self) -> str:
         """Get access token for IDT API (see: https://www.idtdna.com/pages/tools/apidoc)
 
@@ -83,6 +102,7 @@ class IDTAccountAccessor(AuthenticatedAccountAccessor):
                     auth=auth,
                     timeout=IDTAccountAccessor.SCORE_TIMEOUT,
                 )
+                # FIX: Add robust error checking for the HTTP request
                 result.raise_for_status()
                 self.base_url = domain
                 return result.json()['access_token']

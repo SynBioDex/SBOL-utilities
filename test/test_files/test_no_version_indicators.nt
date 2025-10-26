@@ -1,0 +1,2 @@
+<https://example.org/test> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://example.org/SomeClass> .
+<https://example.org/test> <https://example.org/property> "test value" . 
