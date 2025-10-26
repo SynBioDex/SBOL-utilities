@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 
-from typing import List, Optional, Dict
+from typing import List, Mapping, Optional, Dict
 
 import datetime
 import argparse
@@ -24,7 +24,7 @@ REPORT_ACTIVITY_TYPE = 'https://github.com/SynBioDex/SBOL-utilities/compute-sequ
 class BaseAccountAccessor(ABC):
     @staticmethod
     @abstractmethod
-    def from_json(json_object):
+    def from_json(json_object) -> BaseAccountAccessor:
         pass
 
     @abstractmethod
@@ -39,7 +39,7 @@ class BaseAccountAccessor(ABC):
 
 class AuthenticatedAccountAccessor(BaseAccountAccessor):
     @abstractmethod
-    def _setup_authentication(self):
+    def _setup_authentication(self) -> None | str :
         pass
 
 
@@ -81,8 +81,8 @@ class IDTAccountAccessor(AuthenticatedAccountAccessor):
         return IDTAccountAccessor(
             username=json_object['username'],
             password=json_object['password'],
-            client_id=json_object['ClientID'],
-            client_secret=json_object['ClientSecret'],
+            client_id=json_object['client_id'],
+            client_secret=json_object['client_secret'],
         )
 
     def _setup_authentication(self) -> str:
@@ -148,7 +148,7 @@ class IDTAccountAccessor(AuthenticatedAccountAccessor):
         logging.info('Requests to IDT API finished.')
         return results
 
-    def get_sequence_complexity(self, sequences: list[sbol3.Sequence]) -> dict[sbol3.Sequence, Optional[float]]:
+    def get_sequence_complexity(self, sequences: list[sbol3.Sequence]) -> Dict[sbol3.Sequence, Optional[float]]:
         """Extract complexity scores from IDT API for a list of SBOL Sequence objects
         This works by computing full sequence evaluations, then compressing down to a single score for each sequence.
 
@@ -176,236 +176,6 @@ class IDTAccountAccessor(AuthenticatedAccountAccessor):
         return 'IDT'
 
 
-# class TwistAccountAccessor(BaseAccountAccessor):
-#     """
-#     Class that wraps access to the Twist API for complexity scores.
-#     """
-#
-#     # the score url is not correct
-#     _SCORE_URL = 'https://api.twistdna.com/api/v1/screening/complexity-and-rules'
-#
-#     def __init__(
-#         self,
-#         api_key: str,
-#         end_user_token: Optional[str] = None,
-#         default_sequence_type: str = 'cloned',  # Or 'non-cloned' - clarify default/necessity
-#         default_vector_id: Optional[str] = None,
-#         default_insertion_point_id: Optional[str] = None,
-#         timeout: int = DEFAULT_TIMEOUT,
-#     ):
-#         """
-#         Initialize with Twist API access information.
-#
-#         :param api_key: Your Twist API Key (required).
-#         :param end_user_token: Optional X-END-USER-TOKEN.
-#         :param default_sequence_type: Default sequence type ('cloned' or 'non-cloned') if not found in SBOL.
-#         :param default_vector_id: Default vector ID (if applicable) if not found in SBOL.
-#         :param default_insertion_point_id: Default insertion point ID (if applicable) if not found in SBOL.
-#         :param timeout: Request timeout in seconds.
-#         """
-#         super().__init__(TWIST_COMPLEXITY_SCORE_NAMESPACE, TWIST_REPORT_ACTIVITY_TYPE, TWIST_SERVICE_NAME, timeout)
-#         if not api_key:
-#             raise ValueError('Twist API Key (AUTH header) is required.')
-#         self.api_key = api_key
-#         self.end_user_token = end_user_token
-#         # Store defaults, maybe overridden by SBOL data later
-#         self.default_sequence_type = default_sequence_type
-#         self.default_vector_id = default_vector_id
-#         self.default_insertion_point_id = default_insertion_point_id
-#         self._headers: Optional[Dict[str, str]] = None  # Cache headers after first _authenticate call
-#
-#     @classmethod
-#     def from_creds_json(cls: Type[TwistAccountAccessor], json_path: str) -> TwistAccountAccessor:
-#         """Initialize Twist account accessor from a JSON file path."""
-#         creds_data = cls._load_json_file(json_path)
-#         # Expect credentials under a 'twist' key
-#         if 'twist' not in creds_data:
-#             raise ValueError(f"Credentials file {json_path} must contain a top-level 'twist' key.")
-#         twist_creds = creds_data['twist']
-#
-#         required_keys = {'api_key'}
-#         missing_keys = required_keys - twist_creds.keys()
-#         if missing_keys:
-#             raise ValueError(f'Twist credentials in {json_path} are missing keys: {missing_keys}')
-#
-#         timeout = int(twist_creds.get('timeout', DEFAULT_TIMEOUT))
-#
-#         # Include optional fields from JSON if present, allowing overrides of class defaults
-#         return cls(
-#             api_key=twist_creds['api_key'],
-#             end_user_token=twist_creds.get('end_user_token'),
-#             default_sequence_type=twist_creds.get(
-#                 'default_sequence_type', 'cloned'
-#             ),  # Default fallback if not in JSON
-#             default_vector_id=twist_creds.get('default_vector_id'),
-#             default_insertion_point_id=twist_creds.get('default_insertion_point_id'),
-#             timeout=timeout,
-#         )
-#
-#     def _authenticate(self):
-#         """Prepares the authorization headers for Twist API calls. Idempotent."""
-#         if self._headers:
-#             logging.debug('Using existing Twist headers.')
-#             return
-#
-#         logging.info('Preparing Twist API headers.')
-#         self._headers = {
-#             'AUTH': self.api_key,
-#             'Content-Type': 'application/json',
-#             'Accept': 'application/json',  # Explicitly accept JSON responses
-#         }
-#         if self.end_user_token:
-#             self._headers['X-END-USER-TOKEN'] = self.end_user_token
-#         logging.debug('Twist headers prepared.')
-#         # No actual API call for auth needed here, just setting headers. No errors expected unless config is bad.
-#
-#     # --- Placeholder Methods for SBOL Data Extraction (Needs Implementation) ---
-#     def _get_twist_vector_id_from_sbol(self, sequence: sbol3.Sequence) -> Optional[str]:
-#         """
-#         Placeholder: Extracts the TWIST vector ID associated with a sequence from SBOL data.
-#         Needs implementation based on how this info is stored (e.g., annotation, related component).
-#
-#         :param sequence: The SBOL Sequence object.
-#         :return: Vector ID string or None if not found.
-#         """
-#         # TODO: Implement logic to find vector_id from sequence. Example: Check sequence.description, or sequence.wasDerivedFrom linking to a vector Component? Or a custom annotation?
-#         # Example using a hypothetical annotation namespace:
-#         # twist_ns = "http://twistbioscience.com/sbol/annotation/"
-#         # vector_id = sequence.get_annotation(twist_ns + "vector_id")
-#         # if vector_id: return str(vector_id)
-#         logging.debug(f'SBOL extraction for Twist vector_id not implemented for {sequence.identity}. Using default.')
-#         return None
-#
-#     def _get_twist_insertion_point_id_from_sbol(self, sequence: sbol3.Sequence) -> Optional[str]:
-#         """
-#         Placeholder: Extracts the TWIST insertion point ID associated with a sequence from SBOL data.
-#
-#         :param sequence: The SBOL Sequence object.
-#         :return: Insertion point ID string or None if not found.
-#         """
-#         # TODO: Implement logic similar to _get_twist_vector_id_from_sbol
-#         logging.debug(
-#             f'SBOL extraction for Twist insertion_point_id not implemented for {sequence.identity}. Using default.'
-#         )
-#         return None
-#
-#     def _get_twist_sequence_type_from_sbol(self, sequence: sbol3.Sequence) -> Optional[str]:
-#         """
-#         Placeholder: Determines the TWIST sequence type ('cloned'/'non-cloned') from SBOL data.
-#
-#         :param sequence: The SBOL Sequence object.
-#         :return: 'cloned' or 'non-cloned' string, or None if not determinable.
-#         """
-#         # TODO: Implement logic. Maybe based on presence/absence of vector features, or specific roles/types?
-#         # Example: If sequence has wasDerivedFrom linking to a vector, maybe it's 'cloned'?
-#         logging.debug(
-#             f'SBOL extraction for Twist sequence_type not implemented for {sequence.identity}. Using default.'
-#         )
-#         return None
-#
-#     # --- End Placeholder Methods ---
-#
-#     def _get_api_scores(self, sequences: List[sbol3.Sequence]) -> Dict[sbol3.Sequence, Optional[float]]:
-#         """
-#         Retrieve synthesis complexity scores from the Twist API.
-#
-#         **ASSUMPTIONS (Verify with Twist Docs):**
-#         1. API endpoint `_SCORE_URL` is correct.
-#         2. API expects one sequence per request (batching not implemented).
-#         3. Request requires 'sequence', 'sequence_type', and possibly 'vector_id', 'insertion_point_id'.
-#         4. Response is JSON containing a 'complexity_score' field (float). E.g., `{'complexity_score': 5.2, ...}`.
-#
-#         :param sequences: List of sequences for which to calculate the complexity score.
-#         :return: Dictionary mapping sequences to complexity Scores (float) or None if failed.
-#         """
-#         if not self._headers:
-#             # Should be caught by calculate_complexity_scores, but check again.
-#             logging.error('Twist Authentication headers not available. Authentication might have failed.')
-#             return {seq: None for seq in sequences}
-#
-#         results_map: Dict[sbol3.Sequence, Optional[float]] = {}
-#         for seq in sequences:
-#             seq_elements = str(seq.elements) if seq.elements else ''
-#             if not seq_elements:
-#                 logging.warning(f'Sequence {seq.identity} has empty elements. Skipping Twist API call.')
-#                 results_map[seq] = None
-#                 continue
-#
-#             # Determine payload parameters, preferring SBOL data extraction over defaults
-#             sequence_type = self._get_twist_sequence_type_from_sbol(seq) or self.default_sequence_type
-#             vector_id = self._get_twist_vector_id_from_sbol(
-#                 seq
-#             )  # Use default only if needed AND if SBOL extraction returns None
-#             insertion_point_id = self._get_twist_insertion_point_id_from_sbol(
-#                 seq
-#             )  # Use default only if needed AND if SBOL extraction returns None
-#
-#             # Construct payload based on API requirements (VERIFY THESE!)
-#             payload = {'sequence': seq_elements, 'sequence_type': sequence_type}
-#             # Only include vector/insertion point if they are available (from SBOL or default)
-#             # Check Twist docs if these are conditionally required based on sequence_type
-#             final_vector_id = vector_id or self.default_vector_id
-#             final_insertion_point_id = insertion_point_id or self.default_insertion_point_id
-#
-#             if final_vector_id:
-#                 payload['vector_id'] = final_vector_id
-#             if final_insertion_point_id:
-#                 payload['insertion_point_id'] = final_insertion_point_id
-#
-#             logging.debug(f'Requesting Twist score for {seq.identity} with payload: {payload}')
-#             try:
-#                 response = self._make_request('POST', self._SCORE_URL, headers=self._headers, json_payload=payload)
-#                 response_data = response.json()
-#
-#                 # --- PARSE RESPONSE ---
-#                 # !!! This part is critical and depends entirely on the Twist API response structure !!!
-#                 # Example Assumption: response is {'complexity_score': 1.23, ...} or similar
-#                 if isinstance(response_data, dict) and 'complexity_score' in response_data:
-#                     try:
-#                         # Attempt to convert the score to float
-#                         score = float(response_data['complexity_score'])
-#                         results_map[seq] = score
-#                         logging.debug(f'Twist Score for {seq.identity}: {score}')
-#                     except (ValueError, TypeError) as e:
-#                         logging.error(
-#                             f"Could not parse 'complexity_score' field ({response_data.get('complexity_score')}) as float for {seq.identity}. Error: {e}. Score set to None."
-#                         )
-#                         results_map[seq] = None
-#                 elif isinstance(response_data, dict) and 'score' in response_data:  # Try alternative key 'score'
-#                     try:
-#                         score = float(response_data['score'])
-#                         results_map[seq] = score
-#                         logging.debug(f"Twist Score (using 'score' key) for {seq.identity}: {score}")
-#                     except (ValueError, TypeError) as e:
-#                         logging.error(
-#                             f"Could not parse 'score' field ({response_data.get('score')}) as float for {seq.identity}. Error: {e}. Score set to None."
-#                         )
-#                         results_map[seq] = None
-#                 else:
-#                     # Handle unexpected response format
-#                     logging.warning(
-#                         f"Unexpected Twist score response format for {seq.identity}. Expected dict with 'complexity_score' or 'score', got: {str(response_data)[:500]}... Score set to None."
-#                     )
-#                     results_map[seq] = None
-#                 # -----------------------
-#
-#             except (ValueError, requests.RequestException) as e:  # Catch errors from _make_request or response.json()
-#                 logging.error(f'Twist API request failed for {seq.identity}: {e}. Score set to None.')
-#                 results_map[seq] = None
-#             except Exception as e:  # Catch any other unexpected errors
-#                 logging.error(
-#                     f'Unexpected error processing Twist score for {seq.identity}: {e}. Score set to None.',
-#                     exc_info=True,
-#                 )
-#                 results_map[seq] = None
-#
-#         # Ensure all initially requested sequences are in the results map
-#         final_results_map = {seq: results_map.get(seq) for seq in sequences}
-#
-#         logging.info(f'Finished Twist score requests. Returning results for {len(final_results_map)} sequences.')
-#         return final_results_map
-
-
 def get_complexity_score(seq: sbol3.Sequence) -> Optional[float]:
     """Given a sequence, return its previously computed complexity score, if such exists
 
@@ -423,7 +193,7 @@ def get_complexity_score(seq: sbol3.Sequence) -> Optional[float]:
 
 def get_complexity_scores(
     sequences: list[sbol3.Sequence], include_missing=False
-) -> dict[sbol3.Sequence, Optional[float]]:
+) -> Mapping[sbol3.Sequence, Optional[float] ]:
     """Retrieve complexity scores for a list of sequences
 
     :param sequences: Sequences to get scores for
@@ -437,14 +207,14 @@ def get_complexity_scores(
     return score_map
 
 
-def idt_calculate_sequence_complexity_scores(
-    accessor: IDTAccountAccessor, sequences: list[sbol3.Sequence]
-) -> dict[sbol3.Sequence, float]:
+def calculate_sequence_complexity_scores(
+    accessor: BaseAccountAccessor, sequences: list[sbol3.Sequence]
+) -> Mapping[sbol3.Sequence, Optional[float] ]:
     """Given a list of sequences, compute the complexity scores for any sequences not currently scored
-    by sending the sequences to IDT's online service for calculating sequence synthesis complexity.
+    by sending the sequences to provider's online service for calculating sequence synthesis complexity.
     Also records the complexity computation with an activity
 
-    :param accessor: IDT API access object
+    :param accessor: provider API access object
     :param sequences: list of SBOL Sequences to evaluate
     :return: Dictionary mapping Sequences to complexity scores for newly computed sequences
     """
@@ -477,48 +247,96 @@ def idt_calculate_sequence_complexity_scores(
     return score_dictionary
 
 
-def idt_calculate_complexity_scores(accessor: IDTAccountAccessor, doc: sbol3.Document) -> dict[sbol3.Sequence, float]:
+def calculate_complexity_scores(accessor: BaseAccountAccessor, doc: sbol3.Document) -> Mapping[sbol3.Sequence, Optional[float] ]:
     """Given an SBOL Document, compute the complexity scores for any sequences in the Document not currently scored
-    by sending the sequences to IDT's online service for calculating sequence synthesis complexity.
+    by sending the sequences to the provider's online service for calculating sequence synthesis complexity.
     Also records the complexity computation with an activity
 
-    :param accessor: IDT API access object
+    :param accessor: Provider API access object
     :param doc: SBOL document with sequences of interest in it
     :return: Dictionary mapping Sequences to complexity scores
     """
     sequences = [obj for obj in doc if isinstance(obj, sbol3.Sequence)]
-    return idt_calculate_sequence_complexity_scores(accessor, sequences)
+    return calculate_sequence_complexity_scores(accessor, sequences)
+
+
+PROVIDER_CLASSES = {'idt': IDTAccountAccessor}
+
+
+def handle_class_instantiation(provider: str, **credentials):
+    provider_cls = PROVIDER_CLASSES.get(provider)
+    if not provider_cls:
+        raise ValueError(f'Unsupported Provider: {provider}')
+    return provider_cls(**credentials)
 
 
 def main():
     """
-    Main wrapper: read from input file, invoke idt_calculate_complexity_scores, then write to output file
+    Main wrapper: read from input file, invoke calculate_complexity_scores, then write to output file
     """
+
     parser = argparse.ArgumentParser()
+
     parser.add_argument(
         '-c',
         '--credentials',
-        help="""JSON file containing IDT API access credentials.
-To obtain access credentials, follow the directions at https://www.idtdna.com/pages/tools/apidoc
-The values of the IDT access credentials should be stored in a JSON of the following form:
-{ "username": "username", "password": "password", "ClientID": "####", "ClientSecret": "XXXXXXXXXXXXXXXXXXX" }"
-""",
+        help="""JSON file containing API access credentials.
+    To obtain access credentials, follow the directions at the synthesis provider's website.
+    The values of the access credentials should be stored in a JSON of the following form:
+    { "provider_name": { "key": "value", ... } }
+    """,
     )
-    parser.add_argument('--username', help='Username of your IDT account (if not using JSON credentials)')
-    parser.add_argument('--password', help='Password of your IDT account (if not using JSON credentials)')
-    parser.add_argument('--ClientID', help='ClientID of your IDT account (if not using JSON credentials)')
-    parser.add_argument('--ClientSecret', help='ClientSecret of your IDT account (if not using JSON credentials)')
-    parser.add_argument('input_file', help='Absolute path to sbol file with sequences')
+
+    parser.add_argument(
+        '--provider', choices=['idt', 'twist'], required=True, help='Provider to calculate DNA Complexity score'
+    )
+
+    # IDT credentials
+    idt_creds = parser.add_argument_group('IDT Credentials', 'Arguments related to IDT')
+    idt_creds.add_argument('--idt-username', required=False, dest='idt_username', help='IDT account username')
+    idt_creds.add_argument('--idt-password', required=False, dest='idt_password', help='IDT account password')
+    idt_creds.add_argument('--idt-client-id', required=False, dest='idt_client_id', help='IDT client ID')
+    idt_creds.add_argument('--idt-client-secret', required=False, dest='idt_client_secret', help='IDT client secret')
+
+    # TWIST credentials
+    twist_creds = parser.add_argument_group('TWIST Credentials', 'Arguments related to TWIST')
+    twist_creds.add_argument('--twist-email', required=False, dest='twist_email', help='Twist account email')
+    twist_creds.add_argument('--twist-api-key', required=False, dest='twist_api_key', help='Twist api key')
+    twist_creds.add_argument('--twist-user-token', required=False, dest='twist_user_token', help='Twist user token')
+
+    # Positional and other arguments
+    parser.add_argument('input_file', help='Absolute path to SBOL file with sequences')
     parser.add_argument('output_name', help='Name of SBOL file to be written')
     parser.add_argument(
         '-t',
         '--file-type',
         dest='file_type',
         default=sbol3.SORTED_NTRIPLES,
-        help='Name of SBOL file to output to (excluding type)',
+        help='SBOL serialization format (e.g., sorted_ntriples, json, etc.)',
     )
     parser.add_argument('--verbose', '-v', dest='verbose', action='count', default=0)
+
     args_dict = vars(parser.parse_args())
+
+    # --- Credential validation logic and create valid credentials dict ---
+    credentials_dict = {}
+    all_keys = {
+        'twist': ['twist_email', 'twist_api_key', 'twist_user_token'],
+        'idt': ['idt_username', 'idt_password', 'idt_client_id', 'idt_client_secret'],
+    }
+    if not args_dict['credentials']:
+        provider_keys = all_keys.get(args_dict['provider'], [])
+        missing = [name for name in provider_keys if not args_dict.get(name)]
+        if missing:
+            parser.error(
+                f'Missing required {args_dict["provider"].upper()}: {", ".join("--" + m.replace("_", "-") for m in missing)}'
+            )
+        else:
+            credentials_dict = {k.removeprefix(f'{args_dict["provider"]}_'): args_dict[k] for k in provider_keys}
+    else:
+        with open(file=args_dict['credentials'], encoding='utf-8') as f:
+            creds = json.load(f)
+        credentials_dict = creds[args_dict['provider']]
 
     # Extract arguments:
     verbosity = args_dict['verbose']
@@ -528,13 +346,7 @@ The values of the IDT access credentials should be stored in a JSON of the follo
     input_file = args_dict['input_file']
     output_name = args_dict['output_name']
 
-    if args_dict['credentials'] != None:
-        with open(args_dict['credentials']) as credentials:
-            idt_accessor = IDTAccountAccessor.from_json(json.load(credentials))
-    else:
-        idt_accessor = IDTAccountAccessor(
-            args_dict['username'], args_dict['password'], args_dict['ClientID'], args_dict['ClientSecret']
-        )
+    accessor = handle_class_instantiation(args_dict['provider'], **credentials_dict)
 
     extension = type_to_standard_extension[args_dict['file_type']]
     outfile_name = output_name if output_name.endswith(extension) else output_name + extension
@@ -543,7 +355,7 @@ The values of the IDT access credentials should be stored in a JSON of the follo
     logging.info('Reading SBOL file ' + input_file)
     doc = sbol3.Document()
     doc.read(input_file)
-    results = idt_calculate_complexity_scores(idt_accessor, doc)
+    results = calculate_complexity_scores(accessor, doc)
     doc.write(outfile_name, args_dict['file_type'])
     logging.info('SBOL file written to %s with %i new scores calculated', outfile_name, len(results))
 

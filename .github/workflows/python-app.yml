@@ -52,7 +52,7 @@ jobs:
   external-api-tests:
     runs-on: ubuntu-latest
     env:
-      IDT_CREDENTIALS: ${{ secrets.IDT_CREDENTIALS }}
+      CREDENTIALS: ${{ secrets.CREDENTIALS }}
     steps:
     - uses: actions/checkout@v4
     - name: Set up Python 3.11
@@ -71,5 +71,5 @@ jobs:
     - name: Test external API functionality (complexity scoring)
       run: |
         pip install .
-        echo "$IDT_CREDENTIALS" > test_secret_idt_credentials.json
+        echo "$CREDENTIALS" > test_secret_credentials.json
         pytest test/test_calculate_complexity_scores.py -s
