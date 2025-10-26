@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 
-from typing import List, Optional, Dict
+from typing import List, Mapping, Optional, Dict
 
 import datetime
 import argparse
@@ -24,7 +24,7 @@ REPORT_ACTIVITY_TYPE = 'https://github.com/SynBioDex/SBOL-utilities/compute-sequ
 class BaseAccountAccessor(ABC):
     @staticmethod
     @abstractmethod
-    def from_json(json_object):
+    def from_json(json_object) -> BaseAccountAccessor:
         pass
 
     @abstractmethod
@@ -39,7 +39,7 @@ class BaseAccountAccessor(ABC):
 
 class AuthenticatedAccountAccessor(BaseAccountAccessor):
     @abstractmethod
-    def _setup_authentication(self):
+    def _setup_authentication(self) -> None | str :
         pass
 
 
@@ -81,8 +81,8 @@ class IDTAccountAccessor(AuthenticatedAccountAccessor):
         return IDTAccountAccessor(
             username=json_object['username'],
             password=json_object['password'],
-            client_id=json_object['ClientID'],
-            client_secret=json_object['ClientSecret'],
+            client_id=json_object['client_id'],
+            client_secret=json_object['client_secret'],
         )
 
     def _setup_authentication(self) -> str:
@@ -148,7 +148,7 @@ class IDTAccountAccessor(AuthenticatedAccountAccessor):
         logging.info('Requests to IDT API finished.')
         return results
 
-    def get_sequence_complexity(self, sequences: list[sbol3.Sequence]) -> dict[sbol3.Sequence, Optional[float]]:
+    def get_sequence_complexity(self, sequences: list[sbol3.Sequence]) -> Dict[sbol3.Sequence, Optional[float]]:
         """Extract complexity scores from IDT API for a list of SBOL Sequence objects
         This works by computing full sequence evaluations, then compressing down to a single score for each sequence.
 
@@ -193,7 +193,7 @@ def get_complexity_score(seq: sbol3.Sequence) -> Optional[float]:
 
 def get_complexity_scores(
     sequences: list[sbol3.Sequence], include_missing=False
-) -> dict[sbol3.Sequence, Optional[float]]:
+) -> Mapping[sbol3.Sequence, Optional[float] ]:
     """Retrieve complexity scores for a list of sequences
 
     :param sequences: Sequences to get scores for
@@ -209,7 +209,7 @@ def get_complexity_scores(
 
 def calculate_sequence_complexity_scores(
     accessor: BaseAccountAccessor, sequences: list[sbol3.Sequence]
-) -> dict[sbol3.Sequence, float]:
+) -> Mapping[sbol3.Sequence, Optional[float] ]:
     """Given a list of sequences, compute the complexity scores for any sequences not currently scored
     by sending the sequences to provider's online service for calculating sequence synthesis complexity.
     Also records the complexity computation with an activity
@@ -247,7 +247,7 @@ def calculate_sequence_complexity_scores(
     return score_dictionary
 
 
-def calculate_complexity_scores(accessor: BaseAccountAccessor, doc: sbol3.Document) -> dict[sbol3.Sequence, float]:
+def calculate_complexity_scores(accessor: BaseAccountAccessor, doc: sbol3.Document) -> Mapping[sbol3.Sequence, Optional[float] ]:
     """Given an SBOL Document, compute the complexity scores for any sequences in the Document not currently scored
     by sending the sequences to the provider's online service for calculating sequence synthesis complexity.
     Also records the complexity computation with an activity
