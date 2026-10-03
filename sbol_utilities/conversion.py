@@ -155,8 +155,8 @@ def convert2to3(sbol2_doc: Union[str, sbol2.Document], namespaces=None, use_nati
 
     # remap orientation types
     orientation_remapping = {
-        sbol2.SBOL_ORIENTATION_INLINE: sbol3.SBOL_INLINE,
-        sbol2.SBOL_ORIENTATION_REVERSE_COMPLEMENT: sbol3.SBOL_REVERSE_COMPLEMENT
+        sbol2.SBOL_ORIENTATION_INLINE: sbol3.SO_FORWARD,
+        sbol2.SBOL_ORIENTATION_REVERSE_COMPLEMENT: sbol3.SO_REVERSE
     }
 
     def change_orientation(o):
@@ -206,6 +206,9 @@ def convert3to2(doc3: sbol3.Document, use_native_converter: bool = False) -> sbo
 
     # remap orientation types
     orientation_remapping = {
+        sbol3.SO_FORWARD: sbol2.SBOL_ORIENTATION_INLINE,
+        sbol3.SO_REVERSE: sbol2.SBOL_ORIENTATION_REVERSE_COMPLEMENT,
+        # deprecated in SBOL 3.0.1, but still accepted on input
         sbol3.SBOL_INLINE: sbol2.SBOL_ORIENTATION_INLINE,
         sbol3.SBOL_REVERSE_COMPLEMENT: sbol2.SBOL_ORIENTATION_REVERSE_COMPLEMENT
     }

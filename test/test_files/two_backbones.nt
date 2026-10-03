@@ -103,7 +103,7 @@
 <http://sbolstandard.org/testfiles/Backbone_variants> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://sbols.org/v3#CombinatorialDerivation> .
 <http://sbolstandard.org/testfiles/Backbone_variants_ins/SubComponent1> <http://sbols.org/v3#displayId> "SubComponent1" .
 <http://sbolstandard.org/testfiles/Backbone_variants_ins/SubComponent1> <http://sbols.org/v3#instanceOf> <http://parts.igem.org/J23101> .
-<http://sbolstandard.org/testfiles/Backbone_variants_ins/SubComponent1> <http://sbols.org/v3#orientation> <http://sbols.org/v3#inline> .
+<http://sbolstandard.org/testfiles/Backbone_variants_ins/SubComponent1> <http://sbols.org/v3#orientation> <https://identifiers.org/SO:0001030> .
 <http://sbolstandard.org/testfiles/Backbone_variants_ins/SubComponent1> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://sbols.org/v3#SubComponent> .
 <http://sbolstandard.org/testfiles/Backbone_variants_ins> <http://sbols.org/v3#description> "" .
 <http://sbolstandard.org/testfiles/Backbone_variants_ins> <http://sbols.org/v3#displayId> "Backbone_variants_ins" .
@@ -211,7 +211,7 @@
 <http://sbolstandard.org/testfiles/Two_by_six_ins> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://sbols.org/v3#CombinatorialDerivation> .
 <http://sbolstandard.org/testfiles/Two_by_six_ins_template/LocalSubComponent1> <http://sbols.org/v3#displayId> "LocalSubComponent1" .
 <http://sbolstandard.org/testfiles/Two_by_six_ins_template/LocalSubComponent1> <http://sbols.org/v3#name> "Part 1" .
-<http://sbolstandard.org/testfiles/Two_by_six_ins_template/LocalSubComponent1> <http://sbols.org/v3#orientation> <http://sbols.org/v3#inline> .
+<http://sbolstandard.org/testfiles/Two_by_six_ins_template/LocalSubComponent1> <http://sbols.org/v3#orientation> <https://identifiers.org/SO:0001030> .
 <http://sbolstandard.org/testfiles/Two_by_six_ins_template/LocalSubComponent1> <http://sbols.org/v3#type> <https://identifiers.org/SBO:0000251> .
 <http://sbolstandard.org/testfiles/Two_by_six_ins_template/LocalSubComponent1> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://sbols.org/v3#LocalSubComponent> .
 <http://sbolstandard.org/testfiles/Two_by_six_ins_template> <http://sbols.org/v3#displayId> "Two_by_six_ins_template" .
