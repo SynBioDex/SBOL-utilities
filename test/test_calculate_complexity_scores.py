@@ -20,6 +20,10 @@ import sbol_utilities.sbol_diff
 
 # TODO: add to readme
 
+CREDENTIALS_FILE = Path(__file__).parent.parent / 'test_secret_idt_credentials.json'
+# The secret is unavailable to pull requests from forks, which leaves the credentials file empty
+HAS_CREDENTIALS = CREDENTIALS_FILE.exists() and CREDENTIALS_FILE.read_text().strip() != ''
+
 def same_except_timestamps(doc1: sbol3.Document, doc2: sbol3.Document) -> bool:
     """Check that the only triple-level difference between two SBOL documents is their time-stamps
 
@@ -37,13 +41,13 @@ def same_except_timestamps(doc1: sbol3.Document, doc2: sbol3.Document) -> bool:
                for (s1, p1, o1), (s2, p2, o2) in zip(sorted(first_graph), sorted(second_graph)))
 
 
+@unittest.skipUnless(HAS_CREDENTIALS, f'IDT credentials file {CREDENTIALS_FILE.name} missing or empty')
 class TestIDTCalculateComplexityScore(unittest.TestCase):
 
-    @unittest.skipIf(sys.platform == 'win32', reason='Not working on Windows https://github.com/SynBioDex/SBOL-utilities/issues/221')
     def test_IDT_calculate_complexity_score(self):
         """Test that a library-call invocation of complexity scoring works"""
         test_dir = Path(__file__).parent
-        with open(test_dir.parent / 'test_secret_idt_credentials.json') as test_credentials:
+        with open(CREDENTIALS_FILE) as test_credentials:
             idt_accessor = IDTAccountAccessor.from_json(json.load(test_credentials))
 
         doc = sbol3.Document()
@@ -67,13 +71,12 @@ class TestIDTCalculateComplexityScore(unittest.TestCase):
         scores = get_complexity_scores(sequences)
         self.assertEqual(scores, {sequences[0]: 0})
 
-    @unittest.skipIf(sys.platform == 'win32', reason='Not working on Windows https://github.com/SynBioDex/SBOL-utilities/issues/221')
     def test_commandline(self):
         """Test that a command-line invocation of complexity scoring works"""
         test_dir = Path(__file__).parent
         temp_name = tempfile.mkstemp(suffix='.nt')[1]
         test_args = ['calculate_complexity_scores.py',
-                     '--credentials', str(test_dir.parent / 'test_secret_idt_credentials.json'),
+                     '--credentials', str(CREDENTIALS_FILE),
                      str(test_dir / 'test_files' / 'Test_file_Complexity_Scores.nt'), temp_name]
         with patch.object(sys, 'argv', test_args):
             sbol_utilities.calculate_complexity_scores.main()

@@ -46,11 +46,15 @@ jobs:
         pip install .
         pytest --ignore=test/test_docstr_coverage.py --ignore=test/test_calculate_complexity_scores.py -s
 
-  # Separate job for external API tests that only runs on one platform to avoid rate limiting
+  # Separate job for external API tests that runs one platform at a time to avoid rate limiting
   # This prevents multiple simultaneous API calls to external services (like IDT complexity scoring)
   # that could result in rate limiting or service failures (fixes issue #368)
   external-api-tests:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      max-parallel: 1
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
     env:
       IDT_CREDENTIALS: ${{ secrets.IDT_CREDENTIALS }}
     steps:
@@ -69,6 +73,8 @@ jobs:
       run: |
         node --version
     - name: Test external API functionality (complexity scoring)
+      # bash on every platform: PowerShell would read $IDT_CREDENTIALS as an (empty) PowerShell variable (issue #221)
+      shell: bash
       run: |
         pip install .
         echo "$IDT_CREDENTIALS" > test_secret_idt_credentials.json
