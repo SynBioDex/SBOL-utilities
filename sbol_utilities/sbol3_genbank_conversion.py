@@ -726,7 +726,7 @@ class GenBankSBOL3Converter:
                 feat_role += self.DEFAULT_SO_TERM
             # assign feature orientation based on the strand value in genbank feature
             feat_orientation = sbol3.SO_FORWARD
-            if gb_feat.strand == -1:
+            if gb_feat.location.strand == -1:
                 feat_orientation = sbol3.SO_REVERSE
             feat = self.FeatureGenBankExtension(
                 locations=feat_locations,
@@ -854,5 +854,5 @@ class GenBankSBOL3Converter:
 
         # Sort features based on feature location start/end, lexicographically, and then by
         # strand / number of qualifiers / type of feature string comparison
-        seq_rec_features.sort(key=lambda feat: (feat.loc_positions, feat.strand, len(feat.qualifiers), feat.type))
+        seq_rec_features.sort(key=lambda feat: (feat.loc_positions, feat.location.strand, len(feat.qualifiers), feat.type))
         seq_rec.features = seq_rec_features
