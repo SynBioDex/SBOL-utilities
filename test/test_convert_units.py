@@ -9,6 +9,8 @@ from sbol_utilities.convert import DowngradeOptions, UpgradeOptions, downgrade, 
 from sbol_utilities.convert import values as v
 from sbol_utilities.convert.identity import compare_versions
 from sbol_utilities.convert.terms import BP, S2, S3
+from sbol_utilities.rdf_io import serialize
+from sbol_utilities.validation import ValidationConfig, validate_sbol3
 
 # IRI algebra
 
@@ -31,9 +33,27 @@ def test_ontology_round_trips():
     assert (
         uri.convert_edam_3_to_2("https://identifiers.org/edam:format_1207") == "http://identifiers.org/edam/format_1207"
     )
-    # a role that is not an ontology term still gets its scheme toggled
-    assert uri.convert_so_2_to_3("http://parts.igem.org/cgi/pgroup.cgi") == "https://parts.igem.org/cgi/pgroup.cgi"
-    assert uri.convert_so_3_to_2("https://parts.igem.org/cgi/pgroup.cgi") == "http://parts.igem.org/cgi/pgroup.cgi"
+    # a role that is not an identifiers.org term is kept exactly as written
+    assert uri.convert_so_2_to_3("http://parts.igem.org/cgi/pgroup.cgi") == "http://parts.igem.org/cgi/pgroup.cgi"
+    assert uri.convert_so_3_to_2("https://parts.igem.org/cgi/pgroup.cgi") == "https://parts.igem.org/cgi/pgroup.cgi"
+
+
+def test_non_ontology_iris_pass_through_unchanged():
+    """Only identifiers.org ontology terms are respelled; other IRIs, even ones containing ``so/``, are untouched."""
+    for iri in (
+        "http://wiki.synbiohub.org/wiki/Terms/igem#partType/Regulatory",
+        "https://example.org/lab/roles/also/reporter",
+        "http://example.org/also/SO:0000141",
+    ):
+        for convert in (
+            uri.convert_so_2_to_3,
+            uri.convert_so_3_to_2,
+            uri.convert_sbo_2_to_3,
+            uri.convert_sbo_3_to_2,
+            uri.convert_edam_2_to_3,
+            uri.convert_edam_3_to_2,
+        ):
+            assert convert(iri) == iri
 
 
 def test_component_types_only_respell_so_terms():
@@ -332,3 +352,91 @@ def test_downgrade_default_version():
     assert [w.kind for w in report.warnings] == ["SynthesizedVersion"]
     with pytest.raises(ValueError):
         downgrade(sbol3, DowngradeOptions(default_version=""))
+
+
+VERSIONED_PROV_AND_MEASURE = """
+@prefix sbol: <http://sbols.org/v2#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix om: <http://www.ontology-of-units-of-measure.org/resource/om-2/> .
+@prefix biopax: <http://www.biopax.org/release/biopax-level3.owl#> .
+
+<https://example.org/lab/act/1> a prov:Activity ; sbol:displayId "act" ;
+    sbol:persistentIdentity <https://example.org/lab/act> ; sbol:version "1" ;
+    prov:qualifiedUsage <https://example.org/lab/act/use/1> ;
+    prov:qualifiedAssociation <https://example.org/lab/act/assoc/1> .
+<https://example.org/lab/act/use/1> a prov:Usage ; sbol:displayId "use" ;
+    sbol:persistentIdentity <https://example.org/lab/act/use> ; sbol:version "1" ;
+    prov:entity <https://example.org/lab/cd/1> ; prov:hadRole <http://sbols.org/v2#design> .
+<https://example.org/lab/act/assoc/1> a prov:Association ; sbol:displayId "assoc" ;
+    sbol:persistentIdentity <https://example.org/lab/act/assoc> ; sbol:version "1" ;
+    prov:agent <https://example.org/lab/agent/1> .
+<https://example.org/lab/agent/1> a prov:Agent ; sbol:displayId "agent" ;
+    sbol:persistentIdentity <https://example.org/lab/agent> ; sbol:version "1" .
+<https://example.org/lab/cd/1> a sbol:ComponentDefinition ; sbol:displayId "cd" ;
+    sbol:persistentIdentity <https://example.org/lab/cd> ; sbol:version "1" ; sbol:type biopax:DnaRegion ;
+    sbol:measure <https://example.org/lab/cd/mass/1> .
+<https://example.org/lab/cd/mass/1> a om:Measure ; sbol:displayId "mass" ;
+    sbol:persistentIdentity <https://example.org/lab/cd/mass> ; sbol:version "1" ;
+    om:hasNumericalValue "1.5"^^<http://www.w3.org/2001/XMLSchema#float> ; om:hasUnit om:gram .
+"""
+
+FRAGMENT_SEQUENCE_ANNOTATION = """\
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:sbol="http://sbols.org/v2#">
+  <sbol:ComponentDefinition rdf:about="http://example.org#cd">
+    <sbol:persistentIdentity rdf:resource="http://example.org#cd"/>
+    <sbol:displayId>cd</sbol:displayId>
+    <sbol:type rdf:resource="http://www.biopax.org/release/biopax-level3.owl#DnaRegion"/>
+    <sbol:component>
+      <sbol:Component rdf:about="http://example.org#cd/part">
+        <sbol:persistentIdentity rdf:resource="http://example.org#cd/part"/>
+        <sbol:displayId>part</sbol:displayId>
+        <sbol:definition rdf:resource="http://example.org#part"/>
+        <sbol:access rdf:resource="http://sbols.org/v2#public"/>
+      </sbol:Component>
+    </sbol:component>
+    <sbol:sequenceAnnotation>
+      <sbol:SequenceAnnotation rdf:about="http://example.org#anno">
+        <sbol:persistentIdentity rdf:resource="http://example.org#anno"/>
+        <sbol:displayId>anno</sbol:displayId>
+        <sbol:component rdf:resource="http://example.org#cd/part"/>
+        <sbol:location>
+          <sbol:Range rdf:about="http://example.org#anno/range">
+            <sbol:persistentIdentity rdf:resource="http://example.org#anno/range"/>
+            <sbol:displayId>range</sbol:displayId>
+            <sbol:start>1</sbol:start>
+            <sbol:end>10</sbol:end>
+          </sbol:Range>
+        </sbol:location>
+      </sbol:SequenceAnnotation>
+    </sbol:sequenceAnnotation>
+  </sbol:ComponentDefinition>
+</rdf:RDF>"""
+
+
+def test_versioned_prov_and_measure_children_nest_under_their_parent():
+    """Usage, Association, and Measure children of versioned objects nest under the parent's SBOL 3 identity."""
+    upgraded, _ = upgrade(VERSIONED_PROV_AND_MEASURE, fmt="turtle")
+    subjects = {str(s) for s in upgraded.subjects()}
+    for child in (
+        "https://example.org/lab/1/act/use",
+        "https://example.org/lab/1/act/assoc",
+        "https://example.org/lab/1/cd/mass",
+    ):
+        assert child in subjects
+    assert not validate_sbol3(upgraded, ValidationConfig(complete=False)).errors
+    downgraded, _ = downgrade(upgraded)
+    sbol2_subjects = {str(s) for s in downgraded.subjects()}
+    for child in (
+        "https://example.org/lab/act/use/1",
+        "https://example.org/lab/act/assoc/1",
+        "https://example.org/lab/cd/mass/1",
+    ):
+        assert child in sbol2_subjects
+
+
+def test_fragment_style_sequence_annotation_downgrades_to_valid_iris():
+    """A `#`-fragment SequenceAnnotation identity yields no displayId, so the rebuilt annotation is named instead."""
+    upgraded, _ = upgrade(FRAGMENT_SEQUENCE_ANNOTATION, fmt="xml")
+    downgraded, _ = downgrade(upgraded)
+    assert all(str(s).count("#") <= 1 for s in downgraded.subjects())
+    assert "SequenceAnnotation" in serialize(downgraded, "xml")

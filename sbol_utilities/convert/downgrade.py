@@ -45,6 +45,7 @@ from sbol_utilities.convert.terms import (
 )
 from sbol_utilities.convert.values import SBO_TO_BIOPAX, downgrade_value, refinement_for
 from sbol_utilities.rdf_io import GraphSource, load_graph
+from sbol_utilities.validation.rdf import DISPLAY_ID_PATTERN
 
 
 @dataclass
@@ -423,8 +424,10 @@ class _Downgrader:
             elif p == S3.hasLocation and is_iri(o):
                 locations_of[s].append(o)
             elif p == BP.sbol2OriginalSequenceAnnotationURI and is_iri(o):
+                # The recorded original identity names the rebuilt SequenceAnnotation. A non-compliant identity
+                # (e.g. a `#` fragment) has no displayId-shaped segment, and the SA is then named like a native one.
                 sa_display_id = uri.display_id_sbol2(o)
-                if sa_display_id is not None:
+                if sa_display_id is not None and DISPLAY_ID_PATTERN.match(sa_display_id):
                     recorded.setdefault(s, sa_display_id)
 
         candidates = set(recorded) | {s for s in locations_of if self._has_type(s, S3.SubComponent)}

@@ -37,6 +37,30 @@ DOWNGRADE_CASES = {
 }
 
 GENERATED_CONSTRAINT = re.compile(r"^Constraint\d+$")
+VOCABULARY_PREDICATES = (
+    "http://sbols.org/v3#role",
+    "http://sbols.org/v2#role",
+    "http://sbols.org/v3#type",
+    "http://sbols.org/v2#type",
+)
+
+
+def scheme_neutral_vocabulary(line: str) -> str:
+    """Ignore the http/https scheme of role and type objects that are not identifiers.org terms.
+
+    The reference converter toggles the scheme of every role and type IRI; this converter (like sbol-rs) respells
+    only identifiers.org ontology terms and keeps a lab's own vocabulary as written.
+    """
+    for predicate in VOCABULARY_PREDICATES:
+        marker = f" <{predicate}> <"
+        if marker in line:
+            head, obj = line.split(marker, 1)
+            if "://identifiers.org/" not in obj:
+                obj = re.sub(r"^https?://", "//", obj)
+            return f"{head}{marker}{obj}"
+    return line
+
+
 DISPLAY_ID_PREDICATES = {"http://sbols.org/v3#displayId", "http://sbols.org/v2#displayId"}
 
 
@@ -51,7 +75,7 @@ def logical_lines(graph: Graph) -> Set[str]:
             digest = hashlib.sha256("\n".join(content).encode("utf-8")).hexdigest()[:16]
             renames[f"<{subject}>"] = f"<{str(subject).rsplit('/', 1)[0]}/Constraint#{digest}>"
     result = set()
-    for line in cg.canonical_lines(graph):
+    for line in map(scheme_neutral_vocabulary, cg.canonical_lines(graph)):
         for old, new in renames.items():
             line = line.replace(old, new)
         if renames and any(f" <{p}> " in line for p in DISPLAY_ID_PREDICATES) and "Constraint#" in line.split(" ")[0]:

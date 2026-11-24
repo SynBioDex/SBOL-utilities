@@ -135,42 +135,56 @@ def create_sbol3_uri(sbol2_uri: str) -> str:
 # http://identifiers.org/so/SO:<id>, .../biomodels.sbo/SBO:<id>, .../edam/<id>.
 
 
-def _to_https(uri: str) -> str:
-    return "https://" + uri[len("http://") :] if uri.startswith("http://") else uri
+def _identifiers_org_path(uri: str) -> Optional[str]:
+    """Path of an identifiers.org IRI (either scheme), or None for any other IRI.
+
+    Ontology-term spelling applies only to identifiers.org IRIs; every other IRI (a lab's own role or type
+    vocabulary, for instance) is kept exactly as written.
+    """
+    for base in ("https://identifiers.org/", "http://identifiers.org/"):
+        if uri.startswith(base):
+            return uri[len(base) :]
+    return None
 
 
-def _to_http(uri: str) -> str:
-    return "http://" + uri[len("https://") :] if uri.startswith("https://") else uri
+def _respell(uri: str, old_prefix: str, new_prefix: str, scheme: str) -> str:
+    """Rewrite an identifiers.org term: ``old_prefix`` (any case) becomes ``new_prefix``, with scheme ``scheme``."""
+    path = _identifiers_org_path(uri)
+    if path is None:
+        return uri
+    if path[: len(old_prefix)].lower() == old_prefix.lower():
+        path = new_prefix + path[len(old_prefix) :]
+    return f"{scheme}://identifiers.org/{path}"
 
 
 def convert_so_2_to_3(uri: str) -> str:
     """Sequence Ontology term, SBOL 2 -> SBOL 3: drop the ``so/`` path segment."""
-    return _to_https(uri.replace("so/", ""))
+    return _respell(uri, "so/SO:", "SO:", "https")
 
 
 def convert_so_3_to_2(uri: str) -> str:
     """Sequence Ontology term, SBOL 3 -> SBOL 2: reinstate the ``so/`` path segment."""
-    return _to_http(uri.replace("SO:", "so/SO:"))
+    return _respell(uri, "SO:", "so/SO:", "http")
 
 
 def convert_sbo_2_to_3(uri: str) -> str:
     """Systems Biology Ontology term, SBOL 2 -> SBOL 3: drop ``biomodels.sbo/``."""
-    return _to_https(uri.replace("biomodels.sbo/", ""))
+    return _respell(uri, "biomodels.sbo/SBO:", "SBO:", "https")
 
 
 def convert_sbo_3_to_2(uri: str) -> str:
     """Systems Biology Ontology term, SBOL 3 -> SBOL 2: reinstate ``biomodels.sbo/``."""
-    return _to_http(uri.replace("SBO:", "biomodels.sbo/SBO:"))
+    return _respell(uri, "SBO:", "biomodels.sbo/SBO:", "http")
 
 
 def convert_edam_2_to_3(uri: str) -> str:
-    """EDAM term, SBOL 2 -> SBOL 3: rewrite the ``/edam/`` path segment to ``/edam:``."""
-    return _to_https(uri.replace("/edam/", "/edam:"))
+    """EDAM term, SBOL 2 -> SBOL 3: rewrite the ``edam/`` path segment to ``edam:``."""
+    return _respell(uri, "edam/", "edam:", "https")
 
 
 def convert_edam_3_to_2(uri: str) -> str:
-    """EDAM term, SBOL 3 -> SBOL 2: rewrite ``/edam:`` back to ``/edam/``."""
-    return _to_http(uri.replace("/edam:", "/edam/"))
+    """EDAM term, SBOL 3 -> SBOL 2: rewrite ``edam:`` back to ``edam/``."""
+    return _respell(uri, "edam:", "edam/", "http")
 
 
 def component_type_2_to_3(uri: str) -> str:

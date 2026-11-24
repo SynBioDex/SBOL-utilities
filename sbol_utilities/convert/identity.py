@@ -15,14 +15,22 @@ from rdflib import Literal
 
 from sbol_utilities.convert import uri
 from sbol_utilities.convert.terms import RDF_TYPE, S2, Triple, is_iri
+from sbol_utilities.vocab import PROV
 
-#: SBOL 2 predicates by which a parent owns a child object
+#: SBOL 2 predicates by which a parent owns a child object, including the PROV qualified-usage/association children
+#: of an Activity and the measure children of any Identified object
 CONTAINMENT_PREDICATES = frozenset(
-    S2.base + name
-    for name in (
-        "sequenceAnnotation sequenceConstraint location component functionalComponent module interaction "
-        "participation mapsTo variableComponent"
-    ).split()
+    [
+        *(
+            S2.base + name
+            for name in (
+                "sequenceAnnotation sequenceConstraint location component functionalComponent module interaction "
+                "participation mapsTo variableComponent measure"
+            ).split()
+        ),
+        str(PROV.qualifiedUsage),
+        str(PROV.qualifiedAssociation),
+    ]
 )
 
 #: SBOL 2 predicates whose IRI objects are identities to rewrite
