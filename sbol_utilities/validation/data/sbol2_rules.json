@@ -1,0 +1,2071 @@
+{
+ "meta": {
+  "source": "sbol-rs@9b5ab7d6a419af4cf1a409aac59789d5847d3456",
+  "spec_canonical_url": "https://sbolstandard.org/datamodel-specification/version-2-3-0/",
+  "spec_path": "spec/SBOL2.3.0.md",
+  "spec_pdf_sha256": "6ad000f596a26517d1d0a4cf8f53af87538d8703befea35d2383b5ade7558c88",
+  "spec_version": "2.3.0"
+ },
+ "rule": [
+  {
+   "id": "sbol2-10101",
+   "normative_severity": "MUST",
+   "note": "An SBOL document MUST declare the use of the following XML namespace: \"http://sbols.org/v2#\".",
+   "spec_section": "10",
+   "status": "Error"
+  },
+  {
+   "blocker": "External",
+   "id": "sbol2-10105",
+   "normative_severity": "MUST",
+   "note": "An SBOL document MUST be serialized as a well-formed RDF/XML file that adheres to the grammar defined by: \"https://www.w3.org/TR/rdf-syntax-grammar/\" This is a serialization well-formedness constraint enforced by the RDF/XML reader: a malformed document fails to parse and never reaches validation, so no single-document validation report can carry it.",
+   "spec_section": "10",
+   "status": "MachineUncheckable"
+  },
+  {
+   "blocker": "External",
+   "id": "sbol2-10106",
+   "normative_severity": "MUST",
+   "note": "All namespaces specified in an SBOL document MUST end with a valid delimiter ('/', '#', or ':'). The reader discards the document's prefix-to-namespace bindings once the triple graph is built, so this namespace-delimiter constraint has no representation the validator can inspect after parsing.",
+   "spec_section": "10",
+   "status": "MachineUncheckable"
+  },
+  {
+   "id": "sbol2-10201",
+   "normative_severity": "MUST",
+   "note": "The identity property of an Identified object is REQUIRED and MUST contain a URI that adheres to the syntax defined by: \"http://www.w3.org/1999/02/22-rdf-syntax#about\"",
+   "spec_section": "7.4",
+   "status": "Error"
+  },
+  {
+   "blocker": "External",
+   "id": "sbol2-10202",
+   "normative_severity": "MUST",
+   "note": "The identity property of an Identified object MUST be globally unique. Global uniqueness spans documents and a global registry; within a single RDF graph a subject IRI denotes one node, so a duplicate-identity violation is not representable and cannot be isolated by a single-document negative.",
+   "spec_section": "7.4",
+   "status": "MachineUncheckable"
+  },
+  {
+   "id": "sbol2-10203",
+   "normative_severity": "MUST",
+   "note": "The persistentIdentity property of an Identified object is OPTIONAL and MAY contain a URI that MUST adhere to the syntax defined by: \"http://www.w3.org/1999/02/22-rdf-syntax#about\"",
+   "spec_section": "7.4",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-10204",
+   "normative_severity": "MUST",
+   "note": "The displayId property of an Identified object is OPTIONAL and MAY contain a String that MUST be composed of only alphanumeric or underscore characters and MUST NOT begin with a digit.",
+   "spec_section": "7.4",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-10206",
+   "normative_severity": "MUST",
+   "note": "The version property of an Identified object is OPTIONAL and MAY contain a String that MUST be composed of only alphanumeric characters, underscores, hyphens, or periods and MUST begin with a digit.",
+   "spec_section": "7.4",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-10208",
+   "normative_severity": "MUST",
+   "note": "The wasDerivedFroms property of an Identified object is OPTIONAL and MAY contain a URI.",
+   "spec_section": "7.4",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-10212",
+   "normative_severity": "MUST",
+   "note": "The name property of an Identified object is OPTIONAL and MAY contain a String.",
+   "spec_section": "7.4",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-10213",
+   "normative_severity": "MUST",
+   "note": "The description property of an Identified object is OPTIONAL and MAY contain a String.",
+   "spec_section": "7.4",
+   "status": "Error"
+  },
+  {
+   "blocker": "External",
+   "id": "sbol2-10214",
+   "normative_severity": "MUST",
+   "note": "The annotations property of an Identified object is OPTIONAL and MAY contain a set of Annotation objects.",
+   "spec_section": "7.4",
+   "status": "MachineUncheckable"
+  },
+  {
+   "gate": "Compliant",
+   "id": "sbol2-10215",
+   "normative_severity": "MUST",
+   "note": "The displayId property of a compliant Identified object is REQUIRED.",
+   "spec_section": "12.3",
+   "status": "Error"
+  },
+  {
+   "gate": "Compliant",
+   "id": "sbol2-10216",
+   "normative_severity": "MUST",
+   "note": "The persistentIdentity property of a compliant TopLevel object is REQUIRED and MUST contain a URI that ends with a delimiter ('/', '#', or ':') followed by the displayId of the TopLevel object.",
+   "spec_section": "12.3",
+   "status": "Error"
+  },
+  {
+   "gate": "Compliant",
+   "id": "sbol2-10217",
+   "normative_severity": "MUST",
+   "note": "The persistentIdentity property of a compliant Identified object that is not also a TopLevel object is REQUIRED and MUST contain a URI that begins with the persistentIdentity of the compliant object's parent and is immediately followed by a delimiter ('/', '#', or ':') and the displayId of the compliant object.",
+   "spec_section": "12.3",
+   "status": "Error"
+  },
+  {
+   "gate": "Compliant",
+   "id": "sbol2-10218",
+   "normative_severity": "MUST",
+   "note": "If a compliant Identified object has no version property, then its identity property MUST contain the same URI as its persistentIdentity property. Otherwise, the compliant object's identity property MUST contain a URI that begins with its persistentIdentity and is immediately followed by a delimiter ('/', '#', or ':') and its version.",
+   "spec_section": "12.3",
+   "status": "Error"
+  },
+  {
+   "gate": "Compliant",
+   "id": "sbol2-10219",
+   "normative_severity": "MUST",
+   "note": "The version property of a compliant Identified object that is not also a TopLevel object is REQUIRED to contain the same String as the version property of the compliant object's parent.",
+   "spec_section": "12.3",
+   "status": "Error"
+  },
+  {
+   "blocker": "External",
+   "coverage_kind": "LocalReferencesOnly",
+   "id": "sbol2-10220",
+   "normative_severity": "MUST",
+   "note": "Objects with the same persistentIdentity MUST be instances of the same class.",
+   "spec_section": "7.4",
+   "status": "Configurable"
+  },
+  {
+   "id": "sbol2-10221",
+   "normative_severity": "MUST",
+   "note": "The wasGeneratedBys property of an Identified object is OPTIONAL and MAY contain a set of URIs.",
+   "spec_section": "12.8",
+   "status": "Error"
+  },
+  {
+   "blocker": "Resolver",
+   "coverage_kind": "LocalReferencesOnly",
+   "gate": "Complete",
+   "id": "sbol2-10222",
+   "normative_severity": "MUST",
+   "note": "Each URI contained by the wasGeneratedBys property of an Identified object MUST refer to an Activity object.",
+   "spec_section": "12.8",
+   "status": "Configurable"
+  },
+  {
+   "id": "sbol2-10223",
+   "normative_severity": "MUST",
+   "note": "Provenance history formed by wasGeneratedBy properties of Identified objects and entity references in Usage objects MUST NOT form circular reference chains.",
+   "spec_section": "12.8",
+   "status": "Error"
+  },
+  {
+   "gate": "BestPractice",
+   "id": "sbol2-10224",
+   "normative_severity": "SHOULD",
+   "note": "An Identified with a wasGeneratedBys property that includes a reference to an Activity with a child Association that has a roles property that contains the URI http://sbols.org/v2#design SHOULD be a TopLevel object other than Implementation.",
+   "spec_section": "12.8",
+   "status": "Warning"
+  },
+  {
+   "gate": "BestPractice",
+   "id": "sbol2-10225",
+   "normative_severity": "SHOULD",
+   "note": "An Identified with a wasGeneratedBys property that includes a reference to an Activity with a child Association that has a roles property that contains the URI http://sbols.org/v2#build SHOULD be an Implementation.",
+   "spec_section": "12.8",
+   "status": "Warning"
+  },
+  {
+   "gate": "BestPractice",
+   "id": "sbol2-10226",
+   "normative_severity": "SHOULD",
+   "note": "An Identified with a wasGeneratedBys property that includes a reference to an Activity with a child Association that has a roles property that contains the URI http://sbols.org/v2#test SHOULD be an Attachment or a Collection of Attachment objects.",
+   "spec_section": "12.8",
+   "status": "Warning"
+  },
+  {
+   "gate": "BestPractice",
+   "id": "sbol2-10227",
+   "normative_severity": "SHOULD",
+   "note": "An Identified with a wasGeneratedBys property that includes a reference to an Activity with a child Association that has a roles property that contains the URI http://sbols.org/v2#learn SHOULD not be an Implementation.",
+   "spec_section": "12.8",
+   "status": "Warning"
+  },
+  {
+   "id": "sbol2-10228",
+   "normative_severity": "MUST",
+   "note": "An Identified object must have no more than one rdfType property in each of the http://sbols.org/v2# and http://www.w3.org/ns/prov# namespaces.",
+   "spec_section": "7.4",
+   "status": "Error"
+  },
+  {
+   "gate": "BestPractice",
+   "id": "sbol2-10302",
+   "normative_severity": "SHOULD",
+   "note": "If the wasDerivedFroms property of one TopLevel object refers to another TopLevel object with the same persistentIdentity property, then the version property of the second TopLevel object SHOULD precede that of the first if both objects have a version and it is assumed that these versions follow the conventions of semantic versioning.",
+   "spec_section": "7.4",
+   "status": "Warning"
+  },
+  {
+   "id": "sbol2-10303",
+   "normative_severity": "MUST",
+   "note": "The wasDerivedFroms property of an TopLevel object MUST NOT contain a URI reference to the TopLevel object itself.",
+   "spec_section": "7.4",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-10304",
+   "normative_severity": "MUST",
+   "note": "TopLevel objects MUST NOT form circular reference chains via their wasDerivedFroms properties.",
+   "spec_section": "7.4",
+   "status": "Error"
+  },
+  {
+   "blocker": "External",
+   "id": "sbol2-10305",
+   "normative_severity": "MUST",
+   "note": "If the wasDerivedFroms property of one TopLevel object refers to another TopLevel object with the same persistentIdentity property, then version property of the second TopLevel object MUST precede that of the first if both objects have a version.",
+   "spec_section": "7.4",
+   "status": "MachineUncheckable"
+  },
+  {
+   "id": "sbol2-10306",
+   "normative_severity": "MUST",
+   "note": "The attachments property of a TopLevel is OPTIONAL and MAY contain a set of URIs.",
+   "spec_section": "7.5",
+   "status": "Error"
+  },
+  {
+   "blocker": "Resolver",
+   "coverage_kind": "LocalReferencesOnly",
+   "gate": "Complete",
+   "id": "sbol2-10307",
+   "normative_severity": "MUST",
+   "note": "Each URI contained by the attachments property of a TopLevel MUST refer to an Attachment object.",
+   "spec_section": "7.5",
+   "status": "Configurable"
+  },
+  {
+   "id": "sbol2-10401",
+   "normative_severity": "MUST",
+   "note": "A Sequence MUST NOT have properties other than the following: identity, persistentIdentity, displayId, version, wasDerivedFroms , wasGeneratedBys , name, description, annotations, elements, and encoding.",
+   "spec_section": "7.6",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-10402",
+   "normative_severity": "MUST",
+   "note": "The elements property of a Sequence is REQUIRED and MUST contain a String.",
+   "spec_section": "7.6",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-10403",
+   "normative_severity": "MUST",
+   "note": "The encoding property of Sequence is REQUIRED and MUST contain a URI.",
+   "spec_section": "7.6",
+   "status": "Error"
+  },
+  {
+   "blocker": "External",
+   "id": "sbol2-10404",
+   "normative_severity": "MUST",
+   "note": "The encoding property of a Sequence MUST indicate how the elements property of the Sequence is to be formed and interpreted.",
+   "spec_section": "7.6",
+   "status": "MachineUncheckable"
+  },
+  {
+   "id": "sbol2-10405",
+   "normative_severity": "MUST",
+   "note": "The elements property of a Sequence MUST be consistent with its encoding property.",
+   "spec_section": "7.6",
+   "status": "Error"
+  },
+  {
+   "blocker": "External",
+   "id": "sbol2-10406",
+   "normative_severity": "MUST",
+   "note": "The encoding property of a Sequence MUST contain a URI from Table 1 if it is well-described by this URI.",
+   "spec_section": "7.6",
+   "status": "MachineUncheckable"
+  },
+  {
+   "blocker": "Ontology",
+   "coverage_kind": "OntologyKnownTermsOnly",
+   "gate": "BestPractice",
+   "id": "sbol2-10407",
+   "normative_severity": "SHOULD",
+   "note": "The encoding property of a Sequence SHOULD contain a URI from Table 1.",
+   "spec_section": "7.6",
+   "status": "Configurable"
+  },
+  {
+   "id": "sbol2-10501",
+   "normative_severity": "MUST",
+   "note": "A ComponentDefinition MUST NOT have properties other than the following: identity, persistentIdentity, displayId, version, wasDerivedFroms, wasGeneratedBys, name, description, annotations, types, roles, components, sequences, sequenceAnnotations, and sequenceConstraints.",
+   "spec_section": "7.7",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-10502",
+   "normative_severity": "MUST",
+   "note": "The types property of a ComponentDefinition is REQUIRED and MUST contain a non-empty set of URIs.",
+   "spec_section": "7.7",
+   "status": "Error"
+  },
+  {
+   "gate": "BestPractice",
+   "id": "sbol2-10503",
+   "normative_severity": "MUST",
+   "note": "The types property of a ComponentDefinition MUST NOT contain more than one URI from Table 2.",
+   "spec_section": "7.7",
+   "status": "Error"
+  },
+  {
+   "blocker": "External",
+   "id": "sbol2-10504",
+   "normative_severity": "MUST",
+   "note": "Each URI contained by the types property of a ComponentDefinition MUST refer to an ontology term that describes the category of biochemical or physical entity that is represented by the ComponentDefinition.",
+   "spec_section": "7.7",
+   "status": "MachineUncheckable"
+  },
+  {
+   "blocker": "External",
+   "id": "sbol2-10505",
+   "normative_severity": "MUST",
+   "note": "The types property of a ComponentDefinition MUST contain a URI from Table 2 if it is well-described by this URI.",
+   "spec_section": "7.7",
+   "status": "MachineUncheckable"
+  },
+  {
+   "blocker": "External",
+   "id": "sbol2-10506",
+   "normative_severity": "MUST",
+   "note": "All URIs contained by the types property of a ComponentDefinition MUST refer to non-conflicting ontology terms.",
+   "spec_section": "7.7",
+   "status": "MachineUncheckable"
+  },
+  {
+   "id": "sbol2-10507",
+   "normative_severity": "MUST",
+   "note": "The roles property of a ComponentDefinition is OPTIONAL and MAY contain a set of URIs.",
+   "spec_section": "7.7",
+   "status": "Error"
+  },
+  {
+   "blocker": "External",
+   "id": "sbol2-10508",
+   "normative_severity": "MUST",
+   "note": "Each URI contained by the roles property of a ComponentDefinition MUST refer to an ontology term that clarifies the potential function of the ComponentDefinition in a biochemical or physical context.",
+   "spec_section": "7.7",
+   "status": "MachineUncheckable"
+  },
+  {
+   "blocker": "External",
+   "id": "sbol2-10509",
+   "normative_severity": "MUST",
+   "note": "Each URI contained by the roles property of a ComponentDefinition MUST refer to an ontology term that is consistent with its types property.",
+   "spec_section": "7.7",
+   "status": "MachineUncheckable"
+  },
+  {
+   "blocker": "External",
+   "id": "sbol2-10510",
+   "normative_severity": "MUST",
+   "note": "The roles property of a ComponentDefinition MUST contain a URI from Table 3 if it is well-described by this URI.",
+   "spec_section": "7.7",
+   "status": "MachineUncheckable"
+  },
+  {
+   "blocker": "Ontology",
+   "coverage_kind": "OntologyKnownTermsOnly",
+   "gate": "BestPractice",
+   "id": "sbol2-10511",
+   "normative_severity": "SHOULD",
+   "note": "The roles property of a ComponentDefinition SHOULD NOT contain a URI that refers to a term from the sequence feature branch of the SO unless its types property contains the DNA or RNA type URI listed in Table 2.",
+   "spec_section": "7.7",
+   "status": "Configurable"
+  },
+  {
+   "id": "sbol2-10512",
+   "normative_severity": "MUST",
+   "note": "The sequences property of a ComponentDefinition is OPTIONAL and MAY contain a set of URIs.",
+   "spec_section": "7.7",
+   "status": "Error"
+  },
+  {
+   "blocker": "Resolver",
+   "coverage_kind": "LocalReferencesOnly",
+   "gate": "Complete",
+   "id": "sbol2-10513",
+   "normative_severity": "MUST",
+   "note": "Each URI contained by the sequences property of a ComponentDefinition MUST refer to a Sequence object.",
+   "spec_section": "7.7",
+   "status": "Configurable"
+  },
+  {
+   "blocker": "External",
+   "id": "sbol2-10514",
+   "normative_severity": "MUST",
+   "note": "The Sequence objects referred to by the sequences property of a ComponentDefinition MUST be consistent with each other, such that well-defined mappings exist between their elements properties in accordance with their encoding properties.",
+   "spec_section": "7.7",
+   "status": "MachineUncheckable"
+  },
+  {
+   "blocker": "External",
+   "id": "sbol2-10515",
+   "normative_severity": "MUST",
+   "note": "The sequences property of a ComponentDefinition MUST NOT refer to Sequence objects with conflicting encoding properties.",
+   "spec_section": "7.7",
+   "status": "MachineUncheckable"
+  },
+  {
+   "gate": "BestPractice",
+   "id": "sbol2-10516",
+   "normative_severity": "MUST",
+   "note": "If the sequences property of a ComponentDefinition refers to one or more Sequence objects, and one of the types of this ComponentDefinition comes from Table 2, then one of the Sequence objects MUST have the encoding that is cross-listed with this type in Table 1.",
+   "spec_section": "7.7",
+   "status": "Error"
+  },
+  {
+   "gate": "BestPractice",
+   "id": "sbol2-10518",
+   "normative_severity": "SHOULD",
+   "note": "If a ComponentDefinition refers to more than one Sequence with the same encoding, then the elements of these Sequence objects SHOULD have equal lengths.",
+   "spec_section": "7.7",
+   "status": "Warning"
+  },
+  {
+   "id": "sbol2-10519",
+   "normative_severity": "MUST",
+   "note": "The components property of a ComponentDefinition is OPTIONAL and MAY contain a set of Component objects.",
+   "spec_section": "7.7",
+   "status": "Error"
+  },
+  {
+   "gate": "BestPractice",
+   "id": "sbol2-10520",
+   "normative_severity": "SHOULD",
+   "note": "If a ComponentDefinition in a ComponentDefinition-Component hierarchy refers to one or more Sequence objects, and there exist ComponentDefinition objects lower in the hierarchy that refer to Sequence objects with the same encoding, then the elements properties of these Sequence objects SHOULD be consistent with each other, such that well-defined mappings exist from the \"lower level\" elements to the \"higher level\" elements in accordance with their shared encoding properties. This mapping is subject to any restrictions on the positions of the Component objects in the hierarchy that are imposed by the SequenceAnnotation or SequenceConstraint objects contained by the ComponentDefinition objects in the hierarchy. This mapping is further subject to any restrictions on the sequences property of ComponentDefinition objects implied by the sourceLocations property on the Component objects owned by those ComponentDefinition objects.",
+   "spec_section": "7.7",
+   "status": "Warning"
+  },
+  {
+   "id": "sbol2-10521",
+   "normative_severity": "MUST",
+   "note": "The sequenceAnnotations property of a ComponentDefinition is OPTIONAL and MAY contain a set of SequenceAnnotation objects.",
+   "spec_section": "7.7",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-10522",
+   "normative_severity": "MUST",
+   "note": "The sequenceAnnotations property of a ComponentDefinition MUST NOT contain two or more SequenceAnnotation objects that refer to the same Component.",
+   "spec_section": "7.7",
+   "status": "Error"
+  },
+  {
+   "gate": "BestPractice",
+   "id": "sbol2-10523",
+   "normative_severity": "SHOULD",
+   "note": "If the sequences property of a ComponentDefinition refers to a Sequence with an IUPAC encoding from Table 1, then each SequenceAnnotation that includes a Range and/or Cut in the sequenceAnnotations property of the ComponentDefinition SHOULD specify a region on the elements of this Sequence.",
+   "spec_section": "7.7",
+   "status": "Warning"
+  },
+  {
+   "id": "sbol2-10524",
+   "normative_severity": "MUST",
+   "note": "The sequenceConstraints property of a ComponentDefinition is OPTIONAL and MAY contain a set of SequenceConstraint objects.",
+   "spec_section": "7.7",
+   "status": "Error"
+  },
+  {
+   "blocker": "Ontology",
+   "coverage_kind": "OntologyKnownTermsOnly",
+   "gate": "BestPractice",
+   "id": "sbol2-10525",
+   "normative_severity": "SHOULD",
+   "note": "The types property of a ComponentDefinition SHOULD contain a URI from Table 2.",
+   "spec_section": "7.7",
+   "status": "Configurable"
+  },
+  {
+   "id": "sbol2-10526",
+   "normative_severity": "MUST",
+   "note": "If multiple MapsTos belonging to the Components of a ComponentDefinition have local properties that refer to the same Component, then there MUST NOT be more than one such MapsTo that has a refinement property that contains the URI http://sbols.org/v2# useRemote.",
+   "spec_section": "7.7",
+   "status": "Error"
+  },
+  {
+   "blocker": "Ontology",
+   "coverage_kind": "OntologyKnownTermsOnly",
+   "gate": "BestPractice",
+   "id": "sbol2-10527",
+   "normative_severity": "SHOULD",
+   "note": "If the types property of a ComponentDefinition contains the DNA or RNA type URI, then its roles property SHOULD contain exactly one URI that refers to a term from the sequence feature branch of the SO.",
+   "spec_section": "7.7",
+   "status": "Configurable"
+  },
+  {
+   "blocker": "Ontology",
+   "coverage_kind": "OntologyKnownTermsOnly",
+   "gate": "BestPractice",
+   "id": "sbol2-10528",
+   "normative_severity": "SHOULD",
+   "note": "If the types property of a ComponentDefinition contains the DNA or RNA type URI, then its types property SHOULD also contain at most one URI that refers to a term from the topology attribute branch of the SO.",
+   "spec_section": "7.7",
+   "status": "Configurable"
+  },
+  {
+   "blocker": "Ontology",
+   "coverage_kind": "OntologyKnownTermsOnly",
+   "gate": "BestPractice",
+   "id": "sbol2-10529",
+   "normative_severity": "SHOULD",
+   "note": "The types property of a ComponentDefinition SHOULD NOT contain a URI that refers to a term from the topology attribute or strand attribute branch of the SO unless its types property contains the DNA or RNA type URI listed in Table 2.",
+   "spec_section": "7.7",
+   "status": "Configurable"
+  },
+  {
+   "id": "sbol2-10602",
+   "normative_severity": "MUST",
+   "note": "The definition property of a ComponentInstance is REQUIRED and MUST contain a URI.",
+   "spec_section": "7.7.1",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-10603",
+   "normative_severity": "MUST",
+   "note": "The definition property of a ComponentInstance MUST NOT contain a URI reference to the ComponentDefinition that contains the ComponentInstance.",
+   "spec_section": "7.7.1",
+   "status": "Error"
+  },
+  {
+   "blocker": "Resolver",
+   "coverage_kind": "LocalReferencesOnly",
+   "gate": "Complete",
+   "id": "sbol2-10604",
+   "normative_severity": "MUST",
+   "note": "The URI contained by the definition property MUST refer to a ComponentDefinition object.",
+   "spec_section": "7.7.1",
+   "status": "Configurable"
+  },
+  {
+   "id": "sbol2-10605",
+   "normative_severity": "MUST",
+   "note": "ComponentInstance objects MUST NOT form circular reference chains via their definition properties and parent ComponentDefinition objects.",
+   "spec_section": "7.7.1",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-10606",
+   "normative_severity": "MUST",
+   "note": "The mapsTos property of a ComponentInstance is OPTIONAL and MAY contain a set of MapsTo objects.",
+   "spec_section": "7.7.1",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-10607",
+   "normative_severity": "MUST",
+   "note": "The access property of a ComponentInstance is REQUIRED and MUST contain a URI from Table4.",
+   "spec_section": "7.7.1",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-10608",
+   "normative_severity": "MUST",
+   "note": "The measures property of a ComponentInstance is OPTIONAL and may contain a set of Measure objects.",
+   "spec_section": "7.7.1",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-10701",
+   "normative_severity": "MUST",
+   "note": "A Component MUST NOT have properties other than the following: identity, persistentIdentity, displayId, version, wasDerivedFroms, wasGeneratedBys, name, description, annotations, access, definition, mapsTos, roles, roleIntegration, and sourceLocations.",
+   "spec_section": "7.7.1",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-10702",
+   "normative_severity": "MUST",
+   "note": "The roles property of a Component is OPTIONAL and MAY contain a set of URIs.",
+   "spec_section": "7.7.2",
+   "status": "Error"
+  },
+  {
+   "blocker": "External",
+   "id": "sbol2-10703",
+   "normative_severity": "MUST",
+   "note": "Each URI contained by the roles property of a Component MUST refer to an ontology term that clarifies the potential function of the Component in a biochemical or physical context.",
+   "spec_section": "7.7.2",
+   "status": "MachineUncheckable"
+  },
+  {
+   "blocker": "External",
+   "id": "sbol2-10704",
+   "normative_severity": "MUST",
+   "note": "Each URI contained by the roles property of a Component MUST refer to an ontology term that is consistent with the types property of the ComponentDefinition referred to by its definition property.",
+   "spec_section": "7.7.2",
+   "status": "MachineUncheckable"
+  },
+  {
+   "blocker": "Ontology",
+   "id": "sbol2-10705",
+   "normative_severity": "MUST",
+   "note": "The roles property of a Component MUST contain a URI from Table 4 if it is well-described by this URI. The \"if it is well-described by this URI\" clause is a human-judgement condition: no tool can decide whether a Component is well-described by a Table 4 role, so a mechanical single-document violation cannot be constructed.",
+   "spec_section": "7.7.2",
+   "status": "MachineUncheckable"
+  },
+  {
+   "blocker": "Ontology",
+   "coverage_kind": "OntologyKnownTermsOnly",
+   "gate": "BestPractice",
+   "id": "sbol2-10706",
+   "normative_severity": "SHOULD",
+   "note": "The roles property of a Component SHOULD NOT contain a URI that refers to a term from the sequence feature branch of the SO unless the types property of the ComponentDefinition referred to by its definition property contains the DNA or RNA type URI listed in Table 2.",
+   "spec_section": "7.7.2",
+   "status": "Configurable"
+  },
+  {
+   "blocker": "Ontology",
+   "coverage_kind": "OntologyKnownTermsOnly",
+   "gate": "BestPractice",
+   "id": "sbol2-10707",
+   "normative_severity": "SHOULD",
+   "note": "If the types property of the ComponentDefinition referred to by its definition contains the DNA or RNA type URI, then its roles property SHOULD contain no more than one URI that refers to a term from the sequence feature branch of the SO.",
+   "spec_section": "7.7.2",
+   "status": "Configurable"
+  },
+  {
+   "id": "sbol2-10708",
+   "normative_severity": "MUST",
+   "note": "The roleIntegration property of a Component, if provided, MUST contain a URI from Table 6.",
+   "spec_section": "7.7.2",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-10709",
+   "normative_severity": "MUST",
+   "note": "The roleIntegration property of a Component is REQUIRED, if roles property includes one or more roles.",
+   "spec_section": "7.7.2",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-10710",
+   "normative_severity": "MUST",
+   "note": "The sourceLocations property of a Component is OPTIONAL and MAY contain a set of Location objects.",
+   "spec_section": "7.7.2",
+   "status": "Error"
+  },
+  {
+   "gate": "BestPractice",
+   "id": "sbol2-10711",
+   "normative_severity": "SHOULD",
+   "note": "The Location objects contained by the sourceLocations property of a single Component SHOULD NOT specify overlapping regions.",
+   "spec_section": "7.7.2",
+   "status": "Warning"
+  },
+  {
+   "gate": "BestPractice",
+   "id": "sbol2-10712",
+   "normative_severity": "SHOULD",
+   "note": "If the sourceLocations property of a Component refers to a set of Ranges, and that Component is referenced by the component property of a SequenceAnnotation whose locations property also refers to a set of Ranges, then the sum of lengths of the two sets of Ranges MUST be equal.",
+   "spec_section": "7.7.2",
+   "status": "Warning"
+  },
+  {
+   "id": "sbol2-10801",
+   "normative_severity": "MUST",
+   "note": "A MapsTo MUST NOT have properties other than the following: identity, persistentIdentity, displayId, version, wasDerivedFroms, wasGeneratedBys, name, description, annotations, refinement, local, and remote.",
+   "spec_section": "7.7.3",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-10802",
+   "normative_severity": "MUST",
+   "note": "The local property of a MapsTo is REQUIRED and MUST contain a URI.",
+   "spec_section": "7.7.3",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-10803",
+   "normative_severity": "MUST",
+   "note": "If a MapsTo is contained by a Component in a ComponentDefinition, then the local property of the MapsTo MUST refer to another Component in the ComponentDefinition.",
+   "spec_section": "7.7.3",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-10804",
+   "normative_severity": "MUST",
+   "note": "If a MapsTo is contained by a FunctionalComponent or Module in a ModuleDefinition, then the local property of the MapsTo MUST refer to another FunctionalComponent in the ModuleDefinition.",
+   "spec_section": "7.7.3",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-10805",
+   "normative_severity": "MUST",
+   "note": "The remote property of a MapsTo is REQUIRED and MUST contain a URI.",
+   "spec_section": "7.7.3",
+   "status": "Error"
+  },
+  {
+   "blocker": "Resolver",
+   "coverage_kind": "LocalReferencesOnly",
+   "gate": "Complete",
+   "id": "sbol2-10807",
+   "normative_severity": "MUST",
+   "note": "The ComponentInstance referred to by the remote property of a MapsTo MUST have an access property that contains the URI http://sbols.org/v2#public.",
+   "spec_section": "7.7.3",
+   "status": "Configurable"
+  },
+  {
+   "blocker": "Resolver",
+   "id": "sbol2-10808",
+   "normative_severity": "MUST",
+   "note": "If a MapsTo is contained by a ComponentInstance, then the remote property of the MapsTo MUST refer to a Component in the ComponentDefinition that is referenced by the definition property of the ComponentInstance. The remote must resolve to a Component of the ComponentDefinition named by the ComponentInstance's definition, which the spec permits to live in another document; isolating this violation requires cross-document resolution of that referenced definition.",
+   "spec_section": "7.7.3",
+   "status": "MachineUncheckable"
+  },
+  {
+   "blocker": "Resolver",
+   "id": "sbol2-10809",
+   "normative_severity": "MUST",
+   "note": "If a MapsTo is contained by a Module, then the remote property of the MapsTo MUST refer to a FunctionalComponent in the ModuleDefinition that is referenced by the definition property of the Module. The remote must resolve to a FunctionalComponent of the ModuleDefinition named by the Module's definition, which the spec permits to live in another document; isolating this violation requires cross-document resolution of that referenced definition.",
+   "spec_section": "7.7.3",
+   "status": "MachineUncheckable"
+  },
+  {
+   "id": "sbol2-10810",
+   "normative_severity": "MUST",
+   "note": "The refinement property of a MapsTo is REQUIRED and MUST contain a URI from Table 5.",
+   "spec_section": "7.7.3",
+   "status": "Error"
+  },
+  {
+   "blocker": "Resolver",
+   "id": "sbol2-10811",
+   "normative_severity": "MUST",
+   "note": "If the refinement property of a MapsTo contains the URI http://sbols.org/v2#verifyIdentical, then the ComponentInstance objects referred to by local and remote properties of the MapsTo MUST refer to the same ComponentDefinition via their definition properties. verifyIdentical compares the definitions of the local and remote ComponentInstances, which the spec permits to live in another document; isolating this violation requires cross-document resolution of those referenced definitions.",
+   "spec_section": "7.7.3",
+   "status": "MachineUncheckable"
+  },
+  {
+   "id": "sbol2-10901",
+   "normative_severity": "MUST",
+   "note": "A SequenceAnnotation MUST NOT have properties other than the following: identity, persistentIdentity, displayId, version, wasDerivedFroms, wasGeneratedBys, name, description, annotations, component, locations, and roles.",
+   "spec_section": "7.7.4",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-10902",
+   "normative_severity": "MUST",
+   "note": "The locations property of a SequenceAnnotation is REQUIRED and MUST contain a non-empty set of Location objects.",
+   "spec_section": "7.7.4",
+   "status": "Error"
+  },
+  {
+   "gate": "BestPractice",
+   "id": "sbol2-10903",
+   "normative_severity": "SHOULD",
+   "note": "The Location objects contained by the locations property of a single SequenceAnnotation SHOULD NOT specify overlapping regions.",
+   "spec_section": "7.7.4",
+   "status": "Warning"
+  },
+  {
+   "id": "sbol2-10904",
+   "normative_severity": "MUST",
+   "note": "The component property is OPTIONAL and MAY contain a URI reference to a Component.",
+   "spec_section": "7.7.4",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-10905",
+   "normative_severity": "MUST",
+   "note": "The Component referenced by the component property of a SequenceAnnotation MUST be contained by the ComponentDefinition that contains the SequenceAnnotation.",
+   "spec_section": "7.7.4",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-10906",
+   "normative_severity": "MUST",
+   "note": "The roles property of a SequenceAnnotation is OPTIONAL and MAY contain a set of URIs.",
+   "spec_section": "7.7.4",
+   "status": "Error"
+  },
+  {
+   "blocker": "External",
+   "id": "sbol2-10907",
+   "normative_severity": "MUST",
+   "note": "Each URI contained by the roles property of a SequenceAnnotation MUST refer to an ontology term that clarifies the potential function of the SequenceAnnotation in a biochemical or physical context.",
+   "spec_section": "7.7.4",
+   "status": "MachineUncheckable"
+  },
+  {
+   "blocker": "External",
+   "id": "sbol2-10908",
+   "normative_severity": "MUST",
+   "note": "The roles property of a SequenceAnnotation MUST contain a URI from Table 4 if it is well-described by this URI.",
+   "spec_section": "7.7.4",
+   "status": "MachineUncheckable"
+  },
+  {
+   "id": "sbol2-10909",
+   "normative_severity": "MUST",
+   "note": "A SequenceAnnotation MUST NOT include both a component property and a roles property.",
+   "spec_section": "7.7.4",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-11002",
+   "normative_severity": "MUST",
+   "note": "The orientation property of a Location is OPTIONAL and MAY contain a URI from Table 6.",
+   "spec_section": "7.7.5",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-11003",
+   "normative_severity": "MUST",
+   "note": "The sequence property of a Location is OPTIONAL. If present, it MUST contain the URI of a Sequence referenced by the ComponentDefinition containing the Location.",
+   "spec_section": "7.7.5",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-11101",
+   "normative_severity": "MUST",
+   "note": "A Range MUST NOT have properties other than the following: identity, persistentIdentity, displayId, version, wasDerivedFroms, wasGeneratedBys, name, description, sequence, annotations, orientation, start, and end.",
+   "spec_section": "7.7.5",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-11102",
+   "normative_severity": "MUST",
+   "note": "The start property of a Range is REQUIRED and MUST contain an Integer greater than zero.",
+   "spec_section": "7.7.5",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-11103",
+   "normative_severity": "MUST",
+   "note": "The end property of a Range is REQUIRED and MUST contain an Integer greater than zero.",
+   "spec_section": "7.7.5",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-11104",
+   "normative_severity": "MUST",
+   "note": "The value of the end property of a Range MUST be greater than or equal to the value of its start property.",
+   "spec_section": "7.7.5",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-11201",
+   "normative_severity": "MUST",
+   "note": "A Cut MUST NOT have properties other than the following: identity, persistentIdentity, displayId, version, wasDerivedFroms, wasGeneratedBys, name, description, sequence, annotations, orientation, and at.",
+   "spec_section": "7.7.5",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-11202",
+   "normative_severity": "MUST",
+   "note": "The at property is REQUIRED and MUST contain an Integer greater than or equal to zero.",
+   "spec_section": "7.7.5",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-11301",
+   "normative_severity": "MUST",
+   "note": "A GenericLocation MUST NOT have properties other than the following: identity, persistentIdentity, displayId, version, wasDerivedFroms, wasGeneratedBys, name, description, annotations, sequence, and orientation.",
+   "spec_section": "7.7.5",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-11401",
+   "normative_severity": "MUST",
+   "note": "A SequenceConstraint MUST NOT have properties other than the following: identity, persistentIdentity, displayId, version, wasDerivedFroms, wasGeneratedBys, name, description, annotations, restriction, subject, and object.",
+   "spec_section": "7.7.6",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-11402",
+   "normative_severity": "MUST",
+   "note": "The subject property is REQUIRED and MUST contain a URI reference to a Component.",
+   "spec_section": "7.7.6",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-11403",
+   "normative_severity": "MUST",
+   "note": "The Component referenced by the subject property of a SequenceConstraint MUST be contained by the ComponentDefinition that contains the SequenceConstraint.",
+   "spec_section": "7.7.6",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-11404",
+   "normative_severity": "MUST",
+   "note": "The object property is REQUIRED and MUST contain a URI reference to a Component.",
+   "spec_section": "7.7.6",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-11405",
+   "normative_severity": "MUST",
+   "note": "The Component referenced by the object property of a SequenceConstraint MUST be contained by the ComponentDefinition that contains the SequenceConstraint.",
+   "spec_section": "7.7.6",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-11406",
+   "normative_severity": "MUST",
+   "note": "The object property of a SequenceConstraint MUST NOT refer to the same Component as the subject property of the SequenceConstraint.",
+   "spec_section": "7.7.6",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-11407",
+   "normative_severity": "MUST",
+   "note": "The restriction property is REQUIRED and MUST contain a URI.",
+   "spec_section": "7.7.6",
+   "status": "Error"
+  },
+  {
+   "blocker": "External",
+   "id": "sbol2-11408",
+   "normative_severity": "MUST",
+   "note": "The URI contained by the restriction property of a SequenceConstraint MUST indicate the type of structural restriction on the relative, sequence-based positions or orientations of the Component objects referred to by the subject and object properties of the SequenceConstraint.",
+   "spec_section": "7.7.6",
+   "status": "MachineUncheckable"
+  },
+  {
+   "id": "sbol2-11409",
+   "normative_severity": "MUST",
+   "note": "If the restriction property of a SequenceConstraint contains the URI http://sbols.org/v2#precedes, then the position of the Component referred to by the subject property of the SequenceConstraint MUST precede that of the Component referred to by its object property.",
+   "spec_section": "7.7.6",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-11410",
+   "normative_severity": "MUST",
+   "note": "If the restriction property of a SequenceConstraint contains the URI http://sbols.org/v2#sameOrientationAs, then the orientation of the Component referred to by the subject property of the SequenceConstraint MUST be the same as that of the Component referred to by its object property.",
+   "spec_section": "7.7.6",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-11411",
+   "normative_severity": "MUST",
+   "note": "If the restriction property of a SequenceConstraint contains the URI http://sbols.org/v2#oppositeOrientationAs, then the orientation of the Component referred to by the subject property of the SequenceConstraint MUST be opposite that of the Component referred to by its object property.",
+   "spec_section": "7.7.6",
+   "status": "Error"
+  },
+  {
+   "blocker": "Ontology",
+   "coverage_kind": "OntologyKnownTermsOnly",
+   "gate": "BestPractice",
+   "id": "sbol2-11412",
+   "normative_severity": "SHOULD",
+   "note": "The URI contained by the restriction property SHOULD come from Table 7.",
+   "spec_section": "7.7.6",
+   "status": "Configurable"
+  },
+  {
+   "id": "sbol2-11413",
+   "normative_severity": "MUST",
+   "note": "If the restriction property of a SequenceConstraint contains the URI http://sbols.org/v2\\#differentFrom, then the definition property of the subject Component of the SequenceConstraint MUST NOT contain the same URI as the definition property of the object Component of the SequenceConstraint.",
+   "spec_section": "7.7.6",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-11414",
+   "normative_severity": "MUST",
+   "note": "If the restriction property of a SequenceConstraint contains the URI http://sbols.org/v2\\#differentFrom, then the definition property of the subject Component of the SequenceConstraint MUST NOT refer to the same object as the definition property of the object Component of the SequenceConstraint.",
+   "spec_section": "7.7.6",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-11501",
+   "normative_severity": "MUST",
+   "note": "A Model MUST NOT have properties other than the following: identity, persistentIdentity, displayId, version, wasDerivedFroms, wasGeneratedBys, name, description, annotations, source, language, and framework.",
+   "spec_section": "7.8",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-11502",
+   "normative_severity": "MUST",
+   "note": "The source property is a REQUIRED and MUST contain a URI.",
+   "spec_section": "7.8",
+   "status": "Error"
+  },
+  {
+   "blocker": "External",
+   "id": "sbol2-11503",
+   "normative_severity": "MUST",
+   "note": "The URI contained by the source property of a Model MUST specify the location of the model's source file.",
+   "spec_section": "7.8",
+   "status": "MachineUncheckable"
+  },
+  {
+   "id": "sbol2-11504",
+   "normative_severity": "MUST",
+   "note": "The language property is REQUIRED and MUST contain a URI.",
+   "spec_section": "7.8",
+   "status": "Error"
+  },
+  {
+   "blocker": "External",
+   "id": "sbol2-11505",
+   "normative_severity": "MUST",
+   "note": "The URI contained by the language property of a Model MUST specify the language in which the model is encoded.",
+   "spec_section": "7.8",
+   "status": "MachineUncheckable"
+  },
+  {
+   "blocker": "External",
+   "id": "sbol2-11506",
+   "normative_severity": "MUST",
+   "note": "The language property of a Model MUST contain a URI from Table 8 if it is well-described by this URI.",
+   "spec_section": "7.8",
+   "status": "MachineUncheckable"
+  },
+  {
+   "blocker": "Ontology",
+   "coverage_kind": "OntologyKnownTermsOnly",
+   "gate": "BestPractice",
+   "id": "sbol2-11507",
+   "normative_severity": "SHOULD",
+   "note": "The language property of a Model SHOULD contain a URI that refers to a term from the EDAM ontology.",
+   "spec_section": "7.8",
+   "status": "Configurable"
+  },
+  {
+   "id": "sbol2-11508",
+   "normative_severity": "MUST",
+   "note": "The framework property is REQUIRED and MUST contain a URI.",
+   "spec_section": "7.8",
+   "status": "Error"
+  },
+  {
+   "blocker": "External",
+   "id": "sbol2-11509",
+   "normative_severity": "MUST",
+   "note": "The URI contained by the framework property of a Model MUST specify the modeling framework of the model.",
+   "spec_section": "7.8",
+   "status": "MachineUncheckable"
+  },
+  {
+   "blocker": "External",
+   "id": "sbol2-11510",
+   "normative_severity": "MUST",
+   "note": "The framework property of a Model MUST contain a URI from Table 9 if it is well-described by this URI.",
+   "spec_section": "7.8",
+   "status": "MachineUncheckable"
+  },
+  {
+   "blocker": "Ontology",
+   "coverage_kind": "OntologyKnownTermsOnly",
+   "gate": "BestPractice",
+   "id": "sbol2-11511",
+   "normative_severity": "SHOULD",
+   "note": "The framework property SHOULD contain a URI that refers to a term from the modeling framework branch of the SBO.",
+   "spec_section": "7.8",
+   "status": "Configurable"
+  },
+  {
+   "id": "sbol2-11601",
+   "normative_severity": "MUST",
+   "note": "A ModuleDefinition MUST NOT have properties other than the following: identity, persistentIdentity, displayId, version, wasDerivedFroms, wasGeneratedBys, name, description, annotations, roles, modules, interactions, functionalComponents, and models.",
+   "spec_section": "7.9",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-11602",
+   "normative_severity": "MUST",
+   "note": "The roles property is OPTIONAL and MAY contain a set of URIs.",
+   "spec_section": "7.9",
+   "status": "Error"
+  },
+  {
+   "blocker": "External",
+   "id": "sbol2-11603",
+   "normative_severity": "MUST",
+   "note": "Each URI contained by roles property of a ModuleDefinition MUST refer to a resource that clarifies the intended function of the ModuleDefinition.",
+   "spec_section": "7.9",
+   "status": "MachineUncheckable"
+  },
+  {
+   "id": "sbol2-11604",
+   "normative_severity": "MUST",
+   "note": "The modules property OPTIONAL and MAY contain a set of Module objects.",
+   "spec_section": "7.9",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-11605",
+   "normative_severity": "MUST",
+   "note": "The interactions property is OPTIONAL and MAY contain a set of Interaction objects.",
+   "spec_section": "7.9",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-11606",
+   "normative_severity": "MUST",
+   "note": "The functionalComponents property is OPTIONAL and MAY contain a set of FunctionalComponent objects.",
+   "spec_section": "7.9",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-11607",
+   "normative_severity": "MUST",
+   "note": "The models property is OPTIONAL and MAY contain a set of URIs.",
+   "spec_section": "7.9",
+   "status": "Error"
+  },
+  {
+   "blocker": "Resolver",
+   "coverage_kind": "LocalReferencesOnly",
+   "gate": "Complete",
+   "id": "sbol2-11608",
+   "normative_severity": "MUST",
+   "note": "Each URI contained by the models property of a ModuleDefinition MUST refer to a Model.",
+   "spec_section": "7.9",
+   "status": "Configurable"
+  },
+  {
+   "id": "sbol2-11609",
+   "normative_severity": "MUST",
+   "note": "If multiple MapsTos belonging to the Modules and FunctionalComponents of a ModuleDefinition have local properties that refer to the same FunctionalComponent, then there MUST NOT be more than one such MapsTo that has a refinement property that contains the URI http://sbols.org/v2#useRemote.",
+   "spec_section": "7.7.3",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-11701",
+   "normative_severity": "MUST",
+   "note": "A Module MUST NOT have properties other than the following: identity, persistentIdentity, displayId, version, wasDerivedFroms, wasGeneratedBys, name, description, annotations, definition, and mapsTos.",
+   "spec_section": "7.9.1",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-11702",
+   "normative_severity": "MUST",
+   "note": "The definition property of a Module is REQUIRED and MUST contain a URI.",
+   "spec_section": "7.9.1",
+   "status": "Error"
+  },
+  {
+   "blocker": "Resolver",
+   "coverage_kind": "LocalReferencesOnly",
+   "gate": "Complete",
+   "id": "sbol2-11703",
+   "normative_severity": "MUST",
+   "note": "The URI contained by the definition property of Module MUST refer to a ModuleDefinition.",
+   "spec_section": "7.9.1",
+   "status": "Configurable"
+  },
+  {
+   "id": "sbol2-11704",
+   "normative_severity": "MUST",
+   "note": "The definition property of a Module MUST NOT contain a URI reference to the ModuleDefinition that contains the Module.",
+   "spec_section": "7.9.1",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-11705",
+   "normative_severity": "MUST",
+   "note": "Module objects MUST NOT form circular reference chains via their definition properties and parent ModuleDefinition objects.",
+   "spec_section": "7.9.1",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-11706",
+   "normative_severity": "MUST",
+   "note": "The mapsTos property is OPTIONAL and MAY contain a set of MapsTo objects.",
+   "spec_section": "7.9.1",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-11707",
+   "normative_severity": "MUST",
+   "note": "The measures property of a Module is OPTIONAL andmay contain a set of Measure objects.",
+   "spec_section": "7.9.1",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-11801",
+   "normative_severity": "MUST",
+   "note": "A FunctionalComponent MUST NOT have properties other than the following: identity, persistentIdentity, displayId, version, wasDerivedFroms, wasGeneratedBys, name, description, annotations, access, definition, and mapsTos, and direction.",
+   "spec_section": "7.7.1",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-11802",
+   "normative_severity": "MUST",
+   "note": "The direction property of a FunctionalComponent is REQUIRED and MUST contain a URI from Table 10.",
+   "spec_section": "7.9.2",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-11901",
+   "normative_severity": "MUST",
+   "note": "An Interaction MUST NOT have properties other than the following: identity, persistentIdentity, displayId, version, wasDerivedFroms, wasGeneratedBys, name, description, annotations, types, and participations.",
+   "spec_section": "7.9.3",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-11902",
+   "normative_severity": "MUST",
+   "note": "The types property of an Interaction is REQUIRED and MUST contain a non-empty set of URIs.",
+   "spec_section": "7.9.3",
+   "status": "Error"
+  },
+  {
+   "blocker": "External",
+   "id": "sbol2-11903",
+   "normative_severity": "MUST",
+   "note": "Each URI contained by the types property of an Interaction MUST refer to an ontology term that describes the behavior represented by the Interaction.",
+   "spec_section": "7.9.3",
+   "status": "MachineUncheckable"
+  },
+  {
+   "blocker": "External",
+   "id": "sbol2-11904",
+   "normative_severity": "MUST",
+   "note": "All URIs contained by the types property of an Interaction MUST refer to non-conflicting ontology terms.",
+   "spec_section": "7.9.3",
+   "status": "MachineUncheckable"
+  },
+  {
+   "blocker": "Ontology",
+   "coverage_kind": "OntologyKnownTermsOnly",
+   "gate": "BestPractice",
+   "id": "sbol2-11905",
+   "normative_severity": "SHOULD",
+   "note": "Exactly one URI contained by the types property of an Interaction SHOULD refer to a term from the occurring entity relationship branch of the SBO.",
+   "spec_section": "7.9.3",
+   "status": "Configurable"
+  },
+  {
+   "id": "sbol2-11906",
+   "normative_severity": "MUST",
+   "note": "The participations property of an Interaction is OPTIONAL and MAY contain a set of Participation objects.",
+   "spec_section": "7.9.3",
+   "status": "Error"
+  },
+  {
+   "blocker": "Ontology",
+   "coverage_kind": "OntologyKnownTermsOnly",
+   "gate": "BestPractice",
+   "id": "sbol2-11907",
+   "normative_severity": "SHOULD",
+   "note": "If the participations property of an Interaction refers to one or more Participation objects, and one of the types of this Interaction comes from Table 11, then the Participation objects SHOULD have a role from the set of roles that is cross-listed with this type in Table 12.",
+   "spec_section": "7.9.4",
+   "status": "Configurable"
+  },
+  {
+   "id": "sbol2-11908",
+   "normative_severity": "MUST",
+   "note": "The measures property of an Interaction is OPTIONAL and may contain a set of Measure objects.",
+   "spec_section": "7.7.1",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-12001",
+   "normative_severity": "MUST",
+   "note": "A Participation MUST NOT have properties other than the following: identity, persistentIdentity, displayId, version, wasDerivedFroms, wasGeneratedBys, name, description, annotations, roles, and participant.",
+   "spec_section": "7.9.4",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-12002",
+   "normative_severity": "MUST",
+   "note": "The participant property of a Participation is REQUIRED and MUST contain a URI reference to a FunctionalComponent.",
+   "spec_section": "7.9.4",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-12003",
+   "normative_severity": "MUST",
+   "note": "The FunctionalComponent referenced by the participant property of a Participation MUST be contained by the ModuleDefinition that contains the Interaction which contains the Participation.",
+   "spec_section": "7.9.4",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-12004",
+   "normative_severity": "MUST",
+   "note": "The roles property of a Participation is REQUIRED and MUST contain a non-empty set of URIs.",
+   "spec_section": "7.9.4",
+   "status": "Error"
+  },
+  {
+   "blocker": "External",
+   "id": "sbol2-12005",
+   "normative_severity": "MUST",
+   "note": "Each URI contained by the roles property of an Participation MUST refer to an ontology term that describes the behavior represented by the Participation.",
+   "spec_section": "7.9.4",
+   "status": "MachineUncheckable"
+  },
+  {
+   "blocker": "External",
+   "id": "sbol2-12006",
+   "normative_severity": "MUST",
+   "note": "All URIs contained by the roles property of an Participation MUST refer to non-conflicting ontology terms.",
+   "spec_section": "7.9.4",
+   "status": "MachineUncheckable"
+  },
+  {
+   "blocker": "Ontology",
+   "coverage_kind": "OntologyKnownTermsOnly",
+   "gate": "BestPractice",
+   "id": "sbol2-12007",
+   "normative_severity": "SHOULD",
+   "note": "Exactly one role in the set of roles SHOULD be a URI from the participant role branch of the SBO.",
+   "spec_section": "7.9.4",
+   "status": "Configurable"
+  },
+  {
+   "id": "sbol2-12008",
+   "normative_severity": "MUST",
+   "note": "The measures property of a Participation is OPTIONAL and may contain a set of Measure objects.",
+   "spec_section": "7.9.4",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-12101",
+   "normative_severity": "MUST",
+   "note": "A Collection MUST NOT have properties other than the following: identity, persistentIdentity, displayId, version, wasDerivedFroms, wasGeneratedBys, name, description, annotations, and members.",
+   "spec_section": "7.10",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-12102",
+   "normative_severity": "MUST",
+   "note": "The members property of a Collection is OPTIONAL and MAY contain a set of URIs.",
+   "spec_section": "7.10",
+   "status": "Error"
+  },
+  {
+   "blocker": "Resolver",
+   "coverage_kind": "LocalReferencesOnly",
+   "gate": "Complete",
+   "id": "sbol2-12103",
+   "normative_severity": "MUST",
+   "note": "Each URI contained by the members property of a Collection MUST reference a TopLevel object.",
+   "spec_section": "7.10",
+   "status": "Configurable"
+  },
+  {
+   "blocker": "External",
+   "id": "sbol2-12201",
+   "normative_severity": "MUST",
+   "note": "The name property of an Annotation is REQUIRED and MUST contain a QName. SBOL 2 Annotations are unreified extension triples; the reader stores them as generic properties with IRI predicates and literal/IRI/nested values, so a document the reader accepts already satisfies this constraint and no violation is representable.",
+   "spec_section": "7.14",
+   "status": "MachineUncheckable"
+  },
+  {
+   "blocker": "External",
+   "id": "sbol2-12203",
+   "normative_severity": "MUST",
+   "note": "An AnnotationValue MUST be a literal (a String, Integer, Double, or Boolean), URI, or a NestedAnnotations object. SBOL 2 Annotations are unreified extension triples; every value the reader accepts is already a literal, URI, or nested-annotation resource, so no single-document violation is representable.",
+   "spec_section": "7.14",
+   "status": "MachineUncheckable"
+  },
+  {
+   "blocker": "External",
+   "id": "sbol2-12204",
+   "normative_severity": "MUST",
+   "note": "The nestedQName property of a NestedAnnotations object is REQUIRED and MUST contain a QName. NestedAnnotations are unreified extension triples; the reader represents the nestedQName as the RDF predicate, which is always a QName, so no single-document violation is representable.",
+   "spec_section": "7.14",
+   "status": "MachineUncheckable"
+  },
+  {
+   "blocker": "External",
+   "id": "sbol2-12205",
+   "normative_severity": "MUST",
+   "note": "The nestedURI property of a NestedAnnotations object is REQUIRED and MUST contain a URI. NestedAnnotations are unreified extension triples; the reader represents the nestedURI as an RDF resource, so no single-document violation is representable.",
+   "spec_section": "7.14",
+   "status": "MachineUncheckable"
+  },
+  {
+   "blocker": "External",
+   "id": "sbol2-12206",
+   "normative_severity": "MUST",
+   "note": "The annotations property of a NestedAnnotations object is OPTIONAL and MAY contain a set of Annotation objects. NestedAnnotations are unreified extension triples; the annotations they carry are generic properties, so no single-document violation is representable.",
+   "spec_section": "7.14",
+   "status": "MachineUncheckable"
+  },
+  {
+   "id": "sbol2-12301",
+   "normative_severity": "MUST",
+   "note": "A GenericTopLevel MUST NOT have properties other than the following: identity, persistentIdentity, displayId, version, wasDerivedFroms, wasGeneratedBys, name, description, and annotations.",
+   "spec_section": "7.14.2",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-12302",
+   "normative_severity": "MUST",
+   "note": "The rdfType property of a GenericTopLevel object is REQUIRED and MUST contain a QName.",
+   "spec_section": "7.14.2",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-12303",
+   "normative_severity": "MUST",
+   "note": "The rdfType property of a GenericTopLevel object MUST NOT contain a QName in the \"http://sbols.org/v2#\" namespace.",
+   "spec_section": "7.14.2",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-12401",
+   "normative_severity": "MUST",
+   "note": "An Activity MUST NOT have properties other than the following: identity, persistentIdentity, displayId, version, wasDerivedFroms, wasGeneratedBys, name, description, annotations, startedAtTime, endedAtTime, wasInformedBys, usages, and associations.",
+   "spec_section": "12.8.1",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-12402",
+   "normative_severity": "MUST",
+   "note": "The startedAtTime property of an Activity object is OPTIONAL and MAY contain a DateTime.",
+   "spec_section": "12.8.1",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-12403",
+   "normative_severity": "MUST",
+   "note": "The endedAtTime property of an Activity object is OPTIONAL and MAY contain a DateTime.",
+   "spec_section": "12.8.1",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-12404",
+   "normative_severity": "MUST",
+   "note": "The associations property of an Activity is OPTIONAL and MAY contain a set of Association objects.",
+   "spec_section": "12.8.1",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-12405",
+   "normative_severity": "MUST",
+   "note": "The usages property of an Activity is OPTIONAL and MAY contain a set of Usage objects.",
+   "spec_section": "12.8.1",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-12406",
+   "normative_severity": "MUST",
+   "note": "The wasInformedBys property of an Activity is OPTIONAL and MAY contain a set of URIs.",
+   "spec_section": "12.8.1",
+   "status": "Error"
+  },
+  {
+   "blocker": "Resolver",
+   "coverage_kind": "LocalReferencesOnly",
+   "gate": "Complete",
+   "id": "sbol2-12407",
+   "normative_severity": "MUST",
+   "note": "Each URI contained by the wasInformedBys property of an Activity MUST refer to a Activity object.",
+   "spec_section": "12.8.1",
+   "status": "Configurable"
+  },
+  {
+   "gate": "BestPractice",
+   "id": "sbol2-12408",
+   "normative_severity": "SHOULD",
+   "note": "An Activity with a child Association that has a roles property that contains the URI http://sbols.org/v2#design SHOULD NOT have child Usage objects that have roles properties that contain the URIs http://sbols.org/v2#build or http://sbols.org/v2#test.",
+   "spec_section": "12.8.1",
+   "status": "Warning"
+  },
+  {
+   "gate": "BestPractice",
+   "id": "sbol2-12409",
+   "normative_severity": "SHOULD",
+   "note": "An Activity with a child Association that has a roles property that contains the URI http://sbols.org/v2#build SHOULD NOT have child Usage objects that have roles properties that contain the URIs http://sbols.org/v2#test or http://sbols.org/v2#learn.",
+   "spec_section": "12.8.1",
+   "status": "Warning"
+  },
+  {
+   "gate": "BestPractice",
+   "id": "sbol2-12410",
+   "normative_severity": "SHOULD",
+   "note": "An Activity with a child Association that has a roles property that contains the URI http://sbols.org/v2#test SHOULD NOT have child Usage objects that have roles properties that contain the URIs http://sbols.org/v2#design or http://sbols.org/v2#learn.",
+   "spec_section": "12.8.1",
+   "status": "Warning"
+  },
+  {
+   "gate": "BestPractice",
+   "id": "sbol2-12411",
+   "normative_severity": "SHOULD",
+   "note": "An Activity with a child Association that has a roles property that contains the URI http://sbols.org/v2#learn SHOULD NOT have child Usage objects that have roles properties that contain the URIs http://sbols.org/v2#design or http://sbols.org/v2#build.",
+   "spec_section": "12.8.1",
+   "status": "Warning"
+  },
+  {
+   "id": "sbol2-12412",
+   "normative_severity": "MUST",
+   "note": "The types property of an Activity object is OPTIONAL and MAY contain a set of URIs.",
+   "spec_section": "12.8.1",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-12501",
+   "normative_severity": "MUST",
+   "note": "An Usage MUST NOT have properties other than the following: identity, persistentIdentity, displayId, version, wasDerivedFroms, wasGeneratedBys, name, description, annotations, entity, and roles.",
+   "spec_section": "12.8.3",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-12502",
+   "normative_severity": "MUST",
+   "note": "The entity property of an Usage is REQUIRED and MUST contain a URI.",
+   "spec_section": "12.8.3",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-12503",
+   "normative_severity": "MUST",
+   "note": "The roles property of an Usage is OPTIONAL and MAY contain a set of URIs.",
+   "spec_section": "12.8.3",
+   "status": "Error"
+  },
+  {
+   "gate": "BestPractice",
+   "id": "sbol2-12504",
+   "normative_severity": "SHOULD",
+   "note": "A Usage that has a roles property that contains the URI http://sbols.org/v2#design SHOULD refer to a TopLevel other than Implementation.",
+   "spec_section": "12.8.3",
+   "status": "Warning"
+  },
+  {
+   "gate": "BestPractice",
+   "id": "sbol2-12505",
+   "normative_severity": "SHOULD",
+   "note": "A Usage that has a roles property that contains the URI http://sbols.org/v2#build SHOULD refer to an Implementation.",
+   "spec_section": "12.8.3",
+   "status": "Warning"
+  },
+  {
+   "gate": "BestPractice",
+   "id": "sbol2-12506",
+   "normative_severity": "SHOULD",
+   "note": "A Usage that has a roles property that contains the URI http://sbols.org/v2#test SHOULD refer to an Attachment or Collection of Attachment objects.",
+   "spec_section": "12.8.3",
+   "status": "Warning"
+  },
+  {
+   "gate": "BestPractice",
+   "id": "sbol2-12507",
+   "normative_severity": "SHOULD",
+   "note": "A Usage that has a roles property that contains the URI http://sbols.org/v2#learn SHOULD NOT refer to an Implementation.",
+   "spec_section": "12.8.3",
+   "status": "Warning"
+  },
+  {
+   "id": "sbol2-12601",
+   "normative_severity": "MUST",
+   "note": "An Association MUST NOT have properties other than the following: identity, persistentIdentity, displayId, version, wasDerivedFroms, wasGeneratedBys, name, description, annotations, roles, plan, and agent.",
+   "spec_section": "12.8.2",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-12602",
+   "normative_severity": "MUST",
+   "note": "The roles property of an Association is OPTIONAL and MAY contain a set of URIs.",
+   "spec_section": "12.8.2",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-12603",
+   "normative_severity": "MUST",
+   "note": "The plan property of an Association is OPTIONAL and MAY contain a URI.",
+   "spec_section": "12.8.2",
+   "status": "Error"
+  },
+  {
+   "blocker": "Resolver",
+   "coverage_kind": "LocalReferencesOnly",
+   "gate": "Complete",
+   "id": "sbol2-12604",
+   "normative_severity": "MUST",
+   "note": "The URI contained by the plan property MUST refer to a Plan object.",
+   "spec_section": "12.8.2",
+   "status": "Configurable"
+  },
+  {
+   "id": "sbol2-12605",
+   "normative_severity": "MUST",
+   "note": "The agent property of an Association is REQUIRED and MUST contain a URI.",
+   "spec_section": "12.8.2",
+   "status": "Error"
+  },
+  {
+   "blocker": "Resolver",
+   "coverage_kind": "LocalReferencesOnly",
+   "gate": "Complete",
+   "id": "sbol2-12606",
+   "normative_severity": "MUST",
+   "note": "The URI contained by the agent property MUST refer to an Agent object.",
+   "spec_section": "12.8.2",
+   "status": "Configurable"
+  },
+  {
+   "id": "sbol2-12701",
+   "normative_severity": "MUST",
+   "note": "A Plan MUST NOT have properties other than the following: identity, persistentIdentity, displayId, version, wasDerivedFroms, wasGeneratedBys, name, description, and annotations.",
+   "spec_section": "12.8.4",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-12801",
+   "normative_severity": "MUST",
+   "note": "An Agent MUST NOT have properties other than the following: identity, persistentIdentity, displayId, version, wasDerivedFroms, wasGeneratedBys, name, description, and annotations.",
+   "spec_section": "12.8.5",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-12901",
+   "normative_severity": "MUST",
+   "note": "A CombinatorialDerivation MUST NOT have properties other than the following: identity, persistentIdentity, displayId, version, wasDerivedFroms, wasGeneratedBys, name, description, annotations, strategy, template, and variableComponents.",
+   "spec_section": "7.11",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-12902",
+   "normative_severity": "MUST",
+   "note": "The strategy property of a CombinatorialDerivation MUST contain a URI from Table 15 if the property is not empty.",
+   "spec_section": "7.11",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-12903",
+   "normative_severity": "MUST",
+   "note": "If the strategy property of a CombinatorialDerivation contains the URI http://sbols.org/v2#enumerate, then its variableComponents property MUST NOT contain a VariableComponent with an operator property that contains the URI http://sbols.org/v2#zeroOrMore or the URI http://sbols.org/v2#oneOrMore.",
+   "spec_section": "7.11",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-12904",
+   "normative_severity": "MUST",
+   "note": "The template property of a CombinatorialDerivation is REQUIRED and MUST contain a URI.",
+   "spec_section": "7.11",
+   "status": "Error"
+  },
+  {
+   "blocker": "Resolver",
+   "coverage_kind": "LocalReferencesOnly",
+   "gate": "Complete",
+   "id": "sbol2-12905",
+   "normative_severity": "MUST",
+   "note": "The URI contained by the template property of a CombinatorialDerivation MUST refer to a ComponentDefinition.",
+   "spec_section": "7.11",
+   "status": "Configurable"
+  },
+  {
+   "id": "sbol2-12906",
+   "normative_severity": "MUST",
+   "note": "The variableComponents property of a CombinatorialDerivation is OPTIONAL and MAY contain a set of VariableComponent objects.",
+   "spec_section": "7.11",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-12907",
+   "normative_severity": "MUST",
+   "note": "The variableComponents property of a CombinatorialDerivation MUST NOT contain two or more VariableComponent objects with variable properties that contain the same URI.",
+   "spec_section": "7.11",
+   "status": "Error"
+  },
+  {
+   "blocker": "Resolver",
+   "id": "sbol2-12908",
+   "normative_severity": "MUST",
+   "note": "If the wasDerivedFroms property of a ComponentDefinition refers to a CombinatorialDerivation and the template ComponentDefinition of the CombinatorialDerivation contains SequenceConstraint objects, then any Component contained by the first ComponentDefinition that has a wasDerivedFroms property that refers to the subject or object Component of any of the SequenceConstraint objects MUST adhere to the restriction properties of these SequenceConstraint objects. The constraint spans the template ComponentDefinition of a referenced CombinatorialDerivation and its SequenceConstraint objects, which the spec permits to live in another document; isolating this violation requires cross-document resolution.",
+   "spec_section": "7.11",
+   "status": "MachineUncheckable"
+  },
+  {
+   "gate": "BestPractice",
+   "id": "sbol2-12909",
+   "normative_severity": "SHOULD",
+   "note": "The components property of the template ComponentDefinition of a CombinatorialDerivation SHOULD contain one or more Component objects.",
+   "spec_section": "7.11",
+   "status": "Warning"
+  },
+  {
+   "gate": "BestPractice",
+   "id": "sbol2-12910",
+   "normative_severity": "SHOULD",
+   "note": "If the wasDerivedFroms property of a ComponentDefinition refers to a CombinatorialDerivation, then the types property of this ComponentDefinition SHOULD contain all URIs contained by the types property of the template ComponentDefinition of the CombinatorialDerivation.",
+   "spec_section": "7.11",
+   "status": "Warning"
+  },
+  {
+   "gate": "BestPractice",
+   "id": "sbol2-12911",
+   "normative_severity": "SHOULD",
+   "note": "If the wasDerivedFroms property of a ComponentDefinition refers to a CombinatorialDerivation, then the roles property of this ComponentDefinition SHOULD contain all URIs contained by the roles property of the template ComponentDefinition of the CombinatorialDerivation.",
+   "spec_section": "7.11",
+   "status": "Warning"
+  },
+  {
+   "gate": "BestPractice",
+   "id": "sbol2-12912",
+   "normative_severity": "SHOULD",
+   "note": "If the members property of a Collection refers only to objects with wasDerivedFroms properties that refer to a CombinatorialDerivation, then the wasDerivedFroms property of the Collection SHOULD also refer to the CombinatorialDerivation.",
+   "spec_section": "7.11",
+   "status": "Warning"
+  },
+  {
+   "gate": "BestPractice",
+   "id": "sbol2-12913",
+   "normative_severity": "SHOULD",
+   "note": "If the wasDerivedFroms property of a Collection refers to a CombinatorialDerivation, then the wasDerivedFroms properties of the objects that are referred to by its members property SHOULD also refer to the CombinatorialDerivation.",
+   "spec_section": "7.11",
+   "status": "Warning"
+  },
+  {
+   "id": "sbol2-12914",
+   "normative_severity": "MUST",
+   "note": "The strategy property of an CombinatorialDerivation is OPTIONAL and MAY contain a URI.",
+   "spec_section": "7.11",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-13001",
+   "normative_severity": "MUST",
+   "note": "A VariableComponent MUST NOT have properties other than the following: identity, persistentIdentity, displayId, version, wasDerivedFroms, wasGeneratedBys, name, description, annotations, operator, variable, variants, variantCollections, and variantDerivations.",
+   "spec_section": "7.11.1",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-13002",
+   "normative_severity": "MUST",
+   "note": "The operator property of a VariableComponent is REQUIRED and MUST contain a URI.",
+   "spec_section": "7.11.1",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-13003",
+   "normative_severity": "MUST",
+   "note": "The URI contained by the operator property of a VariableComponent MUST come from Table 16.",
+   "spec_section": "7.11.1",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-13004",
+   "normative_severity": "MUST",
+   "note": "The variable property of a VariableComponent is REQUIRED and MUST contain a URI.",
+   "spec_section": "7.11.1",
+   "status": "Error"
+  },
+  {
+   "blocker": "Resolver",
+   "id": "sbol2-13005",
+   "normative_severity": "MUST",
+   "note": "The URI contained by the variable property of a VariableComponent MUST refer to a Component contained by the components property of the template ComponentDefinition of the CombinatorialDerivation that contains the VariableComponent. The variable must resolve to a Component of the template ComponentDefinition of the containing CombinatorialDerivation, which the spec permits to live in another document; isolating this violation requires cross-document resolution.",
+   "spec_section": "7.11.1",
+   "status": "MachineUncheckable"
+  },
+  {
+   "gate": "BestPractice",
+   "id": "sbol2-13006",
+   "normative_severity": "SHOULD",
+   "note": "At least one of the variants property, variantCollections property, or variantDerivations property of a VariableComponent MUST NOT be empty.",
+   "spec_section": "7.11.1",
+   "status": "Warning"
+  },
+  {
+   "id": "sbol2-13007",
+   "normative_severity": "MUST",
+   "note": "The variants property of a VariableComponent is OPTIONAL and MAY contain a set of URIs.",
+   "spec_section": "7.11.1",
+   "status": "Error"
+  },
+  {
+   "blocker": "Resolver",
+   "coverage_kind": "LocalReferencesOnly",
+   "gate": "Complete",
+   "id": "sbol2-13008",
+   "normative_severity": "MUST",
+   "note": "The URIs contained by the variants property of a VariableComponent MUST refer to ComponentDefinition objects.",
+   "spec_section": "7.11.1",
+   "status": "Configurable"
+  },
+  {
+   "id": "sbol2-13009",
+   "normative_severity": "MUST",
+   "note": "The variantCollections property of a VariableComponent is OPTIONAL and MAY contain a set of URIs.",
+   "spec_section": "7.11.1",
+   "status": "Error"
+  },
+  {
+   "blocker": "Resolver",
+   "coverage_kind": "LocalReferencesOnly",
+   "gate": "Complete",
+   "id": "sbol2-13010",
+   "normative_severity": "MUST",
+   "note": "The URIs contained by the variantCollections property of a VariableComponent MUST refer to Collection objects.",
+   "spec_section": "7.11.1",
+   "status": "Configurable"
+  },
+  {
+   "blocker": "Resolver",
+   "id": "sbol2-13011",
+   "normative_severity": "MUST",
+   "note": "The members property of a Collection that is referred to by the variantCollections property of a VariableComponent MUST NOT be empty. The constraint is defined over the members of a Collection named by variantCollections, which the spec permits to live in another document; isolating this violation requires cross-document resolution of that referenced Collection.",
+   "spec_section": "7.11.1",
+   "status": "MachineUncheckable"
+  },
+  {
+   "blocker": "Resolver",
+   "coverage_kind": "LocalReferencesOnly",
+   "gate": "Complete",
+   "id": "sbol2-13012",
+   "normative_severity": "MUST",
+   "note": "The members property of a Collection that is referred to by the variantCollections property of a VariableComponent MUST refer only to ComponentDefinition objects.",
+   "spec_section": "7.11.1",
+   "status": "Configurable"
+  },
+  {
+   "id": "sbol2-13013",
+   "normative_severity": "MUST",
+   "note": "The variantDerivations property of a VariableComponent is OPTIONAL and MAY contain a set of URIs.",
+   "spec_section": "7.11.1",
+   "status": "Error"
+  },
+  {
+   "blocker": "Resolver",
+   "coverage_kind": "LocalReferencesOnly",
+   "gate": "Complete",
+   "id": "sbol2-13014",
+   "normative_severity": "MUST",
+   "note": "The URIs contained by the variantDerivations property of a VariableComponent MUST refer to CombinatorialDerivation objects.",
+   "spec_section": "7.11.1",
+   "status": "Configurable"
+  },
+  {
+   "id": "sbol2-13015",
+   "normative_severity": "MUST",
+   "note": "VariableComponent objects MUST NOT form circular reference chains via their variantDerivations properties and parent CombinatorialDerivation objects.",
+   "spec_section": "7.11.1",
+   "status": "Error"
+  },
+  {
+   "blocker": "Resolver",
+   "id": "sbol2-13016",
+   "normative_severity": "MUST",
+   "note": "If the wasDerivedFroms property of a Component refers to a Component in the template ComponentDefinition of a CombinatorialDerivation, and the second Component is referred to by the variable property of any VariableComponent in the CombinatorialDerivation, then the definition property of the first Component MUST refer to a ComponentDefinition specified by the variants property, a ComponentDefinition that is one of the members of a Collection specified by the variantCollections property, or a ComponentDefinition with a wasDerivedFroms property that refers to a CombinatorialDerivation specified by the variantDerivations property of the VariableComponent. The constraint relates a derived Component to a Component of a referenced template ComponentDefinition and the variant sources of a VariableComponent, which the spec permits to live in another document; isolating this violation requires cross-document resolution.",
+   "spec_section": "7.11.1",
+   "status": "MachineUncheckable"
+  },
+  {
+   "blocker": "Resolver",
+   "id": "sbol2-13017",
+   "normative_severity": "MUST",
+   "note": "If the wasDerivedFroms property of a Component refers to a Component in the template ComponentDefinition of a CombinatorialDerivation, and the second Component is not referred to by the variable property of any VariableComponent in the CombinatorialDerivation, then the definition property of the first Component MUST refer to the same ComponentDefinition as the definition property of the second Component. The constraint relates a derived Component to a Component of a referenced template ComponentDefinition, which the spec permits to live in another document; isolating this violation requires cross-document resolution.",
+   "spec_section": "7.11.1",
+   "status": "MachineUncheckable"
+  },
+  {
+   "gate": "BestPractice",
+   "id": "sbol2-13018",
+   "normative_severity": "SHOULD",
+   "note": "If the wasDerivedFroms property of a ComponentDefinition refers to a CombinatorialDerivation and the wasDerivedFroms property of a Component contained by the ComponentDefinition refers to a Component contained by the template ComponentDefinition of the CombinatorialDerivation, then the roles property of the first Component SHOULD contain all URIs contained by the roles property of the second Component.",
+   "spec_section": "7.11.1",
+   "status": "Warning"
+  },
+  {
+   "gate": "BestPractice",
+   "id": "sbol2-13019",
+   "normative_severity": "SHOULD",
+   "note": "If the wasDerivedFroms property of a ComponentDefinition refers to a CombinatorialDerivation and the CombinatorialDerivation contains a VariableComponent with an operator property that contains the URI http://sbols.org/v2#zeroOrOne, then the components property of the ComponentDefinition SHOULD NOT contain more than one Component with a wasDerivedFroms property that refers to the same Component as the variable property of the VariableComponent.",
+   "spec_section": "7.11.1",
+   "status": "Warning"
+  },
+  {
+   "gate": "BestPractice",
+   "id": "sbol2-13020",
+   "normative_severity": "SHOULD",
+   "note": "If the wasDerivedFroms property of a ComponentDefinition refers to a CombinatorialDerivation and the CombinatorialDerivation contains a VariableComponent with an operator property that contains the URI http://sbols.org/v2#one, then the components property of the ComponentDefinition SHOULD contain exactly one Component with a wasDerivedFroms property that refers to the same Component as the variable property of the VariableComponent.",
+   "spec_section": "7.11.1",
+   "status": "Warning"
+  },
+  {
+   "gate": "BestPractice",
+   "id": "sbol2-13021",
+   "normative_severity": "SHOULD",
+   "note": "If the wasDerivedFroms property of a ComponentDefinition refers to a CombinatorialDerivation and the CombinatorialDerivation contains a VariableComponent with an operator property that contains the URI http://sbols.org/v2#oneOrMore, then the components property of the ComponentDefinition SHOULD contain at least one Component with a wasDerivedFroms property that refers to the same Component as the variable property of the VariableComponent.",
+   "spec_section": "7.11.1",
+   "status": "Warning"
+  },
+  {
+   "gate": "BestPractice",
+   "id": "sbol2-13022",
+   "normative_severity": "SHOULD",
+   "note": "If the wasDerivedFroms property of a ComponentDefinition refers to a CombinatorialDerivation and the template ComponentDefinition of the CombinatorialDerivation contains a Component that is not referred to by the variable property of any VariableComponent contained by the CombinatorialDerivation, then the first ComponentDefinition SHOULD contain exactly one Component with a wasDerivedFroms property that refers to the Component in the template ComponentDefinition.",
+   "spec_section": "7.11.1",
+   "status": "Warning"
+  },
+  {
+   "id": "sbol2-13101",
+   "normative_severity": "MUST",
+   "note": "An Implementation MUST NOT have properties other than the following: identity, persistentIdentity, displayId, version, wasDerivedFroms, wasGeneratedBys, name, description, annotations, and built.",
+   "spec_section": "7.12",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-13102",
+   "normative_severity": "MUST",
+   "note": "The built property of an Implementation is OPTIONAL and MAY contain a URI.",
+   "spec_section": "7.12",
+   "status": "Error"
+  },
+  {
+   "blocker": "Resolver",
+   "coverage_kind": "LocalReferencesOnly",
+   "gate": "Complete",
+   "id": "sbol2-13103",
+   "normative_severity": "MUST",
+   "note": "The built property URI, if specified, MUST refer to either a ComponentDefinition or a ModuleDefinition.",
+   "spec_section": "7.12",
+   "status": "Configurable"
+  },
+  {
+   "id": "sbol2-13201",
+   "normative_severity": "MUST",
+   "note": "An Attachment MUST NOT have properties other than the following: identity, persistentIdentity, displayId, version, wasDerivedFroms, wasGeneratedBys, name, description, annotations, source, format, size, and hash.",
+   "spec_section": "7.13",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-13202",
+   "normative_severity": "MUST",
+   "note": "The source property of an Attachment is REQUIRED and MUST contain a URI.",
+   "spec_section": "7.13",
+   "status": "Error"
+  },
+  {
+   "blocker": "External",
+   "id": "sbol2-13203",
+   "normative_severity": "MUST",
+   "note": "The URI contained by the source property of an Attachment MUST specify the location of the model's source file.",
+   "spec_section": "7.13",
+   "status": "MachineUncheckable"
+  },
+  {
+   "id": "sbol2-13204",
+   "normative_severity": "MUST",
+   "note": "The format property of an Attachment is OPTIONAL and MAY contain a URI.",
+   "spec_section": "7.13",
+   "status": "Error"
+  },
+  {
+   "blocker": "External",
+   "id": "sbol2-13205",
+   "normative_severity": "MUST",
+   "note": "The URI contained by the format property of an Attachment MUST specify the file type of the attachment.",
+   "spec_section": "7.13",
+   "status": "MachineUncheckable"
+  },
+  {
+   "blocker": "Ontology",
+   "coverage_kind": "OntologyKnownTermsOnly",
+   "gate": "BestPractice",
+   "id": "sbol2-13206",
+   "normative_severity": "SHOULD",
+   "note": "The format property of an Attachment SHOULD contain a URI that refers to a term from the EDAM ontology.",
+   "spec_section": "7.13",
+   "status": "Configurable"
+  },
+  {
+   "id": "sbol2-13207",
+   "normative_severity": "MUST",
+   "note": "The size property of an Attachment is OPTIONAL and MAY contain a Long.",
+   "spec_section": "7.13",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-13208",
+   "normative_severity": "MUST",
+   "note": "The hash property of an Attachment is OPTIONAL and MAY contain a String.",
+   "spec_section": "7.13",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-13301",
+   "normative_severity": "MUST",
+   "note": "An ExperimentalData MUST NOT have properties other than the following: identity, persistentIdentity, displayId, version, wasDerivedFroms, wasGeneratedBys, name, description, annotations, and attachments.",
+   "spec_section": "7.14",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-13401",
+   "normative_severity": "MUST",
+   "note": "An Experiment MUST NOT have properties other than the following: identity, persistentIdentity, displayId, version, wasDerivedFroms, wasGeneratedBys, name, description, annotations, attachments, and experimental data.",
+   "spec_section": "7.15",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-13402",
+   "normative_severity": "MUST",
+   "note": "The experimentalData property of an Experiment is OPTIONAL and MAY contain a set of URIs.",
+   "spec_section": "7.15",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-13404",
+   "normative_severity": "MUST",
+   "note": "Each URI contained by the experimentalData property of a Experiment MUST reference an ExperimentalData object.",
+   "spec_section": "7.15",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-13501",
+   "normative_severity": "MUST",
+   "note": "A Measure MUST NOT have properties other than the following: identity, persistentIdentity, displayId, version, wasDerivedFroms, wasGeneratedBys, name, description, annotations, hasNumericalValue, hasUnit, and types.",
+   "spec_section": "13.2.1",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-13502",
+   "normative_severity": "MUST",
+   "note": "The hasNumericalValue property of a Measure is REQUIRED and MUST contain an xsd:float.",
+   "spec_section": "13.2.1",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-13503",
+   "normative_severity": "MUST",
+   "note": "The hasUnit property of a Measure is REQUIRED and MUST contain a URI.",
+   "spec_section": "13.2.1",
+   "status": "Error"
+  },
+  {
+   "id": "sbol2-13504",
+   "normative_severity": "MUST",
+   "note": "The types property of a Measure is OPTIONAL and MAY contain a set of URIs.",
+   "spec_section": "13.2.1",
+   "status": "Error"
+  },
+  {
+   "blocker": "Ontology",
+   "coverage_kind": "OntologyKnownTermsOnly",
+   "gate": "BestPractice",
+   "id": "sbol2-13505",
+   "normative_severity": "SHOULD",
+   "note": "If the types property of a Measure is non-empty, then exactly one of the URIs that this property contains SHOULD refer to a term from the systems description parameter branch of the SBO.",
+   "spec_section": "13.2.1",
+   "status": "Configurable"
+  },
+  {
+   "id": "sbol2-13506",
+   "normative_severity": "MUST",
+   "note": "The URI contained by the hasUnit property of a MeasureMUST refer to a Unit.",
+   "spec_section": "13.2.1",
+   "status": "Error"
+  }
+ ]
+}

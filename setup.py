@@ -1,4 +1,4 @@
-from setuptools import setup
+from setuptools import find_packages, setup
 
 setup(name='sbol-utilities',
       description='SBOL utilities',
@@ -62,12 +62,14 @@ setup(name='sbol-utilities',
                                 'fasta-to-sbol=sbol_utilities.conversion:fasta2sbol',
                                 'sbol-diff=sbol_utilities.sbol_diff:main']
       },
-      packages=['sbol_utilities'],
+      packages=find_packages(include=['sbol_utilities', 'sbol_utilities.*']),
       package_data={
           'sbol_utilities': [
               'gb2so.csv',
               'sbolgraph-standalone.js',
               'so2gb.csv',
+              'validation/data/*.json',
+              'validation/data/*.tsv',
           ],
       },
       include_package_data=True

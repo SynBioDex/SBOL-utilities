@@ -1,0 +1,54 @@
+BASE   <https://example.org/sbol-rs/fixtures/>
+PREFIX :      <https://example.org/sbol-rs/fixtures/>
+PREFIX SBO:   <https://identifiers.org/SBO:>
+PREFIX SO:    <https://identifiers.org/SO:>
+PREFIX sbol:  <http://sbols.org/v3#>
+
+:promoter_a
+        a                  sbol:Component;
+        sbol:displayId     "promoter_a";
+        sbol:hasNamespace  <https://example.org/sbol-rs/fixtures>;
+        sbol:role          SO:0000167;
+        sbol:type          SBO:0000251 .
+
+:promoter_b
+        a                  sbol:Component;
+        sbol:displayId     "promoter_b";
+        sbol:hasNamespace  <https://example.org/sbol-rs/fixtures>;
+        sbol:role          SO:0000167;
+        sbol:type          SBO:0000251 .
+
+:promoter_library
+        a                  sbol:Collection;
+        sbol:displayId     "promoter_library";
+        sbol:hasNamespace  <https://example.org/sbol-rs/fixtures>;
+        sbol:member        :promoter_a , :promoter_b .
+
+:template_component
+        a                  sbol:Component;
+        sbol:displayId     "template_component";
+        sbol:hasFeature    <template_component/promoter_slot>;
+        sbol:hasNamespace  <https://example.org/sbol-rs/fixtures>;
+        sbol:role          SO:0000167;
+        sbol:type          SBO:0000251 .
+
+<template_component/promoter_slot>
+        a                sbol:SubComponent;
+        sbol:displayId   "promoter_slot";
+        sbol:instanceOf  :promoter_a .
+
+:promoter_derivation
+        a                       sbol:CombinatorialDerivation;
+        sbol:displayId          "promoter_derivation";
+        sbol:hasNamespace       <https://example.org/sbol-rs/fixtures>;
+        sbol:hasVariableFeature <promoter_derivation/promoter_slot>;
+        sbol:strategy           sbol:enumerate;
+        sbol:template           :template_component .
+
+<promoter_derivation/promoter_slot>
+        a                      sbol:VariableFeature;
+        sbol:cardinality       sbol:one;
+        sbol:displayId         "promoter_slot";
+        sbol:variable          <template_component/promoter_slot>;
+        sbol:variant           :promoter_a , :promoter_b;
+        sbol:variantCollection :promoter_library .

@@ -43,3 +43,5 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
+# SBOLTestSuite corpus cache populated by test/sboltestsuite.py
+.cache/

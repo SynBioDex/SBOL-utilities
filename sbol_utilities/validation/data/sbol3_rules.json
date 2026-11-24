@@ -1,0 +1,1271 @@
+{
+ "meta": {
+  "source": "sbol-rs@9b5ab7d6a419af4cf1a409aac59789d5847d3456",
+  "spec_canonical_url": "https://sbolstandard.org/datamodel-specification/version-3.1.0/",
+  "spec_path": "spec/SBOL3.1.0.md",
+  "spec_pdf_sha256": "7c1ef88f83b8fff98acd07c742b377bbb8618508684b7dab17032396667f0b2c",
+  "spec_version": "3.1.0"
+ },
+ "rule": [
+  {
+   "blocker": "External",
+   "id": "sbol3-10101",
+   "normative_severity": "MUST",
+   "note": "local Identified object identities must be IRIs; global URI uniqueness outside the document is not proven",
+   "spec_section": "5.1",
+   "status": "Configurable",
+   "validator_function": "validate_top_level"
+  },
+  {
+   "id": "sbol3-10102",
+   "normative_severity": "MUST",
+   "note": "TopLevel URL pattern is checked for local URL identities",
+   "spec_section": "5.1",
+   "status": "Error",
+   "validator_function": "validate_top_level_url_pattern"
+  },
+  {
+   "id": "sbol3-10103",
+   "normative_severity": "MUST",
+   "note": "TopLevel URL prefix collisions are checked within the document",
+   "spec_section": "5.1",
+   "status": "Error",
+   "validator_function": "validate_top_level_url_prefixes"
+  },
+  {
+   "id": "sbol3-10104",
+   "normative_severity": "MUST",
+   "note": "child URL pattern is checked for composite child references",
+   "spec_section": "5.1",
+   "status": "Error",
+   "validator_function": "validate_child_url_patterns"
+  },
+  {
+   "blocker": "Policy",
+   "id": "sbol3-10105",
+   "normative_severity": "MUST",
+   "note": "unknown SBOL predicates and rdf:type IRIs are checked locally",
+   "spec_section": "5.2",
+   "status": "Configurable",
+   "validator_function": "validate_sbol_namespace"
+  },
+  {
+   "id": "sbol3-10106",
+   "normative_severity": "MUST",
+   "note": "disjoint SBOL class combinations are rejected",
+   "spec_section": "5.4",
+   "status": "Error",
+   "validator_function": "validate_sbol_types"
+  },
+  {
+   "id": "sbol3-10107",
+   "normative_severity": "SHOULD",
+   "note": "multiple concrete SBOL rdf:type values are warnings when not disjoint",
+   "spec_section": "5.4",
+   "status": "Warning",
+   "validator_function": "validate_sbol_types"
+  },
+  {
+   "id": "sbol3-10108",
+   "normative_severity": "SHOULD",
+   "note": "SBOL properties without SBOL rdf:type produce warnings",
+   "spec_section": "5.4",
+   "status": "Warning",
+   "validator_function": "validate_sbol_namespace"
+  },
+  {
+   "id": "sbol3-10109",
+   "normative_severity": "MUST",
+   "note": "allowed SBOL properties are table-driven",
+   "spec_section": "5.2",
+   "status": "Error",
+   "validator_function": "validate_sbol_namespace"
+  },
+  {
+   "id": "sbol3-10110",
+   "normative_severity": "MUST",
+   "note": "Table 23 cardinality is table-driven",
+   "spec_section": "4.2",
+   "status": "Error",
+   "validator_function": "validate_property_spec"
+  },
+  {
+   "id": "sbol3-10111",
+   "normative_severity": "MUST",
+   "note": "Table 23 value kinds are enforced with strict XSD datatype + lexical-form checks",
+   "spec_section": "5.3",
+   "status": "Error",
+   "validator_function": "validate_property_spec"
+  },
+  {
+   "id": "sbol3-10112",
+   "normative_severity": "MUST",
+   "note": "local child references are checked",
+   "spec_section": "5.3",
+   "status": "Error",
+   "validator_function": "validate_property_spec"
+  },
+  {
+   "blocker": "Resolver",
+   "id": "sbol3-10113",
+   "normative_severity": "MUST",
+   "note": "non-local references are checked when targets are present in the document",
+   "spec_section": "5.3",
+   "status": "Configurable",
+   "validator_function": "validate_external_top_level_reference"
+  },
+  {
+   "blocker": "Resolver",
+   "id": "sbol3-10114",
+   "normative_severity": "SHOULD",
+   "note": "resolver-aware validation can warn on unresolved external TopLevel references and reject resolved wrong target classes; default validation remains offline",
+   "spec_section": "5.3",
+   "status": "Configurable",
+   "validator_function": "validate_external_top_level_reference"
+  },
+  {
+   "id": "sbol3-10201",
+   "normative_severity": "MUST",
+   "note": "displayId lexical form is checked",
+   "spec_section": "6.1",
+   "status": "Error",
+   "validator_function": "validate_display_id"
+  },
+  {
+   "id": "sbol3-10202",
+   "normative_severity": "MUST",
+   "note": "self derivation is checked",
+   "spec_section": "6.1",
+   "status": "Error",
+   "validator_function": "validate_display_id"
+  },
+  {
+   "id": "sbol3-10203",
+   "normative_severity": "MUST",
+   "note": "wasDerivedFrom cycles are checked within the document",
+   "spec_section": "6.1",
+   "status": "Error",
+   "validator_function": "validate_derived_from_cycles"
+  },
+  {
+   "id": "sbol3-10204",
+   "normative_severity": "MUST",
+   "note": "wasGeneratedBy / Usage.entity cycles are checked within the document; cross-document detection is deferred",
+   "spec_section": "6.1",
+   "status": "Error",
+   "validator_function": "validate_was_generated_by_cycles"
+  },
+  {
+   "id": "sbol3-10205",
+   "normative_severity": "SHOULD",
+   "note": "workflow role recommendation requires Table 20 and 21 policy",
+   "spec_section": "A.1",
+   "status": "Warning",
+   "validator_function": "validate_workflow_rules"
+  },
+  {
+   "id": "sbol3-10301",
+   "normative_severity": "MUST",
+   "note": "http and https TopLevel namespace prefix is checked",
+   "spec_section": "6.2",
+   "status": "Error",
+   "validator_function": "validate_top_level"
+  },
+  {
+   "id": "sbol3-10501",
+   "normative_severity": "MUST",
+   "note": "Sequence elements requires encoding",
+   "spec_section": "6.3",
+   "status": "Error",
+   "validator_function": "validate_sequence"
+  },
+  {
+   "blocker": "Ontology",
+   "id": "sbol3-10502",
+   "normative_severity": "MUST",
+   "note": "bundled ontology facts reject known terms that are not Sequence encoding terms; unknown/custom terms remain undecided",
+   "spec_section": "6.3",
+   "status": "MachineUncheckable",
+   "validator_function": "validate_sequence"
+  },
+  {
+   "blocker": "Ontology",
+   "id": "sbol3-10503",
+   "normative_severity": "MUST",
+   "note": "IUPAC nucleotide and protein alphabets are checked for Table 1 EDAM encodings",
+   "spec_section": "6.3",
+   "status": "Configurable",
+   "validator_function": "validate_sequence"
+  },
+  {
+   "blocker": "Ontology",
+   "id": "sbol3-10504",
+   "normative_severity": "MUST",
+   "note": "known aliases of exact Table 1 sequence encodings require the preferred SBOL Table 1 URI; broader well-described-by reasoning is deferred",
+   "spec_section": "6.3",
+   "status": "MachineUncheckable",
+   "validator_function": "validate_sequence"
+  },
+  {
+   "blocker": "Ontology",
+   "id": "sbol3-10505",
+   "normative_severity": "SHOULD",
+   "note": "bundled ontology facts warn when a known encoding term is outside the EDAM textual format branch; unknown/custom terms remain undecided",
+   "spec_section": "6.3",
+   "status": "Configurable",
+   "validator_function": "validate_sequence"
+  },
+  {
+   "id": "sbol3-10601",
+   "normative_severity": "MUST",
+   "note": "Component type values from Table 2 are counted",
+   "spec_section": "6.4",
+   "status": "Error",
+   "validator_function": "validate_class_specific_rules"
+  },
+  {
+   "blocker": "Ontology",
+   "id": "sbol3-10602",
+   "normative_severity": "MUST",
+   "note": "bundled ontology facts classify known Component type and type-modifier terms; unknown/custom terms remain undecided",
+   "spec_section": "6.4",
+   "status": "MachineUncheckable",
+   "validator_function": "validate_class_specific_rules"
+  },
+  {
+   "blocker": "Ontology",
+   "id": "sbol3-10603",
+   "normative_severity": "MUST",
+   "note": "well-described-by ontology rule is not locally decidable",
+   "spec_section": "6.4",
+   "status": "MachineUncheckable"
+  },
+  {
+   "id": "sbol3-10604",
+   "normative_severity": "SHOULD",
+   "note": "Component type IRIs that resolve to known SBO terms outside the SBO:0000236 physical entity representation branch produce warnings; unknown IRIs remain undecided",
+   "spec_section": "6.4",
+   "status": "Warning",
+   "validator_function": "validate_class_specific_rules"
+  },
+  {
+   "blocker": "Ontology",
+   "id": "sbol3-10605",
+   "normative_severity": "MUST",
+   "note": "bundled ontology facts detect conflicts between known Component type families; unknown/custom terms remain undecided",
+   "spec_section": "6.4",
+   "status": "MachineUncheckable",
+   "validator_function": "validate_class_specific_rules"
+  },
+  {
+   "blocker": "Policy",
+   "id": "sbol3-10606",
+   "normative_severity": "MUST",
+   "note": "default validation remains undecided, but topology-complete validation rejects DNA/RNA objects without a known SO topology term",
+   "spec_section": "6.4",
+   "status": "MachineUncheckable",
+   "validator_function": "validate_class_specific_rules"
+  },
+  {
+   "blocker": "Ontology",
+   "id": "sbol3-10607",
+   "normative_severity": "SHOULD",
+   "note": "bundled SO branch facts warn when explicit DNA/RNA type values include more than one known topology term",
+   "spec_section": "6.4",
+   "status": "Configurable",
+   "validator_function": "validate_class_specific_rules"
+  },
+  {
+   "blocker": "Ontology",
+   "id": "sbol3-10608",
+   "normative_severity": "SHOULD",
+   "note": "bundled SO branch facts warn when known topology or strand terms appear without an explicit DNA/RNA type",
+   "spec_section": "6.4",
+   "status": "Configurable",
+   "validator_function": "validate_class_specific_rules"
+  },
+  {
+   "blocker": "Ontology",
+   "id": "sbol3-10609",
+   "normative_severity": "MUST",
+   "note": "bundled ontology branch facts reject known Component roles that are locally decidable as incompatible with known Table 2 types; unknown/custom terms remain undecided",
+   "spec_section": "6.4",
+   "status": "MachineUncheckable",
+   "validator_function": "validate_class_specific_rules"
+  },
+  {
+   "blocker": "Ontology",
+   "id": "sbol3-10610",
+   "normative_severity": "MUST",
+   "note": "bundled ontology facts classify known Component role terms; unknown/custom terms remain undecided",
+   "spec_section": "6.4",
+   "status": "MachineUncheckable",
+   "validator_function": "validate_class_specific_rules"
+  },
+  {
+   "blocker": "Ontology",
+   "id": "sbol3-10611",
+   "normative_severity": "MUST",
+   "note": "well-described-by role rule is not locally decidable",
+   "spec_section": "6.4",
+   "status": "MachineUncheckable"
+  },
+  {
+   "blocker": "Ontology",
+   "id": "sbol3-10612",
+   "normative_severity": "SHOULD",
+   "note": "bundled SO sequence-feature branch facts warn when known SO feature roles appear without an explicit DNA/RNA type",
+   "spec_section": "6.4",
+   "status": "Configurable",
+   "validator_function": "validate_class_specific_rules"
+  },
+  {
+   "blocker": "Ontology",
+   "id": "sbol3-10613",
+   "normative_severity": "SHOULD",
+   "note": "bundled SO sequence-feature branch facts warn when explicit DNA/RNA types do not have exactly one known SO feature role; unknown/custom roles remain undecided",
+   "spec_section": "6.4",
+   "status": "Configurable",
+   "validator_function": "validate_class_specific_rules"
+  },
+  {
+   "blocker": "Ontology",
+   "id": "sbol3-10614",
+   "normative_severity": "MUST",
+   "note": "local Sequence encodings and Component types present in bundled ontology facts are checked for compatibility; unknown/custom terms remain undecided",
+   "spec_section": "6.4",
+   "status": "MachineUncheckable",
+   "validator_function": "validate_component_sequence_type_compatibility"
+  },
+  {
+   "blocker": "Ontology",
+   "id": "sbol3-10615",
+   "normative_severity": "MUST",
+   "note": "known local Sequence encoding families from bundled ontology facts are checked for conflicts",
+   "spec_section": "6.4",
+   "status": "MachineUncheckable",
+   "validator_function": "validate_component_sequence_encoding_conflicts"
+  },
+  {
+   "blocker": "Ontology",
+   "id": "sbol3-10616",
+   "normative_severity": "MUST",
+   "note": "known local Component types with bundled cross-listing facts require a compatible known local Sequence encoding when all local sequence encodings are known",
+   "spec_section": "6.4",
+   "status": "Configurable",
+   "validator_function": "validate_component_required_sequence_encoding"
+  },
+  {
+   "blocker": "Policy",
+   "id": "sbol3-10617",
+   "normative_severity": "SHOULD",
+   "note": "local Sequence objects with the same exact encoding warn when literal elements differ",
+   "spec_section": "6.4",
+   "status": "Configurable",
+   "validator_function": "validate_component_same_encoding_elements"
+  },
+  {
+   "blocker": "Ontology",
+   "id": "sbol3-10701",
+   "normative_severity": "MUST",
+   "note": "bundled ontology facts classify known Feature role terms; unknown/custom terms remain undecided",
+   "spec_section": "6.4.1",
+   "status": "MachineUncheckable",
+   "validator_function": "validate_feature_roles"
+  },
+  {
+   "id": "sbol3-10702",
+   "normative_severity": "MUST",
+   "note": "orientation vocabulary is checked",
+   "spec_section": "6.4.1",
+   "status": "Error",
+   "validator_function": "validate_feature_vocabularies"
+  },
+  {
+   "id": "sbol3-10801",
+   "normative_severity": "MUST",
+   "note": "roleIntegration vocabulary is checked",
+   "spec_section": "6.4.1.1",
+   "status": "Error",
+   "validator_function": "validate_feature_vocabularies"
+  },
+  {
+   "id": "sbol3-10802",
+   "normative_severity": "MUST",
+   "note": "SubComponent roles require roleIntegration",
+   "spec_section": "6.4.1.1",
+   "status": "Error",
+   "validator_function": "validate_feature_vocabularies"
+  },
+  {
+   "id": "sbol3-10803",
+   "normative_severity": "MUST",
+   "note": "SubComponent cannot instanceOf containing Component",
+   "spec_section": "6.4.1.1",
+   "status": "Error",
+   "validator_function": "validate_sub_component"
+  },
+  {
+   "id": "sbol3-10804",
+   "normative_severity": "MUST",
+   "note": "component instanceOf cycles are checked",
+   "spec_section": "6.4.1.1",
+   "status": "Error",
+   "validator_function": "validate_component_instance_cycles"
+  },
+  {
+   "id": "sbol3-10805",
+   "normative_severity": "MUST",
+   "note": "SubComponent location overlap is checked for ranges",
+   "spec_section": "6.4.1.1",
+   "status": "Error",
+   "validator_function": "validate_class_specific_rules"
+  },
+  {
+   "id": "sbol3-10806",
+   "normative_severity": "MUST",
+   "note": "SubComponent location and sourceLocation lengths are compared when known",
+   "spec_section": "6.4.1.1",
+   "status": "Error",
+   "validator_function": "validate_sub_component_location_lengths"
+  },
+  {
+   "id": "sbol3-10807",
+   "normative_severity": "MUST",
+   "note": "SubComponent location coverage of instanceOf sequence is checked when known",
+   "spec_section": "6.4.1.1",
+   "status": "Error",
+   "validator_function": "validate_sub_component_location_lengths"
+  },
+  {
+   "id": "sbol3-10901",
+   "normative_severity": "MUST",
+   "note": "ComponentReference inChildOf containment is checked for Component parents",
+   "spec_section": "6.4.1.2",
+   "status": "Error",
+   "validator_function": "validate_component_reference"
+  },
+  {
+   "id": "sbol3-10902",
+   "normative_severity": "MUST",
+   "note": "nested ComponentReference inChildOf containment is checked locally",
+   "spec_section": "6.4.1.2",
+   "status": "Error",
+   "validator_function": "validate_component_reference"
+  },
+  {
+   "id": "sbol3-10903",
+   "normative_severity": "MUST",
+   "note": "ComponentReference refersTo ComponentReference containment is checked locally",
+   "spec_section": "6.4.1.2",
+   "status": "Error",
+   "validator_function": "validate_component_reference"
+  },
+  {
+   "id": "sbol3-10904",
+   "normative_severity": "MUST",
+   "note": "ComponentReference refersTo Feature containment is checked locally",
+   "spec_section": "6.4.1.2",
+   "status": "Error",
+   "validator_function": "validate_component_reference"
+  },
+  {
+   "id": "sbol3-11001",
+   "normative_severity": "MUST",
+   "note": "LocalSubComponent type values from Table 2 are counted",
+   "spec_section": "6.4.1.3",
+   "status": "Error",
+   "validator_function": "validate_class_specific_rules"
+  },
+  {
+   "blocker": "Ontology",
+   "id": "sbol3-11002",
+   "normative_severity": "MUST",
+   "note": "bundled ontology facts classify known Component type and type-modifier terms; unknown/custom terms remain undecided",
+   "spec_section": "6.4.1.3",
+   "status": "MachineUncheckable",
+   "validator_function": "validate_class_specific_rules"
+  },
+  {
+   "blocker": "Ontology",
+   "id": "sbol3-11003",
+   "normative_severity": "MUST",
+   "note": "well-described-by ontology rule is not locally decidable",
+   "spec_section": "6.4.1.3",
+   "status": "MachineUncheckable"
+  },
+  {
+   "id": "sbol3-11004",
+   "normative_severity": "SHOULD",
+   "note": "LocalSubComponent type IRIs that resolve to known SBO physical-entity terms outside SBOL Table 2 produce warnings; unknown IRIs remain undecided",
+   "spec_section": "6.4.1.3",
+   "status": "Warning",
+   "validator_function": "validate_class_specific_rules"
+  },
+  {
+   "blocker": "Ontology",
+   "id": "sbol3-11005",
+   "normative_severity": "MUST",
+   "note": "bundled ontology facts detect conflicts between known Component type families; unknown/custom terms remain undecided",
+   "spec_section": "6.4.1.3",
+   "status": "MachineUncheckable",
+   "validator_function": "validate_class_specific_rules"
+  },
+  {
+   "blocker": "Policy",
+   "id": "sbol3-11006",
+   "normative_severity": "MUST",
+   "note": "default validation remains undecided, but topology-complete validation rejects DNA/RNA objects without a known SO topology term",
+   "spec_section": "6.4.1.3",
+   "status": "MachineUncheckable",
+   "validator_function": "validate_class_specific_rules"
+  },
+  {
+   "blocker": "Ontology",
+   "id": "sbol3-11007",
+   "normative_severity": "SHOULD",
+   "note": "bundled SO branch facts warn when explicit DNA/RNA type values include more than one known topology term",
+   "spec_section": "6.4.1.3",
+   "status": "Configurable",
+   "validator_function": "validate_class_specific_rules"
+  },
+  {
+   "blocker": "Ontology",
+   "id": "sbol3-11008",
+   "normative_severity": "SHOULD",
+   "note": "bundled SO branch facts warn when known topology or strand terms appear without an explicit DNA/RNA type",
+   "spec_section": "6.4.1.3",
+   "status": "Configurable",
+   "validator_function": "validate_class_specific_rules"
+  },
+  {
+   "blocker": "Ontology",
+   "id": "sbol3-11009",
+   "normative_severity": "MUST",
+   "note": "bundled ontology branch facts reject known LocalSubComponent roles that are locally decidable as incompatible with known Table 2 types; unknown/custom terms remain undecided",
+   "spec_section": "6.4",
+   "status": "MachineUncheckable",
+   "validator_function": "validate_class_specific_rules"
+  },
+  {
+   "blocker": "Ontology",
+   "id": "sbol3-11010",
+   "normative_severity": "MUST",
+   "note": "well-described-by role rule is not locally decidable",
+   "spec_section": "6.4",
+   "status": "MachineUncheckable"
+  },
+  {
+   "blocker": "Ontology",
+   "id": "sbol3-11011",
+   "normative_severity": "SHOULD",
+   "note": "bundled SO sequence-feature branch facts warn when known SO feature roles appear without an explicit DNA/RNA type",
+   "spec_section": "6.4",
+   "status": "Configurable",
+   "validator_function": "validate_class_specific_rules"
+  },
+  {
+   "blocker": "Ontology",
+   "id": "sbol3-11012",
+   "normative_severity": "SHOULD",
+   "note": "bundled SO sequence-feature branch facts warn when explicit DNA/RNA types do not have exactly one known SO feature role; unknown/custom roles remain undecided",
+   "spec_section": "6.4",
+   "status": "Configurable",
+   "validator_function": "validate_class_specific_rules"
+  },
+  {
+   "id": "sbol3-11013",
+   "normative_severity": "MUST",
+   "note": "LocalSubComponent location overlap is checked for ranges",
+   "spec_section": "6.4.1.3",
+   "status": "Error",
+   "validator_function": "validate_class_specific_rules"
+  },
+  {
+   "id": "sbol3-11101",
+   "normative_severity": "MUST",
+   "note": "ExternallyDefined type values from Table 2 are counted",
+   "spec_section": "6.4.1.4",
+   "status": "Error",
+   "validator_function": "validate_class_specific_rules"
+  },
+  {
+   "blocker": "Ontology",
+   "id": "sbol3-11102",
+   "normative_severity": "MUST",
+   "note": "bundled ontology facts classify known Component type and type-modifier terms; unknown/custom terms remain undecided",
+   "spec_section": "6.4.1.4",
+   "status": "MachineUncheckable",
+   "validator_function": "validate_class_specific_rules"
+  },
+  {
+   "blocker": "Ontology",
+   "id": "sbol3-11103",
+   "normative_severity": "MUST",
+   "note": "well-described-by ontology rule is not locally decidable",
+   "spec_section": "6.4.1.4",
+   "status": "MachineUncheckable"
+  },
+  {
+   "id": "sbol3-11104",
+   "normative_severity": "SHOULD",
+   "note": "ExternallyDefined type IRIs that resolve to known SBO physical-entity terms outside SBOL Table 2 produce warnings; unknown IRIs remain undecided",
+   "spec_section": "6.4.1.4",
+   "status": "Warning",
+   "validator_function": "validate_class_specific_rules"
+  },
+  {
+   "blocker": "Ontology",
+   "id": "sbol3-11105",
+   "normative_severity": "MUST",
+   "note": "bundled ontology facts detect conflicts between known Component type families; unknown/custom terms remain undecided",
+   "spec_section": "6.4.1.4",
+   "status": "MachineUncheckable",
+   "validator_function": "validate_class_specific_rules"
+  },
+  {
+   "blocker": "Policy",
+   "id": "sbol3-11106",
+   "normative_severity": "MUST",
+   "note": "default validation remains undecided, but topology-complete validation rejects DNA/RNA objects without a known SO topology term",
+   "spec_section": "6.4.1.4",
+   "status": "MachineUncheckable",
+   "validator_function": "validate_class_specific_rules"
+  },
+  {
+   "blocker": "Ontology",
+   "id": "sbol3-11107",
+   "normative_severity": "SHOULD",
+   "note": "bundled SO branch facts warn when explicit DNA/RNA type values include more than one known topology term",
+   "spec_section": "6.4.1.4",
+   "status": "Configurable",
+   "validator_function": "validate_class_specific_rules"
+  },
+  {
+   "blocker": "Ontology",
+   "id": "sbol3-11108",
+   "normative_severity": "SHOULD",
+   "note": "bundled SO branch facts warn when known topology or strand terms appear without an explicit DNA/RNA type",
+   "spec_section": "6.4.1.4",
+   "status": "Configurable",
+   "validator_function": "validate_class_specific_rules"
+  },
+  {
+   "blocker": "Ontology",
+   "id": "sbol3-11109",
+   "normative_severity": "SHOULD",
+   "note": "known ExternallyDefined protein and simple-chemical definition resource prefixes are checked against Table 17 recommendations; unknown resources remain undecided",
+   "spec_section": "6.4.1.4",
+   "status": "MachineUncheckable",
+   "validator_function": "validate_external_definition_resource"
+  },
+  {
+   "id": "sbol3-11201",
+   "normative_severity": "MUST",
+   "note": "SequenceFeature location overlap is checked for ranges",
+   "spec_section": "6.4.1.5",
+   "status": "Error",
+   "validator_function": "validate_class_specific_rules"
+  },
+  {
+   "id": "sbol3-11301",
+   "normative_severity": "MUST",
+   "note": "Location orientation vocabulary is checked",
+   "spec_section": "6.4.2",
+   "status": "Error",
+   "validator_function": "validate_feature_vocabularies"
+  },
+  {
+   "id": "sbol3-11302",
+   "normative_severity": "MUST",
+   "note": "Feature Location sequence membership is checked locally",
+   "spec_section": "6.4.2",
+   "status": "Error",
+   "validator_function": "validate_location_sequence_membership"
+  },
+  {
+   "id": "sbol3-11303",
+   "normative_severity": "MUST",
+   "note": "SubComponent sourceLocation sequence membership is checked locally",
+   "spec_section": "6.4.2",
+   "status": "Error",
+   "validator_function": "validate_location_sequence_membership"
+  },
+  {
+   "id": "sbol3-11401",
+   "normative_severity": "MUST",
+   "note": "Range start bounds are checked when sequence elements are local",
+   "spec_section": "6.4.2.1",
+   "status": "Error",
+   "validator_function": "validate_range"
+  },
+  {
+   "id": "sbol3-11402",
+   "normative_severity": "MUST",
+   "note": "Range end bounds are checked when sequence elements are local",
+   "spec_section": "6.4.2.1",
+   "status": "Error",
+   "validator_function": "validate_range"
+  },
+  {
+   "id": "sbol3-11403",
+   "normative_severity": "MUST",
+   "note": "Range end must be greater than or equal to start",
+   "spec_section": "6.4.2.1",
+   "status": "Error",
+   "validator_function": "validate_range"
+  },
+  {
+   "id": "sbol3-11501",
+   "normative_severity": "MUST",
+   "note": "Cut bounds are checked when sequence elements are local",
+   "spec_section": "6.4.2.2",
+   "status": "Error",
+   "validator_function": "validate_cut"
+  },
+  {
+   "id": "sbol3-11701",
+   "normative_severity": "MUST",
+   "note": "Constraint subject containment is checked",
+   "spec_section": "6.4.3",
+   "status": "Error",
+   "validator_function": "validate_constraint"
+  },
+  {
+   "id": "sbol3-11702",
+   "normative_severity": "MUST",
+   "note": "Constraint object containment is checked",
+   "spec_section": "6.4.3",
+   "status": "Error",
+   "validator_function": "validate_constraint"
+  },
+  {
+   "id": "sbol3-11703",
+   "normative_severity": "MUST",
+   "note": "Constraint subject and object cannot be identical",
+   "spec_section": "6.4.3",
+   "status": "Error",
+   "validator_function": "validate_constraint"
+  },
+  {
+   "id": "sbol3-11704",
+   "normative_severity": "SHOULD",
+   "note": "Constraint restriction is checked against Tables 8, 9, and 10",
+   "spec_section": "6.4.3",
+   "status": "Warning",
+   "validator_function": "validate_constraint"
+  },
+  {
+   "blocker": "Policy",
+   "id": "sbol3-11705",
+   "normative_severity": "MUST",
+   "note": "direct sameOrientationAs and oppositeOrientationAs contradictions are checked for local Feature orientations",
+   "spec_section": "6.4.3",
+   "status": "Configurable",
+   "validator_function": "validate_constraint"
+  },
+  {
+   "blocker": "Policy",
+   "id": "sbol3-11706",
+   "normative_severity": "MUST",
+   "note": "Range and Cut locations on the same Sequence are checked for Table 10 relations",
+   "spec_section": "6.4.3",
+   "status": "Configurable",
+   "validator_function": "validate_constraint"
+  },
+  {
+   "blocker": "Ontology",
+   "id": "sbol3-11801",
+   "normative_severity": "MUST",
+   "note": "bundled ontology facts classify known Interaction type terms; unknown/custom terms remain undecided",
+   "spec_section": "6.4.4",
+   "status": "MachineUncheckable",
+   "validator_function": "validate_interaction_type_terms"
+  },
+  {
+   "blocker": "Ontology",
+   "id": "sbol3-11802",
+   "normative_severity": "MUST",
+   "note": "bundled ontology facts detect conflicts between known Interaction type terms; unknown/custom terms remain undecided",
+   "spec_section": "6.4.4",
+   "status": "MachineUncheckable",
+   "validator_function": "validate_interaction_type_conflicts"
+  },
+  {
+   "blocker": "Ontology",
+   "id": "sbol3-11803",
+   "normative_severity": "SHOULD",
+   "note": "bundled Table 11/SBO facts warn when the known local Interaction type count is not exactly one; unknown/custom terms remain undecided",
+   "spec_section": "6.4.4",
+   "status": "Configurable",
+   "validator_function": "validate_interaction_type_branch_count"
+  },
+  {
+   "blocker": "Ontology",
+   "id": "sbol3-11804",
+   "normative_severity": "SHOULD",
+   "note": "bundled Table 11/Table 12 cross-list facts warn when known local Participation roles do not match known local Interaction types",
+   "spec_section": "6.4.4",
+   "status": "Configurable",
+   "validator_function": "validate_interaction_participation_roles"
+  },
+  {
+   "id": "sbol3-11901",
+   "normative_severity": "MUST",
+   "note": "Participation must contain exactly one participant kind",
+   "spec_section": "6.4.4.1",
+   "status": "Error",
+   "validator_function": "validate_participation"
+  },
+  {
+   "id": "sbol3-11902",
+   "normative_severity": "MUST",
+   "note": "Participation participant containment is checked",
+   "spec_section": "6.4.4.1",
+   "status": "Error",
+   "validator_function": "validate_participation"
+  },
+  {
+   "id": "sbol3-11903",
+   "normative_severity": "MUST",
+   "note": "higherOrderParticipant containment is checked",
+   "spec_section": "6.4.4.1",
+   "status": "Error",
+   "validator_function": "validate_participation"
+  },
+  {
+   "blocker": "Ontology",
+   "id": "sbol3-11904",
+   "normative_severity": "MUST",
+   "note": "bundled ontology facts classify known Participation role terms; unknown/custom terms remain undecided",
+   "spec_section": "6.4.4.1",
+   "status": "MachineUncheckable",
+   "validator_function": "validate_participation_roles"
+  },
+  {
+   "blocker": "Ontology",
+   "id": "sbol3-11905",
+   "normative_severity": "MUST",
+   "note": "bundled ontology facts detect conflicts between known Participation role terms; unknown/custom terms remain undecided",
+   "spec_section": "6.4.4.1",
+   "status": "MachineUncheckable",
+   "validator_function": "validate_participation_role_conflicts"
+  },
+  {
+   "blocker": "Ontology",
+   "id": "sbol3-11906",
+   "normative_severity": "SHOULD",
+   "note": "bundled Table 12/SBO facts warn when the known local Participation role count is not exactly one; unknown/custom terms remain undecided",
+   "spec_section": "6.4.4.1",
+   "status": "Configurable",
+   "validator_function": "validate_participation_role_branch_count"
+  },
+  {
+   "id": "sbol3-12001",
+   "normative_severity": "MUST",
+   "note": "Interface input containment is checked",
+   "spec_section": "6.4.5",
+   "status": "Error",
+   "validator_function": "validate_interface"
+  },
+  {
+   "id": "sbol3-12002",
+   "normative_severity": "MUST",
+   "note": "Interface output containment is checked",
+   "spec_section": "6.4.5",
+   "status": "Error",
+   "validator_function": "validate_interface"
+  },
+  {
+   "id": "sbol3-12003",
+   "normative_severity": "MUST",
+   "note": "Interface nondirectional containment is checked",
+   "spec_section": "6.4.5",
+   "status": "Error",
+   "validator_function": "validate_interface"
+  },
+  {
+   "id": "sbol3-12101",
+   "normative_severity": "MUST",
+   "note": "CombinatorialDerivation strategy vocabulary is checked",
+   "spec_section": "6.5",
+   "status": "Error",
+   "validator_function": "validate_combinatorial_derivation"
+  },
+  {
+   "id": "sbol3-12102",
+   "normative_severity": "MUST",
+   "note": "enumerate strategy disallows unbounded cardinalities",
+   "spec_section": "6.5",
+   "status": "Error",
+   "validator_function": "validate_combinatorial_derivation"
+  },
+  {
+   "id": "sbol3-12103",
+   "normative_severity": "MUST",
+   "note": "duplicate variable features by variable URI are rejected",
+   "spec_section": "6.5",
+   "status": "Error",
+   "validator_function": "validate_combinatorial_derivation"
+  },
+  {
+   "blocker": "Policy",
+   "id": "sbol3-12104",
+   "normative_severity": "SHOULD",
+   "note": "local templates with no Features produce a warning",
+   "spec_section": "6.5",
+   "status": "Configurable",
+   "validator_function": "combinatorial_derivation_semantic_issues"
+  },
+  {
+   "blocker": "Policy",
+   "id": "sbol3-12105",
+   "normative_severity": "SHOULD",
+   "note": "local derived Component child Features are checked for template Feature provenance",
+   "spec_section": "6.5",
+   "status": "Configurable",
+   "validator_function": "combinatorial_derivation_semantic_issues"
+  },
+  {
+   "blocker": "Policy",
+   "id": "sbol3-12106",
+   "normative_severity": "SHOULD",
+   "note": "local derived Collection members are checked for derivation provenance",
+   "spec_section": "6.5",
+   "status": "Configurable",
+   "validator_function": "combinatorial_derivation_semantic_issues"
+  },
+  {
+   "blocker": "Policy",
+   "id": "sbol3-12107",
+   "normative_severity": "SHOULD",
+   "note": "local derived Component types are checked against template Component types",
+   "spec_section": "6.5",
+   "status": "Configurable",
+   "validator_function": "combinatorial_derivation_semantic_issues"
+  },
+  {
+   "blocker": "Policy",
+   "id": "sbol3-12108",
+   "normative_severity": "SHOULD",
+   "note": "local derived Component roles are checked against template Component roles",
+   "spec_section": "6.5",
+   "status": "Configurable",
+   "validator_function": "combinatorial_derivation_semantic_issues"
+  },
+  {
+   "blocker": "Policy",
+   "id": "sbol3-12109",
+   "normative_severity": "MUST",
+   "note": "local static Feature derivations compare core Feature properties",
+   "spec_section": "6.5",
+   "status": "Configurable",
+   "validator_function": "combinatorial_derivation_semantic_issues"
+  },
+  {
+   "blocker": "Policy",
+   "id": "sbol3-12110",
+   "normative_severity": "SHOULD",
+   "note": "local static template Features are checked for exactly one derived Feature",
+   "spec_section": "6.5",
+   "status": "Configurable",
+   "validator_function": "combinatorial_derivation_semantic_issues"
+  },
+  {
+   "blocker": "Policy",
+   "id": "sbol3-12111",
+   "normative_severity": "SHOULD",
+   "note": "local variable Feature derivation counts are checked against cardinality",
+   "spec_section": "6.5",
+   "status": "Configurable",
+   "validator_function": "combinatorial_derivation_semantic_issues"
+  },
+  {
+   "blocker": "Policy",
+   "id": "sbol3-12112",
+   "normative_severity": "MUST",
+   "note": "local derived SubComponent variants are resolved through variants, variantCollections, and variantDerivations",
+   "spec_section": "6.5",
+   "status": "Configurable",
+   "validator_function": "combinatorial_derivation_semantic_issues"
+  },
+  {
+   "blocker": "Resolver",
+   "id": "sbol3-12113",
+   "normative_severity": "MUST",
+   "note": "local derived Features are checked against template Constraint relations when resolver facts are sufficient",
+   "spec_section": "6.5",
+   "status": "Configurable",
+   "validator_function": "combinatorial_derivation_semantic_issues"
+  },
+  {
+   "blocker": "Policy",
+   "id": "sbol3-12114",
+   "normative_severity": "SHOULD",
+   "note": "local derived variable Feature roles are checked against template Feature roles",
+   "spec_section": "6.5",
+   "status": "Configurable",
+   "validator_function": "combinatorial_derivation_semantic_issues"
+  },
+  {
+   "blocker": "Policy",
+   "id": "sbol3-12115",
+   "normative_severity": "SHOULD",
+   "note": "local type-determining referent types are resolved for Feature derivation checks",
+   "spec_section": "6.5",
+   "status": "Configurable",
+   "validator_function": "combinatorial_derivation_semantic_issues"
+  },
+  {
+   "id": "sbol3-12201",
+   "normative_severity": "MUST",
+   "note": "VariableFeature cardinality vocabulary is checked",
+   "spec_section": "6.5.1",
+   "status": "Error",
+   "validator_function": "validate_variable_feature"
+  },
+  {
+   "id": "sbol3-12202",
+   "normative_severity": "MUST",
+   "note": "VariableFeature variable containment in template is checked",
+   "spec_section": "6.5.1",
+   "status": "Error",
+   "validator_function": "validate_variable_feature"
+  },
+  {
+   "id": "sbol3-12203",
+   "normative_severity": "MUST",
+   "note": "variantCollection members are checked recursively when present locally",
+   "spec_section": "6.5.1",
+   "status": "Error",
+   "validator_function": "validate_variant_collections"
+  },
+  {
+   "id": "sbol3-12204",
+   "normative_severity": "MUST",
+   "note": "variantDerivation cycles are checked locally",
+   "spec_section": "6.5.1",
+   "status": "Error",
+   "validator_function": "validate_variant_derivation_cycles"
+  },
+  {
+   "blocker": "Resolver",
+   "id": "sbol3-12301",
+   "normative_severity": "MUST",
+   "note": "Implementation prov:wasDerivedFrom IRIs that resolve in-document must refer to a Component; external derivations remain unchecked",
+   "spec_section": "6.6",
+   "status": "MachineUncheckable",
+   "validator_function": "validate_implementation"
+  },
+  {
+   "blocker": "Resolver",
+   "id": "sbol3-12302",
+   "normative_severity": "MUST",
+   "note": "in-document Components referenced by Implementation prov:wasDerivedFrom are checked for type-term conflicts via the bundled ontology; external Components remain unchecked",
+   "spec_section": "6.6",
+   "status": "MachineUncheckable",
+   "validator_function": "validate_implementation"
+  },
+  {
+   "blocker": "Policy",
+   "id": "sbol3-12303",
+   "normative_severity": "MUST",
+   "note": "faithful built Component check is not locally decidable",
+   "spec_section": "6.6",
+   "status": "MachineUncheckable"
+  },
+  {
+   "blocker": "Resolver",
+   "id": "sbol3-12501",
+   "normative_severity": "MUST",
+   "note": "resolver-aware validation can check Model source availability with caller-provided content providers; default validation remains offline",
+   "spec_section": "6.8",
+   "status": "MachineUncheckable",
+   "validator_function": "validate_model"
+  },
+  {
+   "blocker": "Resolver",
+   "id": "sbol3-12502",
+   "normative_severity": "MUST",
+   "note": "Model language IRI must specify a language; requires resolving the IRI",
+   "spec_section": "6.8",
+   "status": "MachineUncheckable"
+  },
+  {
+   "blocker": "Ontology",
+   "id": "sbol3-12503",
+   "normative_severity": "MUST",
+   "note": "known aliases of Table 15 Model language URIs require the preferred Table 15 URI; broader well-described-by reasoning is deferred",
+   "spec_section": "6.8",
+   "status": "MachineUncheckable",
+   "validator_function": "validate_model"
+  },
+  {
+   "blocker": "Ontology",
+   "id": "sbol3-12504",
+   "normative_severity": "SHOULD",
+   "note": "Model language values from known non-EDAM bundled ontologies warn; unknown/custom IRIs remain undecided",
+   "spec_section": "6.8",
+   "status": "Configurable",
+   "validator_function": "validate_model"
+  },
+  {
+   "blocker": "Resolver",
+   "id": "sbol3-12505",
+   "normative_severity": "MUST",
+   "note": "Model framework IRI must specify a framework; requires resolving the IRI",
+   "spec_section": "6.8",
+   "status": "MachineUncheckable"
+  },
+  {
+   "blocker": "Ontology",
+   "id": "sbol3-12506",
+   "normative_severity": "MUST",
+   "note": "known aliases of Table 16 Model framework URIs require the preferred Table 16 URI; broader well-described-by reasoning is deferred",
+   "spec_section": "6.8",
+   "status": "MachineUncheckable",
+   "validator_function": "validate_model"
+  },
+  {
+   "id": "sbol3-12507",
+   "normative_severity": "SHOULD",
+   "note": "Model framework IRIs that resolve to known SBO terms outside the SBO:0000004 modelling-framework branch produce warnings; unknown IRIs remain undecided",
+   "spec_section": "6.8",
+   "status": "Warning",
+   "validator_function": "validate_model"
+  },
+  {
+   "blocker": "Resolver",
+   "id": "sbol3-12801",
+   "normative_severity": "MUST",
+   "note": "resolver-aware validation can check Attachment source availability with caller-provided content providers; default validation remains offline",
+   "spec_section": "6.10",
+   "status": "MachineUncheckable",
+   "validator_function": "validate_attachment"
+  },
+  {
+   "blocker": "Ontology",
+   "id": "sbol3-12802",
+   "normative_severity": "MUST",
+   "note": "Attachment format semantic check is deferred",
+   "spec_section": "6.10",
+   "status": "MachineUncheckable"
+  },
+  {
+   "blocker": "Ontology",
+   "id": "sbol3-12803",
+   "normative_severity": "SHOULD",
+   "note": "known non-EDAM format terms warn; unknown/custom terms remain undecided",
+   "spec_section": "6.10",
+   "status": "Configurable",
+   "validator_function": "validate_attachment"
+  },
+  {
+   "blocker": "Resolver",
+   "id": "sbol3-12804",
+   "normative_severity": "MUST",
+   "note": "local size literals are checked for nonnegative byte counts; resolver-aware validation compares size against resolved content bytes",
+   "spec_section": "6.10",
+   "status": "MachineUncheckable",
+   "validator_function": "validate_attachment"
+  },
+  {
+   "blocker": "Resolver",
+   "id": "sbol3-12805",
+   "normative_severity": "MUST",
+   "note": "local hash literals are checked for hexadecimal digest shape; resolver-aware validation verifies sha3-256 against resolved content bytes",
+   "spec_section": "6.10",
+   "status": "MachineUncheckable",
+   "validator_function": "validate_attachment"
+  },
+  {
+   "blocker": "Policy",
+   "id": "sbol3-12806",
+   "normative_severity": "MUST",
+   "note": "Appendix B \u25b2: spec asks tools not to report. Local subset emits a warning when the hashAlgorithm literal is not a registry-style token; PolicyOptions::hash_algorithm_registry can opt into Strict (error on unknown algorithm) or Lenient (skip).",
+   "spec_section": "6.10",
+   "status": "MachineUncheckable",
+   "validator_function": "validate_attachment"
+  },
+  {
+   "id": "sbol3-12807",
+   "normative_severity": "SHOULD",
+   "note": "local hashAlgorithm literals warn unless they use the recommended sha3-256 value",
+   "spec_section": "6.10",
+   "status": "Warning",
+   "validator_function": "validate_attachment"
+  },
+  {
+   "id": "sbol3-12808",
+   "normative_severity": "MUST",
+   "note": "Attachment hash requires hashAlgorithm",
+   "spec_section": "6.10",
+   "status": "Error",
+   "validator_function": "validate_attachment"
+  },
+  {
+   "id": "sbol3-12901",
+   "normative_severity": "SHOULD",
+   "note": "workflow stage recommendation policy is deferred",
+   "spec_section": "A.1.1",
+   "status": "Warning",
+   "validator_function": "validate_workflow_rules"
+  },
+  {
+   "id": "sbol3-12902",
+   "normative_severity": "SHOULD",
+   "note": "workflow association recommendation policy is deferred",
+   "spec_section": "A.1.1",
+   "status": "Warning",
+   "validator_function": "validate_workflow_rules"
+  },
+  {
+   "id": "sbol3-13001",
+   "normative_severity": "SHOULD",
+   "note": "workflow usage recommendation policy is deferred",
+   "spec_section": "A.1.2",
+   "status": "Warning",
+   "validator_function": "validate_workflow_rules"
+  },
+  {
+   "id": "sbol3-13401",
+   "normative_severity": "SHOULD",
+   "note": "om:Measure type IRIs that resolve to known SBO terms outside the SBO:0000545 Systems Description Parameter branch produce warnings; unknown IRIs remain undecided",
+   "spec_section": "A.2.1",
+   "status": "Warning",
+   "validator_function": "validate_om_measure"
+  },
+  {
+   "id": "sbol3-13501",
+   "normative_severity": "SHOULD",
+   "note": "local om:Unit sbol:name and om:label literal values are compared",
+   "spec_section": "A.2.2",
+   "status": "Warning",
+   "validator_function": "validate_om_unit_strings"
+  },
+  {
+   "id": "sbol3-13502",
+   "normative_severity": "SHOULD",
+   "note": "local om:Unit sbol:description and om:comment literal values are compared",
+   "spec_section": "A.2.2",
+   "status": "Warning",
+   "validator_function": "validate_om_unit_strings"
+  },
+  {
+   "id": "sbol3-14201",
+   "normative_severity": "SHOULD",
+   "note": "local om:Prefix sbol:name and om:label literal values are compared",
+   "spec_section": "A.2.9",
+   "status": "Warning",
+   "validator_function": "validate_om_prefix_strings"
+  },
+  {
+   "id": "sbol3-14202",
+   "normative_severity": "SHOULD",
+   "note": "local om:Prefix sbol:description and om:comment literal values are compared",
+   "spec_section": "A.2.9",
+   "status": "Warning",
+   "validator_function": "validate_om_prefix_strings"
+  }
+ ]
+}
