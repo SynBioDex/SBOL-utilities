@@ -14,6 +14,9 @@ import rdflib
 import sbol2
 import sbol3
 
+#: Base IRI for resolving relative IRIs in documents that declare none (the base sbol-rs uses)
+DEFAULT_BASE = "http://sbols.org/unspecified/"
+
 SBOL2_NS = "http://sbols.org/v2#"
 SBOL3_NS = "http://sbols.org/v3#"
 
@@ -77,7 +80,7 @@ def load_graph(source: GraphSource, fmt: Optional[str] = None) -> rdflib.Graph:
 
     :param source: an rdflib Graph (returned as-is), a path, RDF text, an sbol3.Document, or an sbol2.Document
     :param fmt: RDF format of a path or text source; inferred from the extension or content when omitted
-    :return: the document's triples
+    :return: the document's triples; relative IRIs in a path or text source resolve against :data:`DEFAULT_BASE`
     """
     if isinstance(source, rdflib.Graph):
         return source
@@ -88,9 +91,9 @@ def load_graph(source: GraphSource, fmt: Optional[str] = None) -> rdflib.Graph:
         return rdflib.Graph().parse(data=source.writeString(), format="xml")
     if isinstance(source, os.PathLike) or (isinstance(source, str) and "\n" not in source and os.path.exists(source)):
         path = Path(source)
-        return rdflib.Graph().parse(str(path), format=fmt or guess_format(path))
+        return rdflib.Graph().parse(str(path), format=fmt or guess_format(path), publicID=DEFAULT_BASE)
     if isinstance(source, str):
-        return rdflib.Graph().parse(data=source, format=fmt or _sniff_text_format(source))
+        return rdflib.Graph().parse(data=source, format=fmt or _sniff_text_format(source), publicID=DEFAULT_BASE)
     raise TypeError(f"Cannot load an SBOL graph from {type(source).__name__}")
 
 

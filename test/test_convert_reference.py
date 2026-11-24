@@ -17,6 +17,7 @@ import conversion_goldens as cg
 import pytest
 from rdflib import Graph, URIRef
 
+from sbol_utilities.rdf_io import load_graph
 from sbol_utilities.convert import downgrade, upgrade
 
 pytestmark = pytest.mark.sboltestsuite
@@ -69,8 +70,8 @@ def _assert_equivalent(ours: Graph, reference: Graph) -> None:
 @pytest.mark.parametrize("stem", sorted(UPGRADE_CASES))
 def test_upgrade_matches_reference(stem, sbol_test_suite):
     """SBOL 2 -> 3 agrees with the reference converter."""
-    source = Graph().parse(str(sbol_test_suite / UPGRADE_CASES[stem]), format="xml")
-    reference = Graph().parse(str(REFERENCE / f"{stem}.sbolconverter.to-sbol3.nt"), format="nt")
+    source = load_graph(sbol_test_suite / UPGRADE_CASES[stem])
+    reference = load_graph(REFERENCE / f"{stem}.sbolconverter.to-sbol3.nt")
     ours, _ = upgrade(source)
     _assert_equivalent(ours, reference)
 
@@ -78,7 +79,7 @@ def test_upgrade_matches_reference(stem, sbol_test_suite):
 @pytest.mark.parametrize("stem", sorted(DOWNGRADE_CASES))
 def test_downgrade_matches_reference(stem, sbol_test_suite):
     """SBOL 3 -> 2 agrees with the reference converter."""
-    source = Graph().parse(str(sbol_test_suite / DOWNGRADE_CASES[stem]), format="turtle")
-    reference = Graph().parse(str(REFERENCE / f"{stem}.sbolconverter.to-sbol2.rdf"), format="xml")
+    source = load_graph(sbol_test_suite / DOWNGRADE_CASES[stem])
+    reference = load_graph(REFERENCE / f"{stem}.sbolconverter.to-sbol2.rdf")
     ours, _ = downgrade(source)
     _assert_equivalent(ours, reference)

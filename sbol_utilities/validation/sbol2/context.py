@@ -174,16 +174,19 @@ class Sbol2Context(Context):
         super().__init__(graph, config, catalog, ontology)
         properties: Dict[Resource, Dict[str, List[Term]]] = {}
         seen: Set[Tuple[Resource, str, Term]] = set()
-        for s, p, o in graph:
+        # Values are read per subject: rdflib keeps a subject's values in document order, which "first value"
+        # lookups rely on, while whole-graph iteration order varies with the process hash seed.
+        for s in sorted(set(graph.subjects()), key=_object_order):
             if isinstance(s, Literal):
                 continue
-            predicate = str(p)
-            term = _term(o, predicate)
-            key = (s, predicate, term)
-            if key in seen:
-                continue
-            seen.add(key)
-            properties.setdefault(s, {}).setdefault(predicate, []).append(term)
+            for p, o in graph.predicate_objects(s):
+                predicate = str(p)
+                term = _term(o, predicate)
+                key = (s, predicate, term)
+                if key in seen:
+                    continue
+                seen.add(key)
+                properties.setdefault(s, {}).setdefault(predicate, []).append(term)
         self.triple_count = len(graph)
         #: every object of the document, IRIs before blank nodes, each group sorted
         self.objects: List[Obj] = []

@@ -20,6 +20,7 @@ import pytest
 import sboltestsuite as suite
 from rdflib import Graph
 
+from sbol_utilities.rdf_io import load_graph
 from sbol_utilities.convert import downgrade, upgrade
 
 pytestmark = pytest.mark.sboltestsuite
@@ -41,7 +42,7 @@ def _sbol_rs_graph(command: str, source: Graph, out_suffix: str) -> Graph:
         source.serialize(str(src), format="turtle" if src.suffix == ".ttl" else "xml")
         out = Path(tmp) / f"out{out_suffix}"
         subprocess.run([cli, command, str(src), "-o", str(out)], check=True, capture_output=True)
-        return Graph().parse(str(out), format="turtle" if out_suffix == ".ttl" else "xml")
+        return load_graph(out)
 
 
 def _explain(ours: Graph, step, limit: int = 40) -> str:
@@ -58,7 +59,7 @@ def _explain(ours: Graph, step, limit: int = 40) -> str:
 def test_sbol2_upgrade_matches_sbol_rs(path, sbol_test_suite):
     """Upgrade and the 3 -> 2 -> 3 round trip both match sbol-rs."""
     golden = _golden(path)
-    source = Graph().parse(str(path), format="xml")
+    source = load_graph(path)
     if golden["upgrade"] == "error":
         with pytest.raises(Exception):
             upgrade(source)
@@ -67,6 +68,8 @@ def test_sbol2_upgrade_matches_sbol_rs(path, sbol_test_suite):
     assert cg.fingerprint(upgraded) == golden["upgrade"], _explain(
         upgraded, lambda: _sbol_rs_graph("upgrade", source, ".ttl")
     )
+    if golden["roundtrip_upgrade"] == "error":
+        pytest.skip("sbol-rs cannot complete this round trip, so there is no reference graph to compare against")
     downgraded, _ = downgrade(upgraded)
     again, _ = upgrade(downgraded)
     assert cg.fingerprint(again) == golden["roundtrip_upgrade"], _explain(
@@ -78,7 +81,7 @@ def test_sbol2_upgrade_matches_sbol_rs(path, sbol_test_suite):
 def test_sbol3_downgrade_matches_sbol_rs(path, sbol_test_suite):
     """Downgrade and the 2 -> 3 re-upgrade both match sbol-rs."""
     golden = _golden(path)
-    source = Graph().parse(str(path), format="turtle")
+    source = load_graph(path)
     downgraded, _ = downgrade(source)
     assert cg.fingerprint(downgraded) == golden["downgrade"], _explain(
         downgraded, lambda: _sbol_rs_graph("downgrade", source, ".xml")

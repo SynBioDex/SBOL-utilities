@@ -79,12 +79,30 @@ def golden_name(path: Path) -> str:
     return sboltestsuite.relative_name(path)
 
 
+def xml_line_ends_normalized(path: Path, workdir: str) -> Path:
+    """The file itself, or a copy with CRLF line ends folded to LF.
+
+    XML 1.0 (section 2.11) requires parsers to normalize line ends, and rdflib does; sbol-rs keeps the carriage
+    returns inside literals. Recording sbol-rs's verdicts on the normalized text gives goldens for the document every
+    conforming parser reads.
+    """
+    data = path.read_bytes()
+    if b"\r\n" not in data:
+        return path
+    copy = Path(workdir) / path.name
+    copy.write_bytes(data.replace(b"\r\n", b"\n"))
+    return copy
+
+
 def run(cli: str, version: str, path: Path, flags: List[str]) -> List[List[str]]:
     """Validate one file with sbol-rs and return its normalized issues."""
-    command = [cli, "validate", "--format", "json", "--sbol-version", version[-1], *flags, str(path)]
-    result = subprocess.run(command, capture_output=True, text=True)
+    with tempfile.TemporaryDirectory() as tmp:
+        source = xml_line_ends_normalized(path, tmp)
+        command = [cli, "validate", "--format", "json", "--sbol-version", version[-1], *flags, str(source)]
+        result = subprocess.run(command, capture_output=True, text=True)
     if not result.stdout.strip():
-        return [["<parse-error>", "Error", result.stderr.strip().splitlines()[-1] if result.stderr else ""]]
+        message = result.stderr.strip().splitlines()[-1] if result.stderr.strip() else ""
+        return [["<parse-error>", "Error", message.replace(str(source), path.name).replace(str(path), path.name)]]
     report = json.loads(result.stdout)
     issues = set()
     for issue in report["issues"]:
@@ -104,6 +122,7 @@ def conversion_entry(cli: str, path: Path, version: str) -> Dict[str, str]:
     """Fingerprints of sbol-rs's conversion chain for one corpus file ('error' where a step fails)."""
     first, second = ("upgrade", "downgrade") if version == "sbol2" else ("downgrade", "upgrade")
     with tempfile.TemporaryDirectory() as tmp:
+        path = xml_line_ends_normalized(path, tmp)
         step1 = Path(tmp) / ("step1.ttl" if first == "upgrade" else "step1.xml")
         step2 = Path(tmp) / ("step2.xml" if second == "downgrade" else "step2.ttl")
         entry = {first: "error"}
