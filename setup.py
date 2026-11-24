@@ -1,4 +1,35 @@
+import importlib.util
+import os
+
 from setuptools import find_packages, setup
+from setuptools.command.build_py import build_py
+from setuptools.command.sdist import sdist
+
+
+def _bundle_validation_data():
+    """Copy the SBOLTestSuite rule catalogs and ontology facts into sbol_utilities/validation/data/."""
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'sbol_utilities', 'validation', 'runtime_data.py')
+    spec = importlib.util.spec_from_file_location('sbol_utilities_runtime_data', path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    module.bundle()
+
+
+class BuildPyWithValidationData(build_py):
+    """Bundle the validation data before building, so installed packages need no network access."""
+
+    def run(self):
+        _bundle_validation_data()
+        super().run()
+
+
+class SdistWithValidationData(sdist):
+    """Bundle the validation data before making a source distribution."""
+
+    def run(self):
+        _bundle_validation_data()
+        super().run()
+
 
 setup(name='sbol-utilities',
       description='SBOL utilities',
@@ -68,9 +99,10 @@ setup(name='sbol-utilities',
               'gb2so.csv',
               'sbolgraph-standalone.js',
               'so2gb.csv',
-              'validation/data/*.json',
-              'validation/data/*.tsv',
+              'validation/data/Rules/*.json',
+              'validation/data/Ontology/*.tsv',
           ],
       },
-      include_package_data=True
+      include_package_data=True,
+      cmdclass={'build_py': BuildPyWithValidationData, 'sdist': SdistWithValidationData},
       )

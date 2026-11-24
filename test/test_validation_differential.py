@@ -1,8 +1,8 @@
-"""Differential conformance: the Python validators must report exactly what sbol-rs reports.
+"""Validation conformance: the validators must report exactly the issues SBOLTestSuite expects.
 
-For every file in the sbol-rs goldens (the SBOLTestSuite SBOL 2 corpora, InvalidFiles, the SBOL 3 corpus, and the
-per-rule cases under test/validation_cases) and every golden configuration, the set of (rule, severity, subject)
-issues must match.
+For every file with expected issues in SBOLTestSuite's ``Expected/validation/issues.json`` (the SBOL 2 corpora,
+InvalidFiles, the SBOL 3 corpus, and SBOL3_InvalidFiles) and every configuration, the set of (rule, severity,
+subject) issues must match.
 """
 
 from __future__ import annotations
@@ -15,22 +15,22 @@ from sbol_utilities.validation import validate_sbol2, validate_sbol3
 
 pytestmark = pytest.mark.sboltestsuite
 
-NAMES = sorted(vg.goldens()["files"])
+NAMES = vg.name_params()
 
 
 @pytest.mark.parametrize("name", NAMES)
-def test_matches_sbol_rs(name, sbol_test_suite):
-    """Every golden configuration yields the same issue set as sbol-rs."""
-    entry = vg.goldens()["files"][name]
-    path = vg.golden_path(name)
+def test_reports_expected_issues(name, sbol_test_suite):
+    """Every configuration yields exactly the expected issue set."""
+    entry = vg.expectations()["files"][name]
+    path = vg.suite_path(name)
     validator = validate_sbol2 if entry["version"] == "sbol2" else validate_sbol3
     if vg.is_parse_error(name):
-        # sbol-rs rejects the file while reading it; Python must either fail to read it or report an error
+        # The file's RDF is expected to be unreadable: reading it must fail, or validation must report an error
         try:
             report = validator(load_graph(path), vg.configs(entry["version"])["default"])
         except Exception:
             return
-        assert report.errors, f"{name}: sbol-rs rejects this file at read time, but Python reports no error"
+        assert report.errors, f"{name}: expected to be unreadable, but it validated without errors"
         return
     graph = load_graph(path)
     failures = []

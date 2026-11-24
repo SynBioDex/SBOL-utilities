@@ -3,10 +3,7 @@
 ## sbol-rs
 
 `sbol_utilities/convert/` and `sbol_utilities/validation/` implement algorithms from
-[sbol-rs](https://github.com/SynBioDex/sbol-rs). `sbol_utilities/validation/data/sbol2_rules.json`,
-`sbol3_rules.json`, `ontology_facts.tsv`, and `ontology_sources.tsv` are derived from sbol-rs data files, and
-`test/test_files/sboltestsuite_local/` and `test/test_files/sbolconverter_reference/` are copied from its test
-fixtures.
+[sbol-rs](https://github.com/SynBioDex/sbol-rs).
 
 ```
 sbol-rs
@@ -32,16 +29,11 @@ COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER I
 OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
-## SynBioDex/SBOL-Converter
-
-`test/test_files/sbolconverter_reference/` holds output of the
-[SBOL-Converter](https://github.com/SynBioDex/SBOL-Converter), licensed under the Apache License, Version 2.0.
-
 ## Ontology data
 
-`sbol_utilities/validation/data/ontology_facts.tsv` records term identifiers, hierarchy, and SBOL-specific
-classification drawn from the following ontologies. Term labels are omitted. Source versions and checksums are in
-`ontology_sources.tsv`.
+Built packages include `sbol_utilities/validation/data/Ontology/ontology_facts.tsv`, copied from SynBioDex/SBOLTestSuite.
+It records term identifiers, hierarchy, and SBOL-specific classification drawn from the following ontologies; term
+labels are omitted. Source versions and checksums are in `ontology_sources.tsv`.
 
 | Ontology | License |
 |---|---|

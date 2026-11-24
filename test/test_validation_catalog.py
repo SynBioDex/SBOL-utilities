@@ -1,40 +1,44 @@
-"""Catalog completeness: every machine-checkable rule is implemented and has a firing negative case.
+"""Catalog completeness: every machine-checkable rule is implemented and fires on an SBOLTestSuite invalid file.
 
-Per-rule cases live in ``test/validation_cases/sbol{2,3}/``. A file named ``<rule-id>[_<suffix>].<ext>`` (for example
-``sbol3-10104_child_url.ttl``) must fire that rule; files under ``valid/`` must produce no issues. Every case is also
-recorded in the sbol-rs goldens, so the differential test checks each case against sbol-rs.
+SBOLTestSuite names each invalid file after the rule it violates: ``InvalidFiles/sbol-NNNNN[_case].xml`` for rule
+``sbol2-NNNNN`` and ``SBOL3_InvalidFiles/sbol3-NNNNN_case.ttl`` for rule ``sbol3-NNNNN``. A rule counts as covered
+when such a file is expected to fire it (``Expected/validation/issues.json``). ``SBOL3/validation_examples/`` holds
+documents that must be clean.
 """
 
 from __future__ import annotations
 
 import re
-from pathlib import Path
 
 import pytest
+import sboltestsuite as suite
+import validation_goldens as vg
 
-from sbol_utilities.validation import ValidationConfig, validate_sbol2, validate_sbol3
+from sbol_utilities.validation import ValidationConfig, validate_sbol3
 from sbol_utilities.validation.sbol2 import REGISTRY as SBOL2
 from sbol_utilities.validation.sbol3 import REGISTRY as SBOL3
 
-CASES = Path(__file__).resolve().parent / "validation_cases"
-SUFFIXES = {".ttl", ".xml", ".rdf", ".nt", ".jsonld"}
-CASE_NAME = re.compile(r"^(sbol[23]-\d{5})(?:_.*)?$")
 REGISTRIES = {"sbol2": SBOL2, "sbol3": SBOL3}
+CASE_NAMES = {
+    "sbol2": (suite.SBOL2_INVALID, re.compile(r"^sbol-(\d{5})(?:_.*)?\.xml$"), "sbol2-"),
+    "sbol3": (suite.SBOL3_INVALID, re.compile(r"^sbol3-(\d{5})(?:_.*)?\.ttl$"), "sbol3-"),
+}
 
 #: Rules that act only when references are resolved against other documents. Offline validation evaluates nothing
-#: for them, so no single-document case can fire them (sbol-rs exempts the same rules as EXTERNAL_POLICY_RULES).
+#: for them, so no single-document case can fire them.
 RESOLVER_ONLY = {
     "sbol3-10114": "warns on unresolved external TopLevel references only in resolver-aware validation",
 }
-VALIDATORS = {"sbol2": validate_sbol2, "sbol3": validate_sbol3}
 
 
-def _cases(version):
-    return sorted(p for p in (CASES / version).rglob("*") if p.suffix in SUFFIXES and p.parent.name != "valid")
-
-
-def _valid_cases(version):
-    return sorted(p for p in (CASES / version / "valid").glob("*") if p.suffix in SUFFIXES)
+def _covered(version: str) -> set:
+    directory, pattern, prefix = CASE_NAMES[version]
+    covered = set()
+    for path in sorted((suite.suite_root() / directory).iterdir()):
+        match = pattern.match(path.name)
+        if match and vg.fires(suite.relative_name(path), prefix + match.group(1)):
+            covered.add(prefix + match.group(1))
+    return covered
 
 
 @pytest.mark.parametrize("version", ["sbol2", "sbol3"])
@@ -46,34 +50,24 @@ def test_every_machine_checkable_rule_is_implemented(version):
     assert not missing, f"{len(missing)} unimplemented {version} rules: {missing}"
 
 
+@pytest.mark.sboltestsuite
 @pytest.mark.parametrize("version", ["sbol2", "sbol3"])
-def test_every_implemented_rule_has_a_negative_case(version):
-    """Each machine-checkable rule has at least one case file named after it."""
-    registry = REGISTRIES[version]
-    covered = {CASE_NAME.match(p.stem).group(1) for p in _cases(version) if CASE_NAME.match(p.stem)}
+def test_every_rule_has_an_invalid_file(version, sbol_test_suite):
+    """Each machine-checkable rule has an SBOLTestSuite invalid file that is expected to fire it."""
+    covered = _covered(version)
     missing = sorted(
-        r.id for r in registry.catalog.machine_checkable() if r.id not in covered and r.id not in RESOLVER_ONLY
+        r.id
+        for r in REGISTRIES[version].catalog.machine_checkable()
+        if r.id not in covered and r.id not in RESOLVER_ONLY
     )
-    assert not missing, f"{len(missing)} {version} rules without a negative case: {missing}"
+    assert not missing, f"{len(missing)} {version} rules without an invalid file in SBOLTestSuite: {missing}"
 
 
+@pytest.mark.sboltestsuite
 @pytest.mark.parametrize(
-    "version,path",
-    [pytest.param(v, p, id=f"{v}/{p.name}") for v in ("sbol2", "sbol3") for p in _cases(v)],
+    "path", suite.corpus_params(lambda: sorted((suite.suite_root() / "SBOL3" / "validation_examples").glob("*.ttl")))
 )
-def test_negative_case_fires_its_rule(version, path):
-    """A case file fires the rule it is named after (with every rule family enabled)."""
-    match = CASE_NAME.match(path.stem)
-    assert match, f"case file {path.name} is not named <rule-id>[_<suffix>]"
-    report = VALIDATORS[version](path, ValidationConfig.all_on())
-    assert match.group(1) in report.rule_ids(), str(report)
-
-
-@pytest.mark.parametrize(
-    "version,path",
-    [pytest.param(v, p, id=f"{v}/valid/{p.name}") for v in ("sbol2", "sbol3") for p in _valid_cases(v)],
-)
-def test_valid_case_is_clean(version, path):
-    """A case under valid/ produces no issues with every rule family enabled."""
-    report = VALIDATORS[version](path, ValidationConfig.all_on())
+def test_validation_example_is_clean(path, sbol_test_suite):
+    """A validation example produces no issues with every rule family enabled."""
+    report = validate_sbol3(path, ValidationConfig.all_on())
     assert not report.issues, str(report)

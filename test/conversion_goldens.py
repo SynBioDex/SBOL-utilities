@@ -1,43 +1,54 @@
-"""Canonical graph fingerprints, and access to the sbol-rs conversion goldens.
+"""Expected SBOL 2 <-> SBOL 3 conversions, from SBOLTestSuite's ``Expected/conversion/``.
 
-``test/test_files/sbol_rs_golden/conversion.json`` (written by ``tools/generate_sbol_rs_goldens.py``) records, for
-each corpus file, the SHA-256 of sbol-rs's conversion output as a canonical N-Triples set. Comparing fingerprints
-checks that the Python converter produces the same graph as sbol-rs without redistributing converted corpus content.
+``index.json`` maps each corpus file to its expected outputs (suite-relative paths, or ``fixed-point`` for a round
+trip that reproduces the upgrade). Graphs are compared as canonical N-Triples sets, which treats blank nodes up to
+isomorphism.
 """
 
 from __future__ import annotations
 
-import hashlib
 import json
 from functools import lru_cache
-from pathlib import Path
-from typing import List
+from typing import List, Set
 
+import sboltestsuite
 from rdflib import Graph
 from rdflib.compare import to_canonical_graph
 
-GOLDEN = Path(__file__).resolve().parent / "test_files" / "sbol_rs_golden" / "conversion.json"
+from sbol_utilities.rdf_io import load_graph
 
 
 def canonical_lines(graph: Graph) -> List[str]:
     """Sorted N-Triples lines of a graph with blank nodes canonically relabeled."""
-    canonical = to_canonical_graph(graph)
-    text = canonical.serialize(format="nt")
+    text = to_canonical_graph(graph).serialize(format="nt")
     if isinstance(text, bytes):
         text = text.decode("utf-8")
     return sorted(line for line in text.splitlines() if line.strip())
 
 
-def fingerprint(graph: Graph) -> str:
-    """SHA-256 over a graph's canonical N-Triples lines."""
-    digest = hashlib.sha256()
-    for line in canonical_lines(graph):
-        digest.update(line.encode("utf-8"))
-        digest.update(b"\n")
-    return digest.hexdigest()
-
-
 @lru_cache(maxsize=None)
-def goldens() -> dict:
-    """The parsed conversion golden file."""
-    return json.loads(GOLDEN.read_text(encoding="utf-8"))
+def index() -> dict:
+    """The parsed conversion index."""
+    path = sboltestsuite.suite_root() / sboltestsuite.EXPECTED / "conversion" / "index.json"
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def entry(name: str) -> dict:
+    """Expected outputs of one suite-relative corpus file."""
+    return index()["files"][name]
+
+
+def expected_graph(relative: str) -> Graph:
+    """Parse one expected output file."""
+    return load_graph(sboltestsuite.suite_root() / relative)
+
+
+def diff(actual: Graph, expected: Graph, limit: int = 40) -> str:
+    """Triple-level description of how two graphs differ ('' when they are equivalent)."""
+    mine: Set[str] = set(canonical_lines(actual))
+    want: Set[str] = set(canonical_lines(expected))
+    if mine == want:
+        return ""
+    lines = [f"expected only ({len(want - mine)}):", *sorted(want - mine)[:limit]]
+    lines += [f"actual only ({len(mine - want)}):", *sorted(mine - want)[:limit]]
+    return "\n".join(lines)

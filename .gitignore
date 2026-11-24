@@ -45,3 +45,6 @@ share/python-wheels/
 MANIFEST
 # SBOLTestSuite corpus cache populated by test/sboltestsuite.py
 .cache/
+
+# Rule catalogs and ontology facts copied from SBOLTestSuite when the package is built
+sbol_utilities/validation/data/

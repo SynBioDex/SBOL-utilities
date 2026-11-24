@@ -1,7 +1,7 @@
 """Rule catalogs and the registry that binds rule ids to their Python implementations.
 
-Each SBOL version has a JSON catalog (vendored from sbol-rs by ``tools/sync_sbol_rs_data.py``) listing every rule in
-the specification with its status, normative severity, optional gate, and optional coverage limits. Implementations
+Each SBOL version has a JSON catalog (published in SynBioDex/SBOLTestSuite's ``Rules/``) listing every rule in the
+specification with its status, normative severity, optional gate, and optional coverage limits. Implementations
 register against rule ids with :meth:`Registry.rule`; one function may check several related rules.
 
 Statuses:
@@ -18,7 +18,6 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass, field
 from functools import lru_cache
-from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
 
 import rdflib
@@ -27,8 +26,7 @@ from rdflib.term import BNode
 from sbol_utilities.validation.config import ERROR, WARNING, ValidationConfig
 from sbol_utilities.validation.ontology import Ontology
 from sbol_utilities.validation.report import Coverage, Issue, ValidationReport
-
-DATA_DIR = Path(__file__).resolve().parent / "data"
+from sbol_utilities.validation.runtime_data import runtime_file
 
 MACHINE_UNCHECKABLE = "MachineUncheckable"
 
@@ -82,7 +80,7 @@ class Catalog:
 @lru_cache(maxsize=None)
 def load_catalog(version: int) -> Catalog:
     """Load the vendored catalog for SBOL version 2 or 3."""
-    raw = json.loads((DATA_DIR / f"sbol{version}_rules.json").read_text(encoding="utf-8"))
+    raw = json.loads(runtime_file(f"Rules/sbol{version}-rules.json").read_text(encoding="utf-8"))
     rules = {}
     for entry in raw["rule"]:
         rules[entry["id"]] = RuleSpec(

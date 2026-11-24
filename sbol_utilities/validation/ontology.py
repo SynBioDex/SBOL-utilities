@@ -1,6 +1,6 @@
 """Offline ontology facts used by SBOL validation.
 
-The bundled snapshot (``data/ontology_facts.tsv``, vendored from sbol-rs) covers EDAM, SBO, SO, GO, ChEBI, and the
+The snapshot (``Ontology/ontology_facts.tsv`` in SynBioDex/SBOLTestSuite) covers EDAM, SBO, SO, GO, ChEBI, and the
 Cell Ontology. Terms are accepted as identifiers.org IRIs, OBO PURLs, EDAM/biomodels IRIs, or compact ids, and are
 normalized to compact ids (``SO:0000167``). Query methods return ``None`` when a term is absent from the snapshot,
 so callers can tell "known and wrong" from "unknown".
@@ -20,10 +20,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from functools import lru_cache
-from pathlib import Path
 from typing import Dict, List, Optional, Set, Tuple
 
-DATA_DIR = Path(__file__).resolve().parent / "data"
+from sbol_utilities.validation.runtime_data import runtime_file
 
 FORMAT_VERSION = 1
 
@@ -115,7 +114,7 @@ class Ontology:
 
     @classmethod
     def from_tsv(cls, text: str) -> "Ontology":
-        """Parse a facts TSV in the sbol-rs format."""
+        """Parse an ontology facts TSV (the SBOLTestSuite ``Ontology/ontology_facts.tsv`` format)."""
         ontology = cls()
         version_seen = False
         for line in text.splitlines():
@@ -379,4 +378,4 @@ class Ontology:
 @lru_cache(maxsize=None)
 def bundled_ontology() -> Ontology:
     """The ontology snapshot shipped with sbol_utilities, parsed once per process."""
-    return Ontology.from_tsv((DATA_DIR / "ontology_facts.tsv").read_text(encoding="utf-8"))
+    return Ontology.from_tsv(runtime_file("Ontology/ontology_facts.tsv").read_text(encoding="utf-8"))
