@@ -17,6 +17,7 @@ from sbol_utilities.conversion import convert2to3, convert3to2, convert_to_genba
 from sbol_utilities.sbol3_genbank_conversion import GenBankSBOL3Converter
 from helpers import copy_to_tmp, assert_files_identical
 from sbol_utilities.sbol_diff import doc_diff
+from sbol_utilities.validation import ValidationConfig, validate_sbol2
 # TODO: Add command-line utilities and test them too
 
 TEST_FILES = Path(__file__).parent / 'test_files'
@@ -26,7 +27,8 @@ class Test2To3Conversion(unittest.TestCase):
     def test_convert_identities(self):
         """Test conversion of a complex file"""
         test_dir = os.path.dirname(os.path.realpath(__file__))
-        doc = convert2to3(str(TEST_FILES / 'sbol3-small-molecule.rdf'))
+        # sbol3-small-molecule.rdf is a partially converted SBOL3 file that only the sbolgraph converter accepts
+        doc = convert2to3(str(TEST_FILES / 'sbol3-small-molecule.rdf'), converter='sbolgraph')
         # check for issues in converted document
         report = doc.validate()
         assert len(report) == 0, "\n".join(str(issue) for issue in report)
@@ -39,7 +41,8 @@ class Test2To3Conversion(unittest.TestCase):
         input_path = os.path.join(test_dir, 'test_files', 'sbol3-small-molecule.rdf')
         doc2 = sbol2.Document()
         doc2.read(input_path)
-        doc = convert2to3(doc2)
+        # sbol3-small-molecule.rdf is a partially converted SBOL3 file that only the sbolgraph converter accepts
+        doc = convert2to3(doc2, converter='sbolgraph')
         # check for issues in converted document
         report = doc.validate()
         assert len(report) == 0, "\n".join(str(issue) for issue in report)
@@ -136,11 +139,10 @@ class Test2To3Conversion(unittest.TestCase):
         doc3.read('test/test_files/feature_orientation_conversion.nt')
         # Convert to SBOL2 and check contents
         doc2 = convert3to2(doc3)
-        try:
-            sbol2.Config.setOption(sbol2.ConfigOptions.VALIDATE_ONLINE, False)
-            self.assertEqual(doc2.validate(), 'Valid.')
-        finally:
-            sbol2.Config.setOption(sbol2.ConfigOptions.VALIDATE_ONLINE, validate_online)
+        # The SBOL3 'meets' restriction has no SBOL2 Table 7 counterpart, so it is kept with a best-practice warning
+        report = validate_sbol2(doc2, ValidationConfig(complete=False, best_practice=True))
+        assert not report.errors, str(report)
+        assert {i.rule for i in report.warnings} >= {'sbol2-11412'}
 
     def test_genbank_conversion(self):
         """Test ability to convert from SBOL3 to GenBank"""
