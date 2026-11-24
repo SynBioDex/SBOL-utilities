@@ -1,0 +1,39 @@
+BASE <https://example.org/>
+PREFIX : <https://example.org/>
+PREFIX EDAM: <https://identifiers.org/edam:>
+PREFIX CHEBI: <https://identifiers.org/CHEBI:>
+PREFIX GO: <https://identifiers.org/GO:>
+PREFIX om: <http://www.ontology-of-units-of-measure.org/resource/om-2/>
+PREFIX SBO: <https://identifiers.org/SBO:>
+PREFIX SO: <https://identifiers.org/SO:>
+PREFIX prov: <http://www.w3.org/ns/prov#>
+PREFIX sbol: <http://sbols.org/v3#>
+
+:template a sbol:Component;
+    sbol:displayId "template";
+    sbol:hasFeature <template/slot>;
+    sbol:hasNamespace <https://example.org>;
+    sbol:type SBO:0000251 .
+<template/slot> a sbol:LocalSubComponent;
+    sbol:displayId "slot";
+    sbol:role SO:0000704;
+    sbol:type SBO:0000251 .
+:derivation a sbol:CombinatorialDerivation;
+    sbol:displayId "derivation";
+    sbol:hasNamespace <https://example.org>;
+    sbol:hasVariableFeature <derivation/variable_feature>;
+    sbol:template :template .
+<derivation/variable_feature> a sbol:VariableFeature;
+    sbol:cardinality sbol:one;
+    sbol:displayId "variable_feature";
+    sbol:variable <template/slot> .
+:derived a sbol:Component;
+    sbol:displayId "derived";
+    sbol:hasFeature <derived/slot>;
+    sbol:hasNamespace <https://example.org>;
+    prov:wasDerivedFrom :derivation;
+    sbol:type SBO:0000251 .
+<derived/slot> a sbol:LocalSubComponent;
+    sbol:displayId "slot";
+    prov:wasDerivedFrom <template/slot>;
+    sbol:type SBO:0000251 .

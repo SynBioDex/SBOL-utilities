@@ -1,0 +1,21 @@
+BASE <https://example.org/>
+PREFIX : <https://example.org/>
+PREFIX EDAM: <https://identifiers.org/edam:>
+PREFIX CHEBI: <https://identifiers.org/CHEBI:>
+PREFIX GO: <https://identifiers.org/GO:>
+PREFIX om: <http://www.ontology-of-units-of-measure.org/resource/om-2/>
+PREFIX SBO: <https://identifiers.org/SBO:>
+PREFIX SO: <https://identifiers.org/SO:>
+PREFIX prov: <http://www.w3.org/ns/prov#>
+PREFIX sbol: <http://sbols.org/v3#>
+
+:sequence a sbol:Sequence;
+    sbol:displayId "sequence";
+    sbol:elements "ATGC";
+    sbol:encoding EDAM:format_1207;
+    sbol:hasNamespace <https://example.org> .
+:range a sbol:Range;
+    sbol:displayId "range";
+    sbol:end "4";
+    sbol:hasSequence :sequence;
+    sbol:start "1" .

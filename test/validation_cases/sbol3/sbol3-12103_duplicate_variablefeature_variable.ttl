@@ -1,0 +1,39 @@
+BASE <https://example.org/>
+PREFIX : <https://example.org/>
+PREFIX EDAM: <https://identifiers.org/edam:>
+PREFIX CHEBI: <https://identifiers.org/CHEBI:>
+PREFIX GO: <https://identifiers.org/GO:>
+PREFIX om: <http://www.ontology-of-units-of-measure.org/resource/om-2/>
+PREFIX SBO: <https://identifiers.org/SBO:>
+PREFIX SO: <https://identifiers.org/SO:>
+PREFIX prov: <http://www.w3.org/ns/prov#>
+PREFIX sbol: <http://sbols.org/v3#>
+
+:variant a sbol:Component;
+    sbol:displayId "variant";
+    sbol:hasNamespace <https://example.org>;
+    sbol:type SBO:0000251 .
+:template a sbol:Component;
+    sbol:displayId "template";
+    sbol:hasFeature <template/feature>;
+    sbol:hasNamespace <https://example.org>;
+    sbol:type SBO:0000251 .
+<template/feature> a sbol:SubComponent;
+    sbol:displayId "feature";
+    sbol:instanceOf :variant .
+:derivation a sbol:CombinatorialDerivation;
+    sbol:displayId "derivation";
+    sbol:hasNamespace <https://example.org>;
+    sbol:hasVariableFeature <derivation/variable_feature_a>, <derivation/variable_feature_b>;
+    sbol:template :template .
+<derivation/variable_feature_a> a sbol:VariableFeature;
+    sbol:cardinality sbol:one;
+    sbol:displayId "variable_feature_a";
+    sbol:variable <template/feature>;
+    sbol:variant :variant .
+<derivation/variable_feature_b> a sbol:VariableFeature;
+    sbol:cardinality sbol:one;
+    sbol:displayId "variable_feature_b";
+    sbol:variable <template/feature>;
+    sbol:variant :variant .
+	
