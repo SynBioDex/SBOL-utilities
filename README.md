@@ -22,7 +22,8 @@ pip3 install sbol-utilities
 
 Certain utilities also have non-Python dependencies, which must be installed separately:
 - `graph-sbol` requires [Graphviz](https://graphviz.org/) to be able to render diagrams.
-- `sbol-converter` requires [node.js](https://nodejs.org/en/) to be able to locally run Javascript.
+- `sbol-converter` needs [node.js](https://nodejs.org/en/) only for the deprecated `--converter sbolgraph` option;
+  SBOL2/SBOL3 conversion and validation otherwise run in pure Python.
 
 ## 🔗 Mapping: Command-Line Tools to Python Modules
 
@@ -80,7 +81,21 @@ Additional "macro" utilities convert specifically between SBOL3 and one of the o
 - `sbol-to-genbank` and `genbank-to-sbol` convert from SBOL3 to GenBank and vice versa
 - `sbol3-to-sbol2` and `sbol2-to-sbol3` convert to and from SBOL2
 
-Details on contributing to the SBOL2-SBOL3 converter can be found [here](SBOLCONVERTER.MD).
+SBOL2/SBOL3 conversion runs in pure Python (`sbol_utilities.convert`) and makes the same decisions as the
+[SynBioDex/SBOL-Converter](https://github.com/SynBioDex/SBOL-Converter) reference.
+
+### Validate SBOL2 and SBOL3 documents
+
+`sbol_utilities.validation` checks SBOL 2.3.0 and SBOL 3.1.0 documents against every machine-checkable rule of
+the specification, offline:
+
+```python
+from sbol_utilities.validation import validate
+report = validate("design.ttl")   # version detected automatically
+print(report)                     # one line per issue, with its rule id
+```
+
+Details on the converter, the validators, and their SBOLTestSuite-based tests can be found [here](SBOLCONVERTER.MD).
 
 ### Expand the combinatorial derivations in an SBOL file
 

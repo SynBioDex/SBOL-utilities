@@ -1,1 +1,4 @@
 include sbol_utilities/sbolgraph-standalone.js
+include sbol_utilities/validation/data/*.json
+include sbol_utilities/validation/data/*.tsv
+include THIRD_PARTY_NOTICES.md

@@ -1,3 +1,10 @@
+"""Deprecated pySBOL-based SBOL 2/3 conversion visitors.
+
+Use :mod:`sbol_utilities.convert` instead: it converts every SBOL 2 and SBOL 3 class, matches the SynBioDex
+SBOL-Converter reference, and writes the reference's ``https://sbols.org/backport/2_3#`` annotations.
+"""
+import warnings
+
 import sbol3
 import sbol2
 from sbol2 import mapsto, model, sequenceconstraint
@@ -6,6 +13,9 @@ from sbol_utilities.helper_functions import strip_sbol2_version
 
 # Namespaces
 from rdflib import URIRef
+
+DEPRECATION_MESSAGE = ('sbol_utilities.sbol3_sbol2_conversion is deprecated and will be removed; '
+                       'use sbol_utilities.convert (upgrade/downgrade) instead.')
 
 BACKPORT_NAMESPACE = 'http://sboltools.org/backport#'
 BACKPORT2_VERSION = f'{BACKPORT_NAMESPACE}sbol2version'
@@ -31,6 +41,7 @@ class SBOL3To2ConversionVisitor:
     doc2: sbol2.Document
 
     def __init__(self, doc3: sbol3.Document):
+        warnings.warn(DEPRECATION_MESSAGE, DeprecationWarning, stacklevel=2)
         # Create the target document
         self.doc2 = sbol2.Document()
 
@@ -429,6 +440,7 @@ class SBOL2To3ConversionVisitor:
     namespaces: list
 
     def __init__(self, doc2: sbol2.Document, namespaces: list = []):
+        warnings.warn(DEPRECATION_MESSAGE, DeprecationWarning, stacklevel=2)
         # Create the target document
         self.doc3 = sbol3.Document()
         self.namespaces = namespaces
@@ -802,7 +814,7 @@ class SBOL2To3ConversionVisitor:
 
 
 def convert3to2(doc3: sbol3.Document) -> sbol2.Document:
-    """Convert an SBOL3 document to an SBOL2 document
+    """Convert an SBOL3 document to an SBOL2 document (deprecated: use :func:`sbol_utilities.convert.downgrade`)
 
     :param doc3: SBOL3 document to convert
     :returns: SBOL2 document
@@ -812,7 +824,7 @@ def convert3to2(doc3: sbol3.Document) -> sbol2.Document:
 
 
 def convert2to3(doc2: sbol2.Document, namespaces=None) -> sbol3.Document:
-    """Convert an SBOL2 document to an SBOL3 document
+    """Convert an SBOL2 document to an SBOL3 document (deprecated: use :func:`sbol_utilities.convert.upgrade`)
 
     :param doc2: SBOL2 document to convert
     :param namespaces: list of URI prefixes to treat as namespaces

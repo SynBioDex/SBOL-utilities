@@ -3,6 +3,7 @@ from pathlib import Path
 
 import unittest
 
+import pytest
 import sbol2
 import sbol3
 
@@ -11,6 +12,9 @@ from sbol_utilities.sbol3_sbol2_conversion import SBOL3To2ConversionVisitor, BAC
 from sbol_utilities.sbol_diff import file_diff
 
 TEST_FILES = Path(__file__).parent / 'test_files'
+
+# These tests exercise the deprecated sbol_utilities.sbol3_sbol2_conversion visitor
+pytestmark = pytest.mark.filterwarnings('ignore::DeprecationWarning')
 
 
 class SBOLValidationError(Exception):

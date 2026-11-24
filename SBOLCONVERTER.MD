@@ -1,79 +1,111 @@
-# Contributing to SBOL Converter
+# Contributing to the SBOL 2 ⇄ SBOL 3 converter and the SBOL validators
 
-This document outlines the process for contributing to the SBOL Converter project. We welcome contributions of all kinds, including bug fixes, new features, and improvements to documentation.
+sbol-utilities converts between SBOL 2 and SBOL 3, and validates both versions, in pure Python on
+[rdflib](https://rdflib.readthedocs.io/) graphs. No Node.js, Java, or network service is involved.
 
-## Table of Contents
+- [Code location](#code-location)
+- [Behavioural reference](#behavioural-reference)
+- [Local installation](#local-installation)
+- [Tests and the SBOLTestSuite harness](#tests-and-the-sboltestsuite-harness)
+- [Regenerating goldens and vendored data](#regenerating-goldens-and-vendored-data)
+- [Finding issues](#finding-issues)
 
--   [Finding Issues](#finding-issues)
--   [Code Location](#code-location)
--   [Local Installation](#local-installation)
--   [Writing Tests](#writing-tests)
+## Code location
 
-## Finding Issues
+| Path | Contents |
+|---|---|
+| `sbol_utilities/convert/` | `upgrade()` (SBOL 2 → 3) and `downgrade()` (SBOL 3 → 2), their options, and the conversion report |
+| `sbol_utilities/validation/` | `validate()`, `validate_sbol2()`, `validate_sbol3()`, configuration, reports, the rule registry, and the ontology snapshot |
+| `sbol_utilities/validation/sbol2/`, `sbol_utilities/validation/sbol3/` | The rule implementations for each specification version |
+| `sbol_utilities/validation/data/` | Rule catalogs and ontology facts vendored from sbol-rs |
+| `sbol_utilities/rdf_io.py`, `sbol_utilities/vocab.py` | RDF loading/serialization, SBOL version detection, shared namespaces |
+| `sbol_utilities/conversion.py` | The command-line converters and `convert2to3()` / `convert3to2()`, which return pySBOL documents |
 
--   **GitHub Issues:** The primary place to find issues is on the [SBOL-utilities GitHub repository](https://github.com/SynBioDex/SBOL-utilities/issues?q=is%3Aissue%20state%3Aopen%20%22SBOL%202-3%20converter%22%20label%3Asbol-converter).
--   **Issue Labels:** Issues are labeled to help you find relevant tasks. Look for labels like `sbol-converter`.
+`sbol_utilities/sbol3_sbol2_conversion.py` (the pySBOL-based visitor) and the `sbolgraph` JavaScript converter
+are deprecated. They stay reachable through `convert2to3(..., converter='legacy_native' | 'sbolgraph')` until they
+are removed.
 
-## Code Location
+```python
+from sbol_utilities.convert import upgrade, downgrade
+from sbol_utilities.validation import validate
 
-The SBOL Converter code is located within the `sbol-utilities` repository.
-- The core code for the converter is located in the `sbol_utilities/sbol3_sbol2_conversion.py` file.
-- The tests for the converter are located in the `test/test_sbol2_sbol3_direct.py` directory.
+sbol3_graph, report = upgrade("design_sbol2.xml")
+print(validate(sbol3_graph))
+sbol2_graph, report = downgrade(sbol3_graph)
+```
 
-## Local Installation
+## Behavioural reference
 
-To work on the SBOL Converter, you'll need to install it locally. Follow these steps:
+The converter makes the same decisions as the [SynBioDex/SBOL-Converter](https://github.com/SynBioDex/SBOL-Converter)
+Java reference and [sbol-rs](https://github.com/SynBioDex/sbol-rs):
 
-1.  **Clone the Repository:**
-    ```bash
-    git clone https://github.com/SynBioDex/SBOL-utilities.git
-    cd SBOL-utilities
-    ```
+- the same IRIs: SBOL 2 `…/displayId/version` ⇄ SBOL 3 `…/version/displayId`
+- the same class choices: a Component becomes a ModuleDefinition when it has interactions, the functional-entity
+  type, or a sub-component instantiating a ModuleDefinition
+- the same vocabulary rewrites
+- the same `https://sbols.org/backport/2_3#` round-trip annotations
 
-2.  **Create a virtual environment and activate it:**
-    ```bash
-    python -m venv venv
-    source venv/bin/activate
-    ```
+The validators implement every machine-checkable rule of the SBOL 3.1.0 and SBOL 2.3.0 validation-rule catalogs
+and report the same issues sbol-rs does. Rules that need other documents or the web run their local subset; the
+report's `coverage` lists them as partially applied.
 
-3. **Install libraries locally:**
+## Local installation
 
-    You may also have to `setuptools` using:
-    ```bash
-    pip install setuptools
-    ```
-    
-    Install SBOL Utilities locally
-    ```bash
-    python setup.py install
-    ```
+```bash
+git clone https://github.com/SynBioDex/SBOL-utilities.git
+cd SBOL-utilities
+python -m venv .venv && source .venv/bin/activate
+pip install -e '.[dev]' pre-commit
+pre-commit install
+```
 
-4. **Ensure that you are able to run the tests:**
-    ```bash
-    python test/test_sbol2_sbol3_direct.py
-    ```
+The pre-commit hooks (isort, black, flake8, mypy) cover the conversion and validation packages, their tests, and
+`tools/`.
 
-## Writing Tests
+## Tests and the SBOLTestSuite harness
 
-It's recommended that you prepare a test and a test file before starting to write your converter code.
+The conformance tests run against [SynBioDex/SBOLTestSuite](https://github.com/SynBioDex/SBOLTestSuite), pinned to
+the commit in `test/sboltestsuite.py`. The corpus is not stored in this repository:
 
-To make a new test:
+- with `SBOL_TEST_SUITE_DIR=/path/to/SBOLTestSuite`, the tests use that checkout;
+- otherwise the first run downloads the pinned archive into `.cache/sboltestsuite/` (gitignored);
+- without network access the corpus tests skip, unless `SBOL_TEST_SUITE_REQUIRED=1` is set (as in CI).
 
-- Take a file from [SBOL Test Suite](https://github.com/SynBioDex/SBOLTestSuite), or make one using pySBOL2 (suggested: use the existing [SBOL Notebooks](https://github.com/SynBioDex/SBOL-Notebooks))
+| Test | Checks |
+|---|---|
+| `test/test_validation_differential.py` | Every corpus file and per-rule case reports exactly the issues sbol-rs reports, under each configuration |
+| `test/test_validation_corpus.py` | Each SBOL 2 corpus isolates its configuration axis; InvalidFiles fire their rules; the SBOL 3 corpus is valid |
+| `test/test_validation_catalog.py` | Every machine-checkable rule is implemented and has a firing case under `test/validation_cases/` |
+| `test/test_convert_corpus.py` | Upgrades, downgrades, and round trips over the corpus match sbol-rs's output graphs |
+| `test/test_convert_reference.py` | Conversions agree with the Java SBOL-Converter's outputs |
+| `test/test_convert_units.py` | IRI handling and vocabulary mappings |
 
-- In case you're using pySBOL2, make sure to have these configurations:
-    ```
-    Config.setOption(ConfigOptions.SBOL_COMPLIANT_URIS, True)
-    Config.setOption(ConfigOptions.SBOL_TYPED_URIS, False)
-    ```
+```bash
+SBOL_TEST_SUITE_DIR=~/git/SBOLTestSuite pytest test/test_validation_*.py test/test_convert_*.py
+```
 
-- Validate the file with the [online Validator](https://validator.sbolstandard.org/). It shouldn't throw any validation errors
+To add a validation rule case, write a minimal document under `test/validation_cases/sbol2/` or `sbol3/`, named
+`<rule-id>[_<description>].ttl` (for example `sbol3-10104_child_url.ttl`). It must fire that rule. Documents that
+must be clean go in the `valid/` subdirectory. Then regenerate the goldens so the case is also checked against
+sbol-rs.
 
-- Put the file in the `test/test_files`
+When a conversion fingerprint mismatches, set `SBOL_RS_CLI` to an sbol-rs `sbol` binary
+(`cargo build --release -p sbol-cli` in sbol-rs). The failure message then shows a triple-level diff.
 
-- Write a new test function in `test_sbol2_sbol3_direct.py` (follow what the other tests are doing: create a document based on the file, call conversion, convert back to original SBOL version, and check for differences)
+## Regenerating goldens and vendored data
 
-- Now you can write the new converter functionality to make that test pass
+```bash
+# sbol-rs verdicts and conversion fingerprints over the corpus and the rule cases
+python tools/generate_sbol_rs_goldens.py /path/to/sbol-rs/target/release/sbol
+# rule catalogs and ontology facts (Python 3.11+)
+python tools/sync_sbol_rs_data.py /path/to/sbol-rs
+```
 
-- Note that after completing the converter code, there will still be errors saying the objects are missing backport triples from the roundtrip conversion.
-    To deal with those you need to add backport variables to your objects in the XML file. Add `xmlns:backport="http://sboltools.org/backport#"` to the namespaces at the beginning of the file and `<backport:sbol3namespace rdf:resource="https://github.com"/>` to each object
+Goldens hold only file names, rule ids, severities, subject IRIs, and graph fingerprints. No corpus content is
+copied.
+
+## Finding issues
+
+Converter and validator issues are labelled
+[`sbol-converter`](https://github.com/SynBioDex/SBOL-utilities/issues?q=is%3Aissue%20state%3Aopen%20label%3Asbol-converter)
+on GitHub.
