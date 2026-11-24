@@ -1,0 +1,26 @@
+BASE <https://example.org/>
+PREFIX : <https://example.org/>
+PREFIX EDAM: <https://identifiers.org/edam:>
+PREFIX CHEBI: <https://identifiers.org/CHEBI:>
+PREFIX GO: <https://identifiers.org/GO:>
+PREFIX om: <http://www.ontology-of-units-of-measure.org/resource/om-2/>
+PREFIX SBO: <https://identifiers.org/SBO:>
+PREFIX SO: <https://identifiers.org/SO:>
+PREFIX prov: <http://www.w3.org/ns/prov#>
+PREFIX sbol: <http://sbols.org/v3#>
+
+<https://example.org/artifact> a sbol:Component ;
+    sbol:displayId "artifact" ;
+    sbol:hasNamespace <https://example.org> ;
+    sbol:type SBO:0000251 ;
+    prov:wasGeneratedBy <https://example.org/build_run> .
+
+<https://example.org/build_run> a prov:Activity, sbol:TopLevel ;
+    sbol:displayId "build_run" ;
+    sbol:hasNamespace <https://example.org> ;
+    sbol:type sbol:build ;
+    prov:qualifiedAssociation <https://example.org/build_run/build_assoc> .
+
+<https://example.org/build_run/build_assoc> a prov:Association ;
+    sbol:displayId "build_assoc" ;
+    prov:hadRole sbol:build .

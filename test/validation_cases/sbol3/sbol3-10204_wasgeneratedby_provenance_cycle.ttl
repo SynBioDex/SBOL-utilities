@@ -1,0 +1,35 @@
+BASE <https://example.org/>
+PREFIX : <https://example.org/>
+PREFIX EDAM: <https://identifiers.org/edam:>
+PREFIX CHEBI: <https://identifiers.org/CHEBI:>
+PREFIX GO: <https://identifiers.org/GO:>
+PREFIX om: <http://www.ontology-of-units-of-measure.org/resource/om-2/>
+PREFIX SBO: <https://identifiers.org/SBO:>
+PREFIX SO: <https://identifiers.org/SO:>
+PREFIX prov: <http://www.w3.org/ns/prov#>
+PREFIX sbol: <http://sbols.org/v3#>
+
+:component_a a sbol:Component;
+    sbol:displayId "component_a";
+    sbol:hasNamespace <https://example.org>;
+    sbol:type SBO:0000251;
+    prov:wasGeneratedBy :activity_a .
+:activity_a a prov:Activity;
+    sbol:displayId "activity_a";
+    sbol:hasNamespace <https://example.org>;
+    prov:qualifiedUsage <https://example.org/activity_a/usage_a> .
+<https://example.org/activity_a/usage_a> a prov:Usage;
+    sbol:displayId "usage_a";
+    prov:entity :component_b .
+:component_b a sbol:Component;
+    sbol:displayId "component_b";
+    sbol:hasNamespace <https://example.org>;
+    sbol:type SBO:0000251;
+    prov:wasGeneratedBy :activity_b .
+:activity_b a prov:Activity;
+    sbol:displayId "activity_b";
+    sbol:hasNamespace <https://example.org>;
+    prov:qualifiedUsage <https://example.org/activity_b/usage_b> .
+<https://example.org/activity_b/usage_b> a prov:Usage;
+    sbol:displayId "usage_b";
+    prov:entity :component_a .
