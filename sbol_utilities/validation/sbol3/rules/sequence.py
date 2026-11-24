@@ -1,0 +1,55 @@
+"""Sequence rules (sbol3-105xx): encodings and element alphabets."""
+
+from __future__ import annotations
+
+from sbol_utilities.validation.sbol3 import REGISTRY, spec
+from sbol_utilities.validation.sbol3.context import SBOL3Context
+from sbol_utilities.validation.sbol3.helpers import (
+    canonical_table_1_sequence_encoding_iri,
+    first_invalid_sequence_element,
+    is_edam_textual_format,
+)
+
+
+@REGISTRY.rule("sbol3-10501", "sbol3-10502", "sbol3-10503", "sbol3-10504", "sbol3-10505")
+def sequences(ctx: SBOL3Context) -> None:
+    """Encoding presence, ontology classification, Table 1 aliases, and IUPAC alphabets."""
+    ontology = ctx.ontology
+    for obj in ctx.instances(spec.SEQUENCE):
+        if len(obj.values(spec.ELEMENTS)) == 1 and not obj.values(spec.ENCODING):
+            ctx.error("sbol3-10501", obj, spec.ENCODING, "Sequence objects with elements must provide an encoding")
+        elements = obj.first_literal_value(spec.ELEMENTS)
+        first_encoding = obj.first_iri(spec.ENCODING)
+        if elements is not None and first_encoding is not None:
+            invalid = first_invalid_sequence_element(ontology, elements, str(first_encoding))
+            if invalid is not None:
+                ctx.error(
+                    "sbol3-10503",
+                    obj,
+                    spec.ELEMENTS,
+                    f"Sequence elements contain `{invalid}`, which is inconsistent with encoding `{first_encoding}`",
+                )
+        for encoding in obj.iris(spec.ENCODING):
+            text = str(encoding)
+            if ontology.is_sequence_encoding_term(text) is False:
+                ctx.error(
+                    "sbol3-10502",
+                    obj,
+                    spec.ENCODING,
+                    f"Sequence encoding `{text}` is not an ontology Sequence encoding term",
+                )
+            canonical = canonical_table_1_sequence_encoding_iri(ontology, text)
+            if canonical is not None and canonical != text:
+                ctx.error(
+                    "sbol3-10504",
+                    obj,
+                    spec.ENCODING,
+                    f"Sequence encoding `{text}` is equivalent to Table 1 URI `{canonical}`",
+                )
+            if is_edam_textual_format(ontology, text) is False:
+                ctx.warning(
+                    "sbol3-10505",
+                    obj,
+                    spec.ENCODING,
+                    f"Sequence encoding `{text}` is not in the EDAM textual format branch",
+                )
