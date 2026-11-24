@@ -20,8 +20,8 @@ import pytest
 import sboltestsuite as suite
 from rdflib import Graph
 
-from sbol_utilities.rdf_io import load_graph
 from sbol_utilities.convert import downgrade, upgrade
+from sbol_utilities.rdf_io import load_graph
 
 pytestmark = pytest.mark.sboltestsuite
 

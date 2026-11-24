@@ -17,8 +17,8 @@ import conversion_goldens as cg
 import pytest
 from rdflib import Graph, URIRef
 
-from sbol_utilities.rdf_io import load_graph
 from sbol_utilities.convert import downgrade, upgrade
+from sbol_utilities.rdf_io import load_graph
 
 pytestmark = pytest.mark.sboltestsuite
 

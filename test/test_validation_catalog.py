@@ -20,6 +20,12 @@ CASES = Path(__file__).resolve().parent / "validation_cases"
 SUFFIXES = {".ttl", ".xml", ".rdf", ".nt", ".jsonld"}
 CASE_NAME = re.compile(r"^(sbol[23]-\d{5})(?:_.*)?$")
 REGISTRIES = {"sbol2": SBOL2, "sbol3": SBOL3}
+
+#: Rules that act only when references are resolved against other documents. Offline validation evaluates nothing
+#: for them, so no single-document case can fire them (sbol-rs exempts the same rules as EXTERNAL_POLICY_RULES).
+RESOLVER_ONLY = {
+    "sbol3-10114": "warns on unresolved external TopLevel references only in resolver-aware validation",
+}
 VALIDATORS = {"sbol2": validate_sbol2, "sbol3": validate_sbol3}
 
 
@@ -45,7 +51,9 @@ def test_every_implemented_rule_has_a_negative_case(version):
     """Each machine-checkable rule has at least one case file named after it."""
     registry = REGISTRIES[version]
     covered = {CASE_NAME.match(p.stem).group(1) for p in _cases(version) if CASE_NAME.match(p.stem)}
-    missing = sorted(r.id for r in registry.catalog.machine_checkable() if r.id not in covered)
+    missing = sorted(
+        r.id for r in registry.catalog.machine_checkable() if r.id not in covered and r.id not in RESOLVER_ONLY
+    )
     assert not missing, f"{len(missing)} {version} rules without a negative case: {missing}"
 
 
