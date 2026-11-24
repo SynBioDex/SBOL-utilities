@@ -1,0 +1,64 @@
+@prefix sbol: <http://sbols.org/v2#> .
+
+<http://ex/module> a sbol:ModuleDefinition ;
+    sbol:displayId "module" ;
+    sbol:persistentIdentity <http://ex/module> ;
+    sbol:functionalComponent <http://ex/module/repressor>, <http://ex/module/promoter> ;
+    sbol:interaction <http://ex/module/repression> .
+
+<http://ex/module/repressor> a sbol:FunctionalComponent ;
+    sbol:displayId "repressor" ;
+    sbol:persistentIdentity <http://ex/module/repressor> ;
+    sbol:definition <http://ex/laci> ;
+    sbol:access sbol:public ;
+    sbol:direction sbol:none .
+
+<http://ex/module/promoter> a sbol:FunctionalComponent ;
+    sbol:displayId "promoter" ;
+    sbol:persistentIdentity <http://ex/module/promoter> ;
+    sbol:definition <http://ex/plac> ;
+    sbol:access sbol:public ;
+    sbol:direction sbol:none .
+
+<http://ex/module/repression> a sbol:Interaction ;
+    sbol:displayId "repression" ;
+    sbol:persistentIdentity <http://ex/module/repression> ;
+    sbol:type <http://identifiers.org/biomodels.sbo/SBO:0000169> ;
+    sbol:participation <http://ex/module/repression/inhibitor>, <http://ex/module/repression/inhibited> .
+
+<http://ex/module/repression/inhibitor> a sbol:Participation ;
+    sbol:displayId "inhibitor" ;
+    sbol:persistentIdentity <http://ex/module/repression/inhibitor> ;
+    sbol:role <http://identifiers.org/biomodels.sbo/SBO:0000020> ;
+    sbol:participant <http://ex/module/repressor> .
+
+<http://ex/module/repression/inhibited> a sbol:Participation ;
+    sbol:displayId "inhibited" ;
+    sbol:persistentIdentity <http://ex/module/repression/inhibited> ;
+    sbol:role <http://identifiers.org/biomodels.sbo/SBO:0000642> ;
+    sbol:participant <http://ex/module/promoter> .
+
+<http://ex/laci> a sbol:ComponentDefinition ;
+    sbol:displayId "laci" ;
+    sbol:persistentIdentity <http://ex/laci> ;
+    sbol:type <http://www.biopax.org/release/biopax-level3.owl#Protein> ;
+    sbol:sequence <http://ex/laci_seq> .
+
+<http://ex/laci_seq> a sbol:Sequence ;
+    sbol:displayId "laci_seq" ;
+    sbol:persistentIdentity <http://ex/laci_seq> ;
+    sbol:elements "MKPVTLYDVAEYAGVSYQTVSRVV" ;
+    sbol:encoding <http://www.chem.qmul.ac.uk/iupac/AminoAcid/> .
+
+<http://ex/plac> a sbol:ComponentDefinition ;
+    sbol:displayId "plac" ;
+    sbol:persistentIdentity <http://ex/plac> ;
+    sbol:type <http://www.biopax.org/release/biopax-level3.owl#DnaRegion> ;
+    sbol:role <http://identifiers.org/so/SO:0000167> ;
+    sbol:sequence <http://ex/plac_seq> .
+
+<http://ex/plac_seq> a sbol:Sequence ;
+    sbol:displayId "plac_seq" ;
+    sbol:persistentIdentity <http://ex/plac_seq> ;
+    sbol:elements "tttacactttatgcttccggctcg" ;
+    sbol:encoding <http://www.chem.qmul.ac.uk/iubmb/misc/naseq.html> .
