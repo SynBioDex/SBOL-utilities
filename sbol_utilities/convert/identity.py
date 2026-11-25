@@ -9,6 +9,8 @@ reference's ``getLatestUri``). References to objects outside the document fall b
 
 from __future__ import annotations
 
+from typing import NamedTuple
+
 from rdflib import Literal
 
 from sbol_utilities.convert import uri
@@ -65,6 +67,14 @@ def _as_int(text: str) -> int | None:
     return value if -(2**63) <= value < 2**63 else None
 
 
+class _TopLevel(NamedTuple):
+    """A top-level SBOL 2 object's place in both versions."""
+
+    namespace: str
+    persistent_identity: str
+    sbol3: str
+
+
 class IdentityMap:
     """SBOL 2 IRI -> SBOL 3 IRI rewrites and derived namespaces for one document."""
 
@@ -96,6 +106,7 @@ class IdentityMap:
             if p in REFERENCE_PREDICATES and is_iri(o):
                 candidates.add(o)
 
+        # a reference to a bare persistentIdentity names the highest-version object carrying it
         latest: dict[str, str] = {}
         for subject in sorted(persistent_identity_of):
             pid = persistent_identity_of[subject]
@@ -104,36 +115,26 @@ class IdentityMap:
                 latest[pid] = subject
 
         # a top-level is an identified subject that nothing owns
-        tops: dict[str, tuple] = {}
-        for subject in identified:
-            if subject in owned_by:
-                continue
-            namespace = uri.uri_prefix_sbol2(subject)
-            if namespace is None:
-                continue
-            display_id = uri.display_id_sbol2(subject) or ""
-            tops[subject] = (namespace, f"{namespace}/{display_id}", uri.create_sbol3_uri(subject))
+        tops: dict[str, _TopLevel] = {}
+        for subject in sorted(identified - owned_by.keys()):
+            parts = uri.Sbol2Iri.parse(subject)
+            if parts is not None:
+                tops[subject] = _TopLevel(
+                    parts.prefix, f"{parts.prefix}/{parts.display_id}", uri.create_sbol3_uri(subject)
+                )
 
         self.rewrites: dict[str, str] = {}
         for iri in candidates:
             resolved = latest.get(iri, iri)
-            top = _owning_top_level(resolved, owned_by, tops)
-            if top is None:
-                sbol3 = uri.create_sbol3_uri(resolved)
-            else:
-                _, persistent_identity, top_sbol3 = tops[top]
-                relative = None if resolved == top else _child_relative_path(resolved, persistent_identity)
-                if resolved == top:
-                    sbol3 = top_sbol3
-                elif relative is not None:
-                    sbol3 = f"{top_sbol3}/{relative}"
-                else:
-                    sbol3 = uri.create_sbol3_uri(resolved)
+            sbol3 = _sbol3_identity(resolved, owned_by, tops)
             if sbol3 != iri:
                 self.rewrites[iri] = sbol3
 
-        #: derived hasNamespace, keyed by SBOL 3 identity (the engine emits it only for top-levels)
-        self.namespaces: dict[str, str] = {self.rewrite(top): info[0] for top, info in tops.items()}
+        #: derived hasNamespace, keyed by SBOL 3 identity; when several top-levels share an SBOL 3 identity, the
+        #: first in IRI order gives the namespace
+        self.namespaces: dict[str, str] = {}
+        for top, info in tops.items():
+            self.namespaces.setdefault(self.rewrite(top), info.namespace)
 
     def rewrite(self, iri: str) -> str:
         """The SBOL 3 form of an SBOL 2 IRI (unchanged when it needs no rewrite)."""
@@ -143,23 +144,35 @@ class IdentityMap:
         """Rewrite a term when it is an IRI."""
         return self.rewrites.get(term, term) if is_iri(term) else term
 
+    def rehome(self, iri: str, sbol3: str) -> None:
+        """Give an SBOL 2 IRI a chosen SBOL 3 identity, in place of the derived one."""
+        self.rewrites[iri] = sbol3
+
     def namespace_for(self, sbol3_iri: str) -> str | None:
         """The derived ``hasNamespace`` of a top-level, by its SBOL 3 identity."""
         return self.namespaces.get(sbol3_iri)
 
 
-def _owning_top_level(iri: str, owned_by: dict[str, str], tops: dict[str, tuple]) -> str | None:
-    if iri in tops:
-        return iri
-    current = iri
-    for _ in range(64):
-        parent = owned_by.get(current)
-        if parent is None:
-            return None
-        if parent in tops:
-            return parent
-        current = parent
-    return None
+def _sbol3_identity(iri: str, owned_by: dict[str, str], tops: dict[str, _TopLevel]) -> str:
+    """The SBOL 3 identity of an SBOL 2 object: a top-level's own, a child's nested under its top-level's, and
+    anything else by decomposing the IRI."""
+    top = _owning_top_level(iri, owned_by, tops)
+    if top is None:
+        return uri.create_sbol3_uri(iri)
+    if iri == top:
+        return tops[top].sbol3
+    relative = _child_relative_path(iri, tops[top].persistent_identity)
+    return uri.create_sbol3_uri(iri) if relative is None else f"{tops[top].sbol3}/{relative}"
+
+
+def _owning_top_level(iri: str, owned_by: dict[str, str], tops: dict[str, _TopLevel]) -> str | None:
+    """The top-level that owns ``iri``, directly or through a chain of owners; None when the chain reaches none."""
+    seen: set[str] = set()
+    current: str | None = iri
+    while current is not None and current not in tops and current not in seen:
+        seen.add(current)
+        current = owned_by.get(current)
+    return current if current in tops else None
 
 
 def _child_relative_path(iri: str, persistent_identity: str) -> str | None:
@@ -167,8 +180,4 @@ def _child_relative_path(iri: str, persistent_identity: str) -> str | None:
     prefix = persistent_identity + "/"
     if not iri.startswith(prefix):
         return None
-    rest = iri[len(prefix) :]
-    version = uri.version_sbol2(iri)
-    if version and rest.endswith("/" + version):
-        return rest[: -len(version) - 1]
-    return rest
+    return uri.without_version(iri[len(prefix) :], uri.version_sbol2(iri))

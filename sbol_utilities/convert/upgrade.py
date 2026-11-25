@@ -16,6 +16,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from dataclasses import dataclass
+from itertools import count
 
 import rdflib
 from rdflib import Literal
@@ -334,12 +335,12 @@ class _Upgrader:
         for loc, subcomponent in owners:
             base = self.display_ids.get(loc) or uri.last_segment(rewrite(loc))
             self.used_iris.discard(rewrite(loc))
-            display_id, new_iri = uri.next_available_child_iri(
-                rewrite(subcomponent), base, self.used_iris, collapse_slash=False
+            display_id, new_iri = uri.claim_child(
+                rewrite(subcomponent), uri.numbered(base), self.used_iris, join=uri.slash_join
             )
             if display_id != base:
                 self.location_display_id_overrides[loc] = display_id
-            self.identity.rewrites[loc] = new_iri
+            self.identity.rehome(loc, new_iri)
 
         # Interface membership: in/out/inout directions, public direction-none FunctionalComponents, and public
         # Components (SBOL 3.1.0 §10.2).
@@ -622,8 +623,10 @@ class _Upgrader:
             top_level = rewrite(self._owning_top_level(carrier))
             local, remote = rewrite(info.local), rewrite(info.remote)
             base = info.display_id if info.display_id is not None else uri.last_segment(mapsto)
-            cref_id, cref = uri.next_available_child_iri(top_level, base, self.used_iris, collapse_slash=False)
-            constraint_id, constraint = self._next_constraint(top_level)
+            cref_id, cref = uri.claim_child(top_level, uri.numbered(base), self.used_iris, join=uri.slash_join)
+            constraint_id, constraint = uri.claim_child(
+                top_level, (f"Constraint{n}" for n in count(1)), self.used_iris, join=uri.slash_join
+            )
 
             if self.options.preserve_backport:
                 self.out.append((cref, BP.sbol2OriginalURI, mapsto))
@@ -655,17 +658,6 @@ class _Upgrader:
                 (top_level, S3.hasConstraint, constraint),
             ]
 
-    def _next_constraint(self, top_level: str) -> tuple[str, str]:
-        """The next free ``Constraint<N>`` child of a Component, numbered like the reference's ``createConstraint``."""
-        counter = 1
-        while True:
-            display_id = f"Constraint{counter}"
-            iri = f"{top_level}/{display_id}"
-            if iri not in self.used_iris:
-                self.used_iris.add(iri)
-                return display_id, iri
-            counter += 1
-
     def _synthesize_interfaces(self) -> None:
         """Give each Component with directional or public features an Interface listing them."""
         by_top_level: dict[str, list[tuple[str, str]]] = defaultdict(list)
@@ -673,8 +665,8 @@ class _Upgrader:
             by_top_level[self._owning_top_level(fc)].append((fc, slot))
         for top in sorted(by_top_level):
             top_v3 = self.identity.rewrite(top)
-            display_id, interface = uri.next_available_child_iri(
-                top_v3, "Interface1", self.used_iris, collapse_slash=False
+            display_id, interface = uri.claim_child(
+                top_v3, uri.numbered("Interface1"), self.used_iris, join=uri.slash_join
             )
             self.out.append((interface, RDF_TYPE, S3.Interface))
             self.out.append((interface, S3.displayId, plain(display_id)))

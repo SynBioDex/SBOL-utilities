@@ -446,7 +446,7 @@ class _Downgrader:
                 sub_display_id = display_ids.get(subcomponent) or uri.last_segment(subcomponent)
                 first = display_ids.get(locations[0]) if locations else None
                 base = f"{sub_display_id}_{first}" if first is not None else f"{sub_display_id}_annotation"
-            display_id, iri = uri.next_available_child_iri(parent, base, self.used_iris)
+            display_id, iri = uri.claim_child(parent, uri.numbered(base), self.used_iris)
             self.sa_wrappers[subcomponent] = _SaWrapper(display_id, iri, parent, locations)
 
     def _discover_unsupported(self) -> None:
@@ -486,7 +486,7 @@ class _Downgrader:
             sbol2 = uri.create_sbol2_uri(iri)
             version: str | None = uri.version_sbol3(iri) or None
             if version is not None:
-                pid = sbol2[: -len(version) - 1] if sbol2.endswith("/" + version) else sbol2
+                pid = uri.without_version(sbol2, version)
                 self.versions[iri] = version
                 self.preserved_versions.add(iri)
                 effective: str | None = version
@@ -509,7 +509,7 @@ class _Downgrader:
                 if iri.startswith(top + "/"):
                     child_pid = f"{pid}/{iri[len(top) + 1:]}"
                     self.persistent_identities[iri] = child_pid
-                    self.rewrites[iri] = f"{child_pid}/{version}" if version is not None else child_pid
+                    self.rewrites[iri] = uri.versioned(child_pid, version)
                     break
 
         for wrapper in self.sa_wrappers.values():
@@ -520,7 +520,7 @@ class _Downgrader:
             for loc in wrapper.locations:
                 loc_pid = f"{wrapper.iri_unversioned}/{uri.last_segment(loc)}"
                 self.persistent_identities[loc] = loc_pid
-                self.rewrites[loc] = f"{loc_pid}/{version}" if version is not None else loc_pid
+                self.rewrites[loc] = uri.versioned(loc_pid, version)
 
     def _top_level_version(self, iri: str) -> str | None:
         if iri in self.preserved_versions:
@@ -704,11 +704,8 @@ class _Downgrader:
             top = self._owning_top_level(info.carrier)
             version = self._top_level_version(top) if top is not None else self.options.default_version
             carrier = self._rewrite(info.carrier)
-            carrier_version = uri.version_sbol2(carrier)
-            carrier_base = carrier
-            if carrier_version and carrier.endswith("/" + carrier_version):
-                carrier_base = carrier[: -len(carrier_version) - 1]
-            display_id, unversioned = uri.next_available_child_iri(carrier_base, info.display_id, self.used_iris)
+            carrier_base = uri.without_version(carrier, uri.version_sbol2(carrier))
+            display_id, unversioned = uri.claim_child(carrier_base, uri.numbered(info.display_id), self.used_iris)
             mapsto = uri.append_segment(unversioned, version) if version is not None else unversioned
             self.out += [
                 (carrier, S2.mapsTo, mapsto),

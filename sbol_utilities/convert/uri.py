@@ -11,6 +11,10 @@ or ``-``.
 
 from __future__ import annotations
 
+from collections.abc import Callable, Iterable, Iterator
+from itertools import count
+from typing import NamedTuple
+
 
 def is_version_valid(segment: str) -> bool:
     """Whether ``segment`` is a valid SBOL version: empty, or a leading ASCII digit then word characters."""
@@ -55,49 +59,64 @@ def namespace_sbol3(uri: str) -> str:
     return namespace[:second_last] if second_last >= 0 else ""
 
 
-# SBOL 2 IRI decomposition: <prefix>/<displayId>/<version>. Each returns None for an empty IRI, one ending in "/",
-# or one without any "/": the IRIs the reference treats as non-decomposable.
+# SBOL 2 IRI decomposition: <prefix>/<displayId>/<version>
 
 
-def _sbol2_split(uri: str) -> tuple[int, str] | None:
-    if not uri or uri.endswith("/"):
-        return None
-    last = uri.rfind("/")
-    if last < 0:
-        return None
-    return last, uri[last + 1 :]
+class Sbol2Iri(NamedTuple):
+    """The parts of an SBOL 2 identity."""
+
+    #: the IRI minus its displayId and, when present, its version
+    prefix: str
+    display_id: str
+    #: the last segment when it is version-shaped, otherwise ``""``
+    version: str
+
+    @classmethod
+    def parse(cls, iri: str) -> Sbol2Iri | None:
+        """Decompose an IRI, or None for one the reference treats as non-decomposable: empty, ending in ``/``, or
+        without any ``/``.
+
+        An IRI whose only segment after the first ``/`` is version-shaped keeps the whole IRI as both prefix and
+        displayId, as the reference does.
+        """
+        last = iri.rfind("/")
+        if not iri or iri.endswith("/") or last < 0:
+            return None
+        segment = iri[last + 1 :]
+        if not is_version_valid(segment):
+            return cls(iri[:last], segment, "")
+        second_last = iri.rfind("/", 0, last)
+        if second_last < 0:
+            return cls(iri, iri, segment)
+        return cls(iri[:second_last], iri[second_last + 1 : last], segment)
 
 
 def version_sbol2(uri: str) -> str | None:
     """The version segment, ``""`` when the last segment is not version-shaped, None when not decomposable."""
-    split = _sbol2_split(uri)
-    if split is None:
-        return None
-    return split[1] if is_version_valid(split[1]) else ""
+    parts = Sbol2Iri.parse(uri)
+    return None if parts is None else parts.version
 
 
 def display_id_sbol2(uri: str) -> str | None:
     """The segment before the version when the IRI is versioned, otherwise the last segment."""
-    split = _sbol2_split(uri)
-    if split is None:
-        return None
-    last, last_segment = split
-    if not is_version_valid(last_segment):
-        return last_segment
-    second_last = uri.rfind("/", 0, last)
-    return uri[second_last + 1 : last] if second_last >= 0 else uri
+    parts = Sbol2Iri.parse(uri)
+    return None if parts is None else parts.display_id
 
 
 def uri_prefix_sbol2(uri: str) -> str | None:
     """The IRI minus its displayId (and version, when present)."""
-    split = _sbol2_split(uri)
-    if split is None:
-        return None
-    last, last_segment = split
-    if not is_version_valid(last_segment):
-        return uri[:last]
-    second_last = uri.rfind("/", 0, last)
-    return uri[:second_last] if second_last >= 0 else uri
+    parts = Sbol2Iri.parse(uri)
+    return None if parts is None else parts.prefix
+
+
+def versioned(persistent_identity: str, version: str | None) -> str:
+    """The SBOL 2 identity ``<persistentIdentity>/<version>``, or the persistentIdentity itself without a version."""
+    return persistent_identity if version is None else f"{persistent_identity}/{version}"
+
+
+def without_version(iri: str, version: str | None) -> str:
+    """``iri`` minus a trailing ``/<version>``, when it has that version and ends with it."""
+    return iri[: -len(version) - 1] if version and iri.endswith("/" + version) else iri
 
 
 # Cross-version identity construction
@@ -113,17 +132,15 @@ def create_sbol2_uri(sbol3_uri: str) -> str:
 
 
 def create_sbol3_uri(sbol2_uri: str) -> str:
-    """The SBOL 3 IRI ``<prefix>[/<version>]/<displayId>`` for an SBOL 2 IRI."""
-    prefix = uri_prefix_sbol2(sbol2_uri)
-    if prefix is None:
+    """The SBOL 3 IRI ``<prefix>[/<version>]/<displayId>`` for an SBOL 2 IRI; non-decomposable input is returned."""
+    parts = Sbol2Iri.parse(sbol2_uri)
+    if parts is None:
         return sbol2_uri
-    version = version_sbol2(sbol2_uri)
-    display_id = display_id_sbol2(sbol2_uri)
-    sbol3 = prefix
-    if version:
-        sbol3 += f"/{version}"
-    if display_id:
-        sbol3 += f"/{display_id}"
+    sbol3 = parts.prefix
+    if parts.version:
+        sbol3 += f"/{parts.version}"
+    if parts.display_id:
+        sbol3 += f"/{parts.display_id}"
     return sbol3
 
 
@@ -226,20 +243,28 @@ def append_segment(iri: str, segment: str) -> str:
     return f"{iri}{segment}" if iri.endswith("/") else f"{iri}/{segment}"
 
 
-def next_available_child_iri(
-    parent: str, base_display_id: str, used: set[str], collapse_slash: bool = True
-) -> tuple[str, str]:
-    """A ``(displayId, iri)`` child of ``parent`` whose IRI is not in ``used``, claiming that IRI.
+def slash_join(iri: str, segment: str) -> str:
+    """``iri/segment``, even when ``iri`` already ends with ``/``."""
+    return f"{iri}/{segment}"
 
-    Collisions are disambiguated with ``_2``, ``_3``, … appended to the displayId, so the displayId always matches the
-    IRI's last segment. The upgrade joins with a plain ``/`` (``collapse_slash=False``); the downgrade does not double
-    a trailing ``/``.
+
+def numbered(base: str) -> Iterator[str]:
+    """``base``, ``base_2``, ``base_3``, …"""
+    yield base
+    for n in count(2):
+        yield f"{base}_{n}"
+
+
+def claim_child(
+    parent: str, display_ids: Iterable[str], used: set[str], join: Callable[[str, str], str] = append_segment
+) -> tuple[str, str]:
+    """A ``(displayId, iri)`` child of ``parent`` whose IRI is not in ``used``, adding that IRI to ``used``.
+
+    The first of ``display_ids`` giving a free IRI is taken, so the displayId always matches the IRI's last segment.
     """
-    counter = 1
-    while True:
-        display_id = base_display_id if counter == 1 else f"{base_display_id}_{counter}"
-        iri = append_segment(parent, display_id) if collapse_slash else f"{parent}/{display_id}"
+    for display_id in display_ids:
+        iri = join(parent, display_id)
         if iri not in used:
             used.add(iri)
             return display_id, iri
-        counter += 1
+    raise ValueError(f"no free child IRI under {parent}")

@@ -140,8 +140,8 @@ def test_iri_helpers():
     assert uri.url_origin("urn:uuid:1234") == "urn:uuid"
     assert uri.url_origin("relative/path") is None
     used = {"https://example.org/c/a"}
-    assert uri.next_available_child_iri("https://example.org/c", "a", used) == ("a_2", "https://example.org/c/a_2")
-    assert uri.next_available_child_iri("https://example.org/c/", "b", used) == ("b", "https://example.org/c/b")
+    assert uri.claim_child("https://example.org/c", uri.numbered("a"), used) == ("a_2", "https://example.org/c/a_2")
+    assert uri.claim_child("https://example.org/c/", uri.numbered("b"), used) == ("b", "https://example.org/c/b")
     assert "https://example.org/c/a_2" in used
 
 
