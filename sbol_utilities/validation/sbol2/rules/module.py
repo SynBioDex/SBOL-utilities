@@ -21,8 +21,11 @@ def ontology_curie(iri: str) -> str:
 def module_definition_cycles(ctx: Sbol2Context) -> None:
     """ModuleDefinitions do not form a cycle through their Modules' definitions."""
     for obj in definition_cycles(ctx, S.MODULE_DEFINITION, S.MODULE_P, S.DEFINITION):
-        ctx.error(
-            "sbol2-11705", obj, "a ModuleDefinition must not form a cycle through its Modules' definitions", S.MODULE_P
+        ctx.report(
+            "sbol2-11705",
+            obj,
+            "a ModuleDefinition must not form a cycle through its Modules' definitions",
+            property=S.MODULE_P,
         )
 
 
@@ -30,7 +33,12 @@ def module_definition_cycles(ctx: Sbol2Context) -> None:
 def module_definition_use_remote(ctx: Sbol2Context) -> None:
     """Two useRemote MapsTos of a ModuleDefinition's Modules and FunctionalComponents do not share a local."""
     for obj in use_remote_collisions(ctx, S.MODULE_DEFINITION, (S.MODULE_P, S.FUNCTIONAL_COMPONENT_P)):
-        ctx.error("sbol2-11609", obj, "two useRemote MapsTos of a ModuleDefinition must not share a local", S.MAPS_TO_P)
+        ctx.report(
+            "sbol2-11609",
+            obj,
+            "two useRemote MapsTos of a ModuleDefinition must not share a local",
+            property=S.MAPS_TO_P,
+        )
 
 
 @REGISTRY.rule("sbol2-12003")
@@ -47,19 +55,17 @@ def participants_in_module_definition(ctx: Sbol2Context) -> None:
             continue
         module_definition = ctx.container_of(interaction, S.INTERACTION_P)
         if module_definition is not None and not module_definition.lists(S.FUNCTIONAL_COMPONENT_P, participant):
-            ctx.error(
+            ctx.report(
                 "sbol2-12003",
                 obj,
                 "the participant of a Participation must be a FunctionalComponent of the ModuleDefinition",
-                S.PARTICIPANT,
+                property=S.PARTICIPANT,
             )
 
 
 @REGISTRY.rule("sbol2-11907")
 def interaction_participation_roles(ctx: Sbol2Context) -> None:
     """An Interaction's participant roles are compatible with its SBO type (Table 11)."""
-    if not ctx.config.best_practice:
-        return
     ontology = ctx.ontology
     for obj in ctx.sbol_objects:
         if not obj.has_class(S.INTERACTION):
@@ -84,9 +90,9 @@ def interaction_participation_roles(ctx: Sbol2Context) -> None:
             if len(roles) == 1 and roles[0] not in allowed:
                 offending = True
         if offending:
-            ctx.warning(
+            ctx.report(
                 "sbol2-11907",
                 obj,
                 "an Interaction's participant roles should be compatible with its SBO type",
-                S.TYPE,
+                property=S.TYPE,
             )

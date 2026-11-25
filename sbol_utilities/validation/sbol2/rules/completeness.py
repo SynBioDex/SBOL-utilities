@@ -43,8 +43,6 @@ def _resolvable(ctx: Sbol2Context) -> set[str]:
 @REGISTRY.rule(*_COMPLETENESS_RULES)
 def referenced_objects_present(ctx: Sbol2Context) -> None:
     """Every external reference names an object held in the document."""
-    if not ctx.config.complete:
-        return
     resolvable = _resolvable(ctx)
     for obj in ctx.sbol_objects:
         for predicate, field in obj.fields.items():
@@ -56,11 +54,11 @@ def referenced_objects_present(ctx: Sbol2Context) -> None:
                 continue
             for value in obj.resources(predicate):
                 if not (isinstance(value, URIRef) and str(value) in resolvable):
-                    ctx.error(
+                    ctx.report(
                         rule,
                         obj,
                         f"complete document must contain the object `{value}` referenced by `{predicate}`",
-                        predicate,
+                        property=predicate,
                     )
 
 
@@ -102,30 +100,34 @@ def referenced_object_classes(ctx: Sbol2Context) -> None:
     for obj in ctx.sbol_objects:
         if (obj.has_class(S.COMPONENT) or obj.has_class(S.FUNCTIONAL_COMPONENT)) and not obj.has_class(S.MODULE):
             for iri in _wrong_class(ctx, obj, S.DEFINITION, lambda t: t.has_class(S.COMPONENT_DEFINITION)):
-                ctx.error(
+                ctx.report(
                     "sbol2-10604",
                     obj,
                     f"definition refers to `{iri}`, which is not a ComponentDefinition",
-                    S.DEFINITION,
+                    property=S.DEFINITION,
                 )
         for predicate, classes, rule in _CLASS_CHECKS:
             for iri in _wrong_class(ctx, obj, predicate, lambda t, cs=classes: any(t.has_class(c) for c in cs)):
-                ctx.error(rule, obj, f"`{predicate}` refers to `{iri}`, which is not the required class", predicate)
+                ctx.report(
+                    rule, obj, f"`{predicate}` refers to `{iri}`, which is not the required class", property=predicate
+                )
         if obj.has_class(S.OM_MEASURE):
             for iri in _wrong_class(ctx, obj, S.OM_HAS_UNIT, lambda t: any(t.has_class(c) for c in S.UNIT_CLASSES)):
-                ctx.error("sbol2-13506", obj, f"the hasUnit of a Measure `{iri}` must refer to a Unit", S.OM_HAS_UNIT)
+                ctx.report(
+                    "sbol2-13506", obj, f"the hasUnit of a Measure `{iri}` must refer to a Unit", property=S.OM_HAS_UNIT
+                )
         if obj.has_class(S.MAPS_TO):
             for iri in _wrong_class(ctx, obj, S.REMOTE, lambda t: t.lists(S.ACCESS, S.PUBLIC)):
-                ctx.error("sbol2-10807", obj, f"the MapsTo remote `{iri}` must have public access", S.REMOTE)
+                ctx.report("sbol2-10807", obj, f"the MapsTo remote `{iri}` must have public access", property=S.REMOTE)
         if obj.has_class(S.IMPLEMENTATION):
             for iri in obj.iris(S.BUILT):
                 target = ctx.resolve(iri)
                 if target is None or not (
                     target.has_class(S.COMPONENT_DEFINITION) or target.has_class(S.MODULE_DEFINITION)
                 ):
-                    ctx.error(
+                    ctx.report(
                         "sbol2-13103",
                         obj,
                         f"built refers to `{iri}`, which is not a ComponentDefinition or ModuleDefinition",
-                        S.BUILT,
+                        property=S.BUILT,
                     )

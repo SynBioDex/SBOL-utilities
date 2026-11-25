@@ -20,17 +20,20 @@ def participations(ctx: SBOL3Context) -> None:
         roles = _iris(obj, spec.ROLE)
         for role in roles:
             if ontology.is_participation_role_term(role) is False:
-                ctx.error(
+                ctx.report(
                     "sbol3-11904",
                     obj,
-                    spec.ROLE,
                     f"Participation role `{role}` is not an ontology Participation role term",
+                    property=spec.ROLE,
                 )
         for index, left in enumerate(roles):
             for right in roles[index + 1 :]:
                 if ontology.terms_conflict(left, right) is True:
-                    ctx.error(
-                        "sbol3-11905", obj, spec.ROLE, f"Participation role `{left}` conflicts with role `{right}`"
+                    ctx.report(
+                        "sbol3-11905",
+                        obj,
+                        f"Participation role `{left}` conflicts with role `{right}`",
+                        property=spec.ROLE,
                     )
         known = 0
         unknown = False
@@ -41,18 +44,18 @@ def participations(ctx: SBOL3Context) -> None:
             elif answer is None:
                 unknown = True
         if known > 1 or (known == 0 and not unknown):
-            ctx.warning(
-                "sbol3-11906", obj, spec.ROLE, "Participation should have exactly one known SBO participant role"
+            ctx.report(
+                "sbol3-11906",
+                obj,
+                "Participation should have exactly one known SBO participant role",
+                property=spec.ROLE,
             )
 
         participant = obj.first_resource(spec.PARTICIPANT)
         higher = obj.first_resource(spec.HIGHER_ORDER_PARTICIPANT)
         if (participant is not None) + (higher is not None) != 1:
-            ctx.error(
-                "sbol3-11901",
-                obj,
-                None,
-                "Participation must contain precisely one participant or higherOrderParticipant",
+            ctx.report(
+                "sbol3-11901", obj, "Participation must contain precisely one participant or higherOrderParticipant"
             )
         interaction = ctx.ownership.single_parent(obj.identity, spec.HAS_PARTICIPATION)
         if interaction is None:
@@ -61,18 +64,18 @@ def participations(ctx: SBOL3Context) -> None:
         if component is None:
             continue
         if participant is not None and not component_contains(ctx, component, spec.HAS_FEATURE, participant):
-            ctx.error(
+            ctx.report(
                 "sbol3-11902",
                 obj,
-                spec.PARTICIPANT,
                 "Participation participant must be a Feature of the containing Component",
+                property=spec.PARTICIPANT,
             )
         if higher is not None and not component_contains(ctx, component, spec.HAS_INTERACTION, higher):
-            ctx.error(
+            ctx.report(
                 "sbol3-11903",
                 obj,
-                spec.HIGHER_ORDER_PARTICIPANT,
                 "higherOrderParticipant must be an Interaction of the containing Component",
+                property=spec.HIGHER_ORDER_PARTICIPANT,
             )
 
 
@@ -84,13 +87,21 @@ def interactions(ctx: SBOL3Context) -> None:
         types = _iris(obj, spec.TYPE)
         for t in types:
             if ontology.is_interaction_type_term(t) is False:
-                ctx.error(
-                    "sbol3-11801", obj, spec.TYPE, f"Interaction type `{t}` is not an ontology Interaction type term"
+                ctx.report(
+                    "sbol3-11801",
+                    obj,
+                    f"Interaction type `{t}` is not an ontology Interaction type term",
+                    property=spec.TYPE,
                 )
         for index, left in enumerate(types):
             for right in types[index + 1 :]:
                 if ontology.terms_conflict(left, right) is True:
-                    ctx.error("sbol3-11802", obj, spec.TYPE, f"Interaction type `{left}` conflicts with type `{right}`")
+                    ctx.report(
+                        "sbol3-11802",
+                        obj,
+                        f"Interaction type `{left}` conflicts with type `{right}`",
+                        property=spec.TYPE,
+                    )
         known = 0
         unknown = False
         for t in types:
@@ -100,11 +111,11 @@ def interactions(ctx: SBOL3Context) -> None:
             elif answer is None:
                 unknown = True
         if known > 1 or (known == 0 and not unknown):
-            ctx.warning(
+            ctx.report(
                 "sbol3-11803",
                 obj,
-                spec.TYPE,
                 "Interaction should have exactly one known SBO occurring-entity-relationship type",
+                property=spec.TYPE,
             )
 
         known_types = [t for t in types if ontology.is_interaction_type_term(t) is True]
@@ -128,11 +139,11 @@ def interactions(ctx: SBOL3Context) -> None:
                 elif answer is None:
                     unknown_role = True
             if not compatible and (known_roles == 0 or not unknown_role):
-                ctx.warning(
+                ctx.report(
                     "sbol3-11804",
                     participation_obj,
-                    spec.ROLE,
                     "Participation should have a known role cross-listed with the Interaction type",
+                    property=spec.ROLE,
                 )
 
 
@@ -150,9 +161,9 @@ def interfaces(ctx: SBOL3Context) -> None:
         ):
             for feature in obj.resources(predicate):
                 if not component_contains(ctx, component, spec.HAS_FEATURE, feature):
-                    ctx.error(
+                    ctx.report(
                         rule,
                         obj,
-                        predicate,
                         f"Interface property `{predicate}` must refer to a Feature of the containing Component",
+                        property=predicate,
                     )

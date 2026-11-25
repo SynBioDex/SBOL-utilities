@@ -2,15 +2,16 @@
 
 Each SBOL version has a JSON catalog (published in SynBioDex/SBOLTestSuite's ``Rules/``) listing every rule in the
 specification with its status, normative severity, optional gate, and optional coverage limits. Implementations
-register against rule ids with :meth:`Registry.rule`; one function may check several related rules.
+register against rule ids with :meth:`Registry.rule`; one function may check several related rules, and may
+report only the rules it registered for.
 
 Statuses:
 
 * ``Error`` / ``Warning`` -- algorithm complete; violations emit at that severity.
 * ``Configurable`` -- algorithm complete; MUST rules emit errors, SHOULD rules warnings. A ``coverage_kind`` marks
   rules that can only be checked against references held in the document.
-* ``MachineUncheckable`` -- the specification says violations are not to be machine-reported. An implementation may
-  still emit warnings for positively decidable cases.
+* ``MachineUncheckable`` -- the specification says violations are not to be machine-reported in general. An
+  implementation may still report the cases it can decide from the document, at the rule's normative level.
 """
 
 from __future__ import annotations
@@ -52,10 +53,14 @@ class RuleSpec:
 
     @property
     def default_severity(self) -> str:
-        """Severity a violation of this rule is emitted at, before configuration overrides."""
-        if self.status == ERROR:
-            return ERROR
-        if self.status in (WARNING, MACHINE_UNCHECKABLE) or self.gate == "BestPractice":
+        """Severity a violation of this rule is reported at, before configuration overrides.
+
+        An ``Error`` or ``Warning`` status fixes the severity. Otherwise a best-practice rule is a warning, and any
+        other rule follows its normative level: MUST is an error, SHOULD a warning.
+        """
+        if self.status in (ERROR, WARNING):
+            return self.status
+        if self.gate == "BestPractice":
             return WARNING
         return ERROR if self.normative_severity == "MUST" else WARNING
 
@@ -101,7 +106,7 @@ class Context:
     """State shared by every rule implementation during one validation run.
 
     Version-specific validators subclass this to add indexes over the graph. Rule functions report violations with
-    :meth:`emit`; the context applies gating, severity defaults, and configuration overrides.
+    :meth:`report`; the context applies gating, the rule's catalog severity, and configuration overrides.
     """
 
     def __init__(self, graph: rdflib.Graph, config: ValidationConfig, catalog: Catalog, ontology: Ontology):
@@ -110,32 +115,48 @@ class Context:
         self.catalog = catalog
         self.ontology = ontology
         self.issues: list[Issue] = []
-        self._seen: set = set()
+        self._seen: set[tuple[str, str | None, str | None, str]] = set()
+        #: rule ids the running rule function declared, or None outside :meth:`Registry.run`
+        self.declared_rules: frozenset[str] | None = None
 
     def enabled(self, rule_id: str) -> bool:
         """Whether the rule's gate is on; rule functions may skip expensive work for disabled rules."""
         return self.config.gate_enabled(self.catalog[rule_id].gate)
 
-    def emit(
+    def report(
         self,
         rule_id: str,
         subject: Any,
         message: str,
-        property: Any = None,
+        *,
+        property: str | None = None,
         hint: str | None = None,
         severity: str | None = None,
     ) -> None:
-        """Record a violation of ``rule_id``; duplicate (rule, subject, property, message) records are dropped."""
+        """Record a violation of ``rule_id`` on ``subject``.
+
+        :param subject: the offending object (anything with an ``identity``), its identity node, or None for the
+            document as a whole
+        :param property: the predicate the violation concerns, when there is one
+        :param severity: overrides the rule's catalog severity; for the few cases an implementation reports a rule
+            at another level than the catalog assigns it
+
+        A rule whose gate is off is not recorded, and neither is a repeat of the same (rule, subject, property,
+        message).
+        """
+        if self.declared_rules is not None and rule_id not in self.declared_rules:
+            raise ValueError(f"{rule_id} was reported by a rule function that does not declare it")
         spec = self.catalog[rule_id]
         if not self.config.gate_enabled(spec.gate):
             return
         final = self.config.effective_severity(rule_id, severity or spec.default_severity)
         if final is None:
             return
+        identity = getattr(subject, "identity", subject)
         issue = Issue(
             severity=final,
             rule=rule_id,
-            subject=None if subject is None else (subject.n3() if isinstance(subject, BNode) else str(subject)),
+            subject=None if identity is None else (identity.n3() if isinstance(identity, BNode) else str(identity)),
             message=message,
             property=None if property is None else str(property),
             hint=hint,
@@ -188,7 +209,9 @@ class Registry(Generic[ContextT]):
         """Run every registered function whose rules are enabled, and build the report."""
         for rule_ids, function in self.functions:
             if any(context.enabled(r) for r in rule_ids):
+                context.declared_rules = frozenset(rule_ids)
                 function(context)
+        context.declared_rules = None
         return ValidationReport(
             spec_version=self.catalog.spec_version,
             config=context.config,

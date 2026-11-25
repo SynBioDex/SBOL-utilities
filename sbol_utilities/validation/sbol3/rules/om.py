@@ -15,7 +15,7 @@ def _matching_literals(ctx: SBOL3Context, obj: SbolObject, rule: str, left: str,
     left_value = obj.first_literal_value(left)
     right_value = obj.first_literal_value(right)
     if left_value is not None and right_value is not None and left_value != right_value:
-        ctx.warning(rule, obj, right, message)
+        ctx.report(rule, obj, message, property=right)
 
 
 @REGISTRY.rule("sbol3-13401")
@@ -26,12 +26,12 @@ def measures(ctx: SBOL3Context) -> None:
             continue
         for type_iri in obj.iris(spec.TYPE):
             if is_sbo_systems_description_parameter_term(ctx.ontology, str(type_iri)) is False:
-                ctx.warning(
+                ctx.report(
                     "sbol3-13401",
                     obj,
-                    spec.TYPE,
                     f"om:Measure type `{type_iri}` should refer to a term from the SBO Systems Description Parameter "
                     "branch (SBO:0000545)",
+                    property=spec.TYPE,
                 )
 
 

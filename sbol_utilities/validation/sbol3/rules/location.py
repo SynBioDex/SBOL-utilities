@@ -17,16 +17,16 @@ def ranges(ctx: SBOL3Context) -> None:
         if start is None or end is None:
             continue
         if end < start:
-            ctx.error("sbol3-11403", obj, spec.END, "Range end must be greater than or equal to start")
+            ctx.report("sbol3-11403", obj, "Range end must be greater than or equal to start", property=spec.END)
         if start <= 0:
-            ctx.error("sbol3-11401", obj, spec.START, "Range start must be greater than zero")
+            ctx.report("sbol3-11401", obj, "Range start must be greater than zero", property=spec.START)
         length = location_sequence_length(ctx, obj)
         if length is not None:
             # Bounds are compared as unsigned values, as in sbol-rs, so a negative bound exceeds any length.
             if (start if start >= 0 else start + 2**64) > length:
-                ctx.error("sbol3-11401", obj, spec.START, "Range start exceeds referenced Sequence length")
+                ctx.report("sbol3-11401", obj, "Range start exceeds referenced Sequence length", property=spec.START)
             if (end if end >= 0 else end + 2**64) > length:
-                ctx.error("sbol3-11402", obj, spec.END, "Range end exceeds referenced Sequence length")
+                ctx.report("sbol3-11402", obj, "Range end exceeds referenced Sequence length", property=spec.END)
 
 
 @REGISTRY.rule("sbol3-11501")
@@ -37,10 +37,10 @@ def cuts(ctx: SBOL3Context) -> None:
         if at is None:
             continue
         if at < 0:
-            ctx.error("sbol3-11501", obj, spec.AT, "Cut at must be greater than or equal to zero")
+            ctx.report("sbol3-11501", obj, "Cut at must be greater than or equal to zero", property=spec.AT)
         length = location_sequence_length(ctx, obj)
         if length is not None and (at if at >= 0 else at + 2**64) > length:
-            ctx.error("sbol3-11501", obj, spec.AT, "Cut at exceeds referenced Sequence length")
+            ctx.report("sbol3-11501", obj, "Cut at exceeds referenced Sequence length", property=spec.AT)
 
 
 def _check_overlap(ctx: SBOL3Context, obj: SbolObject, rule: str) -> None:
@@ -57,7 +57,7 @@ def _check_overlap(ctx: SBOL3Context, obj: SbolObject, rule: str) -> None:
     for index, (left, left_sequence, left_start, left_end) in enumerate(spans):
         for right, right_sequence, right_start, right_end in spans[index + 1 :]:
             if left_sequence == right_sequence and left_start <= right_end and right_start <= left_end:
-                ctx.error(rule, obj, spec.HAS_LOCATION, f"locations `{left}` and `{right}` overlap")
+                ctx.report(rule, obj, f"locations `{left}` and `{right}` overlap", property=spec.HAS_LOCATION)
 
 
 @REGISTRY.rule("sbol3-10805", "sbol3-11013", "sbol3-11201")

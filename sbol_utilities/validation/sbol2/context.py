@@ -20,7 +20,7 @@ import rdflib
 from rdflib.term import BNode, Literal, URIRef
 
 from sbol_utilities.validation.catalog import Catalog, Context
-from sbol_utilities.validation.config import ERROR, WARNING, ValidationConfig
+from sbol_utilities.validation.config import ValidationConfig
 from sbol_utilities.validation.ontology import Ontology
 from sbol_utilities.validation.sbol2 import spec
 
@@ -267,20 +267,6 @@ class Sbol2Context(Context):
     def uses_sbol2_namespace(self) -> bool:
         """Whether any triple has an SBOL 2 predicate or an SBOL 2 rdf:type."""
         return self._uses_predicate
-
-    # --- emission ------------------------------------------------------------------------------------------------
-
-    def error(self, rule_id: str, obj: Obj | Resource | str, message: str, property: str | None = None) -> None:
-        """Emit ``rule_id`` at Error severity against an object."""
-        self.emit(rule_id, _subject(obj), message, property=property, severity=ERROR)
-
-    def warning(self, rule_id: str, obj: Obj | Resource | str, message: str, property: str | None = None) -> None:
-        """Emit ``rule_id`` at Warning severity against an object."""
-        self.emit(rule_id, _subject(obj), message, property=property, severity=WARNING)
-
-
-def _subject(obj: Obj | Resource | str) -> Resource | str:
-    return obj.identity if isinstance(obj, Obj) else obj
 
 
 def _sbol2_type(props: dict[str, list[Term]]) -> bool:

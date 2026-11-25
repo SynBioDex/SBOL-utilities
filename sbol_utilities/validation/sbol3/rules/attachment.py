@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from rdflib.term import Node, URIRef
 
+from sbol_utilities.validation.config import WARNING
 from sbol_utilities.validation.sbol3 import spec
 from sbol_utilities.validation.sbol3.context import (
     EXTERNAL_OFF,
@@ -34,7 +35,13 @@ def _check_external_content(ctx: SBOL3Context, obj: SbolObject, rule: str) -> No
     source = obj.first_iri(spec.SOURCE)
     if source is None or ctx.external_mode == EXTERNAL_OFF:
         return
-    ctx.warning(rule, obj, spec.SOURCE, f"source `{source}` was not checked because no content resolver was configured")
+    ctx.report(
+        rule,
+        obj,
+        f"source `{source}` was not checked because no content resolver was configured",
+        property=spec.SOURCE,
+        severity=WARNING,
+    )
 
 
 @REGISTRY.rule("sbol3-12501", "sbol3-12503", "sbol3-12504", "sbol3-12506", "sbol3-12507")
@@ -46,33 +53,36 @@ def models(ctx: SBOL3Context) -> None:
             text = str(language)
             canonical = canonical_model_language_iri(text)
             if canonical is not None and canonical.lower() != text.lower():
-                ctx.error(
+                ctx.report(
                     "sbol3-12503",
                     obj,
-                    spec.LANGUAGE,
                     f"Model language `{text}` is equivalent to Table 15 URI `{canonical}`",
+                    property=spec.LANGUAGE,
                 )
             if is_known_non_edam_namespace(ctx.ontology, text):
-                ctx.warning(
-                    "sbol3-12504", obj, spec.LANGUAGE, f"Model language `{text}` should refer to an EDAM ontology term"
+                ctx.report(
+                    "sbol3-12504",
+                    obj,
+                    f"Model language `{text}` should refer to an EDAM ontology term",
+                    property=spec.LANGUAGE,
                 )
         for framework in obj.iris(spec.FRAMEWORK):
             text = str(framework)
             canonical = canonical_model_framework_iri(text)
             if canonical is not None and canonical.lower() != text.lower():
-                ctx.error(
+                ctx.report(
                     "sbol3-12506",
                     obj,
-                    spec.FRAMEWORK,
                     f"Model framework `{text}` is equivalent to Table 16 URI `{canonical}`",
+                    property=spec.FRAMEWORK,
                 )
             if is_sbo_modeling_framework_term(ctx.ontology, text) is False:
-                ctx.warning(
+                ctx.report(
                     "sbol3-12507",
                     obj,
-                    spec.FRAMEWORK,
                     f"Model framework `{text}` should refer to a term from the SBO modeling framework branch "
                     "(SBO:0000004)",
+                    property=spec.FRAMEWORK,
                 )
 
 
@@ -86,11 +96,11 @@ def implementations(ctx: SBOL3Context) -> None:
             if target is None:
                 continue
             if not target.has_class(spec.COMPONENT):
-                ctx.error(
+                ctx.report(
                     "sbol3-12301",
                     obj,
-                    spec.PROV_WAS_DERIVED_FROM,
                     f"Implementation prov:wasDerivedFrom `{derived_from}` must refer to a Component",
+                    property=spec.PROV_WAS_DERIVED_FROM,
                 )
                 continue
             components.append(target)
@@ -102,12 +112,12 @@ def implementations(ctx: SBOL3Context) -> None:
                 if left_component == right_component:
                     continue
                 if ctx.ontology.terms_conflict(str(left_type), str(right_type)) is True:
-                    ctx.error(
+                    ctx.report(
                         "sbol3-12302",
                         obj,
-                        spec.PROV_WAS_DERIVED_FROM,
                         f"Implementation prov:wasDerivedFrom Components have conflicting types: `{left_component}` "
                         f"has `{left_type}` while `{right_component}` has `{right_type}`",
+                        property=spec.PROV_WAS_DERIVED_FROM,
                     )
 
 
@@ -118,36 +128,44 @@ def attachments(ctx: SBOL3Context) -> None:
         for size in obj.literals(spec.SIZE):
             value = parse_i64(str(size))
             if value is not None and value < 0:
-                ctx.error("sbol3-12804", obj, spec.SIZE, "Attachment size must be a nonnegative byte count")
+                ctx.report("sbol3-12804", obj, "Attachment size must be a nonnegative byte count", property=spec.SIZE)
         for digest in obj.literals(spec.HASH):
             if not is_hex_digest(str(digest)):
-                ctx.error("sbol3-12805", obj, spec.HASH, "Attachment hash must be a nonempty hexadecimal digest")
+                ctx.report(
+                    "sbol3-12805", obj, "Attachment hash must be a nonempty hexadecimal digest", property=spec.HASH
+                )
         for algorithm in obj.literals(spec.HASH_ALGORITHM):
             value_text = str(algorithm)
             if ctx.hash_algorithm_registry == HASH_CONSERVATIVE and not is_hash_algorithm_token(value_text):
-                ctx.warning(
+                ctx.report(
                     "sbol3-12806",
                     obj,
-                    spec.HASH_ALGORITHM,
                     "Attachment hashAlgorithm should be a registry-style hash algorithm token",
+                    property=spec.HASH_ALGORITHM,
+                    severity=WARNING,
                 )
                 continue
             if ctx.hash_algorithm_registry == HASH_STRICT and not is_known_hash_algorithm(value_text):
-                ctx.error(
+                ctx.report(
                     "sbol3-12806",
                     obj,
-                    spec.HASH_ALGORITHM,
                     f"Attachment hashAlgorithm `{value_text}` is not in the known set "
                     "(sha2-256, sha3-256, blake3, sha2-512, sha3-512)",
+                    property=spec.HASH_ALGORITHM,
                 )
                 continue
             if value_text != "sha3-256":
-                ctx.warning("sbol3-12807", obj, spec.HASH_ALGORITHM, "Attachment hashAlgorithm should be sha3-256")
+                ctx.report(
+                    "sbol3-12807", obj, "Attachment hashAlgorithm should be sha3-256", property=spec.HASH_ALGORITHM
+                )
         for fmt in obj.iris(spec.FORMAT):
             if is_edam_format_term(ctx.ontology, str(fmt)) is False:
-                ctx.warning(
-                    "sbol3-12803", obj, spec.FORMAT, "Attachment format should refer to a term from the EDAM ontology"
+                ctx.report(
+                    "sbol3-12803",
+                    obj,
+                    "Attachment format should refer to a term from the EDAM ontology",
+                    property=spec.FORMAT,
                 )
         if obj.values(spec.HASH) and not obj.values(spec.HASH_ALGORITHM):
-            ctx.error("sbol3-12808", obj, spec.HASH_ALGORITHM, "Attachment hash requires hashAlgorithm")
+            ctx.report("sbol3-12808", obj, "Attachment hash requires hashAlgorithm", property=spec.HASH_ALGORITHM)
         _check_external_content(ctx, obj, "sbol3-12801")

@@ -70,7 +70,7 @@ def property_table(ctx: Sbol2Context) -> None:
                 continue
             values = obj.values(predicate)
             if _cardinality_violated(field.cardinality, len(values)):
-                ctx.error(
+                ctx.report(
                     field.rule,
                     obj,
                     f"property `{predicate}` {_CARDINALITY_MESSAGES[field.cardinality]}; found {len(values)}",
@@ -78,7 +78,7 @@ def property_table(ctx: Sbol2Context) -> None:
                 )
             for value in values:
                 if not value_matches_kind(value, field.kind):
-                    ctx.error(
+                    ctx.report(
                         field.rule,
                         obj,
                         f"property `{predicate}` value does not match expected {field.kind}",
@@ -90,15 +90,18 @@ def property_table(ctx: Sbol2Context) -> None:
                     continue
                 target = ctx.get(value)  # type: ignore[arg-type]
                 if target is None:
-                    ctx.error(
-                        field.rule, obj, f"property `{predicate}` refers to missing local child `{value}`", predicate
+                    ctx.report(
+                        field.rule,
+                        obj,
+                        f"property `{predicate}` refers to missing local child `{value}`",
+                        property=predicate,
                     )
                 elif not matches_target(target, reference):
-                    ctx.error(
+                    ctx.report(
                         field.rule,
                         obj,
                         f"property `{predicate}` refers to `{value}`, which is not the expected class",
-                        predicate,
+                        property=predicate,
                     )
 
 
@@ -112,7 +115,7 @@ def closed_property_sets(ctx: Sbol2Context) -> None:
         allowed = obj.fields
         for predicate in sorted(obj.properties):
             if predicate.startswith(S.SBOL2_NS) and predicate not in allowed:
-                ctx.error(rule, obj, f"property `{predicate}` is not permitted on this object's class")
+                ctx.report(rule, obj, f"property `{predicate}` is not permitted on this object's class")
 
 
 _ENUMS = (
@@ -131,22 +134,24 @@ def controlled_values(ctx: Sbol2Context) -> None:
         for predicate, rule, allowed in _ENUMS:
             for value in obj.iris(predicate):
                 if value not in allowed:
-                    ctx.error(rule, obj, f"value `{value}` of `{predicate}` is not an allowed term", predicate)
+                    ctx.report(
+                        rule, obj, f"value `{value}` of `{predicate}` is not an allowed term", property=predicate
+                    )
         if obj.has_class(S.COMPONENT) and obj.values(S.ROLE) and not obj.values(S.ROLE_INTEGRATION):
-            ctx.error(
+            ctx.report(
                 "sbol2-10709",
                 obj,
                 "a Component that specifies roles must also specify a roleIntegration",
-                S.ROLE_INTEGRATION,
+                property=S.ROLE_INTEGRATION,
             )
         if obj.has_class(S.GENERIC_TOP_LEVEL):
             for value in obj.iris(S.RDF_TYPE_P):
                 if value.startswith(S.SBOL2_NS):
-                    ctx.error(
+                    ctx.report(
                         "sbol2-12303",
                         obj,
                         "the rdfType of a GenericTopLevel must not be in the SBOL 2 namespace",
-                        S.RDF_TYPE_P,
+                        property=S.RDF_TYPE_P,
                     )
 
 
@@ -157,15 +162,19 @@ def location_bounds(ctx: Sbol2Context) -> None:
         if obj.has_class(S.RANGE):
             start, end = obj.integer(S.START), obj.integer(S.END)
             if start is not None and start < 1:
-                ctx.error("sbol2-11102", obj, "the start of a Range must be greater than zero", S.START)
+                ctx.report("sbol2-11102", obj, "the start of a Range must be greater than zero", property=S.START)
             if end is not None and end < 1:
-                ctx.error("sbol2-11103", obj, "the end of a Range must be greater than zero", S.END)
+                ctx.report("sbol2-11103", obj, "the end of a Range must be greater than zero", property=S.END)
             if start is not None and end is not None and end < start:
-                ctx.error("sbol2-11104", obj, "the end of a Range must be greater than or equal to its start", S.END)
+                ctx.report(
+                    "sbol2-11104", obj, "the end of a Range must be greater than or equal to its start", property=S.END
+                )
         if obj.has_class(S.CUT):
             at = obj.integer(S.AT)
             if at is not None and at < 0:
-                ctx.error("sbol2-11202", obj, "the at position of a Cut must be greater than or equal to zero", S.AT)
+                ctx.report(
+                    "sbol2-11202", obj, "the at position of a Cut must be greater than or equal to zero", property=S.AT
+                )
 
 
 def regions(ctx: Sbol2Context, obj: Obj, predicate: str = S.LOCATION_P) -> list[tuple]:

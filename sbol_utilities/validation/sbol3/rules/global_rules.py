@@ -25,7 +25,9 @@ def _derived_from(ctx: SBOL3Context, identity: Node) -> Iterator[Node]:
 def derived_from_cycles(ctx: SBOL3Context) -> None:
     """prov:wasDerivedFrom chains are acyclic."""
     for identity in sorted(nodes_reaching_cycles(ctx.objects, partial(_derived_from, ctx)), key=str):
-        ctx.error("sbol3-10203", identity, spec.PROV_WAS_DERIVED_FROM, "prov:wasDerivedFrom references form a cycle")
+        ctx.report(
+            "sbol3-10203", identity, "prov:wasDerivedFrom references form a cycle", property=spec.PROV_WAS_DERIVED_FROM
+        )
 
 
 def _generated_from(ctx: SBOL3Context, identity: Node) -> Iterator[Node]:
@@ -59,11 +61,11 @@ def generation_cycles(ctx: SBOL3Context) -> None:
     offenders = nodes_reaching_cycles(ctx.objects, other_sources)
     offenders |= nodes_reaching(self_generated, ctx.objects, other_sources)
     for identity in sorted(offenders, key=str):
-        ctx.error(
+        ctx.report(
             "sbol3-10204",
             identity,
-            spec.PROV_WAS_GENERATED_BY,
             "prov:wasGeneratedBy / prov:Usage entity references form a cycle",
+            property=spec.PROV_WAS_GENERATED_BY,
         )
 
 
@@ -86,11 +88,11 @@ def component_instance_cycles(ctx: SBOL3Context) -> None:
     """SubComponent instanceOf chains do not loop back to a Component."""
     components = [component.identity for component in ctx.typed(spec.COMPONENT)]
     for identity in sorted(nodes_reaching_cycles(components, partial(_instantiated_components, ctx)), key=str):
-        ctx.error(
+        ctx.report(
             "sbol3-10804",
             identity,
-            spec.INSTANCE_OF,
             "SubComponent instanceOf references form a Component cycle",
+            property=spec.INSTANCE_OF,
         )
 
 
@@ -110,7 +112,9 @@ def variant_derivation_cycles(ctx: SBOL3Context) -> None:
     """variantDerivation chains are acyclic."""
     derivations = [derivation.identity for derivation in ctx.typed(spec.COMBINATORIAL_DERIVATION)]
     for identity in sorted(nodes_reaching_cycles(derivations, partial(_variant_derivations, ctx)), key=str):
-        ctx.error("sbol3-12204", identity, spec.VARIANT_DERIVATION, "variantDerivation references form a cycle")
+        ctx.report(
+            "sbol3-12204", identity, "variantDerivation references form a cycle", property=spec.VARIANT_DERIVATION
+        )
 
 
 @REGISTRY.rule("sbol3-11302", "sbol3-11303")
@@ -137,9 +141,9 @@ def location_sequence_membership(ctx: SBOL3Context) -> None:
         if sequence is None:
             continue
         if not component_allows_sequence(ctx, component, sequence):
-            ctx.error(
+            ctx.report(
                 rule,
                 location_obj,
-                predicate,
                 "Location sequence must be declared on the relevant Component or by a sibling EntireSequence",
+                property=predicate,
             )

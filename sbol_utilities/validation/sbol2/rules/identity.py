@@ -24,22 +24,24 @@ def identity_syntax(ctx: Sbol2Context) -> None:
     """Identities are URIs; displayId and version are lexically valid; at most one SBOL and one PROV rdf:type."""
     for obj in ctx.sbol_objects:
         if obj.iri is None:
-            ctx.error("sbol2-10201", obj, "the identity of an Identified object must be a URI")
+            ctx.report("sbol2-10201", obj, "the identity of an Identified object must be a URI")
         if obj.display_id is not None and not has_valid_display_id(obj.display_id):
-            ctx.error(
+            ctx.report(
                 "sbol2-10204",
                 obj,
                 f"displayId `{obj.display_id}` must contain only alphanumeric or underscore characters and must "
                 "not begin with a digit",
-                S.DISPLAY_ID,
+                property=S.DISPLAY_ID,
             )
         version = obj.literal(S.VERSION)
         if version is not None and not is_valid_version(version):
-            ctx.error("sbol2-10206", obj, f"version `{version}` is not a valid SBOL 2 version string", S.VERSION)
+            ctx.report(
+                "sbol2-10206", obj, f"version `{version}` is not a valid SBOL 2 version string", property=S.VERSION
+            )
         sbol_types = sum(1 for t in obj.rdf_types if t.startswith(S.SBOL2_NS))
         prov_types = sum(1 for t in obj.rdf_types if t.startswith(S.PROV_NS))
         if sbol_types > 1 or prov_types > 1:
-            ctx.error(
+            ctx.report(
                 "sbol2-10228",
                 obj,
                 "an Identified object must have no more than one rdfType in each of the SBOL 2 and PROV namespaces",
@@ -57,11 +59,11 @@ def persistent_identity_classes(ctx: Sbol2Context) -> None:
     for obj in ctx.objects:
         pid = obj.first_ref(S.PERSISTENT_IDENTITY)
         if pid is not None and len(classes[pid]) > 1:
-            ctx.error(
+            ctx.report(
                 "sbol2-10220",
                 obj,
                 f"objects sharing persistentIdentity `{pid}` must be instances of the same class",
-                S.PERSISTENT_IDENTITY,
+                property=S.PERSISTENT_IDENTITY,
             )
 
 
@@ -69,10 +71,8 @@ def persistent_identity_classes(ctx: Sbol2Context) -> None:
 def document_namespace(ctx: Sbol2Context) -> None:
     """A non-empty document names SBOL 2 properties or classes (its SBOL prefix is bound to the SBOL 2 namespace)."""
     if ctx.triple_count and not ctx.uses_sbol2_namespace():
-        ctx.error(
-            "sbol2-10101",
-            S.SBOL2_NS,
-            f"an SBOL document must declare and use the SBOL 2 namespace `{S.SBOL2_NS}`",
+        ctx.report(
+            "sbol2-10101", S.SBOL2_NS, f"an SBOL document must declare and use the SBOL 2 namespace `{S.SBOL2_NS}`"
         )
 
 
@@ -94,13 +94,13 @@ def derivation_cycles(ctx: Sbol2Context) -> None:
         if not obj.is_top_level or obj.iri is None:
             continue
         if obj.iri in obj.iris(S.WAS_DERIVED_FROM):
-            ctx.error("sbol2-10303", obj, "a TopLevel must not derive from itself", S.WAS_DERIVED_FROM)
+            ctx.report("sbol2-10303", obj, "a TopLevel must not derive from itself", property=S.WAS_DERIVED_FROM)
         if obj.iri in cyclic:
-            ctx.error(
+            ctx.report(
                 "sbol2-10304",
                 obj,
                 "TopLevel objects must not form a circular wasDerivedFrom chain",
-                S.WAS_DERIVED_FROM,
+                property=S.WAS_DERIVED_FROM,
             )
 
 
@@ -123,8 +123,6 @@ def version_precedes(earlier: str, later: str) -> bool:
 @REGISTRY.rule("sbol2-10302")
 def derivation_version_order(ctx: Sbol2Context) -> None:
     """A TopLevel deriving from a same-persistentIdentity TopLevel carries a later version."""
-    if not ctx.config.best_practice:
-        return
     for obj in ctx.sbol_objects:
         if not obj.is_top_level:
             continue
@@ -138,11 +136,11 @@ def derivation_version_order(ctx: Sbol2Context) -> None:
                 continue
             source_version = source.literal(S.VERSION)
             if source_version is not None and not version_precedes(source_version, version):
-                ctx.warning(
+                ctx.report(
                     "sbol2-10302",
                     obj,
                     "a derived TopLevel's source version should precede its own version",
-                    S.VERSION,
+                    property=S.VERSION,
                 )
 
 
@@ -164,33 +162,34 @@ def is_delimited_suffix(full: str, base: str, suffix: str) -> bool:
 @REGISTRY.rule("sbol2-10215", "sbol2-10216", "sbol2-10218")
 def compliant_identities(ctx: Sbol2Context) -> None:
     """Compliant objects carry a displayId, and their identity derives from persistentIdentity and version."""
-    if not ctx.config.compliant:
-        return
     for obj in ctx.sbol_objects:
         display_id = obj.display_id
         if display_id is None:
-            ctx.error("sbol2-10215", obj, "a compliant Identified object requires a displayId", S.DISPLAY_ID)
+            ctx.report("sbol2-10215", obj, "a compliant Identified object requires a displayId", property=S.DISPLAY_ID)
             continue
         pid = obj.first_ref(S.PERSISTENT_IDENTITY)
         identity = obj.iri
         version = obj.literal(S.VERSION)
         if obj.is_top_level:
             if pid is None:
-                ctx.error(
-                    "sbol2-10216", obj, "a compliant TopLevel requires a persistentIdentity", S.PERSISTENT_IDENTITY
+                ctx.report(
+                    "sbol2-10216",
+                    obj,
+                    "a compliant TopLevel requires a persistentIdentity",
+                    property=S.PERSISTENT_IDENTITY,
                 )
             elif not ends_with_delimited(pid, display_id):
-                ctx.error(
+                ctx.report(
                     "sbol2-10216",
                     obj,
                     f"compliant TopLevel persistentIdentity `{pid}` must end with a delimiter followed by displayId "
                     f"`{display_id}`",
-                    S.PERSISTENT_IDENTITY,
+                    property=S.PERSISTENT_IDENTITY,
                 )
         if pid is not None and identity is not None:
             ok = identity == pid or (version is not None and is_delimited_suffix(identity, pid, version))
             if not ok:
-                ctx.error(
+                ctx.report(
                     "sbol2-10218",
                     obj,
                     f"compliant identity `{identity}` must equal persistentIdentity `{pid}` (optionally followed by "
@@ -215,8 +214,6 @@ def parent_map(ctx: Sbol2Context) -> dict[str, str]:
 @REGISTRY.rule("sbol2-10217", "sbol2-10219")
 def compliant_children(ctx: Sbol2Context) -> None:
     """A compliant child's persistentIdentity extends its parent's, and the two share a version."""
-    if not ctx.config.compliant:
-        return
     parents = parent_map(ctx)
     for obj in ctx.sbol_objects:
         if obj.is_top_level or obj.iri is None:
@@ -231,18 +228,24 @@ def compliant_children(ctx: Sbol2Context) -> None:
         child_pid = obj.first_ref(S.PERSISTENT_IDENTITY)
         parent_pid = parent.first_ref(S.PERSISTENT_IDENTITY)
         if child_pid is None:
-            ctx.error(
-                "sbol2-10217", obj, "a compliant child object requires a persistentIdentity", S.PERSISTENT_IDENTITY
+            ctx.report(
+                "sbol2-10217",
+                obj,
+                "a compliant child object requires a persistentIdentity",
+                property=S.PERSISTENT_IDENTITY,
             )
         elif parent_pid is not None and child_pid not in [f"{parent_pid}{d}{display_id}" for d in DELIMITERS]:
-            ctx.error(
+            ctx.report(
                 "sbol2-10217",
                 obj,
                 f"compliant child persistentIdentity `{child_pid}` must extend parent persistentIdentity "
                 f"`{parent_pid}` with displayId `{display_id}`",
-                S.PERSISTENT_IDENTITY,
+                property=S.PERSISTENT_IDENTITY,
             )
         if parent.literal(S.VERSION) != obj.literal(S.VERSION):
-            ctx.error(
-                "sbol2-10219", obj, "a compliant child object must have the same version as its parent", S.VERSION
+            ctx.report(
+                "sbol2-10219",
+                obj,
+                "a compliant child object must have the same version as its parent",
+                property=S.VERSION,
             )

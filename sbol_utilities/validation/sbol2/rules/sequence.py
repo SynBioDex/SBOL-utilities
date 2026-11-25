@@ -25,7 +25,12 @@ def elements_match_encoding(ctx: Sbol2Context) -> None:
         else:
             consistent = True
         if not consistent:
-            ctx.error("sbol2-10405", obj, "the elements of a Sequence must be consistent with its encoding", S.ELEMENTS)
+            ctx.report(
+                "sbol2-10405",
+                obj,
+                "the elements of a Sequence must be consistent with its encoding",
+                property=S.ELEMENTS,
+            )
 
 
 def _ascii_upper(text: str) -> str:
@@ -46,8 +51,6 @@ def _nucleic_length(ctx: Sbol2Context, definition: Obj) -> int | None:
 @REGISTRY.rule("sbol2-10516", "sbol2-10518", "sbol2-10520", "sbol2-10523")
 def definition_sequences(ctx: Sbol2Context) -> None:
     """A ComponentDefinition carries sequences matching its type, of consistent lengths, covering its annotations."""
-    if not ctx.config.best_practice:
-        return
     for obj in ctx.sbol_objects:
         if obj.has_class(S.COMPONENT_DEFINITION):
             _check_definition(ctx, obj)
@@ -120,27 +123,30 @@ def _check_definition(ctx: Sbol2Context, obj: Obj) -> None:
                 hierarchy_inconsistent = True
 
     if missing_category:
-        ctx.error(
+        ctx.report(
             "sbol2-10516",
             obj,
             "a ComponentDefinition must carry a Sequence whose encoding matches its type",
-            S.SEQUENCE_P,
+            property=S.SEQUENCE_P,
         )
     if length_mismatch:
-        ctx.warning(
-            "sbol2-10518", obj, "a ComponentDefinition's Sequences of one encoding should share a length", S.SEQUENCE_P
+        ctx.report(
+            "sbol2-10518",
+            obj,
+            "a ComponentDefinition's Sequences of one encoding should share a length",
+            property=S.SEQUENCE_P,
         )
     if out_of_bounds:
-        ctx.warning(
+        ctx.report(
             "sbol2-10523",
             obj,
             "a SequenceAnnotation position should lie within the ComponentDefinition's sequence",
-            S.SEQUENCE_ANNOTATION_P,
+            property=S.SEQUENCE_ANNOTATION_P,
         )
     if hierarchy_inconsistent:
-        ctx.warning(
+        ctx.report(
             "sbol2-10520",
             obj,
             "Sequences across a ComponentDefinition-Component hierarchy should be consistent",
-            S.SEQUENCE_P,
+            property=S.SEQUENCE_P,
         )

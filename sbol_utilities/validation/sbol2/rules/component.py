@@ -33,7 +33,12 @@ def self_containing_definitions(ctx: Sbol2Context) -> None:
         parent = parent_definition(ctx, obj.iri)
         if parent is not None and parent.iri == definition:
             rule = "sbol2-11704" if obj.has_class(S.MODULE) else "sbol2-10603"
-            ctx.error(rule, obj, "a component or module must not refer to its own containing definition", S.DEFINITION)
+            ctx.report(
+                rule,
+                obj,
+                "a component or module must not refer to its own containing definition",
+                property=S.DEFINITION,
+            )
 
 
 @REGISTRY.rule("sbol2-10909", "sbol2-10905")
@@ -43,22 +48,22 @@ def sequence_annotation_components(ctx: Sbol2Context) -> None:
         if not obj.has_class(S.SEQUENCE_ANNOTATION):
             continue
         if obj.values(S.COMPONENT_P) and obj.values(S.ROLE):
-            ctx.error(
+            ctx.report(
                 "sbol2-10909",
                 obj,
                 "a SequenceAnnotation must not include both a component and a roles property",
-                S.ROLE,
+                property=S.ROLE,
             )
         component = obj.first_ref(S.COMPONENT_P)
         if component is None:
             continue
         definition = ctx.container_of(obj, S.SEQUENCE_ANNOTATION_P)
         if definition is not None and not definition.lists(S.COMPONENT_P, component):
-            ctx.error(
+            ctx.report(
                 "sbol2-10905",
                 obj,
                 "the Component of a SequenceAnnotation must be contained by its ComponentDefinition",
-                S.COMPONENT_P,
+                property=S.COMPONENT_P,
             )
 
 
@@ -112,11 +117,11 @@ def sequence_constraints(ctx: Sbol2Context) -> None:
             continue
         subject, target = obj.first_ref(S.SUBJECT), obj.first_ref(S.OBJECT)
         if subject is not None and subject == target:
-            ctx.error(
+            ctx.report(
                 "sbol2-11406",
                 obj,
                 "the object of a SequenceConstraint must not be the same Component as its subject",
-                S.OBJECT,
+                property=S.OBJECT,
             )
         definition = ctx.container_of(obj, S.SEQUENCE_CONSTRAINT_P)
         if definition is None:
@@ -135,27 +140,27 @@ def sequence_constraints(ctx: Sbol2Context) -> None:
         if definition.iri is not None:
             _check_positions(ctx, obj, definition.iri, restriction, subject, target)
         if subject is not None and not definition.lists(S.COMPONENT_P, subject):
-            ctx.error(
+            ctx.report(
                 "sbol2-11403",
                 obj,
                 "the subject of a SequenceConstraint must be a Component of its ComponentDefinition",
-                S.SUBJECT,
+                property=S.SUBJECT,
             )
         if target is not None and not definition.lists(S.COMPONENT_P, target):
-            ctx.error(
+            ctx.report(
                 "sbol2-11405",
                 obj,
                 "the object of a SequenceConstraint must be a Component of its ComponentDefinition",
-                S.OBJECT,
+                property=S.OBJECT,
             )
         if same_definition:
-            ctx.error(
+            ctx.report(
                 "sbol2-11413",
                 obj,
                 "a differentFrom SequenceConstraint must relate Components with different definitions",
             )
         if same_resolved:
-            ctx.error(
+            ctx.report(
                 "sbol2-11414",
                 obj,
                 "a differentFrom SequenceConstraint must relate Components resolving to different ComponentDefinitions",
@@ -182,29 +187,29 @@ def _check_positions(
     if restriction == S.PRECEDES:
         subject_position, object_position = _position(ctx, subject_annotation), _position(ctx, object_annotation)
         if subject_position is not None and object_position is not None and object_position < subject_position:
-            ctx.error(
+            ctx.report(
                 "sbol2-11409",
                 constraint,
                 "a precedes SequenceConstraint requires the subject to be positioned before the object",
-                S.RESTRICTION,
+                property=S.RESTRICTION,
             )
     elif restriction == S.SAME_ORIENTATION_AS:
         subject_o, object_o = _orientations(ctx, subject_annotation), _orientations(ctx, object_annotation)
         if any(s != o for s in subject_o for o in object_o):
-            ctx.error(
+            ctx.report(
                 "sbol2-11410",
                 constraint,
                 "a sameOrientationAs SequenceConstraint requires matching orientations",
-                S.RESTRICTION,
+                property=S.RESTRICTION,
             )
     elif restriction == S.OPPOSITE_ORIENTATION_AS:
         subject_o, object_o = _orientations(ctx, subject_annotation), _orientations(ctx, object_annotation)
         if any(s == o for s in subject_o for o in object_o):
-            ctx.error(
+            ctx.report(
                 "sbol2-11411",
                 constraint,
                 "an oppositeOrientationAs SequenceConstraint requires differing orientations",
-                S.RESTRICTION,
+                property=S.RESTRICTION,
             )
 
 
@@ -223,20 +228,20 @@ def maps_to_locals(ctx: Sbol2Context) -> None:
         definition = ctx.container(owner.iri, S.COMPONENT_P)
         if definition is not None:
             if not definition.lists(S.COMPONENT_P, local):
-                ctx.error(
+                ctx.report(
                     "sbol2-10803",
                     obj,
                     "the local of a MapsTo must refer to a Component in the same ComponentDefinition",
-                    S.LOCAL,
+                    property=S.LOCAL,
                 )
             continue
         module_definition = ctx.container(owner.iri, S.FUNCTIONAL_COMPONENT_P) or ctx.container(owner.iri, S.MODULE_P)
         if module_definition is not None and not module_definition.lists(S.FUNCTIONAL_COMPONENT_P, local):
-            ctx.error(
+            ctx.report(
                 "sbol2-10804",
                 obj,
                 "the local of a MapsTo must refer to a FunctionalComponent in the same ModuleDefinition",
-                S.LOCAL,
+                property=S.LOCAL,
             )
 
 
@@ -252,11 +257,11 @@ def unique_annotated_components(ctx: Sbol2Context) -> None:
             if annotation.iri is not None and component is not None:
                 by_annotation[annotation.iri] = component
         if len(set(by_annotation.values())) < len(by_annotation):
-            ctx.error(
+            ctx.report(
                 "sbol2-10522",
                 obj,
                 "no two SequenceAnnotations may refer to the same Component",
-                S.SEQUENCE_ANNOTATION_P,
+                property=S.SEQUENCE_ANNOTATION_P,
             )
 
 
@@ -283,11 +288,11 @@ def definition_cycles(ctx: Sbol2Context, class_iri: str, instance_predicate: str
 def component_definition_cycles(ctx: Sbol2Context) -> None:
     """ComponentDefinitions do not form a cycle through their Components' definitions."""
     for obj in definition_cycles(ctx, S.COMPONENT_DEFINITION, S.COMPONENT_P, S.DEFINITION):
-        ctx.error(
+        ctx.report(
             "sbol2-10605",
             obj,
             "a ComponentDefinition must not form a cycle through its Components' definitions",
-            S.COMPONENT_P,
+            property=S.COMPONENT_P,
         )
 
 
@@ -315,19 +320,22 @@ def use_remote_collisions(ctx: Sbol2Context, class_iri: str, instance_predicates
 def component_definition_use_remote(ctx: Sbol2Context) -> None:
     """Two useRemote MapsTos of a ComponentDefinition's Components do not share a local."""
     for obj in use_remote_collisions(ctx, S.COMPONENT_DEFINITION, (S.COMPONENT_P,)):
-        ctx.error(
-            "sbol2-10526", obj, "two useRemote MapsTos of a ComponentDefinition must not share a local", S.MAPS_TO_P
+        ctx.report(
+            "sbol2-10526",
+            obj,
+            "two useRemote MapsTos of a ComponentDefinition must not share a local",
+            property=S.MAPS_TO_P,
         )
 
 
 @REGISTRY.rule("sbol2-10903")
 def annotation_location_overlaps(ctx: Sbol2Context) -> None:
     """The Locations of one SequenceAnnotation do not overlap."""
-    if not ctx.config.best_practice:
-        return
     for obj in ctx.sbol_objects:
         if obj.has_class(S.SEQUENCE_ANNOTATION) and regions_overlap(regions(ctx, obj)):
-            ctx.warning("sbol2-10903", obj, "the Locations of a SequenceAnnotation should not overlap", S.LOCATION_P)
+            ctx.report(
+                "sbol2-10903", obj, "the Locations of a SequenceAnnotation should not overlap", property=S.LOCATION_P
+            )
 
 
 def regions_overlap(extents: list[tuple]) -> bool:
@@ -355,8 +363,6 @@ def range_span(extents: list[tuple]) -> int | None:
 @REGISTRY.rule("sbol2-10711", "sbol2-10712")
 def component_source_locations(ctx: Sbol2Context) -> None:
     """A Component's source Locations do not overlap and span the same length as the Ranges annotating it."""
-    if not ctx.config.best_practice:
-        return
     annotation_by_component: dict[str, Obj] = {}
     for candidate in ctx.objects:
         if candidate.has_class(S.SEQUENCE_ANNOTATION):
@@ -368,7 +374,9 @@ def component_source_locations(ctx: Sbol2Context) -> None:
             continue
         source = regions(ctx, obj, S.SOURCE_LOCATION)
         if regions_overlap(source):
-            ctx.warning("sbol2-10711", obj, "the source Locations of a Component should not overlap", S.SOURCE_LOCATION)
+            ctx.report(
+                "sbol2-10711", obj, "the source Locations of a Component should not overlap", property=S.SOURCE_LOCATION
+            )
         if obj.iri is None:
             continue
         annotation = annotation_by_component.get(obj.iri)
@@ -376,9 +384,9 @@ def component_source_locations(ctx: Sbol2Context) -> None:
             continue
         source_len, target_len = range_span(source), range_span(regions(ctx, annotation))
         if source_len is not None and target_len is not None and source_len != target_len:
-            ctx.warning(
+            ctx.report(
                 "sbol2-10712",
                 obj,
                 "a Component's source Range length should equal its annotation Range length",
-                S.SOURCE_LOCATION,
+                property=S.SOURCE_LOCATION,
             )

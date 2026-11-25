@@ -56,12 +56,12 @@ def activities(ctx: SBOL3Context) -> None:
                 if role_stage is None:
                     continue
                 if not any(s == role_stage or PRECEDING[s] == role_stage for s in stages):
-                    ctx.warning(
+                    ctx.report(
                         "sbol3-12901",
                         usage_obj,
-                        spec.PROV_HAD_ROLE,
                         f"Usage role `{role_stage}` is not the same as or preceding any of the Activity's workflow "
                         "stages",
+                        property=spec.PROV_HAD_ROLE,
                     )
         for association in activity.resources(spec.PROV_QUALIFIED_ASSOCIATION):
             association_obj = ctx.get(association)
@@ -70,11 +70,11 @@ def activities(ctx: SBOL3Context) -> None:
             for role in association_obj.iris(spec.PROV_HAD_ROLE):
                 role_stage = _stage(role)
                 if role_stage is not None and role_stage not in stages:
-                    ctx.warning(
+                    ctx.report(
                         "sbol3-12902",
                         association_obj,
-                        spec.PROV_HAD_ROLE,
                         f"Association role `{role_stage}` does not match any of the Activity's workflow stages",
+                        property=spec.PROV_HAD_ROLE,
                     )
 
 
@@ -91,11 +91,11 @@ def usages(ctx: SBOL3Context) -> None:
             for entity in usage.resources(spec.PROV_ENTITY):
                 entity_obj = ctx.get(entity)
                 if entity_obj is not None and not matches_target(stage, entity_obj):
-                    ctx.warning(
+                    ctx.report(
                         "sbol3-13001",
                         usage,
-                        spec.PROV_ENTITY,
                         f"Usage role `{stage}` requires entity to be {REFERRED_TYPE[stage]}",
+                        property=spec.PROV_ENTITY,
                     )
 
 
@@ -114,10 +114,10 @@ def generated_objects(ctx: SBOL3Context) -> None:
                 for role in association_obj.iris(spec.PROV_HAD_ROLE):
                     stage = _stage(role)
                     if stage is not None and not matches_target(stage, obj):
-                        ctx.warning(
+                        ctx.report(
                             "sbol3-10205",
                             obj,
-                            spec.PROV_WAS_GENERATED_BY,
                             f"wasGeneratedBy Association role `{stage}` requires the generated object to be "
                             f"{REFERRED_TYPE[stage]}",
+                            property=spec.PROV_WAS_GENERATED_BY,
                         )

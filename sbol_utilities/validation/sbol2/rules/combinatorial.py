@@ -19,11 +19,11 @@ def variable_components(ctx: Sbol2Context) -> None:
         if S.ENUMERATE in obj.iris(S.STRATEGY) and any(
             op in (S.OP_ZERO_OR_MORE, S.OP_ONE_OR_MORE) for vc in variable_components for op in vc.iris(S.OPERATOR)
         ):
-            ctx.error(
+            ctx.report(
                 "sbol2-12903",
                 obj,
                 "an enumerate CombinatorialDerivation must not use a zeroOrMore or oneOrMore operator",
-                S.STRATEGY,
+                property=S.STRATEGY,
             )
         variables: set[str] = set()
         duplicate = False
@@ -34,11 +34,11 @@ def variable_components(ctx: Sbol2Context) -> None:
                     duplicate = True
                 variables.add(variable)
         if duplicate:
-            ctx.error(
+            ctx.report(
                 "sbol2-12907",
                 obj,
                 "two VariableComponents of a CombinatorialDerivation must not share a variable",
-                S.VARIABLE_COMPONENT_P,
+                property=S.VARIABLE_COMPONENT_P,
             )
 
 
@@ -46,11 +46,11 @@ def variable_components(ctx: Sbol2Context) -> None:
 def variant_derivation_cycles(ctx: Sbol2Context) -> None:
     """CombinatorialDerivations do not form a cycle through their VariableComponents' variantDerivations."""
     for obj in definition_cycles(ctx, S.COMBINATORIAL_DERIVATION, S.VARIABLE_COMPONENT_P, S.VARIANT_DERIVATION):
-        ctx.error(
+        ctx.report(
             "sbol2-13015",
             obj,
             "a CombinatorialDerivation must not form a cycle through its variantDerivations",
-            S.VARIABLE_COMPONENT_P,
+            property=S.VARIABLE_COMPONENT_P,
         )
 
 
@@ -75,8 +75,6 @@ Finding = tuple[str, Obj, str]
 def combinatorial_best_practices(ctx: Sbol2Context) -> None:
     """Templates have Components, variables have variants, and derived designs and Collections follow their
     CombinatorialDerivation."""
-    if not ctx.config.best_practice:
-        return
     for obj in ctx.sbol_objects:
         findings: list[Finding] = []
         if obj.has_class(S.COMBINATORIAL_DERIVATION):
@@ -93,7 +91,7 @@ def combinatorial_best_practices(ctx: Sbol2Context) -> None:
         if obj.has_class(S.COLLECTION):
             _collection_findings(ctx, obj, findings)
         for rule, subject, prop in findings:
-            ctx.warning(rule, subject, _MESSAGES[rule], prop)
+            ctx.report(rule, subject, _MESSAGES[rule], property=prop)
 
 
 def _child_by_identity(ctx: Sbol2Context, parent: Obj, predicate: str, identity: str) -> Obj | None:

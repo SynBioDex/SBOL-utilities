@@ -30,4 +30,4 @@ def measures_are_measures(ctx: Sbol2Context) -> None:
         for iri in obj.iris(S.MEASURE):
             target = ctx.resolve(iri)
             if target is not None and not target.has_class(S.OM_MEASURE):
-                ctx.error(rule, obj, f"measure refers to `{iri}`, which is not an om:Measure", S.MEASURE)
+                ctx.report(rule, obj, f"measure refers to `{iri}`, which is not an om:Measure", property=S.MEASURE)

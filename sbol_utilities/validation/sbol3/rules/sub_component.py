@@ -15,11 +15,11 @@ def _check_location_lengths(ctx: SBOL3Context, obj: SbolObject) -> None:
         location_length = sum_location_lengths(ctx, locations)
         source_length = sum_location_lengths(ctx, source_locations)
         if location_length is not None and source_length is not None and location_length != source_length:
-            ctx.error(
+            ctx.report(
                 "sbol3-10806",
                 obj,
-                spec.HAS_LOCATION,
                 "SubComponent hasLocation and sourceLocation lengths must match",
+                property=spec.HAS_LOCATION,
             )
         return
     if not locations or source_locations:
@@ -36,11 +36,11 @@ def _check_location_lengths(ctx: SBOL3Context, obj: SbolObject) -> None:
         return
     location_length = sum_location_lengths(ctx, locations)
     if location_length is not None and location_length != len(elements.encode("utf-8")):
-        ctx.error(
+        ctx.report(
             "sbol3-10807",
             obj,
-            spec.HAS_LOCATION,
             "SubComponent location lengths must cover its instanceOf sequence when sourceLocation is absent",
+            property=spec.HAS_LOCATION,
         )
 
 
@@ -50,10 +50,10 @@ def sub_components(ctx: SBOL3Context) -> None:
     for obj in ctx.instances(spec.SUB_COMPONENT):
         parent = ctx.ownership.single_parent(obj.identity, spec.HAS_FEATURE)
         if parent is not None and obj.first_resource(spec.INSTANCE_OF) == parent:
-            ctx.error(
+            ctx.report(
                 "sbol3-10803",
                 obj,
-                spec.INSTANCE_OF,
                 "SubComponent instanceOf must not refer to its containing Component",
+                property=spec.INSTANCE_OF,
             )
         _check_location_lengths(ctx, obj)

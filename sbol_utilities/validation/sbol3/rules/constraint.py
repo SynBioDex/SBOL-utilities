@@ -19,42 +19,50 @@ def constraints(ctx: SBOL3Context) -> None:
         subject = obj.first_resource(spec.SUBJECT)
         constrained = obj.first_resource(spec.OBJECT)
         if subject is not None and not component_contains(ctx, component, spec.HAS_FEATURE, subject):
-            ctx.error(
-                "sbol3-11701", obj, spec.SUBJECT, "Constraint subject must be a Feature of the containing Component"
+            ctx.report(
+                "sbol3-11701",
+                obj,
+                "Constraint subject must be a Feature of the containing Component",
+                property=spec.SUBJECT,
             )
         if constrained is not None and not component_contains(ctx, component, spec.HAS_FEATURE, constrained):
-            ctx.error(
-                "sbol3-11702", obj, spec.OBJECT, "Constraint object must be a Feature of the containing Component"
+            ctx.report(
+                "sbol3-11702",
+                obj,
+                "Constraint object must be a Feature of the containing Component",
+                property=spec.OBJECT,
             )
         if subject == constrained:
-            ctx.error("sbol3-11703", obj, spec.OBJECT, "Constraint subject and object must not be the same Feature")
+            ctx.report(
+                "sbol3-11703", obj, "Constraint subject and object must not be the same Feature", property=spec.OBJECT
+            )
         restriction = obj.first_iri(spec.RESTRICTION)
         if restriction is None:
             continue
         restriction_text = str(restriction)
         if restriction_text not in spec.RESTRICTION_IRIS:
-            ctx.warning(
+            ctx.report(
                 "sbol3-11704",
                 obj,
-                spec.RESTRICTION,
                 f"Constraint restriction `{restriction_text}` is not a recommended SBOL relation",
+                property=spec.RESTRICTION,
             )
         if subject is None or constrained is None:
             continue
         table8 = table8_relation(ctx, restriction_text, subject, constrained)
         table10 = table10_relation(ctx, restriction_text, subject, constrained)
         if table8.outcome == CONTRADICTED:
-            ctx.error(
+            ctx.report(
                 "sbol3-11705",
                 obj,
-                spec.RESTRICTION,
                 f"Constraint restriction `{restriction_text}` is contradicted by resolved Feature semantics",
+                property=spec.RESTRICTION,
             )
         if table10.outcome == CONTRADICTED and table10.subject_location is not None:
-            ctx.error(
+            ctx.report(
                 "sbol3-11706",
                 obj,
-                spec.RESTRICTION,
                 f"Constraint restriction `{restriction_text}` is contradicted by locations "
                 f"`{table10.subject_location}` and `{table10.object_location}` on the same Sequence",
+                property=spec.RESTRICTION,
             )

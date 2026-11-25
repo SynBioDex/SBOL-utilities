@@ -72,53 +72,57 @@ def _check_types(ctx: SBOL3Context, obj: SbolObject, rules: dict) -> None:
     ontology = ctx.ontology
     types = _types(obj)
     if sum(1 for t in types if ontology.is_table_2_component_type(t)) > 1:
-        ctx.error(
+        ctx.report(
             rules["table_2_count"],
             obj,
-            spec.TYPE,
             "type property must not contain more than one URI from SBOL Table 2",
+            property=spec.TYPE,
         )
     for t in types:
         if ontology.is_component_type_term(t) is False:
-            ctx.error(rules["type_terms"], obj, spec.TYPE, f"type `{t}` is not an ontology Component type term")
+            ctx.report(
+                rules["type_terms"], obj, f"type `{t}` is not an ontology Component type term", property=spec.TYPE
+            )
     if "table_2_recommendation" in rules:
         for t in types:
             if is_sbo_physical_entity_term(ontology, t) is True and not ontology.is_table_2_component_type(t):
-                ctx.warning(
+                ctx.report(
                     rules["table_2_recommendation"],
                     obj,
-                    spec.TYPE,
                     f"type `{t}` should refer to a term from SBOL Table 2",
+                    property=spec.TYPE,
                 )
     for index, left in enumerate(types):
         for right in types[index + 1 :]:
             if ontology.terms_conflict(left, right) is True:
-                ctx.error(rules["type_conflicts"], obj, spec.TYPE, f"type `{left}` conflicts with type `{right}`")
+                ctx.report(
+                    rules["type_conflicts"], obj, f"type `{left}` conflicts with type `{right}`", property=spec.TYPE
+                )
     nucleic_acid = _is_nucleic_acid(ctx, obj)
     if ctx.topology_completeness == TOPOLOGY_REQUIRE_KNOWN and nucleic_acid:
         if not any(is_topology_type_term(ontology, t) is True for t in types):
-            ctx.error(
+            ctx.report(
                 rules["topology_required"],
                 obj,
-                spec.TYPE,
                 "DNA/RNA object is missing a known SO topology type under topology-complete validation",
+                property=spec.TYPE,
             )
     if nucleic_acid:
         if sum(1 for t in types if is_topology_type_term(ontology, t) is True) > 1:
-            ctx.warning(
+            ctx.report(
                 rules["topology_count"],
                 obj,
-                spec.TYPE,
                 "DNA/RNA objects should have at most one known SO topology type",
+                property=spec.TYPE,
             )
     else:
         for t in types:
             if is_topology_type_term(ontology, t) is True or is_strand_type_term(ontology, t) is True:
-                ctx.warning(
+                ctx.report(
                     rules["topology_without_na"],
                     obj,
-                    spec.TYPE,
                     f"type `{t}` is an SO topology or strand term but the object is not explicitly DNA or RNA",
+                    property=spec.TYPE,
                 )
 
 
@@ -139,24 +143,29 @@ def _check_roles(ctx: SBOL3Context, obj: SbolObject, rules: dict) -> None:
                 elif answer is False:
                     decidable = True
             if decidable and not compatible:
-                ctx.error(
+                ctx.report(
                     rules["role_type"],
                     obj,
-                    spec.ROLE,
                     f"role `{role}` is not compatible with the object's known Table 2 type",
+                    property=spec.ROLE,
                 )
     if "role_terms" in rules:
         for role in roles:
             if ontology.is_component_role_term(role) is False:
-                ctx.error(rules["role_terms"], obj, spec.ROLE, f"role `{role}` is not an ontology Component role term")
+                ctx.report(
+                    rules["role_terms"],
+                    obj,
+                    f"role `{role}` is not an ontology Component role term",
+                    property=spec.ROLE,
+                )
     if not _is_nucleic_acid(ctx, obj):
         for role in roles:
             if ontology.is_sequence_feature_role_term(role) is True:
-                ctx.warning(
+                ctx.report(
                     rules["sequence_feature_without_na"],
                     obj,
-                    spec.ROLE,
                     f"role `{role}` is an SO sequence feature term but the object is not explicitly DNA or RNA",
+                    property=spec.ROLE,
                 )
     else:
         count = 0
@@ -168,11 +177,11 @@ def _check_roles(ctx: SBOL3Context, obj: SbolObject, rules: dict) -> None:
             elif answer is None:
                 unknown = True
         if count > 1 or (count == 0 and not unknown):
-            ctx.warning(
+            ctx.report(
                 rules["sequence_feature_count"],
                 obj,
-                spec.ROLE,
                 "DNA/RNA objects should have exactly one known SO sequence feature role",
+                property=spec.ROLE,
             )
 
 
@@ -219,12 +228,12 @@ def _check_component_sequences(ctx: SBOL3Context, component: SbolObject) -> None
     for t in cross_listed:
         for sequence in sequences:
             if sequence.encoding is not None and not compatible(sequence.encoding, t):
-                ctx.error(
+                ctx.report(
                     "sbol3-10614",
                     component,
-                    spec.HAS_SEQUENCE,
                     f"Component type `{t}` is not compatible with Sequence `{sequence.identity}` encoding "
                     f"`{sequence.encoding}`",
+                    property=spec.HAS_SEQUENCE,
                 )
     for index, left in enumerate(sequences):
         if left.encoding is None:
@@ -233,21 +242,21 @@ def _check_component_sequences(ctx: SBOL3Context, component: SbolObject) -> None
             if right.encoding is None:
                 continue
             if ontology.terms_conflict(left.encoding, right.encoding) is True:
-                ctx.error(
+                ctx.report(
                     "sbol3-10615",
                     component,
-                    spec.HAS_SEQUENCE,
                     f"Sequence `{left.identity}` encoding `{left.encoding}` conflicts with Sequence "
                     f"`{right.identity}` encoding `{right.encoding}`",
+                    property=spec.HAS_SEQUENCE,
                 )
     if sequences and all(s.encoding is not None for s in sequences):
         for t in cross_listed:
             if not any(compatible(s.encoding, t) for s in sequences if s.encoding is not None):
-                ctx.error(
+                ctx.report(
                     "sbol3-10616",
                     component,
-                    spec.HAS_SEQUENCE,
                     f"Component type `{t}` requires at least one compatible Table 1 Sequence encoding",
+                    property=spec.HAS_SEQUENCE,
                 )
     for index, left in enumerate(sequences):
         if left.encoding_iri is None or left.elements is None:
@@ -256,12 +265,12 @@ def _check_component_sequences(ctx: SBOL3Context, component: SbolObject) -> None
             if right.encoding_iri is None or right.elements is None:
                 continue
             if left.encoding_iri == right.encoding_iri and left.elements != right.elements:
-                ctx.warning(
+                ctx.report(
                     "sbol3-10617",
                     component,
-                    spec.HAS_SEQUENCE,
                     f"Sequences `{left.identity}` and `{right.identity}` use the same encoding but have different "
                     "elements",
+                    property=spec.HAS_SEQUENCE,
                 )
 
 
@@ -288,12 +297,12 @@ def components(ctx: SBOL3Context) -> None:
         _check_types(ctx, obj, COMPONENT_RULES)
         for t in _types(obj):
             if is_sbo_physical_entity_term(ctx.ontology, t) is False:
-                ctx.warning(
+                ctx.report(
                     "sbol3-10604",
                     obj,
-                    spec.TYPE,
                     f"Component type `{t}` should refer to a term from the SBO physical entity representation "
                     "branch (SBO:0000236)",
+                    property=spec.TYPE,
                 )
         _check_roles(ctx, obj, COMPONENT_RULES)
         _check_component_sequences(ctx, obj)
@@ -344,9 +353,9 @@ def externally_defined(ctx: SBOL3Context) -> None:
                 family == SIMPLE_CHEMICAL and resource not in ("chebi", "pubchem")
             )
             if mismatch:
-                ctx.warning(
+                ctx.report(
                     "sbol3-11109",
                     obj,
-                    spec.DEFINITION,
                     f"ExternallyDefined definition `{definition}` uses a resource not recommended for type `{t}`",
+                    property=spec.DEFINITION,
                 )

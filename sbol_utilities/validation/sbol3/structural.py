@@ -22,23 +22,29 @@ def check_property(ctx: SBOL3Context, obj: SbolObject, prop: spec.PropertySpec) 
     values = obj.values(prop.predicate)
     count = len(values)
     if prop.cardinality == spec.EXACTLY_ONE and count != 1:
-        ctx.error(
-            prop.rule, obj, prop.predicate, f"property `{prop.predicate}` must have exactly one value; found {count}"
+        ctx.report(
+            prop.rule,
+            obj,
+            f"property `{prop.predicate}` must have exactly one value; found {count}",
+            property=prop.predicate,
         )
     elif prop.cardinality == spec.ZERO_OR_ONE and count > 1:
-        ctx.error(
-            prop.rule, obj, prop.predicate, f"property `{prop.predicate}` must have zero or one value; found {count}"
+        ctx.report(
+            prop.rule,
+            obj,
+            f"property `{prop.predicate}` must have zero or one value; found {count}",
+            property=prop.predicate,
         )
     elif prop.cardinality == spec.ONE_OR_MORE and count == 0:
-        ctx.error(prop.rule, obj, prop.predicate, f"property `{prop.predicate}` must have one or more values")
+        ctx.report(prop.rule, obj, f"property `{prop.predicate}` must have one or more values", property=prop.predicate)
 
     for value in values:
         if not value_matches_kind(value, prop.value_kind):
-            ctx.error(
+            ctx.report(
                 "sbol3-10111",
                 obj,
-                prop.predicate,
                 f"property `{prop.predicate}` value does not match expected {prop.value_kind}",
+                property=prop.predicate,
             )
             continue
         if prop.target is None or not isinstance(value, (URIRef, BNode)):
@@ -46,26 +52,26 @@ def check_property(ctx: SBOL3Context, obj: SbolObject, prop: spec.PropertySpec) 
         target = ctx.get(value)
         if target is not None:
             if not object_matches_target(target, prop.target):
-                ctx.error(
+                ctx.report(
                     "sbol3-10113",
                     obj,
-                    prop.predicate,
                     f"property `{prop.predicate}` refers to `{value}`, which does not match expected target type",
+                    property=prop.predicate,
                 )
         elif prop.require_local:
-            ctx.error(
+            ctx.report(
                 "sbol3-10112",
                 obj,
-                prop.predicate,
                 f"property `{prop.predicate}` refers to missing local child `{value}`",
+                property=prop.predicate,
             )
         elif is_external_top_level_reference(prop.target) and ctx.external_mode != EXTERNAL_OFF:
             # No documents or resolvers are available to this validator, so every external TopLevel stays unresolved.
-            ctx.warning(
+            ctx.report(
                 "sbol3-10114",
                 obj,
-                prop.predicate,
                 f"property `{prop.predicate}` refers to unresolved external TopLevel `{value}`",
+                property=prop.predicate,
             )
 
 

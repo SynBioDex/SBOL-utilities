@@ -8,6 +8,7 @@ nodes), and composite parent/child edges are recorded in an ownership index.
 from __future__ import annotations
 
 from collections.abc import Iterable
+from typing import Any
 
 import rdflib
 from rdflib.term import BNode, Literal, Node, URIRef
@@ -241,26 +242,17 @@ class SBOL3Context(Context):
             found = self._instances[class_iri] = [obj for obj in self.objects.values() if obj.has_class(class_iri)]
         return found
 
-    def emit(
+    def report(
         self,
         rule_id: str,
-        subject,
+        subject: Any,
         message: str,
-        property=None,
+        *,
+        property: str | None = None,
         hint: str | None = None,
         severity: str | None = None,
     ) -> None:
         """Record a violation; SHOULD-level rules are dropped while the best-practice family is off."""
         if not self.config.best_practice and self.catalog[rule_id].normative_severity == SHOULD:
             return
-        if isinstance(subject, SbolObject):
-            subject = subject.identity
-        super().emit(rule_id, subject, message, property=property, hint=hint, severity=severity)
-
-    def error(self, rule_id: str, subject, property: str | None, message: str) -> None:
-        """Emit at Error severity."""
-        self.emit(rule_id, subject, message, property=property, severity="Error")
-
-    def warning(self, rule_id: str, subject, property: str | None, message: str) -> None:
-        """Emit at Warning severity."""
-        self.emit(rule_id, subject, message, property=property, severity="Warning")
+        super().report(rule_id, subject, message, property=property, hint=hint, severity=severity)

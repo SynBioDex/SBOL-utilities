@@ -46,11 +46,11 @@ def _derivation_semantics(ctx: SBOL3Context, derivation: SbolObject) -> None:
     if template is None:
         return
     if not context.template_features:
-        ctx.warning(
+        ctx.report(
             "sbol3-12104",
             derivation,
-            spec.TEMPLATE,
             "CombinatorialDerivation template Component should contain at least one Feature",
+            property=spec.TEMPLATE,
         )
     template_types = _iri_set(template, spec.TYPE)
     template_roles = _iri_set(template, spec.ROLE)
@@ -59,54 +59,54 @@ def _derivation_semantics(ctx: SBOL3Context, derivation: SbolObject) -> None:
         for member in collection.resources(spec.MEMBER):
             member_obj = ctx.get(member)
             if member_obj is not None and context.derivation not in member_obj.derived_from():
-                ctx.warning(
+                ctx.report(
                     "sbol3-12106",
                     collection,
-                    spec.MEMBER,
                     f"Collection member `{member}` should derive from CombinatorialDerivation `{context.derivation}`",
+                    property=spec.MEMBER,
                 )
 
     template_constraints = [c for c in (ctx.get(i) for i in template.resources(spec.HAS_CONSTRAINT)) if c is not None]
     for derived in derived_objects(ctx, context.derivation, spec.COMPONENT):
         for feature in derived.resources(spec.HAS_FEATURE):
             if not feature_derives_from_template(ctx, feature, context.template_features):
-                ctx.warning(
+                ctx.report(
                     "sbol3-12105",
                     feature,
-                    spec.PROV_WAS_DERIVED_FROM,
                     f"derived Feature should derive from a Feature in template Component `{context.template}`",
+                    property=spec.PROV_WAS_DERIVED_FROM,
                 )
         if not template_types <= _iri_set(derived, spec.TYPE):
-            ctx.warning(
+            ctx.report(
                 "sbol3-12107",
                 derived,
-                spec.TYPE,
                 f"derived Component should include all type values from template Component `{context.template}`",
+                property=spec.TYPE,
             )
         if not template_roles <= _iri_set(derived, spec.ROLE):
-            ctx.warning(
+            ctx.report(
                 "sbol3-12108",
                 derived,
-                spec.ROLE,
                 f"derived Component should include all role values from template Component `{context.template}`",
+                property=spec.ROLE,
             )
         for static_feature in context.static_features:
             matching = features_derived_from(ctx, derived, static_feature)
             if len(matching) != 1:
-                ctx.warning(
+                ctx.report(
                     "sbol3-12110",
                     derived,
-                    spec.HAS_FEATURE,
                     f"static template Feature `{static_feature}` should have exactly one derived Feature",
+                    property=spec.HAS_FEATURE,
                 )
             for derived_feature in matching:
                 if static_feature_properties_match(ctx, derived_feature, static_feature) is False:
-                    ctx.error(
+                    ctx.report(
                         "sbol3-12109",
                         derived_feature,
-                        spec.PROV_WAS_DERIVED_FROM,
                         f"Feature derived from static template Feature `{static_feature}` must preserve its local "
                         "Feature properties",
+                        property=spec.PROV_WAS_DERIVED_FROM,
                     )
         for template_feature, variable_feature_id in context.variables.items():
             matching = features_derived_from(ctx, derived, template_feature)
@@ -114,12 +114,12 @@ def _derivation_semantics(ctx: SBOL3Context, derivation: SbolObject) -> None:
             if variable_feature is None:
                 continue
             if not cardinality_allows(variable_feature.first_iri(spec.CARDINALITY), len(matching)):
-                ctx.warning(
+                ctx.report(
                     "sbol3-12111",
                     derived,
-                    spec.HAS_FEATURE,
                     f"derived Feature count for variable template Feature `{template_feature}` should satisfy its "
                     "VariableFeature cardinality",
+                    property=spec.HAS_FEATURE,
                 )
             allowed = allowed_variants(ctx, variable_feature)
             template_feature_roles = _roles_of(ctx, template_feature)
@@ -129,20 +129,20 @@ def _derivation_semantics(ctx: SBOL3Context, derivation: SbolObject) -> None:
                 if derived_obj is not None and derived_obj.has_class(spec.SUB_COMPONENT):
                     instance_of = derived_obj.first_resource(spec.INSTANCE_OF)
                     if instance_of is not None and instance_of not in allowed:
-                        ctx.error(
+                        ctx.report(
                             "sbol3-12112",
                             derived_feature,
-                            spec.INSTANCE_OF,
                             f"derived SubComponent instanceOf `{instance_of}` must be a variant allowed by "
                             f"VariableFeature `{variable_feature_id}`",
+                            property=spec.INSTANCE_OF,
                         )
                 if not template_feature_roles <= _roles_of(ctx, derived_feature):
-                    ctx.warning(
+                    ctx.report(
                         "sbol3-12114",
                         derived_feature,
-                        spec.ROLE,
                         f"derived Feature should include all role values from variable template Feature "
                         f"`{template_feature}`",
+                        property=spec.ROLE,
                     )
                 derived_types = type_properties(ctx, derived_feature)
                 if (
@@ -150,12 +150,12 @@ def _derivation_semantics(ctx: SBOL3Context, derivation: SbolObject) -> None:
                     and derived_types is not None
                     and not template_referent_types <= derived_types
                 ):
-                    ctx.warning(
+                    ctx.report(
                         "sbol3-12115",
                         derived_feature,
-                        spec.TYPE,
                         f"derived Feature type-determining referent should include all type values from template "
                         f"Feature `{template_feature}`",
+                        property=spec.TYPE,
                     )
         for constraint in template_constraints:
             restriction = constraint.first_iri(spec.RESTRICTION)
@@ -170,12 +170,12 @@ def _derivation_semantics(ctx: SBOL3Context, derivation: SbolObject) -> None:
                     table8 = table8_relation(ctx, str(restriction), derived_subject, derived_object)
                     table10 = table10_relation(ctx, str(restriction), derived_subject, derived_object)
                     if table8.outcome == CONTRADICTED or table10.outcome == CONTRADICTED:
-                        ctx.error(
+                        ctx.report(
                             "sbol3-12113",
                             derived,
-                            spec.HAS_CONSTRAINT,
                             f"derived Features `{derived_subject}` and `{derived_object}` must satisfy template "
                             f"Constraint `{constraint.identity}`",
+                            property=spec.HAS_CONSTRAINT,
                         )
 
 
@@ -201,7 +201,9 @@ def combinatorial_derivations(ctx: SBOL3Context) -> None:
     for obj in ctx.instances(spec.COMBINATORIAL_DERIVATION):
         strategy = obj.first_iri(spec.STRATEGY)
         if strategy is not None and str(strategy) not in spec.STRATEGY_IRIS:
-            ctx.error("sbol3-12101", obj, spec.STRATEGY, f"unsupported CombinatorialDerivation strategy `{strategy}`")
+            ctx.report(
+                "sbol3-12101", obj, f"unsupported CombinatorialDerivation strategy `{strategy}`", property=spec.STRATEGY
+            )
         if strategy is not None and str(strategy) == spec.ENUMERATE:
             for variable_feature in obj.resources(spec.HAS_VARIABLE_FEATURE):
                 variable_feature_obj = ctx.get(variable_feature)
@@ -209,11 +211,11 @@ def combinatorial_derivations(ctx: SBOL3Context) -> None:
                     continue
                 cardinality = variable_feature_obj.first_iri(spec.CARDINALITY)
                 if cardinality is not None and str(cardinality) in (spec.ZERO_OR_MORE_VALUE, spec.ONE_OR_MORE_VALUE):
-                    ctx.error(
+                    ctx.report(
                         "sbol3-12102",
                         variable_feature_obj,
-                        spec.CARDINALITY,
                         "enumerate strategy cannot use zeroOrMore or oneOrMore cardinality",
+                        property=spec.CARDINALITY,
                     )
         variables: set[Node] = set()
         for variable_feature in obj.resources(spec.HAS_VARIABLE_FEATURE):
@@ -224,8 +226,11 @@ def combinatorial_derivations(ctx: SBOL3Context) -> None:
             if variable is None:
                 continue
             if variable in variables:
-                ctx.error(
-                    "sbol3-12103", obj, spec.HAS_VARIABLE_FEATURE, f"duplicate VariableFeature variable `{variable}`"
+                ctx.report(
+                    "sbol3-12103",
+                    obj,
+                    f"duplicate VariableFeature variable `{variable}`",
+                    property=spec.HAS_VARIABLE_FEATURE,
                 )
             variables.add(variable)
         _derivation_semantics(ctx, obj)
@@ -237,25 +242,30 @@ def variable_features(ctx: SBOL3Context) -> None:
     for obj in ctx.instances(spec.VARIABLE_FEATURE):
         cardinality = obj.first_iri(spec.CARDINALITY)
         if cardinality is not None and str(cardinality) not in spec.CARDINALITY_IRIS:
-            ctx.error("sbol3-12201", obj, spec.CARDINALITY, f"unsupported VariableFeature cardinality `{cardinality}`")
+            ctx.report(
+                "sbol3-12201",
+                obj,
+                f"unsupported VariableFeature cardinality `{cardinality}`",
+                property=spec.CARDINALITY,
+            )
         derivation = ctx.get(ctx.ownership.single_parent(obj.identity, spec.HAS_VARIABLE_FEATURE))
         template = None if derivation is None else derivation.first_resource(spec.TEMPLATE)
         variable = obj.first_resource(spec.VARIABLE)
         if template is not None and variable is not None:
             if not component_contains(ctx, template, spec.HAS_FEATURE, variable):
-                ctx.error(
+                ctx.report(
                     "sbol3-12202",
                     obj,
-                    spec.VARIABLE,
                     "VariableFeature variable must be a Feature of the template Component",
+                    property=spec.VARIABLE,
                 )
         for collection in obj.resources(spec.VARIANT_COLLECTION):
             if not collection_contains_only_components_or_collections(ctx, collection, set()):
-                ctx.error(
+                ctx.report(
                     "sbol3-12203",
                     obj,
-                    spec.VARIANT_COLLECTION,
                     f"variantCollection `{collection}` contains a member that is not a Component or Collection",
+                    property=spec.VARIANT_COLLECTION,
                 )
 
 
@@ -273,11 +283,11 @@ def component_references(ctx: SBOL3Context) -> None:
             and in_child_of is not None
             and not ctx.ownership.contains(parent_component, spec.HAS_FEATURE, in_child_of)
         ):
-            ctx.error(
+            ctx.report(
                 "sbol3-10901",
                 obj,
-                spec.IN_CHILD_OF,
                 "ComponentReference inChildOf must be a SubComponent of its parent Component",
+                property=spec.IN_CHILD_OF,
             )
 
         if parent_in_child_of is not None:
@@ -288,11 +298,11 @@ def component_references(ctx: SBOL3Context) -> None:
             if referenced is None:
                 continue
             if in_child_of is not None and not component_contains(ctx, referenced, spec.HAS_FEATURE, in_child_of):
-                ctx.error(
+                ctx.report(
                     "sbol3-10902",
                     obj,
-                    spec.IN_CHILD_OF,
                     "nested ComponentReference inChildOf must be a SubComponent of the referenced Component",
+                    property=spec.IN_CHILD_OF,
                 )
 
         sub_component = ctx.get(in_child_of)
@@ -306,22 +316,24 @@ def component_references(ctx: SBOL3Context) -> None:
         if refers_to_obj is None:
             continue
         if trace_feature(ctx, obj.identity).error == "cycle":
-            ctx.error("sbol3-10903", obj, spec.REFERS_TO, "ComponentReference refersTo chain must not form a cycle")
+            ctx.report(
+                "sbol3-10903", obj, "ComponentReference refersTo chain must not form a cycle", property=spec.REFERS_TO
+            )
             continue
         if refers_to_obj.has_class(spec.COMPONENT_REFERENCE):
             if not reference_is_child_of(ctx, refers_to, obj.identity) and not component_contains(
                 ctx, referenced_component, spec.HAS_FEATURE, refers_to
             ):
-                ctx.error(
+                ctx.report(
                     "sbol3-10903",
                     obj,
-                    spec.REFERS_TO,
                     "ComponentReference refersTo target must be a permitted ComponentReference child",
+                    property=spec.REFERS_TO,
                 )
         elif not component_contains(ctx, referenced_component, spec.HAS_FEATURE, refers_to):
-            ctx.error(
+            ctx.report(
                 "sbol3-10904",
                 obj,
-                spec.REFERS_TO,
                 "ComponentReference refersTo target must be a Feature of the referenced Component",
+                property=spec.REFERS_TO,
             )
