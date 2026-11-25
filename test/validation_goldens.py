@@ -51,12 +51,12 @@ def fires(name: str, rule: str) -> bool:
 
 def actual(report: ValidationReport) -> set[IssueKey]:
     """(rule, severity, subject) issues of a report, normalized like the expectations."""
-    result = set()
+    result: set[IssueKey] = set()
     for issue in report.issues:
         subject = issue.subject or ""
         if subject.startswith("_:"):
             subject = "_:"
-        result.add((issue.rule, issue.severity, subject))
+        result.add((issue.rule, issue.severity.value, subject))
     return result
 
 

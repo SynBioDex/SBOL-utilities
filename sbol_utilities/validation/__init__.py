@@ -15,7 +15,7 @@ from sbol_utilities.rdf_io import GraphSource, detect_sbol_version, load_graph
 from sbol_utilities.validation import sbol2 as _sbol2
 from sbol_utilities.validation import sbol3 as _sbol3
 from sbol_utilities.validation.catalog import Catalog, RuleSpec, load_catalog
-from sbol_utilities.validation.config import ValidationConfig
+from sbol_utilities.validation.config import Gate, Severity, ValidationConfig
 from sbol_utilities.validation.report import Coverage, Issue, ValidationReport
 
 __all__ = [
@@ -23,6 +23,8 @@ __all__ = [
     "validate_sbol2",
     "validate_sbol3",
     "ValidationConfig",
+    "Severity",
+    "Gate",
     "ValidationReport",
     "Issue",
     "Coverage",

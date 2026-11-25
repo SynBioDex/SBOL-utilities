@@ -13,8 +13,8 @@ from typing import Any
 import rdflib
 from rdflib.term import BNode, Literal, Node, URIRef
 
-from sbol_utilities.validation.catalog import Catalog, Context
-from sbol_utilities.validation.config import ValidationConfig
+from sbol_utilities.validation.catalog import Catalog, Context, NormativeLevel
+from sbol_utilities.validation.config import Severity, ValidationConfig
 from sbol_utilities.validation.ontology import Ontology
 from sbol_utilities.validation.sbol3 import spec
 
@@ -35,8 +35,6 @@ TOPOLOGY_REQUIRE_KNOWN = "RequireKnownForNucleicAcids"
 HASH_CONSERVATIVE = "Conservative"
 HASH_STRICT = "Strict"
 HASH_LENIENT = "Lenient"
-
-SHOULD = "SHOULD"
 
 
 def _term_order(node: Node) -> tuple[int, str]:
@@ -250,9 +248,9 @@ class SBOL3Context(Context):
         *,
         property: str | None = None,
         hint: str | None = None,
-        severity: str | None = None,
+        severity: Severity | None = None,
     ) -> None:
         """Record a violation; SHOULD-level rules are dropped while the best-practice family is off."""
-        if not self.config.best_practice and self.catalog[rule_id].normative_severity == SHOULD:
+        if not self.config.best_practice and self.catalog[rule_id].normative_severity is NormativeLevel.SHOULD:
             return
         super().report(rule_id, subject, message, property=property, hint=hint, severity=severity)

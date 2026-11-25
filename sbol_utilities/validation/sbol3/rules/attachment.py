@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from rdflib.term import Node, URIRef
 
-from sbol_utilities.validation.config import WARNING
+from sbol_utilities.validation.config import Severity
 from sbol_utilities.validation.sbol3 import spec
 from sbol_utilities.validation.sbol3.context import (
     EXTERNAL_OFF,
@@ -40,7 +40,7 @@ def _check_external_content(ctx: SBOL3Context, obj: SbolObject, rule: str) -> No
         obj,
         f"source `{source}` was not checked because no content resolver was configured",
         property=spec.SOURCE,
-        severity=WARNING,
+        severity=Severity.WARNING,
     )
 
 
@@ -142,7 +142,7 @@ def attachments(ctx: SBOL3Context) -> None:
                     obj,
                     "Attachment hashAlgorithm should be a registry-style hash algorithm token",
                     property=spec.HASH_ALGORITHM,
-                    severity=WARNING,
+                    severity=Severity.WARNING,
                 )
                 continue
             if ctx.hash_algorithm_registry == HASH_STRICT and not is_known_hash_algorithm(value_text):

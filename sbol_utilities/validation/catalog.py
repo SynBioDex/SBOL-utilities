@@ -25,12 +25,33 @@ from typing import Any, Callable, Generic, TypeVar
 import rdflib
 from rdflib.term import BNode
 
-from sbol_utilities.validation.config import ERROR, WARNING, ValidationConfig
+from sbol_utilities.validation.config import Gate, Severity, StrEnum, ValidationConfig
 from sbol_utilities.validation.ontology import Ontology
-from sbol_utilities.validation.report import Coverage, Issue, ValidationReport
+from sbol_utilities.validation.report import (
+    Coverage,
+    Issue,
+    NotApplied,
+    NotAppliedReason,
+    PartiallyApplied,
+    ValidationReport,
+)
 from sbol_utilities.validation.runtime_data import runtime_file
 
-MACHINE_UNCHECKABLE = "MachineUncheckable"
+
+class Status(StrEnum):
+    """How completely a rule can be checked, and at what severity (see the module docstring)."""
+
+    ERROR = "Error"
+    WARNING = "Warning"
+    CONFIGURABLE = "Configurable"
+    MACHINE_UNCHECKABLE = "MachineUncheckable"
+
+
+class NormativeLevel(StrEnum):
+    """The requirement level the specification gives a rule."""
+
+    MUST = "MUST"
+    SHOULD = "SHOULD"
 
 
 @dataclass(frozen=True)
@@ -38,31 +59,46 @@ class RuleSpec:
     """One catalog entry."""
 
     id: str
-    status: str
-    normative_severity: str
+    status: Status
+    normative_severity: NormativeLevel
     spec_section: str
     note: str
-    gate: str | None = None
+    gate: Gate | None = None
     blocker: str | None = None
     coverage_kind: str | None = None
+
+    @classmethod
+    def from_entry(cls, entry: dict[str, Any]) -> RuleSpec:
+        """The rule described by one entry of a catalog's ``rule`` list."""
+        gate = entry.get("gate")
+        return cls(
+            id=entry["id"],
+            status=Status(entry["status"]),
+            normative_severity=NormativeLevel(entry["normative_severity"]),
+            spec_section=entry["spec_section"],
+            note=entry["note"],
+            gate=None if gate is None else Gate(gate),
+            blocker=entry.get("blocker"),
+            coverage_kind=entry.get("coverage_kind"),
+        )
 
     @property
     def machine_checkable(self) -> bool:
         """False for rules the specification marks as not to be machine-reported."""
-        return self.status != MACHINE_UNCHECKABLE
+        return self.status is not Status.MACHINE_UNCHECKABLE
 
     @property
-    def default_severity(self) -> str:
+    def default_severity(self) -> Severity:
         """Severity a violation of this rule is reported at, before configuration overrides.
 
         An ``Error`` or ``Warning`` status fixes the severity. Otherwise a best-practice rule is a warning, and any
         other rule follows its normative level: MUST is an error, SHOULD a warning.
         """
-        if self.status in (ERROR, WARNING):
-            return self.status
-        if self.gate == "BestPractice":
-            return WARNING
-        return ERROR if self.normative_severity == "MUST" else WARNING
+        if self.status is Status.ERROR:
+            return Severity.ERROR
+        if self.status is Status.WARNING or self.gate is Gate.BEST_PRACTICE:
+            return Severity.WARNING
+        return Severity.ERROR if self.normative_severity is NormativeLevel.MUST else Severity.WARNING
 
 
 @dataclass(frozen=True)
@@ -87,18 +123,7 @@ class Catalog:
 def load_catalog(version: int) -> Catalog:
     """Load the vendored catalog for SBOL version 2 or 3."""
     raw = json.loads(runtime_file(f"Rules/sbol{version}-rules.json").read_text(encoding="utf-8"))
-    rules = {}
-    for entry in raw["rule"]:
-        rules[entry["id"]] = RuleSpec(
-            id=entry["id"],
-            status=entry["status"],
-            normative_severity=entry["normative_severity"],
-            spec_section=entry["spec_section"],
-            note=entry["note"],
-            gate=entry.get("gate"),
-            blocker=entry.get("blocker"),
-            coverage_kind=entry.get("coverage_kind"),
-        )
+    rules = {entry["id"]: RuleSpec.from_entry(entry) for entry in raw["rule"]}
     return Catalog(spec_version=raw["meta"]["spec_version"], rules=rules)
 
 
@@ -131,7 +156,7 @@ class Context:
         *,
         property: str | None = None,
         hint: str | None = None,
-        severity: str | None = None,
+        severity: Severity | None = None,
     ) -> None:
         """Record a violation of ``rule_id`` on ``subject``.
 
@@ -225,15 +250,13 @@ class Registry(Generic[ContextT]):
         coverage = Coverage()
         for spec in self.catalog.rules.values():
             if not spec.machine_checkable:
-                coverage.not_applied.append({"rule": spec.id, "reason": MACHINE_UNCHECKABLE})
+                coverage.not_applied.append(NotApplied(spec.id, NotAppliedReason.MACHINE_UNCHECKABLE))
             elif not config.gate_enabled(spec.gate):
-                coverage.not_applied.append({"rule": spec.id, "reason": {"GatedOff": spec.gate}})  # type: ignore
+                coverage.not_applied.append(NotApplied(spec.id, NotAppliedReason.GATED_OFF, spec.gate))
             elif spec.id not in implemented:
-                coverage.not_applied.append({"rule": spec.id, "reason": "Unimplemented"})
+                coverage.not_applied.append(NotApplied(spec.id, NotAppliedReason.UNIMPLEMENTED))
             elif spec.coverage_kind:
-                coverage.partially_applied.append(
-                    {"rule": spec.id, "blocker": spec.blocker or "", "coverage_kind": spec.coverage_kind}
-                )
+                coverage.partially_applied.append(PartiallyApplied(spec.id, spec.blocker or "", spec.coverage_kind))
             else:
                 coverage.fully_applied.append(spec.id)
         return coverage

@@ -10,7 +10,7 @@ import json
 from dataclasses import dataclass, field
 from typing import Any
 
-from sbol_utilities.validation.config import ERROR, WARNING, ValidationConfig
+from sbol_utilities.validation.config import SUPPRESS, Gate, Severity, StrEnum, ValidationConfig
 
 SCHEMA_URL = "https://sbolstandard.org/sbol-rs/validation-report/v1.json"
 
@@ -19,7 +19,7 @@ SCHEMA_URL = "https://sbolstandard.org/sbol-rs/validation-report/v1.json"
 class Issue:
     """One diagnostic: a rule violation found on a subject."""
 
-    severity: str
+    severity: Severity
     rule: str
     subject: str | None
     message: str
@@ -44,22 +44,56 @@ class Issue:
         }
 
 
+class NotAppliedReason(StrEnum):
+    """Why a catalog rule was not evaluated."""
+
+    MACHINE_UNCHECKABLE = "MachineUncheckable"
+    GATED_OFF = "GatedOff"
+    UNIMPLEMENTED = "Unimplemented"
+
+
+@dataclass(frozen=True)
+class NotApplied:
+    """A rule that was not evaluated against the document."""
+
+    rule: str
+    reason: NotAppliedReason
+    #: the gate that was off, when ``reason`` is ``GATED_OFF``
+    gate: Gate | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        """JSON-ready form: a gated-off rule's reason names its gate."""
+        reason: Any = {self.reason.value: self.gate} if self.gate is not None else self.reason
+        return {"rule": self.rule, "reason": reason}
+
+
+@dataclass(frozen=True)
+class PartiallyApplied:
+    """A rule that was evaluated only as far as the document alone allows."""
+
+    rule: str
+    blocker: str
+    coverage_kind: str
+
+    def to_dict(self) -> dict[str, str]:
+        """JSON-ready form."""
+        return {"rule": self.rule, "blocker": self.blocker, "coverage_kind": self.coverage_kind}
+
+
 @dataclass
 class Coverage:
     """Which catalog rules were evaluated against the document, and how completely."""
 
     fully_applied: list[str] = field(default_factory=list)
-    #: entries carry ``rule``, ``blocker``, and ``coverage_kind``
-    partially_applied: list[dict[str, str]] = field(default_factory=list)
-    #: entries carry ``rule`` and ``reason``
-    not_applied: list[dict[str, str]] = field(default_factory=list)
+    partially_applied: list[PartiallyApplied] = field(default_factory=list)
+    not_applied: list[NotApplied] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
-        """JSON-ready form of the coverage partition."""
+        """JSON-ready form of the coverage partition, each part ordered by rule id."""
         return {
             "fully_applied": sorted(self.fully_applied),
-            "partially_applied": sorted(self.partially_applied, key=lambda e: e["rule"]),
-            "not_applied": sorted(self.not_applied, key=lambda e: e["rule"]),
+            "partially_applied": [e.to_dict() for e in sorted(self.partially_applied, key=lambda e: e.rule)],
+            "not_applied": [e.to_dict() for e in sorted(self.not_applied, key=lambda e: e.rule)],
         }
 
 
@@ -75,12 +109,12 @@ class ValidationReport:
     @property
     def errors(self) -> list[Issue]:
         """Issues at Error severity."""
-        return [i for i in self.issues if i.severity == ERROR]
+        return [i for i in self.issues if i.severity is Severity.ERROR]
 
     @property
     def warnings(self) -> list[Issue]:
         """Issues at Warning severity."""
-        return [i for i in self.issues if i.severity == WARNING]
+        return [i for i in self.issues if i.severity is Severity.WARNING]
 
     @property
     def is_valid(self) -> bool:
@@ -113,7 +147,7 @@ class ValidationReport:
         """JSON-ready form of the whole report."""
         cfg = self.config
         overridden = [
-            {"rule": rule, "override": "Suppress" if value == "suppress" else {"Severity": value}}
+            {"rule": rule, "override": "Suppress" if value == SUPPRESS else {"Severity": value}}
             for rule, value in sorted(cfg.rule_overrides.items())
         ]
         return {
