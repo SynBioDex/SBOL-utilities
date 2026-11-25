@@ -14,6 +14,7 @@ from sbol_utilities.validation.sbol3.helpers import (
 )
 from sbol_utilities.validation.sbol3.registry import REGISTRY
 from sbol_utilities.validation.sbol3.structural import check_object
+from sbol_utilities.vocab import RDF_TYPE, SBOL3_NS
 
 
 @REGISTRY.rule("sbol3-10105", "sbol3-10108", "sbol3-10109")
@@ -21,15 +22,15 @@ def sbol_vocabulary(ctx: SBOL3Context) -> None:
     """Unknown SBOL types and properties, properties not allowed for the type, and untyped SBOL subjects."""
     for obj in ctx.objects.values():
         for rdf_type in obj.rdf_types:
-            if rdf_type.startswith(spec.SBOL) and not spec.is_known_sbol_iri(rdf_type):
-                ctx.report("sbol3-10105", obj, f"unknown SBOL rdf:type `{rdf_type}`", property=spec.RDF_TYPE)
-        has_sbol_property = any(p.startswith(spec.SBOL) for p in obj.properties)
-        has_sbol_type = any(t.startswith(spec.SBOL) for t in obj.rdf_types)
+            if rdf_type.startswith(SBOL3_NS) and not spec.is_known_sbol_iri(rdf_type):
+                ctx.report("sbol3-10105", obj, f"unknown SBOL rdf:type `{rdf_type}`", property=RDF_TYPE)
+        has_sbol_property = any(p.startswith(SBOL3_NS) for p in obj.properties)
+        has_sbol_type = any(t.startswith(SBOL3_NS) for t in obj.rdf_types)
         if has_sbol_property and not has_sbol_type:
             ctx.report("sbol3-10108", obj, "object has SBOL properties but no SBOL rdf:type")
         allowed = spec.property_specs_for(obj.rdf_types)
         for predicate in sorted(obj.properties):
-            if not predicate.startswith(spec.SBOL):
+            if not predicate.startswith(SBOL3_NS):
                 continue
             if predicate not in spec.KNOWN_PROPERTIES:
                 ctx.report("sbol3-10105", obj, f"unknown SBOL property `{predicate}`")
@@ -49,11 +50,11 @@ def sbol_types(ctx: SBOL3Context) -> None:
                         "sbol3-10106",
                         obj,
                         f"SBOL rdf:type values `{spec.local_name(left)}` and `{spec.local_name(right)}` are disjoint",
-                        property=spec.RDF_TYPE,
+                        property=RDF_TYPE,
                     )
         concrete = [c for c in classes if c not in (spec.IDENTIFIED, spec.TOP_LEVEL)]
         if len(concrete) > 1:
-            ctx.report("sbol3-10107", obj, "object has more than one concrete SBOL rdf:type", property=spec.RDF_TYPE)
+            ctx.report("sbol3-10107", obj, "object has more than one concrete SBOL rdf:type", property=RDF_TYPE)
 
 
 @REGISTRY.rule("sbol3-10110", "sbol3-10111", "sbol3-10112", "sbol3-10113")

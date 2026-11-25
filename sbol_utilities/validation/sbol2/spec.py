@@ -12,13 +12,17 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from functools import lru_cache
 
-SBOL2_NS = "http://sbols.org/v2#"
-PROV_NS = "http://www.w3.org/ns/prov#"
-OM_NS = "http://www.ontology-of-units-of-measure.org/resource/om-2/"
-DCTERMS_NS = "http://purl.org/dc/terms/"
-RDFS_NS = "http://www.w3.org/2000/01/rdf-schema#"
-RDF_TYPE = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
-XSD_NS = "http://www.w3.org/2001/XMLSchema#"
+from sbol_utilities.vocab import (
+    DCTERMS_DESCRIPTION,
+    DCTERMS_TITLE,
+    OM_NS,
+    PROV_NS,
+    RDF_TYPE,
+    RDFS_COMMENT,
+    RDFS_LABEL,
+    SBOL2_NS,
+    XSD_NS,
+)
 
 
 def _sbol(local: str) -> str:
@@ -85,8 +89,8 @@ OM_BINARY_PREFIX = _om("BinaryPrefix")
 PERSISTENT_IDENTITY = _sbol("persistentIdentity")
 DISPLAY_ID = _sbol("displayId")
 VERSION = _sbol("version")
-TITLE = DCTERMS_NS + "title"
-DESCRIPTION = DCTERMS_NS + "description"
+TITLE = DCTERMS_TITLE
+DESCRIPTION = DCTERMS_DESCRIPTION
 WAS_DERIVED_FROM = _prov("wasDerivedFrom")
 WAS_GENERATED_BY = _prov("wasGeneratedBy")
 ATTACHMENT_P = _sbol("attachment")
@@ -149,8 +153,6 @@ AGENT_P = _prov("agent")
 HAD_ROLE = _prov("hadRole")
 HAD_PLAN = _prov("hadPlan")
 ENTITY = _prov("entity")
-RDFS_LABEL = RDFS_NS + "label"
-RDFS_COMMENT = RDFS_NS + "comment"
 OM_SYMBOL = _om("symbol")
 OM_ALTERNATIVE_SYMBOL = _om("alternativeSymbol")
 OM_ALTERNATIVE_LABEL = _om("alternativeLabel")

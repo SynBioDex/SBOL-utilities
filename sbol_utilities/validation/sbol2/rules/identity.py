@@ -8,6 +8,7 @@ from sbol_utilities.validation.rdf import has_valid_display_id
 from sbol_utilities.validation.sbol2 import spec as S
 from sbol_utilities.validation.sbol2.context import Obj, Sbol2Context
 from sbol_utilities.validation.sbol2.registry import REGISTRY
+from sbol_utilities.vocab import PROV_NS, SBOL2_NS
 
 DELIMITERS = ("/", "#", ":")
 
@@ -38,8 +39,8 @@ def identity_syntax(ctx: Sbol2Context) -> None:
             ctx.report(
                 "sbol2-10206", obj, f"version `{version}` is not a valid SBOL 2 version string", property=S.VERSION
             )
-        sbol_types = sum(1 for t in obj.rdf_types if t.startswith(S.SBOL2_NS))
-        prov_types = sum(1 for t in obj.rdf_types if t.startswith(S.PROV_NS))
+        sbol_types = sum(1 for t in obj.rdf_types if t.startswith(SBOL2_NS))
+        prov_types = sum(1 for t in obj.rdf_types if t.startswith(PROV_NS))
         if sbol_types > 1 or prov_types > 1:
             ctx.report(
                 "sbol2-10228",
@@ -71,9 +72,7 @@ def persistent_identity_classes(ctx: Sbol2Context) -> None:
 def document_namespace(ctx: Sbol2Context) -> None:
     """A non-empty document names SBOL 2 properties or classes (its SBOL prefix is bound to the SBOL 2 namespace)."""
     if ctx.triple_count and not ctx.uses_sbol2_namespace():
-        ctx.report(
-            "sbol2-10101", S.SBOL2_NS, f"an SBOL document must declare and use the SBOL 2 namespace `{S.SBOL2_NS}`"
-        )
+        ctx.report("sbol2-10101", SBOL2_NS, f"an SBOL document must declare and use the SBOL 2 namespace `{SBOL2_NS}`")
 
 
 @REGISTRY.rule("sbol2-10303", "sbol2-10304")

@@ -23,6 +23,7 @@ from sbol_utilities.validation.catalog import Catalog, Context
 from sbol_utilities.validation.config import ValidationConfig
 from sbol_utilities.validation.ontology import Ontology
 from sbol_utilities.validation.sbol2 import spec
+from sbol_utilities.vocab import RDF_TYPE, SBOL2_NS, XSD_STRING
 
 
 @dataclass(frozen=True)
@@ -64,7 +65,7 @@ class Obj:
         self.index = index
         self.properties = properties
         self.rdf_types: tuple[str, ...] = tuple(
-            sorted({str(t) for t in properties.get(spec.RDF_TYPE, ()) if isinstance(t, URIRef)})
+            sorted({str(t) for t in properties.get(RDF_TYPE, ()) if isinstance(t, URIRef)})
         )
         self.classes: set[str] = set()
         for rdf_type in self.rdf_types:
@@ -160,7 +161,7 @@ def _term(node: rdflib.term.Node, predicate: str) -> Term:
             return Lit(str(node), str(node.datatype))
         if node.language:
             return Lit(str(node), None, str(node.language))
-        return Lit(str(node), spec.XSD_NS + "string")
+        return Lit(str(node), XSD_STRING)
     return node  # type: ignore[return-value]
 
 
@@ -204,7 +205,7 @@ class Sbol2Context(Context):
         self._resolve_index: dict[str, Obj] | None = None
         self._containers: dict[str, dict[str, list[Obj]]] = {}
         self._uses_predicate = any(
-            p.startswith(spec.SBOL2_NS) or (p == spec.RDF_TYPE and _sbol2_type(props))
+            p.startswith(SBOL2_NS) or (p == RDF_TYPE and _sbol2_type(props))
             for props in properties.values()
             for p in props
         )
@@ -270,10 +271,10 @@ class Sbol2Context(Context):
 
 
 def _sbol2_type(props: dict[str, list[Term]]) -> bool:
-    return any(isinstance(t, URIRef) and str(t).startswith(spec.SBOL2_NS) for t in props.get(spec.RDF_TYPE, ()))
+    return any(isinstance(t, URIRef) and str(t).startswith(SBOL2_NS) for t in props.get(RDF_TYPE, ()))
 
 
 def _is_model_relevant(props: dict[str, list[Term]]) -> bool:
     if any(not spec.is_extension_predicate(p) for p in props):
         return True
-    return any(isinstance(t, URIRef) and str(t) in spec.CLASSES for t in props.get(spec.RDF_TYPE, ()))
+    return any(isinstance(t, URIRef) and str(t) in spec.CLASSES for t in props.get(RDF_TYPE, ()))

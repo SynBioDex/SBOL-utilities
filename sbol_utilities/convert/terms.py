@@ -13,7 +13,46 @@ from typing import Union
 import rdflib
 from rdflib import BNode, Literal, URIRef
 
-from sbol_utilities.vocab import BACKPORT, OM, PROV, SBOL2, SBOL3, XSD_NS
+from sbol_utilities.vocab import (
+    BACKPORT_NS,
+    DCTERMS_DESCRIPTION,
+    DCTERMS_TITLE,
+    OM_NS,
+    PROV_NS,
+    RDF_TYPE,
+    SBOL2_NS,
+    SBOL3_NS,
+    XSD_BOOLEAN,
+    XSD_STRING,
+)
+
+__all__ = [
+    "BP",
+    "DCTERMS_DESCRIPTION",
+    "DCTERMS_TITLE",
+    "EDAM_IUPAC_DNA_RNA",
+    "EDAM_IUPAC_PROTEIN",
+    "EXTENSION_MARKERS",
+    "OM_NS",
+    "OM_TOP_LEVELS",
+    "PROV_ACTIVITY",
+    "PROV_AGENT",
+    "PROV_NS",
+    "PROV_PLAN",
+    "RDF_TYPE",
+    "S2",
+    "S3",
+    "SBO_FUNCTIONAL_ENTITY",
+    "XSD_BOOLEAN",
+    "XSD_STRING",
+    "Node",
+    "Term",
+    "Triple",
+    "build_graph",
+    "graph_triples",
+    "is_iri",
+    "plain",
+]
 
 
 class _Namespace:
@@ -26,17 +65,9 @@ class _Namespace:
         return self.base + name
 
 
-S2 = _Namespace(str(SBOL2))
-S3 = _Namespace(str(SBOL3))
-BP = _Namespace(str(BACKPORT))
-PROV_NS = str(PROV)
-OM_NS = str(OM)
-
-RDF_TYPE = str(rdflib.RDF.type)
-DCTERMS_TITLE = "http://purl.org/dc/terms/title"
-DCTERMS_DESCRIPTION = "http://purl.org/dc/terms/description"
-XSD_STRING = XSD_NS + "string"
-XSD_BOOLEAN = XSD_NS + "boolean"
+S2 = _Namespace(SBOL2_NS)
+S3 = _Namespace(SBOL3_NS)
+BP = _Namespace(BACKPORT_NS)
 
 PROV_ACTIVITY = PROV_NS + "Activity"
 PROV_AGENT = PROV_NS + "Agent"
@@ -52,7 +83,7 @@ OM_TOP_LEVELS = frozenset(
 )
 
 #: SBOL 3 types that place an object of another vocabulary's class in the SBOL data model (SBOL 3.1.0 §6.11)
-EXTENSION_MARKERS = frozenset({str(SBOL3) + "TopLevel", str(SBOL3) + "Identified"})
+EXTENSION_MARKERS = frozenset({S3.TopLevel, S3.Identified})
 
 #: SBO "functional entity": the type the upgrade gives every ModuleDefinition-derived Component
 SBO_FUNCTIONAL_ENTITY = "https://identifiers.org/SBO:0000241"

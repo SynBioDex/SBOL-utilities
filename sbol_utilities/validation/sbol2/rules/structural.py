@@ -10,6 +10,7 @@ from rdflib.term import URIRef
 from sbol_utilities.validation.sbol2 import spec as S
 from sbol_utilities.validation.sbol2.context import Lit, Obj, Sbol2Context, Term, parse_i64
 from sbol_utilities.validation.sbol2.registry import REGISTRY
+from sbol_utilities.vocab import SBOL2_NS
 
 _FLOAT = re.compile(
     r"^[+-]?(?:[0-9]+\.?[0-9]*(?:[eE][+-]?[0-9]+)?|\.[0-9]+(?:[eE][+-]?[0-9]+)?|inf|infinity|nan)$", re.IGNORECASE
@@ -114,7 +115,7 @@ def closed_property_sets(ctx: Sbol2Context) -> None:
             continue
         allowed = obj.fields
         for predicate in sorted(obj.properties):
-            if predicate.startswith(S.SBOL2_NS) and predicate not in allowed:
+            if predicate.startswith(SBOL2_NS) and predicate not in allowed:
                 ctx.report(rule, obj, f"property `{predicate}` is not permitted on this object's class")
 
 
@@ -146,7 +147,7 @@ def controlled_values(ctx: Sbol2Context) -> None:
             )
         if obj.has_class(S.GENERIC_TOP_LEVEL):
             for value in obj.iris(S.RDF_TYPE_P):
-                if value.startswith(S.SBOL2_NS):
+                if value.startswith(SBOL2_NS):
                     ctx.report(
                         "sbol2-12303",
                         obj,

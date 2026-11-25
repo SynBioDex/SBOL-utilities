@@ -8,7 +8,7 @@ from __future__ import annotations
 from rdflib import Literal
 
 from sbol_utilities.convert.terms import EDAM_IUPAC_DNA_RNA, EDAM_IUPAC_PROTEIN, OM_NS, PROV_NS, S2, S3, XSD_STRING
-from sbol_utilities.vocab import XSD_NS
+from sbol_utilities.vocab import DCTERMS_DESCRIPTION, DCTERMS_TITLE, RDFS_COMMENT, RDFS_LABEL, XSD_NS
 
 SO_INLINE = "https://identifiers.org/SO:0001030"
 SO_REVERSE_COMPLEMENT = "https://identifiers.org/SO:0001031"
@@ -116,10 +116,10 @@ SBOL2_LITERAL_DATATYPES: dict[str, str] = {
     S2.version: XSD_STRING,
     S2.elements: XSD_STRING,
     S2.hash: XSD_STRING,
-    "http://purl.org/dc/terms/title": XSD_STRING,
-    "http://purl.org/dc/terms/description": XSD_STRING,
-    "http://www.w3.org/2000/01/rdf-schema#label": XSD_STRING,
-    "http://www.w3.org/2000/01/rdf-schema#comment": XSD_STRING,
+    DCTERMS_TITLE: XSD_STRING,
+    DCTERMS_DESCRIPTION: XSD_STRING,
+    RDFS_LABEL: XSD_STRING,
+    RDFS_COMMENT: XSD_STRING,
     OM_NS + "symbol": XSD_STRING,
     OM_NS + "alternativeSymbol": XSD_STRING,
     OM_NS + "alternativeLabel": XSD_STRING,

@@ -14,11 +14,10 @@ import rdflib
 import sbol2
 import sbol3
 
+from sbol_utilities.vocab import SBOL2_NS, SBOL3_NS
+
 #: Base IRI for resolving relative IRIs in documents that declare none (the base sbol-rs uses)
 DEFAULT_BASE = "http://sbols.org/unspecified/"
-
-SBOL2_NS = "http://sbols.org/v2#"
-SBOL3_NS = "http://sbols.org/v3#"
 
 #: rdflib format names keyed by file extension
 EXTENSION_FORMATS = {

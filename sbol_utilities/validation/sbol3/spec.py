@@ -11,10 +11,20 @@ from __future__ import annotations
 from collections.abc import Iterable
 from dataclasses import dataclass
 
-SBOL = "http://sbols.org/v3#"
-PROV = "http://www.w3.org/ns/prov#"
-OM = "http://www.ontology-of-units-of-measure.org/resource/om-2/"
-RDF_TYPE = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
+from sbol_utilities.vocab import OM_NS, PROV_NS, SBOL3_NS
+
+
+def _sbol(local: str) -> str:
+    return SBOL3_NS + local
+
+
+def _prov(local: str) -> str:
+    return PROV_NS + local
+
+
+def _om(local: str) -> str:
+    return OM_NS + local
+
 
 # Cardinalities
 EXACTLY_ONE = "ExactlyOne"
@@ -77,167 +87,166 @@ def _external(predicate: str, cardinality: str, target: str) -> PropertySpec:
     return PropertySpec(predicate, cardinality, URI, target, False)
 
 
-S = SBOL
-IDENTIFIED = S + "Identified"
-TOP_LEVEL = S + "TopLevel"
-ATTACHMENT = S + "Attachment"
-COLLECTION = S + "Collection"
-COMBINATORIAL_DERIVATION = S + "CombinatorialDerivation"
-COMPONENT = S + "Component"
-COMPONENT_REFERENCE = S + "ComponentReference"
-CONSTRAINT = S + "Constraint"
-CUT = S + "Cut"
-ENTIRE_SEQUENCE = S + "EntireSequence"
-EXPERIMENT = S + "Experiment"
-EXPERIMENTAL_DATA = S + "ExperimentalData"
-EXTERNALLY_DEFINED = S + "ExternallyDefined"
-FEATURE = S + "Feature"
-IMPLEMENTATION = S + "Implementation"
-INTERACTION = S + "Interaction"
-INTERFACE = S + "Interface"
-LOCATION = S + "Location"
-LOCAL_SUB_COMPONENT = S + "LocalSubComponent"
-MODEL = S + "Model"
-PARTICIPATION = S + "Participation"
-RANGE = S + "Range"
-SEQUENCE = S + "Sequence"
-SEQUENCE_FEATURE = S + "SequenceFeature"
-SUB_COMPONENT = S + "SubComponent"
-VARIABLE_FEATURE = S + "VariableFeature"
-PROV_ACTIVITY = PROV + "Activity"
-PROV_AGENT = PROV + "Agent"
-PROV_ASSOCIATION = PROV + "Association"
-PROV_PLAN = PROV + "Plan"
-PROV_USAGE = PROV + "Usage"
-OM_MEASURE = OM + "Measure"
-OM_UNIT = OM + "Unit"
-OM_SINGULAR_UNIT = OM + "SingularUnit"
-OM_COMPOUND_UNIT = OM + "CompoundUnit"
-OM_UNIT_DIVISION = OM + "UnitDivision"
-OM_UNIT_EXPONENTIATION = OM + "UnitExponentiation"
-OM_UNIT_MULTIPLICATION = OM + "UnitMultiplication"
-OM_PREFIXED_UNIT = OM + "PrefixedUnit"
-OM_PREFIX = OM + "Prefix"
-OM_SI_PREFIX = OM + "SIPrefix"
-OM_BINARY_PREFIX = OM + "BinaryPrefix"
+IDENTIFIED = _sbol("Identified")
+TOP_LEVEL = _sbol("TopLevel")
+ATTACHMENT = _sbol("Attachment")
+COLLECTION = _sbol("Collection")
+COMBINATORIAL_DERIVATION = _sbol("CombinatorialDerivation")
+COMPONENT = _sbol("Component")
+COMPONENT_REFERENCE = _sbol("ComponentReference")
+CONSTRAINT = _sbol("Constraint")
+CUT = _sbol("Cut")
+ENTIRE_SEQUENCE = _sbol("EntireSequence")
+EXPERIMENT = _sbol("Experiment")
+EXPERIMENTAL_DATA = _sbol("ExperimentalData")
+EXTERNALLY_DEFINED = _sbol("ExternallyDefined")
+FEATURE = _sbol("Feature")
+IMPLEMENTATION = _sbol("Implementation")
+INTERACTION = _sbol("Interaction")
+INTERFACE = _sbol("Interface")
+LOCATION = _sbol("Location")
+LOCAL_SUB_COMPONENT = _sbol("LocalSubComponent")
+MODEL = _sbol("Model")
+PARTICIPATION = _sbol("Participation")
+RANGE = _sbol("Range")
+SEQUENCE = _sbol("Sequence")
+SEQUENCE_FEATURE = _sbol("SequenceFeature")
+SUB_COMPONENT = _sbol("SubComponent")
+VARIABLE_FEATURE = _sbol("VariableFeature")
+PROV_ACTIVITY = _prov("Activity")
+PROV_AGENT = _prov("Agent")
+PROV_ASSOCIATION = _prov("Association")
+PROV_PLAN = _prov("Plan")
+PROV_USAGE = _prov("Usage")
+OM_MEASURE = _om("Measure")
+OM_UNIT = _om("Unit")
+OM_SINGULAR_UNIT = _om("SingularUnit")
+OM_COMPOUND_UNIT = _om("CompoundUnit")
+OM_UNIT_DIVISION = _om("UnitDivision")
+OM_UNIT_EXPONENTIATION = _om("UnitExponentiation")
+OM_UNIT_MULTIPLICATION = _om("UnitMultiplication")
+OM_PREFIXED_UNIT = _om("PrefixedUnit")
+OM_PREFIX = _om("Prefix")
+OM_SI_PREFIX = _om("SIPrefix")
+OM_BINARY_PREFIX = _om("BinaryPrefix")
 
 # Predicates
-DISPLAY_ID = S + "displayId"
-NAME = S + "name"
-DESCRIPTION = S + "description"
-HAS_NAMESPACE = S + "hasNamespace"
-HAS_ATTACHMENT = S + "hasAttachment"
-HAS_MEASURE = S + "hasMeasure"
-TYPE = S + "type"
-ROLE = S + "role"
-ELEMENTS = S + "elements"
-ENCODING = S + "encoding"
-SOURCE = S + "source"
-FORMAT = S + "format"
-SIZE = S + "size"
-HASH = S + "hash"
-HASH_ALGORITHM = S + "hashAlgorithm"
-MEMBER = S + "member"
-TEMPLATE = S + "template"
-STRATEGY = S + "strategy"
-HAS_VARIABLE_FEATURE = S + "hasVariableFeature"
-IN_CHILD_OF = S + "inChildOf"
-REFERS_TO = S + "refersTo"
-HAS_SEQUENCE = S + "hasSequence"
-HAS_FEATURE = S + "hasFeature"
-HAS_CONSTRAINT = S + "hasConstraint"
-HAS_INTERACTION = S + "hasInteraction"
-HAS_INTERFACE = S + "hasInterface"
-HAS_MODEL = S + "hasModel"
-SUBJECT = S + "subject"
-OBJECT = S + "object"
-RESTRICTION = S + "restriction"
-AT = S + "at"
-DEFINITION = S + "definition"
-ORIENTATION = S + "orientation"
-ORDER = S + "order"
-HAS_LOCATION = S + "hasLocation"
-INSTANCE_OF = S + "instanceOf"
-ROLE_INTEGRATION = S + "roleIntegration"
-SOURCE_LOCATION = S + "sourceLocation"
-LANGUAGE = S + "language"
-FRAMEWORK = S + "framework"
-HAS_PARTICIPATION = S + "hasParticipation"
-PARTICIPANT = S + "participant"
-HIGHER_ORDER_PARTICIPANT = S + "higherOrderParticipant"
-INPUT = S + "input"
-OUTPUT = S + "output"
-NONDIRECTIONAL = S + "nondirectional"
-START = S + "start"
-END = S + "end"
-BUILT = S + "built"
-CARDINALITY = S + "cardinality"
-VARIABLE = S + "variable"
-VARIANT = S + "variant"
-VARIANT_COLLECTION = S + "variantCollection"
-VARIANT_DERIVATION = S + "variantDerivation"
-VARIANT_MEASURE = S + "variantMeasure"
-PROV_WAS_DERIVED_FROM = PROV + "wasDerivedFrom"
-PROV_WAS_GENERATED_BY = PROV + "wasGeneratedBy"
-PROV_ENDED_AT_TIME = PROV + "endedAtTime"
-PROV_STARTED_AT_TIME = PROV + "startedAtTime"
-PROV_ENTITY = PROV + "entity"
-PROV_HAD_PLAN = PROV + "hadPlan"
-PROV_HAD_ROLE = PROV + "hadRole"
-PROV_QUALIFIED_ASSOCIATION = PROV + "qualifiedAssociation"
-PROV_QUALIFIED_USAGE = PROV + "qualifiedUsage"
-PROV_WAS_INFORMED_BY = PROV + "wasInformedBy"
-PROV_AGENT_PREDICATE = PROV + "agent"
-OM_HAS_UNIT = OM + "hasUnit"
-OM_HAS_NUMERICAL_VALUE = OM + "hasNumericalValue"
-OM_HAS_PREFIX = OM + "hasPrefix"
-OM_ALTERNATIVE_LABEL = OM + "alternativeLabel"
-OM_ALTERNATIVE_SYMBOL = OM + "alternativeSymbol"
-OM_COMMENT = OM + "comment"
-OM_HAS_FACTOR = OM + "hasFactor"
-OM_LABEL = OM + "label"
-OM_LONG_COMMENT = OM + "longcomment"
-OM_SYMBOL = OM + "symbol"
-OM_HAS_DENOMINATOR = OM + "hasDenominator"
-OM_HAS_NUMERATOR = OM + "hasNumerator"
-OM_HAS_BASE = OM + "hasBase"
-OM_HAS_EXPONENT = OM + "hasExponent"
-OM_HAS_TERM1 = OM + "hasTerm1"
-OM_HAS_TERM2 = OM + "hasTerm2"
+DISPLAY_ID = _sbol("displayId")
+NAME = _sbol("name")
+DESCRIPTION = _sbol("description")
+HAS_NAMESPACE = _sbol("hasNamespace")
+HAS_ATTACHMENT = _sbol("hasAttachment")
+HAS_MEASURE = _sbol("hasMeasure")
+TYPE = _sbol("type")
+ROLE = _sbol("role")
+ELEMENTS = _sbol("elements")
+ENCODING = _sbol("encoding")
+SOURCE = _sbol("source")
+FORMAT = _sbol("format")
+SIZE = _sbol("size")
+HASH = _sbol("hash")
+HASH_ALGORITHM = _sbol("hashAlgorithm")
+MEMBER = _sbol("member")
+TEMPLATE = _sbol("template")
+STRATEGY = _sbol("strategy")
+HAS_VARIABLE_FEATURE = _sbol("hasVariableFeature")
+IN_CHILD_OF = _sbol("inChildOf")
+REFERS_TO = _sbol("refersTo")
+HAS_SEQUENCE = _sbol("hasSequence")
+HAS_FEATURE = _sbol("hasFeature")
+HAS_CONSTRAINT = _sbol("hasConstraint")
+HAS_INTERACTION = _sbol("hasInteraction")
+HAS_INTERFACE = _sbol("hasInterface")
+HAS_MODEL = _sbol("hasModel")
+SUBJECT = _sbol("subject")
+OBJECT = _sbol("object")
+RESTRICTION = _sbol("restriction")
+AT = _sbol("at")
+DEFINITION = _sbol("definition")
+ORIENTATION = _sbol("orientation")
+ORDER = _sbol("order")
+HAS_LOCATION = _sbol("hasLocation")
+INSTANCE_OF = _sbol("instanceOf")
+ROLE_INTEGRATION = _sbol("roleIntegration")
+SOURCE_LOCATION = _sbol("sourceLocation")
+LANGUAGE = _sbol("language")
+FRAMEWORK = _sbol("framework")
+HAS_PARTICIPATION = _sbol("hasParticipation")
+PARTICIPANT = _sbol("participant")
+HIGHER_ORDER_PARTICIPANT = _sbol("higherOrderParticipant")
+INPUT = _sbol("input")
+OUTPUT = _sbol("output")
+NONDIRECTIONAL = _sbol("nondirectional")
+START = _sbol("start")
+END = _sbol("end")
+BUILT = _sbol("built")
+CARDINALITY = _sbol("cardinality")
+VARIABLE = _sbol("variable")
+VARIANT = _sbol("variant")
+VARIANT_COLLECTION = _sbol("variantCollection")
+VARIANT_DERIVATION = _sbol("variantDerivation")
+VARIANT_MEASURE = _sbol("variantMeasure")
+PROV_WAS_DERIVED_FROM = _prov("wasDerivedFrom")
+PROV_WAS_GENERATED_BY = _prov("wasGeneratedBy")
+PROV_ENDED_AT_TIME = _prov("endedAtTime")
+PROV_STARTED_AT_TIME = _prov("startedAtTime")
+PROV_ENTITY = _prov("entity")
+PROV_HAD_PLAN = _prov("hadPlan")
+PROV_HAD_ROLE = _prov("hadRole")
+PROV_QUALIFIED_ASSOCIATION = _prov("qualifiedAssociation")
+PROV_QUALIFIED_USAGE = _prov("qualifiedUsage")
+PROV_WAS_INFORMED_BY = _prov("wasInformedBy")
+PROV_AGENT_PREDICATE = _prov("agent")
+OM_HAS_UNIT = _om("hasUnit")
+OM_HAS_NUMERICAL_VALUE = _om("hasNumericalValue")
+OM_HAS_PREFIX = _om("hasPrefix")
+OM_ALTERNATIVE_LABEL = _om("alternativeLabel")
+OM_ALTERNATIVE_SYMBOL = _om("alternativeSymbol")
+OM_COMMENT = _om("comment")
+OM_HAS_FACTOR = _om("hasFactor")
+OM_LABEL = _om("label")
+OM_LONG_COMMENT = _om("longcomment")
+OM_SYMBOL = _om("symbol")
+OM_HAS_DENOMINATOR = _om("hasDenominator")
+OM_HAS_NUMERATOR = _om("hasNumerator")
+OM_HAS_BASE = _om("hasBase")
+OM_HAS_EXPONENT = _om("hasExponent")
+OM_HAS_TERM1 = _om("hasTerm1")
+OM_HAS_TERM2 = _om("hasTerm2")
 
 # Vocabulary values
-INLINE = S + "inline"
-REVERSE_COMPLEMENT = S + "reverseComplement"
+INLINE = _sbol("inline")
+REVERSE_COMPLEMENT = _sbol("reverseComplement")
 SO_INLINE = "https://identifiers.org/SO:0001030"
 SO_REVERSE_COMPLEMENT = "https://identifiers.org/SO:0001031"
-MERGE_ROLES = S + "mergeRoles"
-OVERRIDE_ROLES = S + "overrideRoles"
-ENUMERATE = S + "enumerate"
-SAMPLE = S + "sample"
-ONE = S + "one"
-ZERO_OR_ONE_VALUE = S + "zeroOrOne"
-ONE_OR_MORE_VALUE = S + "oneOrMore"
-ZERO_OR_MORE_VALUE = S + "zeroOrMore"
-PRECEDES = S + "precedes"
-STRICTLY_PRECEDES = S + "strictlyPrecedes"
-MEETS = S + "meets"
-IS_DISJOINT_FROM = S + "isDisjointFrom"
-CONTAINS = S + "contains"
-STRICTLY_CONTAINS = S + "strictlyContains"
-EQUALS = S + "equals"
-COVERS = S + "covers"
-OVERLAPS = S + "overlaps"
-FINISHES = S + "finishes"
-STARTS = S + "starts"
-SAME_ORIENTATION_AS = S + "sameOrientationAs"
-OPPOSITE_ORIENTATION_AS = S + "oppositeOrientationAs"
-DIFFERENT_FROM = S + "differentFrom"
-VERIFY_IDENTICAL = S + "verifyIdentical"
-REPLACES = S + "replaces"
-DESIGN = S + "design"
-BUILD = S + "build"
-TEST = S + "test"
-LEARN = S + "learn"
+MERGE_ROLES = _sbol("mergeRoles")
+OVERRIDE_ROLES = _sbol("overrideRoles")
+ENUMERATE = _sbol("enumerate")
+SAMPLE = _sbol("sample")
+ONE = _sbol("one")
+ZERO_OR_ONE_VALUE = _sbol("zeroOrOne")
+ONE_OR_MORE_VALUE = _sbol("oneOrMore")
+ZERO_OR_MORE_VALUE = _sbol("zeroOrMore")
+PRECEDES = _sbol("precedes")
+STRICTLY_PRECEDES = _sbol("strictlyPrecedes")
+MEETS = _sbol("meets")
+IS_DISJOINT_FROM = _sbol("isDisjointFrom")
+CONTAINS = _sbol("contains")
+STRICTLY_CONTAINS = _sbol("strictlyContains")
+EQUALS = _sbol("equals")
+COVERS = _sbol("covers")
+OVERLAPS = _sbol("overlaps")
+FINISHES = _sbol("finishes")
+STARTS = _sbol("starts")
+SAME_ORIENTATION_AS = _sbol("sameOrientationAs")
+OPPOSITE_ORIENTATION_AS = _sbol("oppositeOrientationAs")
+DIFFERENT_FROM = _sbol("differentFrom")
+VERIFY_IDENTICAL = _sbol("verifyIdentical")
+REPLACES = _sbol("replaces")
+DESIGN = _sbol("design")
+BUILD = _sbol("build")
+TEST = _sbol("test")
+LEARN = _sbol("learn")
 
 ORIENTATION_IRIS = frozenset({INLINE, REVERSE_COMPLEMENT, SO_INLINE, SO_REVERSE_COMPLEMENT})
 ROLE_INTEGRATION_IRIS = frozenset({MERGE_ROLES, OVERRIDE_ROLES})
@@ -627,7 +636,7 @@ def property_specs_for(rdf_types: Iterable[str]) -> dict[str, PropertySpec]:
 
 def local_name(class_iri: str) -> str:
     """Local name of a class IRI, after its namespace."""
-    for namespace in (SBOL, PROV, OM):
+    for namespace in (SBOL3_NS, PROV_NS, OM_NS):
         if class_iri.startswith(namespace):
             return class_iri[len(namespace) :]
     return class_iri

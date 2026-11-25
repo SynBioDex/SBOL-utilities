@@ -13,7 +13,7 @@ from rdflib import Literal
 
 from sbol_utilities.convert import uri
 from sbol_utilities.convert.terms import RDF_TYPE, S2, Triple, is_iri
-from sbol_utilities.vocab import PROV
+from sbol_utilities.vocab import PROV_NS
 
 #: SBOL 2 predicates by which a parent owns a child object, including the PROV qualified-usage/association children
 #: of an Activity and the measure children of any Identified object
@@ -26,8 +26,8 @@ CONTAINMENT_PREDICATES = frozenset(
                 "participation mapsTo variableComponent measure"
             ).split()
         ),
-        str(PROV.qualifiedUsage),
-        str(PROV.qualifiedAssociation),
+        PROV_NS + "qualifiedUsage",
+        PROV_NS + "qualifiedAssociation",
     ]
 )
 

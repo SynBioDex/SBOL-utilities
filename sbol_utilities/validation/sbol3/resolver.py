@@ -13,6 +13,7 @@ from rdflib.term import Node, URIRef
 from sbol_utilities.validation.sbol3 import spec
 from sbol_utilities.validation.sbol3.context import SBOL3Context, SbolObject
 from sbol_utilities.validation.sbol3.helpers import integer_value
+from sbol_utilities.vocab import RDF_TYPE
 
 INLINE = "inline"
 REVERSE_COMPLEMENT = "reverseComplement"
@@ -23,7 +24,7 @@ UNKNOWN = "unknown"
 UNSUPPORTED = "unsupported"
 
 FEATURE_EQUIVALENCE_PREDICATES = (
-    spec.RDF_TYPE,
+    RDF_TYPE,
     spec.ROLE,
     spec.ORIENTATION,
     spec.TYPE,

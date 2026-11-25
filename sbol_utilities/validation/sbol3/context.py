@@ -17,10 +17,7 @@ from sbol_utilities.validation.catalog import Catalog, Context, NormativeLevel
 from sbol_utilities.validation.config import Severity, ValidationConfig
 from sbol_utilities.validation.ontology import Ontology
 from sbol_utilities.validation.sbol3 import spec
-
-XSD = "http://www.w3.org/2001/XMLSchema#"
-XSD_STRING = XSD + "string"
-RDF_LANG_STRING = "http://www.w3.org/1999/02/22-rdf-syntax-ns#langString"
+from sbol_utilities.vocab import OM_NS, PROV_NS, RDF_LANG_STRING, RDF_TYPE, SBOL3_NS, XSD_STRING
 
 
 def _term_order(node: Node) -> tuple[int, str]:
@@ -42,10 +39,10 @@ def literal_datatype(literal: Literal) -> str:
 
 def _is_extension_predicate(predicate: str) -> bool:
     return (
-        predicate != spec.RDF_TYPE
-        and not predicate.startswith(spec.SBOL)
-        and not predicate.startswith(spec.PROV)
-        and not predicate.startswith(spec.OM)
+        predicate != RDF_TYPE
+        and not predicate.startswith(SBOL3_NS)
+        and not predicate.startswith(PROV_NS)
+        and not predicate.startswith(OM_NS)
     )
 
 
@@ -58,7 +55,7 @@ class SbolObject:
         self.identity = identity
         self.properties = properties
         self.rdf_types: tuple[str, ...] = tuple(
-            sorted(str(t) for t in properties.get(spec.RDF_TYPE, ()) if isinstance(t, URIRef))
+            sorted(str(t) for t in properties.get(RDF_TYPE, ()) if isinstance(t, URIRef))
         )
         #: recognized SBOL / PROV / OM classes among the rdf:types
         self.classes: tuple[str, ...] = tuple(t for t in self.rdf_types if t in spec.CLASS_SPECS)

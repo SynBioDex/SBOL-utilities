@@ -11,7 +11,8 @@ from rdflib.term import Literal, Node, URIRef
 
 from sbol_utilities.validation.ontology import NUCLEIC_ACID, Ontology
 from sbol_utilities.validation.sbol3 import spec
-from sbol_utilities.validation.sbol3.context import XSD, SBOL3Context, SbolObject, literal_datatype
+from sbol_utilities.validation.sbol3.context import SBOL3Context, SbolObject, literal_datatype
+from sbol_utilities.vocab import RDF_LANG_STRING, XSD_NS, XSD_STRING
 
 I64_MIN = -(2**63)
 I64_MAX = 2**63 - 1
@@ -108,11 +109,11 @@ def url_matches_namespace_display_id(identity: str, namespace: str, display_id: 
 
 
 def _is_string_datatype(datatype: str) -> bool:
-    return datatype == XSD + "string" or datatype == "http://www.w3.org/1999/02/22-rdf-syntax-ns#langString"
+    return datatype in (XSD_STRING, RDF_LANG_STRING)
 
 
 _INTEGER_TYPES = frozenset(
-    XSD + t
+    XSD_NS + t
     for t in (
         "integer",
         "long",
@@ -129,7 +130,7 @@ _INTEGER_TYPES = frozenset(
         "unsignedByte",
     )
 )
-_FLOAT_TYPES = frozenset(XSD + t for t in ("float", "double", "decimal"))
+_FLOAT_TYPES = frozenset(XSD_NS + t for t in ("float", "double", "decimal"))
 
 
 def _is_float_lexical(value: str) -> bool:
@@ -157,7 +158,7 @@ def value_matches_kind(term: Node, value_kind: str) -> bool:
     if value_kind == spec.FLOAT:
         return (datatype in _FLOAT_TYPES or _is_string_datatype(datatype)) and _is_float_lexical(value)
     if value_kind == spec.DATE_TIME:
-        return (datatype == XSD + "dateTime" or _is_string_datatype(datatype)) and bool(_DATETIME.match(value))
+        return (datatype == XSD_NS + "dateTime" or _is_string_datatype(datatype)) and bool(_DATETIME.match(value))
     return False
 
 
