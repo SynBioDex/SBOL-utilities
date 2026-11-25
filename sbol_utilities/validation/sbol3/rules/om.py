@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
-from sbol_utilities.validation.sbol3 import REGISTRY, spec
+from sbol_utilities.validation.sbol3 import spec
 from sbol_utilities.validation.sbol3.context import SBOL3Context, SbolObject
 from sbol_utilities.validation.sbol3.helpers import (
     is_sbo_systems_description_parameter_term,
     object_type_is_or_inherits,
 )
+from sbol_utilities.validation.sbol3.registry import REGISTRY
 
 
 def _matching_literals(ctx: SBOL3Context, obj: SbolObject, rule: str, left: str, right: str, message: str) -> None:

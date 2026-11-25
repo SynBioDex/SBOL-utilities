@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from rdflib.term import Node
 
 from sbol_utilities.validation.ontology import PROTEIN, SIMPLE_CHEMICAL
-from sbol_utilities.validation.sbol3 import REGISTRY, spec
+from sbol_utilities.validation.sbol3 import spec
 from sbol_utilities.validation.sbol3.context import TOPOLOGY_REQUIRE_KNOWN, SBOL3Context, SbolObject
 from sbol_utilities.validation.sbol3.helpers import (
     component_type,
@@ -18,6 +18,7 @@ from sbol_utilities.validation.sbol3.helpers import (
     known_external_resource,
     sequence_encoding,
 )
+from sbol_utilities.validation.sbol3.registry import REGISTRY
 
 #: rule ids by check, for Component / LocalSubComponent / ExternallyDefined
 COMPONENT_RULES = {

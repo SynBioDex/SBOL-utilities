@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from sbol_utilities.validation.sbol3 import REGISTRY, spec
+from sbol_utilities.validation.sbol3 import spec
 from sbol_utilities.validation.sbol3.context import SBOL3Context, SbolObject
 from sbol_utilities.validation.sbol3.helpers import sum_location_lengths
+from sbol_utilities.validation.sbol3.registry import REGISTRY
 
 
 def _check_location_lengths(ctx: SBOL3Context, obj: SbolObject) -> None:

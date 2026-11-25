@@ -7,10 +7,9 @@ import re
 
 from rdflib.term import URIRef
 
-from sbol_utilities.validation.catalog import Context
-from sbol_utilities.validation.sbol2 import REGISTRY
 from sbol_utilities.validation.sbol2 import spec as S
 from sbol_utilities.validation.sbol2.context import Lit, Obj, Sbol2Context, Term, parse_i64
+from sbol_utilities.validation.sbol2.registry import REGISTRY
 
 _FLOAT = re.compile(
     r"^[+-]?(?:[0-9]+\.?[0-9]*(?:[eE][+-]?[0-9]+)?|\.[0-9]+(?:[eE][+-]?[0-9]+)?|inf|infinity|nan)$", re.IGNORECASE
@@ -62,9 +61,8 @@ def _cardinality_violated(cardinality: str, count: int) -> bool:
 
 
 @REGISTRY.rule(*S.field_rules())
-def property_table(context: Context) -> None:
+def property_table(ctx: Sbol2Context) -> None:
     """Cardinality, value kind, and composite-child resolution of every declared property."""
-    ctx: Sbol2Context = context  # type: ignore[assignment]
     catalog = ctx.catalog
     for obj in ctx.sbol_objects:
         for predicate, field in obj.fields.items():
@@ -105,9 +103,8 @@ def property_table(context: Context) -> None:
 
 
 @REGISTRY.rule(*[rule for _, rule in S.CLOSED_PROPERTY_RULES])
-def closed_property_sets(context: Context) -> None:
+def closed_property_sets(ctx: Sbol2Context) -> None:
     """No SBOL 2 property outside an object's class is permitted."""
-    ctx: Sbol2Context = context  # type: ignore[assignment]
     for obj in ctx.sbol_objects:
         rule = next((r for cls, r in S.CLOSED_PROPERTY_RULES if obj.has_class(cls)), None)
         if rule is None:
@@ -128,9 +125,8 @@ _ENUMS = (
 
 
 @REGISTRY.rule("sbol2-10607", "sbol2-10708", "sbol2-10810", "sbol2-12902", "sbol2-13003", "sbol2-10709", "sbol2-12303")
-def controlled_values(context: Context) -> None:
+def controlled_values(ctx: Sbol2Context) -> None:
     """Enumerated properties take values from their fixed tables; related presence and namespace constraints."""
-    ctx: Sbol2Context = context  # type: ignore[assignment]
     for obj in ctx.sbol_objects:
         for predicate, rule, allowed in _ENUMS:
             for value in obj.iris(predicate):
@@ -155,9 +151,8 @@ def controlled_values(context: Context) -> None:
 
 
 @REGISTRY.rule("sbol2-11102", "sbol2-11103", "sbol2-11104", "sbol2-11202")
-def location_bounds(context: Context) -> None:
+def location_bounds(ctx: Sbol2Context) -> None:
     """Range start/end are positive and ordered; Cut positions are non-negative."""
-    ctx: Sbol2Context = context  # type: ignore[assignment]
     for obj in ctx.sbol_objects:
         if obj.has_class(S.RANGE):
             start, end = obj.integer(S.START), obj.integer(S.END)

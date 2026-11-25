@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from sbol_utilities.validation.sbol3 import REGISTRY, spec
+from sbol_utilities.validation.sbol3 import spec
 from sbol_utilities.validation.sbol3.context import SBOL3Context
 from sbol_utilities.validation.sbol3.helpers import component_contains
+from sbol_utilities.validation.sbol3.registry import REGISTRY
 from sbol_utilities.validation.sbol3.resolver import CONTRADICTED, table8_relation, table10_relation
 
 

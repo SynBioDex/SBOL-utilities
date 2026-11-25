@@ -2,17 +2,15 @@
 
 from __future__ import annotations
 
-from sbol_utilities.validation.catalog import Context
-from sbol_utilities.validation.sbol2 import REGISTRY
 from sbol_utilities.validation.sbol2 import spec as S
 from sbol_utilities.validation.sbol2.context import Obj, Sbol2Context
+from sbol_utilities.validation.sbol2.registry import REGISTRY
 from sbol_utilities.validation.sbol2.rules.structural import regions
 
 
 @REGISTRY.rule("sbol2-10405")
-def elements_match_encoding(context: Context) -> None:
+def elements_match_encoding(ctx: Sbol2Context) -> None:
     """A Sequence's elements use the IUPAC nucleic-acid or protein alphabet its encoding names."""
-    ctx: Sbol2Context = context  # type: ignore[assignment]
     for obj in ctx.sbol_objects:
         if not obj.has_class(S.SEQUENCE):
             continue
@@ -46,9 +44,8 @@ def _nucleic_length(ctx: Sbol2Context, definition: Obj) -> int | None:
 
 
 @REGISTRY.rule("sbol2-10516", "sbol2-10518", "sbol2-10520", "sbol2-10523")
-def definition_sequences(context: Context) -> None:
+def definition_sequences(ctx: Sbol2Context) -> None:
     """A ComponentDefinition carries sequences matching its type, of consistent lengths, covering its annotations."""
-    ctx: Sbol2Context = context  # type: ignore[assignment]
     if not ctx.config.best_practice:
         return
     for obj in ctx.sbol_objects:

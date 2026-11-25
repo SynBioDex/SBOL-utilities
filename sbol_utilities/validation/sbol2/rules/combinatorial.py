@@ -3,17 +3,15 @@ Collections to the derivation they come from."""
 
 from __future__ import annotations
 
-from sbol_utilities.validation.catalog import Context
-from sbol_utilities.validation.sbol2 import REGISTRY
 from sbol_utilities.validation.sbol2 import spec as S
 from sbol_utilities.validation.sbol2.context import Obj, Sbol2Context
+from sbol_utilities.validation.sbol2.registry import REGISTRY
 from sbol_utilities.validation.sbol2.rules.component import definition_cycles
 
 
 @REGISTRY.rule("sbol2-12903", "sbol2-12907")
-def variable_components(context: Context) -> None:
+def variable_components(ctx: Sbol2Context) -> None:
     """An enumerate derivation uses bounded operators, and no two VariableComponents share a variable."""
-    ctx: Sbol2Context = context  # type: ignore[assignment]
     for obj in ctx.sbol_objects:
         if not obj.has_class(S.COMBINATORIAL_DERIVATION):
             continue
@@ -45,9 +43,8 @@ def variable_components(context: Context) -> None:
 
 
 @REGISTRY.rule("sbol2-13015")
-def variant_derivation_cycles(context: Context) -> None:
+def variant_derivation_cycles(ctx: Sbol2Context) -> None:
     """CombinatorialDerivations do not form a cycle through their VariableComponents' variantDerivations."""
-    ctx: Sbol2Context = context  # type: ignore[assignment]
     for obj in definition_cycles(ctx, S.COMBINATORIAL_DERIVATION, S.VARIABLE_COMPONENT_P, S.VARIANT_DERIVATION):
         ctx.error(
             "sbol2-13015",
@@ -75,10 +72,9 @@ Finding = tuple[str, Obj, str]
 
 
 @REGISTRY.rule(*_MESSAGES)
-def combinatorial_best_practices(context: Context) -> None:
+def combinatorial_best_practices(ctx: Sbol2Context) -> None:
     """Templates have Components, variables have variants, and derived designs and Collections follow their
     CombinatorialDerivation."""
-    ctx: Sbol2Context = context  # type: ignore[assignment]
     if not ctx.config.best_practice:
         return
     for obj in ctx.sbol_objects:

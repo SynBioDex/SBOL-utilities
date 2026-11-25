@@ -4,8 +4,9 @@ from __future__ import annotations
 
 from rdflib.term import Node
 
-from sbol_utilities.validation.sbol3 import REGISTRY, spec
+from sbol_utilities.validation.sbol3 import spec
 from sbol_utilities.validation.sbol3.context import SBOL3Context, SbolObject
+from sbol_utilities.validation.sbol3.registry import REGISTRY
 
 DESIGN = "design"
 BUILD = "build"

@@ -7,10 +7,9 @@ from collections.abc import Iterable
 
 from rdflib.term import URIRef
 
-from sbol_utilities.validation.catalog import Context
-from sbol_utilities.validation.sbol2 import REGISTRY
 from sbol_utilities.validation.sbol2 import spec as S
 from sbol_utilities.validation.sbol2.context import Obj, Sbol2Context
+from sbol_utilities.validation.sbol2.registry import REGISTRY
 
 _COMPLETENESS_RULES = (
     "sbol2-10604",
@@ -42,9 +41,8 @@ def _resolvable(ctx: Sbol2Context) -> set[str]:
 
 
 @REGISTRY.rule(*_COMPLETENESS_RULES)
-def referenced_objects_present(context: Context) -> None:
+def referenced_objects_present(ctx: Sbol2Context) -> None:
     """Every external reference names an object held in the document."""
-    ctx: Sbol2Context = context  # type: ignore[assignment]
     if not ctx.config.complete:
         return
     resolvable = _resolvable(ctx)
@@ -99,9 +97,8 @@ _CLASS_CHECKS = (
     "sbol2-10807",
     "sbol2-13103",
 )
-def referenced_object_classes(context: Context) -> None:
+def referenced_object_classes(ctx: Sbol2Context) -> None:
     """References resolved in the document name objects of the class the property requires."""
-    ctx: Sbol2Context = context  # type: ignore[assignment]
     for obj in ctx.sbol_objects:
         if (obj.has_class(S.COMPONENT) or obj.has_class(S.FUNCTIONAL_COMPONENT)) and not obj.has_class(S.MODULE):
             for iri in _wrong_class(ctx, obj, S.DEFINITION, lambda t: t.has_class(S.COMPONENT_DEFINITION)):

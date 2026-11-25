@@ -3,12 +3,11 @@ wasDerivedFrom cycles and version order, and the compliant-URI family."""
 
 from __future__ import annotations
 
-from sbol_utilities.validation.catalog import Context
 from sbol_utilities.validation.graphs import nodes_on_cycles
 from sbol_utilities.validation.rdf import has_valid_display_id
-from sbol_utilities.validation.sbol2 import REGISTRY
 from sbol_utilities.validation.sbol2 import spec as S
 from sbol_utilities.validation.sbol2.context import Obj, Sbol2Context
+from sbol_utilities.validation.sbol2.registry import REGISTRY
 
 DELIMITERS = ("/", "#", ":")
 
@@ -21,9 +20,8 @@ def is_valid_version(version: str) -> bool:
 
 
 @REGISTRY.rule("sbol2-10201", "sbol2-10204", "sbol2-10206", "sbol2-10228")
-def identity_syntax(context: Context) -> None:
+def identity_syntax(ctx: Sbol2Context) -> None:
     """Identities are URIs; displayId and version are lexically valid; at most one SBOL and one PROV rdf:type."""
-    ctx: Sbol2Context = context  # type: ignore[assignment]
     for obj in ctx.sbol_objects:
         if obj.iri is None:
             ctx.error("sbol2-10201", obj, "the identity of an Identified object must be a URI")
@@ -49,9 +47,8 @@ def identity_syntax(context: Context) -> None:
 
 
 @REGISTRY.rule("sbol2-10220")
-def persistent_identity_classes(context: Context) -> None:
+def persistent_identity_classes(ctx: Sbol2Context) -> None:
     """Objects sharing a persistentIdentity are instances of the same class."""
-    ctx: Sbol2Context = context  # type: ignore[assignment]
     classes: dict[str, set[str]] = {}
     for obj in ctx.objects:
         pid = obj.first_ref(S.PERSISTENT_IDENTITY)
@@ -69,9 +66,8 @@ def persistent_identity_classes(context: Context) -> None:
 
 
 @REGISTRY.rule("sbol2-10101")
-def document_namespace(context: Context) -> None:
+def document_namespace(ctx: Sbol2Context) -> None:
     """A non-empty document names SBOL 2 properties or classes (its SBOL prefix is bound to the SBOL 2 namespace)."""
-    ctx: Sbol2Context = context  # type: ignore[assignment]
     if ctx.triple_count and not ctx.uses_sbol2_namespace():
         ctx.error(
             "sbol2-10101",
@@ -81,9 +77,8 @@ def document_namespace(context: Context) -> None:
 
 
 @REGISTRY.rule("sbol2-10303", "sbol2-10304")
-def derivation_cycles(context: Context) -> None:
+def derivation_cycles(ctx: Sbol2Context) -> None:
     """A TopLevel does not derive from itself, directly or through a wasDerivedFrom chain of TopLevels."""
-    ctx: Sbol2Context = context  # type: ignore[assignment]
     graph: dict[str, list[str]] = {}
     for obj in ctx.objects:
         if not obj.is_top_level or obj.iri is None:
@@ -126,9 +121,8 @@ def version_precedes(earlier: str, later: str) -> bool:
 
 
 @REGISTRY.rule("sbol2-10302")
-def derivation_version_order(context: Context) -> None:
+def derivation_version_order(ctx: Sbol2Context) -> None:
     """A TopLevel deriving from a same-persistentIdentity TopLevel carries a later version."""
-    ctx: Sbol2Context = context  # type: ignore[assignment]
     if not ctx.config.best_practice:
         return
     for obj in ctx.sbol_objects:
@@ -168,9 +162,8 @@ def is_delimited_suffix(full: str, base: str, suffix: str) -> bool:
 
 
 @REGISTRY.rule("sbol2-10215", "sbol2-10216", "sbol2-10218")
-def compliant_identities(context: Context) -> None:
+def compliant_identities(ctx: Sbol2Context) -> None:
     """Compliant objects carry a displayId, and their identity derives from persistentIdentity and version."""
-    ctx: Sbol2Context = context  # type: ignore[assignment]
     if not ctx.config.compliant:
         return
     for obj in ctx.sbol_objects:
@@ -220,9 +213,8 @@ def parent_map(ctx: Sbol2Context) -> dict[str, str]:
 
 
 @REGISTRY.rule("sbol2-10217", "sbol2-10219")
-def compliant_children(context: Context) -> None:
+def compliant_children(ctx: Sbol2Context) -> None:
     """A compliant child's persistentIdentity extends its parent's, and the two share a version."""
-    ctx: Sbol2Context = context  # type: ignore[assignment]
     if not ctx.config.compliant:
         return
     parents = parent_map(ctx)

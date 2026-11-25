@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from sbol_utilities.validation.sbol3 import REGISTRY, spec
+from sbol_utilities.validation.sbol3 import spec
 from sbol_utilities.validation.sbol3.context import SBOL3Context, SbolObject
 from sbol_utilities.validation.sbol3.helpers import integer_value, location_sequence_length
+from sbol_utilities.validation.sbol3.registry import REGISTRY
 
 
 @REGISTRY.rule("sbol3-11401", "sbol3-11402", "sbol3-11403")

@@ -3,10 +3,9 @@ carries are om:Measure objects."""
 
 from __future__ import annotations
 
-from sbol_utilities.validation.catalog import Context
-from sbol_utilities.validation.sbol2 import REGISTRY
 from sbol_utilities.validation.sbol2 import spec as S
 from sbol_utilities.validation.sbol2.context import Obj, Sbol2Context
+from sbol_utilities.validation.sbol2.registry import REGISTRY
 
 
 def _measure_rule(obj: Obj):
@@ -22,9 +21,8 @@ def _measure_rule(obj: Obj):
 
 
 @REGISTRY.rule("sbol2-10608", "sbol2-11707", "sbol2-12008", "sbol2-11908")
-def measures_are_measures(context: Context) -> None:
+def measures_are_measures(ctx: Sbol2Context) -> None:
     """Every measure an object carries resolves to an om:Measure when held in the document."""
-    ctx: Sbol2Context = context  # type: ignore[assignment]
     for obj in ctx.sbol_objects:
         rule = _measure_rule(obj)
         if rule is None:

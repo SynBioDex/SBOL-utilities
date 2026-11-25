@@ -19,7 +19,7 @@ import json
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 from functools import lru_cache
-from typing import Any, Callable
+from typing import Any, Callable, Generic, TypeVar
 
 import rdflib
 from rdflib.term import BNode
@@ -97,9 +97,6 @@ def load_catalog(version: int) -> Catalog:
     return Catalog(spec_version=raw["meta"]["spec_version"], rules=rules)
 
 
-RuleFunction = Callable[["Context"], None]
-
-
 class Context:
     """State shared by every rule implementation during one validation run.
 
@@ -149,25 +146,31 @@ class Context:
             self.issues.append(issue)
 
 
+ContextT = TypeVar("ContextT", bound=Context)
+
+
 @dataclass
-class Registry:
-    """Rule implementations for one SBOL version, in registration order."""
+class Registry(Generic[ContextT]):
+    """Rule implementations for one SBOL version, in registration order.
+
+    A registry is parameterized by the context class its rule functions receive.
+    """
 
     version: int
-    functions: list[tuple[tuple[str, ...], RuleFunction]] = field(default_factory=list)
+    functions: list[tuple[tuple[str, ...], Callable[[ContextT], None]]] = field(default_factory=list)
 
     @property
     def catalog(self) -> Catalog:
         """The catalog this registry implements."""
         return load_catalog(self.version)
 
-    def rule(self, *rule_ids: str) -> Callable[[RuleFunction], RuleFunction]:
+    def rule(self, *rule_ids: str) -> Callable[[Callable[[ContextT], None]], Callable[[ContextT], None]]:
         """Decorator registering a function as the implementation of one or more catalog rules."""
         for rule_id in rule_ids:
             if rule_id not in self.catalog:
                 raise KeyError(f"{rule_id} is not in the SBOL {self.version} rule catalog")
 
-        def register(function: RuleFunction) -> RuleFunction:
+        def register(function: Callable[[ContextT], None]) -> Callable[[ContextT], None]:
             self.functions.append((tuple(rule_ids), function))
             return function
 
@@ -181,7 +184,7 @@ class Registry:
                 result.setdefault(rule_id, []).append(f"{function.__module__}.{function.__qualname__}")
         return result
 
-    def run(self, context: Context) -> ValidationReport:
+    def run(self, context: ContextT) -> ValidationReport:
         """Run every registered function whose rules are enabled, and build the report."""
         for rule_ids, function in self.functions:
             if any(context.enabled(r) for r in rule_ids):

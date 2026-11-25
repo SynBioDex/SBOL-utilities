@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
-from sbol_utilities.validation.sbol3 import REGISTRY, spec
+from sbol_utilities.validation.sbol3 import spec
 from sbol_utilities.validation.sbol3.context import SBOL3Context
 from sbol_utilities.validation.sbol3.helpers import (
     canonical_table_1_sequence_encoding_iri,
     first_invalid_sequence_element,
     is_edam_textual_format,
 )
+from sbol_utilities.validation.sbol3.registry import REGISTRY
 
 
 @REGISTRY.rule("sbol3-10501", "sbol3-10502", "sbol3-10503", "sbol3-10504", "sbol3-10505")

@@ -4,12 +4,13 @@ from __future__ import annotations
 
 from rdflib.term import Node
 
-from sbol_utilities.validation.sbol3 import REGISTRY, spec
+from sbol_utilities.validation.sbol3 import spec
 from sbol_utilities.validation.sbol3.context import SBOL3Context, SbolObject
 from sbol_utilities.validation.sbol3.helpers import (
     collection_contains_only_components_or_collections,
     component_contains,
 )
+from sbol_utilities.validation.sbol3.registry import REGISTRY
 from sbol_utilities.validation.sbol3.resolver import (
     CONTRADICTED,
     allowed_variants,

@@ -3,10 +3,9 @@ draw from (Tables 1, 2, 7, 11 and the ontology branches the specification names)
 
 from __future__ import annotations
 
-from sbol_utilities.validation.catalog import Context
-from sbol_utilities.validation.sbol2 import REGISTRY
 from sbol_utilities.validation.sbol2 import spec as S
 from sbol_utilities.validation.sbol2.context import Obj, Sbol2Context
+from sbol_utilities.validation.sbol2.registry import REGISTRY
 from sbol_utilities.validation.sbol2.rules.module import ontology_curie
 
 
@@ -47,10 +46,9 @@ def _definition_types(ctx: Sbol2Context, component: Obj) -> list[str] | None:
     "sbol2-13206",
     "sbol2-13505",
 )
-def ontology_usage(context: Context) -> None:
+def ontology_usage(ctx: Sbol2Context) -> None:
     """Type, role, encoding, restriction, language, framework, and format terms come from the recommended
     vocabularies."""
-    ctx: Sbol2Context = context  # type: ignore[assignment]
     if not ctx.config.best_practice:
         return
     for obj in ctx.sbol_objects:

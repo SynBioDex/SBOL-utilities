@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from rdflib.term import URIRef
 
-from sbol_utilities.validation.sbol3 import REGISTRY, spec
+from sbol_utilities.validation.sbol3 import spec
 from sbol_utilities.validation.sbol3.context import SBOL3Context
 from sbol_utilities.validation.sbol3.helpers import (
     is_url,
@@ -12,6 +12,7 @@ from sbol_utilities.validation.sbol3.helpers import (
     url_is_child_of,
     url_matches_namespace_display_id,
 )
+from sbol_utilities.validation.sbol3.registry import REGISTRY
 from sbol_utilities.validation.sbol3.structural import check_object
 
 

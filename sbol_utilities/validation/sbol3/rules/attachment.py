@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from rdflib.term import Node, URIRef
 
-from sbol_utilities.validation.sbol3 import REGISTRY, spec
+from sbol_utilities.validation.sbol3 import spec
 from sbol_utilities.validation.sbol3.context import (
     EXTERNAL_OFF,
     HASH_CONSERVATIVE,
@@ -27,6 +27,7 @@ from sbol_utilities.validation.sbol3.helpers import (
     is_sbo_modeling_framework_term,
     parse_i64,
 )
+from sbol_utilities.validation.sbol3.registry import REGISTRY
 
 
 def _check_external_content(ctx: SBOL3Context, obj: SbolObject, rule: str) -> None:

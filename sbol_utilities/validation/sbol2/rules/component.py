@@ -2,11 +2,10 @@
 
 from __future__ import annotations
 
-from sbol_utilities.validation.catalog import Context
 from sbol_utilities.validation.graphs import nodes_reaching_cycles
-from sbol_utilities.validation.sbol2 import REGISTRY
 from sbol_utilities.validation.sbol2 import spec as S
 from sbol_utilities.validation.sbol2.context import Obj, Sbol2Context
+from sbol_utilities.validation.sbol2.registry import REGISTRY
 from sbol_utilities.validation.sbol2.rules.structural import regions
 
 
@@ -23,9 +22,8 @@ def parent_definition(ctx: Sbol2Context, child: str) -> Obj | None:
 
 
 @REGISTRY.rule("sbol2-10603", "sbol2-11704")
-def self_containing_definitions(context: Context) -> None:
+def self_containing_definitions(ctx: Sbol2Context) -> None:
     """A Component or Module does not instantiate the definition that contains it."""
-    ctx: Sbol2Context = context  # type: ignore[assignment]
     for obj in ctx.sbol_objects:
         if obj.iri is None or not (obj.has_class(S.COMPONENT) or obj.has_class(S.MODULE)):
             continue
@@ -39,9 +37,8 @@ def self_containing_definitions(context: Context) -> None:
 
 
 @REGISTRY.rule("sbol2-10909", "sbol2-10905")
-def sequence_annotation_components(context: Context) -> None:
+def sequence_annotation_components(ctx: Sbol2Context) -> None:
     """A SequenceAnnotation names either a Component of its own definition or roles, not both."""
-    ctx: Sbol2Context = context  # type: ignore[assignment]
     for obj in ctx.sbol_objects:
         if not obj.has_class(S.SEQUENCE_ANNOTATION):
             continue
@@ -108,9 +105,8 @@ def _definition_of(ctx: Sbol2Context, instance: str) -> str | None:
     "sbol2-11410",
     "sbol2-11411",
 )
-def sequence_constraints(context: Context) -> None:
+def sequence_constraints(ctx: Sbol2Context) -> None:
     """SequenceConstraint subject/object membership, distinctness, and agreement with annotated positions."""
-    ctx: Sbol2Context = context  # type: ignore[assignment]
     for obj in ctx.sbol_objects:
         if not obj.has_class(S.SEQUENCE_CONSTRAINT):
             continue
@@ -213,9 +209,8 @@ def _check_positions(
 
 
 @REGISTRY.rule("sbol2-10803", "sbol2-10804")
-def maps_to_locals(context: Context) -> None:
+def maps_to_locals(ctx: Sbol2Context) -> None:
     """A MapsTo local names an instance held by the same definition as the MapsTo's owner."""
-    ctx: Sbol2Context = context  # type: ignore[assignment]
     for obj in ctx.sbol_objects:
         if not obj.has_class(S.MAPS_TO):
             continue
@@ -246,9 +241,8 @@ def maps_to_locals(context: Context) -> None:
 
 
 @REGISTRY.rule("sbol2-10522")
-def unique_annotated_components(context: Context) -> None:
+def unique_annotated_components(ctx: Sbol2Context) -> None:
     """No two SequenceAnnotations of a ComponentDefinition refer to the same Component."""
-    ctx: Sbol2Context = context  # type: ignore[assignment]
     for obj in ctx.sbol_objects:
         if not obj.has_class(S.COMPONENT_DEFINITION):
             continue
@@ -286,9 +280,8 @@ def definition_cycles(ctx: Sbol2Context, class_iri: str, instance_predicate: str
 
 
 @REGISTRY.rule("sbol2-10605")
-def component_definition_cycles(context: Context) -> None:
+def component_definition_cycles(ctx: Sbol2Context) -> None:
     """ComponentDefinitions do not form a cycle through their Components' definitions."""
-    ctx: Sbol2Context = context  # type: ignore[assignment]
     for obj in definition_cycles(ctx, S.COMPONENT_DEFINITION, S.COMPONENT_P, S.DEFINITION):
         ctx.error(
             "sbol2-10605",
@@ -319,9 +312,8 @@ def use_remote_collisions(ctx: Sbol2Context, class_iri: str, instance_predicates
 
 
 @REGISTRY.rule("sbol2-10526")
-def component_definition_use_remote(context: Context) -> None:
+def component_definition_use_remote(ctx: Sbol2Context) -> None:
     """Two useRemote MapsTos of a ComponentDefinition's Components do not share a local."""
-    ctx: Sbol2Context = context  # type: ignore[assignment]
     for obj in use_remote_collisions(ctx, S.COMPONENT_DEFINITION, (S.COMPONENT_P,)):
         ctx.error(
             "sbol2-10526", obj, "two useRemote MapsTos of a ComponentDefinition must not share a local", S.MAPS_TO_P
@@ -329,9 +321,8 @@ def component_definition_use_remote(context: Context) -> None:
 
 
 @REGISTRY.rule("sbol2-10903")
-def annotation_location_overlaps(context: Context) -> None:
+def annotation_location_overlaps(ctx: Sbol2Context) -> None:
     """The Locations of one SequenceAnnotation do not overlap."""
-    ctx: Sbol2Context = context  # type: ignore[assignment]
     if not ctx.config.best_practice:
         return
     for obj in ctx.sbol_objects:
@@ -362,9 +353,8 @@ def range_span(extents: list[tuple]) -> int | None:
 
 
 @REGISTRY.rule("sbol2-10711", "sbol2-10712")
-def component_source_locations(context: Context) -> None:
+def component_source_locations(ctx: Sbol2Context) -> None:
     """A Component's source Locations do not overlap and span the same length as the Ranges annotating it."""
-    ctx: Sbol2Context = context  # type: ignore[assignment]
     if not ctx.config.best_practice:
         return
     annotation_by_component: dict[str, Obj] = {}
