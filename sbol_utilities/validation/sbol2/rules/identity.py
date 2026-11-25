@@ -3,6 +3,9 @@ wasDerivedFrom cycles and version order, and the compliant-URI family."""
 
 from __future__ import annotations
 
+import re
+from collections import defaultdict
+
 from sbol_utilities.identifiers import is_valid_display_id
 from sbol_utilities.validation.graphs import nodes_on_cycles
 from sbol_utilities.validation.sbol2 import spec as S
@@ -13,11 +16,12 @@ from sbol_utilities.vocab import PROV_NS, SBOL2_NS
 DELIMITERS = ("/", "#", ":")
 
 
+_VERSION = re.compile(r"[0-9][A-Za-z0-9_.-]*")
+
+
 def is_valid_version(version: str) -> bool:
-    """SBOL 2 version lexical form: alphanumerics, underscore, hyphen, or period, beginning with a digit."""
-    if not version or not ("0" <= version[0] <= "9"):
-        return False
-    return all(c.isascii() and (c.isalnum() or c in "_-.") for c in version[1:])
+    """SBOL 2 version lexical form: ASCII letters, digits, underscores, hyphens, or periods, beginning with a digit."""
+    return _VERSION.fullmatch(version) is not None
 
 
 @REGISTRY.rule("sbol2-10201", "sbol2-10204", "sbol2-10206", "sbol2-10228")
@@ -52,14 +56,14 @@ def identity_syntax(ctx: Sbol2Context) -> None:
 @REGISTRY.rule("sbol2-10220")
 def persistent_identity_classes(ctx: Sbol2Context) -> None:
     """Objects sharing a persistentIdentity are instances of the same class."""
-    classes: dict[str, set[str]] = {}
+    types_by_identity: dict[str, set[tuple[str, ...]]] = defaultdict(set)
     for obj in ctx.objects:
         pid = obj.first_iri(S.PERSISTENT_IDENTITY)
         if pid is not None:
-            classes.setdefault(pid, set()).add(",".join(obj.rdf_types))
+            types_by_identity[pid].add(obj.rdf_types)
     for obj in ctx.objects:
         pid = obj.first_iri(S.PERSISTENT_IDENTITY)
-        if pid is not None and len(classes[pid]) > 1:
+        if pid is not None and len(types_by_identity[pid]) > 1:
             ctx.report(
                 "sbol2-10220",
                 obj,
@@ -75,23 +79,18 @@ def document_namespace(ctx: Sbol2Context) -> None:
         ctx.report("sbol2-10101", SBOL2_NS, f"an SBOL document must declare and use the SBOL 2 namespace `{SBOL2_NS}`")
 
 
+def _top_level_sources(ctx: Sbol2Context, obj: Sbol2Object) -> list[str]:
+    """The TopLevels held in the document that ``obj`` records deriving from."""
+    return [iri for iri in obj.iris(S.WAS_DERIVED_FROM) if (source := ctx.get(iri)) is not None and source.is_top_level]
+
+
 @REGISTRY.rule("sbol2-10303", "sbol2-10304")
 def derivation_cycles(ctx: Sbol2Context) -> None:
     """A TopLevel does not derive from itself, directly or through a wasDerivedFrom chain of TopLevels."""
-    graph: dict[str, list[str]] = {}
-    for obj in ctx.objects:
-        if not obj.is_top_level or obj.iri is None:
-            continue
-        successors = []
-        for target in obj.iris(S.WAS_DERIVED_FROM):
-            source = ctx.get(target)
-            if source is not None and source.is_top_level:
-                successors.append(target)
-        graph[obj.iri] = successors
+    top_levels = [obj for obj in ctx.objects if obj.is_top_level and obj.iri is not None]
+    graph = {obj.iri: _top_level_sources(ctx, obj) for obj in top_levels}
     cyclic = nodes_on_cycles(graph, lambda node: graph.get(node, ()))
-    for obj in ctx.sbol_objects:
-        if not obj.is_top_level or obj.iri is None:
-            continue
+    for obj in top_levels:
         if obj.iri in obj.iris(S.WAS_DERIVED_FROM):
             ctx.report("sbol2-10303", obj, "a TopLevel must not derive from itself", property=S.WAS_DERIVED_FROM)
         if obj.iri in cyclic:
@@ -103,18 +102,26 @@ def derivation_cycles(ctx: Sbol2Context) -> None:
             )
 
 
+def _version_number(part: str) -> int | None:
+    """A version part as a number: at most 20 ASCII digits spelling a value below 2**64, else None."""
+    if part.isascii() and part.isdigit() and len(part) <= 20 and int(part) < 2**64:
+        return int(part)
+    return None
+
+
 def version_precedes(earlier: str, later: str) -> bool:
-    """Whether ``earlier`` strictly precedes ``later``: dot-separated parts compared numerically when both are
-    numeric, lexically otherwise."""
+    """Whether ``earlier`` strictly precedes ``later``.
+
+    Versions are compared part by part, splitting at periods: numerically when both parts are numbers, otherwise
+    by their UTF-8 bytes. When every shared part is equal, the version with fewer parts precedes.
+    """
     left, right = earlier.split("."), later.split(".")
     for a, b in zip(left, right):
-        if a.isascii() and a.isdigit() and b.isascii() and b.isdigit() and len(a) <= 20 and len(b) <= 20:
-            x, y = int(a), int(b)
-            if x < 2**64 and y < 2**64:
-                if x != y:
-                    return x < y
-                continue
-        if a != b:
+        x, y = _version_number(a), _version_number(b)
+        if x is not None and y is not None:
+            if x != y:
+                return x < y
+        elif a != b:
             return a.encode("utf-8") < b.encode("utf-8")
     return len(left) < len(right)
 
@@ -150,12 +157,7 @@ def ends_with_delimited(uri: str, tail: str) -> bool:
 
 def is_delimited_suffix(full: str, base: str, suffix: str) -> bool:
     """Whether ``full`` is ``base`` + a delimiter + ``suffix``."""
-    if not full.startswith(base):
-        return False
-    rest = full[len(base) :]
-    if not rest.endswith(suffix):
-        return False
-    return rest[: len(rest) - len(suffix)] in DELIMITERS
+    return any(full == f"{base}{delimiter}{suffix}" for delimiter in DELIMITERS)
 
 
 @REGISTRY.rule("sbol2-10215", "sbol2-10216", "sbol2-10218")
@@ -221,7 +223,7 @@ def compliant_children(ctx: Sbol2Context) -> None:
         display_id = obj.display_id
         if parent_id is None or display_id is None:
             continue
-        parent: Sbol2Object | None = ctx.resolve(parent_id)
+        parent = ctx.resolve(parent_id)
         if parent is None:
             continue
         child_pid = obj.first_iri(S.PERSISTENT_IDENTITY)
@@ -233,7 +235,7 @@ def compliant_children(ctx: Sbol2Context) -> None:
                 "a compliant child object requires a persistentIdentity",
                 property=S.PERSISTENT_IDENTITY,
             )
-        elif parent_pid is not None and child_pid not in [f"{parent_pid}{d}{display_id}" for d in DELIMITERS]:
+        elif parent_pid is not None and not is_delimited_suffix(child_pid, parent_pid, display_id):
             ctx.report(
                 "sbol2-10217",
                 obj,

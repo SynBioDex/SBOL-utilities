@@ -10,6 +10,7 @@ from sbol_utilities.validation import ValidationConfig, validate_sbol3
 from sbol_utilities.validation.datatypes import I64_MAX, I64_MIN, is_date_time_lexical, is_float_lexical, parse_i64
 from sbol_utilities.validation.graphs import nodes_on_cycles, nodes_reaching, nodes_reaching_cycles
 from sbol_utilities.validation.sbol2 import spec as sbol2_spec
+from sbol_utilities.validation.sbol2.rules.identity import is_delimited_suffix, is_valid_version, version_precedes
 from sbol_utilities.validation.sbol3 import spec as sbol3_spec
 from sbol_utilities.validation.schema import Cardinality, ClassSpec, PropertySpec, Schema, ValueKind
 from sbol_utilities.vocab import PROV, SBOL3, TYPE
@@ -205,3 +206,43 @@ def test_data_model_references_name_classes_of_the_model(spec):
         assert all(parent in spec.SCHEMA for parent in declared.parents), class_iri
         for prop in declared.properties:
             assert prop.reference is None or prop.reference.target in spec.SCHEMA, (class_iri, prop.predicate)
+
+
+@pytest.mark.parametrize(
+    "earlier, later, precedes",
+    [
+        ("1", "2", True),
+        ("2", "1", False),
+        ("1", "1", False),
+        ("1.9", "1.10", True),
+        ("1", "1.0", True),
+        ("1.0", "1", False),
+        ("1.a", "1.b", True),
+        ("1.10", "1.9a", True),
+        ("99999999999999999999", "100000000000000000000", False),
+    ],
+)
+def test_version_precedes(earlier, later, precedes):
+    assert version_precedes(earlier, later) is precedes
+
+
+@pytest.mark.parametrize(
+    "version, valid", [("1", True), ("1.0-rc_2", True), ("", False), ("v1", False), ("1 0", False), ("1é", False)]
+)
+def test_sbol2_version_syntax(version, valid):
+    assert is_valid_version(version) is valid
+
+
+@pytest.mark.parametrize(
+    "full, base, suffix, matches",
+    [
+        ("http://x/a/1", "http://x/a", "1", True),
+        ("http://x/a#1", "http://x/a", "1", True),
+        ("http://x/a:1", "http://x/a", "1", True),
+        ("http://x/a1", "http://x/a", "1", False),
+        ("http://x/a//1", "http://x/a", "1", False),
+        ("http://x/b/1", "http://x/a", "1", False),
+    ],
+)
+def test_is_delimited_suffix(full, base, suffix, matches):
+    assert is_delimited_suffix(full, base, suffix) is matches
