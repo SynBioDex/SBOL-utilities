@@ -12,13 +12,13 @@ from sbol_utilities.validation.datatypes import parse_i64
 from sbol_utilities.validation.sbol3 import spec
 from sbol_utilities.validation.sbol3.context import Sbol3Context, Sbol3Object
 from sbol_utilities.validation.sbol3.helpers import (
+    SBO_MODELING_FRAMEWORK,
     canonical_model_framework_iri,
     canonical_model_language_iri,
     is_edam_format_term,
     is_hash_algorithm_token,
     is_hex_digest,
     is_known_non_edam_namespace,
-    is_sbo_modeling_framework_term,
 )
 from sbol_utilities.validation.sbol3.registry import REGISTRY
 
@@ -54,7 +54,7 @@ def models(ctx: Sbol3Context) -> None:
                     f"Model framework `{text}` is equivalent to Table 16 URI `{canonical}`",
                     property=spec.FRAMEWORK,
                 )
-            if is_sbo_modeling_framework_term(ctx.ontology, text) is False:
+            if ctx.ontology.in_branch_if_known(text, SBO_MODELING_FRAMEWORK) is False:
                 ctx.report(
                     "sbol3-12507",
                     obj,

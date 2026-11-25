@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from sbol_utilities.validation.sbol3 import spec
 from sbol_utilities.validation.sbol3.context import Sbol3Context, Sbol3Object
-from sbol_utilities.validation.sbol3.helpers import is_sbo_systems_description_parameter_term
+from sbol_utilities.validation.sbol3.helpers import SBO_SYSTEMS_DESCRIPTION_PARAMETER
 from sbol_utilities.validation.sbol3.registry import REGISTRY
 
 
@@ -22,7 +22,7 @@ def measures(ctx: Sbol3Context) -> None:
         if not obj.has_class(spec.OM_MEASURE):
             continue
         for type_iri in obj.iris(spec.TYPE):
-            if is_sbo_systems_description_parameter_term(ctx.ontology, str(type_iri)) is False:
+            if ctx.ontology.in_branch_if_known(str(type_iri), SBO_SYSTEMS_DESCRIPTION_PARAMETER) is False:
                 ctx.report(
                     "sbol3-13401",
                     obj,

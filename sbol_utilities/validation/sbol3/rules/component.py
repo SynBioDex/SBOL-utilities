@@ -10,11 +10,11 @@ from sbol_utilities.validation.ontology import PROTEIN, SIMPLE_CHEMICAL
 from sbol_utilities.validation.sbol3 import spec
 from sbol_utilities.validation.sbol3.context import Sbol3Context, Sbol3Object
 from sbol_utilities.validation.sbol3.helpers import (
+    SO_STRAND_ATTRIBUTE,
+    SO_TOPOLOGY_ATTRIBUTE,
     component_type,
     is_nucleic_acid_component_type,
     is_sbo_physical_entity_term,
-    is_strand_type_term,
-    is_topology_type_term,
     known_external_resource,
     sequence_encoding,
 )
@@ -97,7 +97,7 @@ def _check_types(ctx: Sbol3Context, obj: Sbol3Object, rules: dict) -> None:
                 )
     nucleic_acid = _is_nucleic_acid(ctx, obj)
     if nucleic_acid:
-        if sum(1 for t in types if is_topology_type_term(ontology, t) is True) > 1:
+        if sum(1 for t in types if ontology.in_branch_if_known(t, SO_TOPOLOGY_ATTRIBUTE) is True) > 1:
             ctx.report(
                 rules["topology_count"],
                 obj,
@@ -106,7 +106,10 @@ def _check_types(ctx: Sbol3Context, obj: Sbol3Object, rules: dict) -> None:
             )
     else:
         for t in types:
-            if is_topology_type_term(ontology, t) is True or is_strand_type_term(ontology, t) is True:
+            if (
+                ontology.in_branch_if_known(t, SO_TOPOLOGY_ATTRIBUTE) is True
+                or ontology.in_branch_if_known(t, SO_STRAND_ATTRIBUTE) is True
+            ):
                 ctx.report(
                     rules["topology_without_na"],
                     obj,
@@ -193,7 +196,7 @@ def _sequence_infos(ctx: Sbol3Context, component: Sbol3Object) -> list[SequenceI
         encoding = sequence.first_iri(spec.ENCODING)
         encoding_iri = None
         if encoding is not None:
-            encoding_iri = ctx.ontology.canonical_iri(str(encoding)) or str(encoding)
+            encoding_iri = ctx.ontology.canonicalize(str(encoding))
         infos.append(
             SequenceInfo(
                 identity=identity,

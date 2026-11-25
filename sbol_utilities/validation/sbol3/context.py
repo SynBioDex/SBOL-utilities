@@ -7,7 +7,7 @@ nodes), and composite parent/child edges are recorded in an ownership index.
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Iterable, Iterator
 from typing import Any
 
 import rdflib
@@ -18,7 +18,7 @@ from sbol_utilities.validation.config import Severity, ValidationConfig
 from sbol_utilities.validation.datatypes import parse_i64
 from sbol_utilities.validation.ontology import Ontology
 from sbol_utilities.validation.sbol3 import spec
-from sbol_utilities.vocab import OM_NS, PROV_NS, RDF_LANG_STRING, RDF_TYPE, SBOL3_NS, XSD_STRING
+from sbol_utilities.vocab import OM_NS, PROV_NS, RDF_TYPE, SBOL3_NS
 
 
 def _term_order(node: Node) -> tuple[int, str]:
@@ -27,15 +27,6 @@ def _term_order(node: Node) -> tuple[int, str]:
     if isinstance(node, BNode):
         return 1, str(node)
     return 2, str(node)
-
-
-def literal_datatype(literal: Literal) -> str:
-    """The RDF 1.1 datatype IRI of a literal: xsd:string for plain literals, rdf:langString for tagged ones."""
-    if literal.datatype is not None:
-        return str(literal.datatype)
-    if literal.language:
-        return RDF_LANG_STRING
-    return XSD_STRING
 
 
 def _is_extension_predicate(predicate: str) -> bool:
@@ -181,6 +172,17 @@ class Sbol3Context(Context[Sbol3Object]):
         if identity is None:
             return None
         return self.objects.get(identity)
+
+    def referenced(self, obj: Sbol3Object, predicate: str) -> Iterator[Sbol3Object]:
+        """The objects in the document that ``obj``'s ``predicate`` values name."""
+        for identity in obj.resources(predicate):
+            target = self.objects.get(identity)
+            if target is not None:
+                yield target
+
+    def parent(self, child: Sbol3Object, predicate: str) -> Sbol3Object | None:
+        """The first object in the document holding ``child`` under the composite ``predicate``."""
+        return self.get(self.ownership.single_parent(child.identity, predicate))
 
     def report(
         self,

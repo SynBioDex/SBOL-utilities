@@ -4,9 +4,8 @@ from __future__ import annotations
 
 from sbol_utilities.validation.sbol3 import spec
 from sbol_utilities.validation.sbol3.context import Sbol3Context
-from sbol_utilities.validation.sbol3.helpers import component_contains
 from sbol_utilities.validation.sbol3.registry import REGISTRY
-from sbol_utilities.validation.sbol3.resolver import CONTRADICTED, table8_relation, table10_relation
+from sbol_utilities.validation.sbol3.resolver import Outcome, component_contains, table8_relation, table10_relation
 
 
 @REGISTRY.rule("sbol3-11701", "sbol3-11702", "sbol3-11703", "sbol3-11704", "sbol3-11705", "sbol3-11706")
@@ -51,14 +50,14 @@ def constraints(ctx: Sbol3Context) -> None:
             continue
         table8 = table8_relation(ctx, restriction_text, subject, constrained)
         table10 = table10_relation(ctx, restriction_text, subject, constrained)
-        if table8.outcome == CONTRADICTED:
+        if table8.outcome is Outcome.CONTRADICTED:
             ctx.report(
                 "sbol3-11705",
                 obj,
                 f"Constraint restriction `{restriction_text}` is contradicted by resolved Feature semantics",
                 property=spec.RESTRICTION,
             )
-        if table10.outcome == CONTRADICTED and table10.subject_location is not None:
+        if table10.outcome is Outcome.CONTRADICTED and table10.subject_location is not None:
             ctx.report(
                 "sbol3-11706",
                 obj,

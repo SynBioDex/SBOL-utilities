@@ -6,15 +6,14 @@ from rdflib.term import Node
 
 from sbol_utilities.validation.sbol3 import spec
 from sbol_utilities.validation.sbol3.context import Sbol3Context, Sbol3Object
-from sbol_utilities.validation.sbol3.helpers import (
-    collection_contains_only_components_or_collections,
-    component_contains,
-)
 from sbol_utilities.validation.sbol3.registry import REGISTRY
 from sbol_utilities.validation.sbol3.resolver import (
-    CONTRADICTED,
+    Outcome,
+    TraceError,
     allowed_variants,
     cardinality_allows,
+    collection_contains_only_components_or_collections,
+    component_contains,
     derivation_context,
     derived_objects,
     feature_derives_from_template,
@@ -169,7 +168,7 @@ def _derivation_semantics(ctx: Sbol3Context, derivation: Sbol3Object) -> None:
                 for derived_object in derived_objects_:
                     table8 = table8_relation(ctx, str(restriction), derived_subject, derived_object)
                     table10 = table10_relation(ctx, str(restriction), derived_subject, derived_object)
-                    if table8.outcome == CONTRADICTED or table10.outcome == CONTRADICTED:
+                    if table8.outcome is Outcome.CONTRADICTED or table10.outcome is Outcome.CONTRADICTED:
                         ctx.report(
                             "sbol3-12113",
                             derived,
@@ -315,7 +314,7 @@ def component_references(ctx: Sbol3Context) -> None:
         refers_to_obj = ctx.get(refers_to)
         if refers_to_obj is None:
             continue
-        if trace_feature(ctx, obj.identity).error == "cycle":
+        if trace_feature(ctx, obj.identity).error is TraceError.CYCLE:
             ctx.report(
                 "sbol3-10903", obj, "ComponentReference refersTo chain must not form a cycle", property=spec.REFERS_TO
             )

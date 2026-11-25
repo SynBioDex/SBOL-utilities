@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from sbol_utilities.validation.sbol3 import spec
 from sbol_utilities.validation.sbol3.context import Sbol3Context, Sbol3Object
-from sbol_utilities.validation.sbol3.helpers import location_sequence_length
 from sbol_utilities.validation.sbol3.registry import REGISTRY
+from sbol_utilities.validation.sbol3.resolver import location_sequence_length
 
 
 @REGISTRY.rule("sbol3-11401", "sbol3-11402", "sbol3-11403")

@@ -182,6 +182,10 @@ class Ontology:
         fact = self.fact(term)
         return fact.iri if fact else None
 
+    def canonicalize(self, term: str) -> str:
+        """The preferred IRI of a known term; any other term as given."""
+        return self.canonical_iri(term) or str(term)
+
     def contains_term(self, term: str) -> bool:
         """Whether the term is in the snapshot."""
         return self.canonical_id(term) is not None
@@ -225,11 +229,11 @@ class Ontology:
 
     def is_sequence_feature_role_term(self, term: str) -> bool | None:
         """Whether a known term lies in the SO sequence_feature branch."""
-        return self.is_in_branch(term, SEQUENCE_FEATURE_ROOT) if self.contains_term(term) else None
+        return self.in_branch_if_known(term, SEQUENCE_FEATURE_ROOT)
 
     def is_cell_type_term(self, term: str) -> bool | None:
         """Whether a known term is a Cell Ontology cell type."""
-        return self.is_in_branch(term, CELL_ROOT) if self.contains_term(term) else None
+        return self.in_branch_if_known(term, CELL_ROOT)
 
     def is_interaction_type_term(self, term: str) -> bool | None:
         """Whether a known term may be an Interaction type."""
@@ -284,6 +288,10 @@ class Ontology:
         if not t or not r:
             return False
         return t == r or (t, r) in self.branches or r in self._ancestor_set(t)
+
+    def in_branch_if_known(self, term: str, branch_root: str) -> bool | None:
+        """Whether a known term lies in the branch rooted at ``branch_root``; None for a term not in the snapshot."""
+        return self.is_in_branch(term, branch_root) if self.contains_term(term) else None
 
     # --- compatibility ---
 

@@ -17,7 +17,7 @@ Statuses:
 from __future__ import annotations
 
 import json
-from collections.abc import Iterable
+from collections.abc import Hashable, Iterable
 from dataclasses import dataclass, field
 from functools import lru_cache
 from typing import Any, Callable, Generic, Protocol, TypeVar
@@ -135,6 +135,7 @@ class ModelObject(Protocol):
 
 
 ObjectT = TypeVar("ObjectT", bound=ModelObject)
+T = TypeVar("T")
 
 
 class Context(Generic[ObjectT]):
@@ -153,6 +154,7 @@ class Context(Generic[ObjectT]):
         self.issues: list[Issue] = []
         self._indexed: list[ObjectT] = []
         self._instances: dict[str, list[ObjectT]] = {}
+        self._memo: dict[Hashable, Any] = {}
         self._seen: set[tuple[str, str | None, str | None, str]] = set()
         #: rule ids the running rule function declared, or None outside :meth:`Registry.run`
         self.declared_rules: frozenset[str] | None = None
@@ -169,6 +171,15 @@ class Context(Generic[ObjectT]):
         if len(class_iris) == 1:
             return self._instances.get(class_iris[0], [])
         return [obj for obj in self._indexed if not obj.classes.isdisjoint(class_iris)]
+
+    def memo(self, key: Hashable, compute: Callable[[], T]) -> T:
+        """The value ``compute`` returns, computed once per validation run for each ``key``.
+
+        Rule helpers use this for indexes and derived facts that several rules, or several objects, need.
+        """
+        if key not in self._memo:
+            self._memo[key] = compute()
+        return self._memo[key]
 
     def enabled(self, rule_id: str) -> bool:
         """Whether the rule's gate is on; rule functions may skip expensive work for disabled rules."""

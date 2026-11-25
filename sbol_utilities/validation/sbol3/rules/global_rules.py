@@ -10,8 +10,8 @@ from rdflib.term import Node
 from sbol_utilities.validation.graphs import nodes_reaching, nodes_reaching_cycles
 from sbol_utilities.validation.sbol3 import spec
 from sbol_utilities.validation.sbol3.context import Sbol3Context
-from sbol_utilities.validation.sbol3.helpers import component_allows_sequence
 from sbol_utilities.validation.sbol3.registry import REGISTRY
+from sbol_utilities.validation.sbol3.resolver import component_allows_sequence
 
 
 def _derived_from(ctx: Sbol3Context, identity: Node) -> Iterator[Node]:

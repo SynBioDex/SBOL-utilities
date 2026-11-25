@@ -1,23 +1,19 @@
-"""Lexical, ontology-table, and graph helpers shared by the SBOL 3 rules.
-
-These mirror sbol-rs ``crates/sbol3/src/validation/helpers`` and ``tables.rs``.
-"""
+"""Lexical forms, IRI shapes, and ontology-table lookups the SBOL 3 rules share."""
 
 from __future__ import annotations
 
 import re
+from collections.abc import Iterable
 
 from rdflib.term import Literal, Node, URIRef
 
-from sbol_utilities.validation.datatypes import is_date_time_lexical, is_float_lexical, parse_i64
+from sbol_utilities.validation.datatypes import is_date_time_lexical, is_float_lexical, literal_datatype, parse_i64
 from sbol_utilities.validation.ontology import NUCLEIC_ACID, Ontology
-from sbol_utilities.validation.sbol3 import spec
-from sbol_utilities.validation.sbol3.context import Sbol3Context, Sbol3Object, literal_datatype
 from sbol_utilities.validation.schema import ValueKind
 from sbol_utilities.vocab import RDF_LANG_STRING, XSD_NS, XSD_STRING
 
-_HEX = re.compile(r"^[0-9A-Fa-f]+\Z")
-_HASH_TOKEN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*\Z")
+_HEX = re.compile(r"[0-9A-Fa-f]+")
+_HASH_TOKEN = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*")
 
 EDAM_IUPAC_DNA_RNA = "https://identifiers.org/edam:format_1207"
 EDAM_IUPAC_PROTEIN = "https://identifiers.org/edam:format_1208"
@@ -45,7 +41,7 @@ MODEL_FRAMEWORK_TABLE_16 = ("https://identifiers.org/SBO:0000062", "https://iden
 
 def is_url(value: str) -> bool:
     """http or https IRI."""
-    return value.startswith("http://") or value.startswith("https://")
+    return value.startswith(("http://", "https://"))
 
 
 def is_namespace_url(value: str) -> bool:
@@ -55,12 +51,12 @@ def is_namespace_url(value: str) -> bool:
 
 def is_hex_digest(value: str) -> bool:
     """Nonempty ASCII hexadecimal string."""
-    return bool(_HEX.match(value))
+    return _HEX.fullmatch(value) is not None
 
 
 def is_hash_algorithm_token(value: str) -> bool:
     """Registry-style hash algorithm token."""
-    return bool(_HASH_TOKEN.match(value))
+    return _HASH_TOKEN.fullmatch(value) is not None
 
 
 def url_is_child_of(candidate: str, parent: str) -> bool:
@@ -126,69 +122,36 @@ def value_matches_kind(term: Node, kind: ValueKind) -> bool:
     return (datatype == XSD_NS + "dateTime" or _is_string_datatype(datatype)) and is_date_time_lexical(value)
 
 
+#: IRI prefixes (lower case) of records in the external resources the rules recognize
+_EXTERNAL_RESOURCE_PREFIXES: dict[str, tuple[str, ...]] = {
+    "uniprot": (
+        "https://identifiers.org/uniprot:",
+        "http://identifiers.org/uniprot:",
+        "http://purl.uniprot.org/uniprot/",
+        "https://www.uniprot.org/uniprot/",
+        "https://www.uniprot.org/uniprotkb/",
+    ),
+    "chebi": (
+        "https://identifiers.org/chebi:",
+        "http://identifiers.org/chebi:",
+        "http://purl.obolibrary.org/obo/chebi_",
+        "https://www.ebi.ac.uk/chebi/",
+    ),
+    "pubchem": (
+        "https://identifiers.org/pubchem.compound:",
+        "http://identifiers.org/pubchem.compound:",
+        "https://pubchem.ncbi.nlm.nih.gov/compound/",
+    ),
+}
+
+
 def known_external_resource(iri: str) -> str | None:
-    """Classify a definition IRI as a UniProt, ChEBI, or PubChem record."""
-    iri = iri.lower()
-    if iri.startswith(
-        (
-            "https://identifiers.org/uniprot:",
-            "http://identifiers.org/uniprot:",
-            "http://purl.uniprot.org/uniprot/",
-            "https://www.uniprot.org/uniprot/",
-            "https://www.uniprot.org/uniprotkb/",
-        )
-    ):
-        return "uniprot"
-    if iri.startswith(
-        (
-            "https://identifiers.org/chebi:",
-            "http://identifiers.org/chebi:",
-            "http://purl.obolibrary.org/obo/chebi_",
-            "https://www.ebi.ac.uk/chebi/",
-        )
-    ):
-        return "chebi"
-    if iri.startswith(
-        (
-            "https://identifiers.org/pubchem.compound:",
-            "http://identifiers.org/pubchem.compound:",
-            "https://pubchem.ncbi.nlm.nih.gov/compound/",
-        )
-    ):
-        return "pubchem"
-    return None
+    """The resource (``uniprot``, ``chebi``, or ``pubchem``) a definition IRI names a record of, if any."""
+    lowered = iri.lower()
+    return next((name for name, prefixes in _EXTERNAL_RESOURCE_PREFIXES.items() if lowered.startswith(prefixes)), None)
 
 
 # --- ontology tables ---
-
-
-def _branch_if_known(ontology: Ontology, iri: str, root: str) -> bool | None:
-    return ontology.is_in_branch(iri, root) if ontology.contains_term(iri) else None
-
-
-def is_topology_type_term(ontology: Ontology, iri: str) -> bool | None:
-    """Known term in the SO topology attribute branch."""
-    return _branch_if_known(ontology, iri, SO_TOPOLOGY_ATTRIBUTE)
-
-
-def is_strand_type_term(ontology: Ontology, iri: str) -> bool | None:
-    """Known term in the SO strand attribute branch."""
-    return _branch_if_known(ontology, iri, SO_STRAND_ATTRIBUTE)
-
-
-def is_edam_textual_format(ontology: Ontology, iri: str) -> bool | None:
-    """Known term in the EDAM textual format branch."""
-    return _branch_if_known(ontology, iri, EDAM_TEXTUAL_FORMAT)
-
-
-def is_sbo_modeling_framework_term(ontology: Ontology, iri: str) -> bool | None:
-    """Known term in the SBO modelling framework branch."""
-    return _branch_if_known(ontology, iri, SBO_MODELING_FRAMEWORK)
-
-
-def is_sbo_systems_description_parameter_term(ontology: Ontology, iri: str) -> bool | None:
-    """Known term in the SBO systems description parameter branch."""
-    return _branch_if_known(ontology, iri, SBO_SYSTEMS_DESCRIPTION_PARAMETER)
 
 
 def is_sbo_physical_entity_term(ontology: Ontology, iri: str) -> bool | None:
@@ -220,24 +183,25 @@ def canonical_table_1_sequence_encoding_iri(ontology: Ontology, iri: str) -> str
     """Preferred IRI of a Table 1 encoding term."""
     if not ontology.is_table_1_sequence_encoding(iri):
         return None
-    return ontology.canonical_iri(iri) or iri
+    return ontology.canonicalize(iri)
 
 
 def sequence_encoding(ontology: Ontology, iri: str) -> str | None:
     """Canonical IRI of a known Sequence encoding term."""
     if ontology.is_sequence_encoding_term(iri) is not True:
         return None
-    return ontology.canonical_iri(iri) or iri
+    return ontology.canonicalize(iri)
 
 
 def component_type(ontology: Ontology, iri: str) -> str | None:
     """Canonical IRI of a Table 2 Component type term."""
     if not ontology.is_table_2_component_type(iri):
         return None
-    return ontology.canonical_iri(iri) or iri
+    return ontology.canonicalize(iri)
 
 
-def _matches_table_entry(iri: str, table) -> str | None:
+def _matches_table_entry(iri: str, table: Iterable[str]) -> str | None:
+    """The table entry ``iri`` spells, ignoring case and the http/https distinction."""
     lowered = iri.lower()
     for canonical in table:
         if lowered == canonical.lower() or lowered == canonical.replace("https://", "http://").lower():
@@ -257,7 +221,7 @@ def canonical_model_framework_iri(iri: str) -> str | None:
 
 def first_invalid_sequence_element(ontology: Ontology, elements: str, encoding: str) -> str | None:
     """First character of ``elements`` outside the IUPAC alphabet of a Table 1 IUPAC encoding."""
-    canonical = ontology.canonical_iri(encoding) or encoding
+    canonical = ontology.canonicalize(encoding)
     if canonical == EDAM_IUPAC_DNA_RNA:
         alphabet = IUPAC_NUCLEOTIDES
     elif canonical == EDAM_IUPAC_PROTEIN:
@@ -269,92 +233,3 @@ def first_invalid_sequence_element(ontology: Ontology, elements: str, encoding: 
         if upper not in alphabet:
             return character
     return None
-
-
-# --- document queries ---
-
-
-def component_contains(ctx: Sbol3Context, component: Node | None, predicate: str, child: Node) -> bool:
-    """Whether the object ``component`` lists ``child`` under ``predicate``."""
-    obj = ctx.get(component)
-    return obj is not None and child in obj.resources(predicate)
-
-
-def component_allows_sequence(ctx: Sbol3Context, component: Node, sequence: Node) -> bool:
-    """Whether a Component declares a Sequence directly or through a Feature's EntireSequence location."""
-    obj = ctx.get(component)
-    if obj is None:
-        return False
-    if sequence in obj.resources(spec.HAS_SEQUENCE):
-        return True
-    for feature in obj.resources(spec.HAS_FEATURE):
-        feature_obj = ctx.get(feature)
-        if feature_obj is None:
-            continue
-        for location in feature_obj.resources(spec.HAS_LOCATION):
-            location_obj = ctx.get(location)
-            if (
-                location_obj is not None
-                and location_obj.has_class(spec.ENTIRE_SEQUENCE)
-                and location_obj.first_resource(spec.HAS_SEQUENCE) == sequence
-            ):
-                return True
-    return False
-
-
-def collection_contains_only_components_or_collections(ctx: Sbol3Context, collection: Node, visited: set[Node]) -> bool:
-    """Whether every local member of a Collection, recursively, is a Component or Collection."""
-    if collection in visited:
-        return True
-    visited.add(collection)
-    obj = ctx.get(collection)
-    if obj is None:
-        return True
-    for member in obj.resources(spec.MEMBER):
-        member_obj = ctx.get(member)
-        if member_obj is None or member_obj.has_class(spec.COMPONENT):
-            continue
-        if not (
-            member_obj.has_class(spec.COLLECTION)
-            and collection_contains_only_components_or_collections(ctx, member, visited)
-        ):
-            return False
-    return True
-
-
-def location_sequence_length(ctx: Sbol3Context, location: Sbol3Object) -> int | None:
-    """Length of the elements of a Location's local Sequence."""
-    sequence = ctx.get(location.first_resource(spec.HAS_SEQUENCE))
-    if sequence is None:
-        return None
-    elements = sequence.first_literal(spec.ELEMENTS)
-    return None if elements is None else len(elements.encode("utf-8"))
-
-
-def location_length(ctx: Sbol3Context, location: Node) -> int | None:
-    """Length covered by a local Location, when known."""
-    obj = ctx.get(location)
-    if obj is None:
-        return None
-    if obj.has_class(spec.RANGE):
-        start = obj.integer(spec.START)
-        end = obj.integer(spec.END)
-        if start is None or end is None or start <= 0 or end < start:
-            return None
-        return end - start + 1
-    if obj.has_class(spec.CUT):
-        return 0
-    if obj.has_class(spec.ENTIRE_SEQUENCE):
-        return location_sequence_length(ctx, obj)
-    return None
-
-
-def sum_location_lengths(ctx: Sbol3Context, locations: list[Node]) -> int | None:
-    """Total length of several Locations, or None when any is unknown."""
-    total = 0
-    for location in locations:
-        length = location_length(ctx, location)
-        if length is None:
-            return None
-        total += length
-    return total

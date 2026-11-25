@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from sbol_utilities.validation.sbol3 import spec
 from sbol_utilities.validation.sbol3.context import Sbol3Context, Sbol3Object
-from sbol_utilities.validation.sbol3.helpers import sum_location_lengths
 from sbol_utilities.validation.sbol3.registry import REGISTRY
+from sbol_utilities.validation.sbol3.resolver import elements_length, sum_location_lengths
 
 
 def _check_location_lengths(ctx: Sbol3Context, obj: Sbol3Object) -> None:
@@ -35,7 +35,7 @@ def _check_location_lengths(ctx: Sbol3Context, obj: Sbol3Object) -> None:
     if elements is None:
         return
     location_length = sum_location_lengths(ctx, locations)
-    if location_length is not None and location_length != len(elements.encode("utf-8")):
+    if location_length is not None and location_length != elements_length(elements):
         ctx.report(
             "sbol3-10807",
             obj,

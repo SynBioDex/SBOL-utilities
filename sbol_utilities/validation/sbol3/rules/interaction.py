@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from sbol_utilities.validation.sbol3 import spec
 from sbol_utilities.validation.sbol3.context import Sbol3Context, Sbol3Object
-from sbol_utilities.validation.sbol3.helpers import component_contains
 from sbol_utilities.validation.sbol3.registry import REGISTRY
+from sbol_utilities.validation.sbol3.resolver import component_contains
 
 
 def _iris(obj: Sbol3Object, predicate: str) -> list[str]:

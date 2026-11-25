@@ -1,12 +1,12 @@
-"""Feature-reference, location, constraint, and combinatorial-derivation resolution over a single document.
-
-Mirrors sbol-rs ``crates/sbol3/src/validation/resolver``: ComponentReference ``refersTo`` chains, linear location
-spans, the Table 8 / Table 10 constraint relations, and CombinatorialDerivation context.
+"""Queries over one SBOL 3 document that the rules share: what a ComponentReference resolves to, where Features
+lie on a Sequence, whether a Constraint's restriction holds, and what a CombinatorialDerivation derives.
 """
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
+from enum import Enum
 
 from rdflib.term import Node, URIRef
 
@@ -14,14 +14,94 @@ from sbol_utilities.validation.sbol3 import spec
 from sbol_utilities.validation.sbol3.context import Sbol3Context, Sbol3Object
 from sbol_utilities.vocab import RDF_TYPE
 
-INLINE = "inline"
-REVERSE_COMPLEMENT = "reverseComplement"
 
-SATISFIED = "satisfied"
-CONTRADICTED = "contradicted"
-UNKNOWN = "unknown"
-UNSUPPORTED = "unsupported"
+class Orientation(Enum):
+    """The strand a Feature or Location lies on."""
 
+    INLINE = "inline"
+    REVERSE_COMPLEMENT = "reverseComplement"
+
+    @classmethod
+    def of(cls, iri: Node | None) -> Orientation | None:
+        """The orientation an SBOL or SO orientation IRI names, or None for any other value."""
+        return _ORIENTATIONS.get(str(iri)) if iri is not None else None
+
+
+_ORIENTATIONS = {
+    spec.INLINE: Orientation.INLINE,
+    spec.SO_INLINE: Orientation.INLINE,
+    spec.REVERSE_COMPLEMENT: Orientation.REVERSE_COMPLEMENT,
+    spec.SO_REVERSE_COMPLEMENT: Orientation.REVERSE_COMPLEMENT,
+}
+
+
+class Outcome(Enum):
+    """What the document says about a Constraint's restriction."""
+
+    SATISFIED = "satisfied"
+    CONTRADICTED = "contradicted"
+    #: the document does not hold enough to decide
+    UNKNOWN = "unknown"
+    #: the restriction is not one this relation evaluates
+    UNSUPPORTED = "unsupported"
+
+
+@dataclass(frozen=True)
+class Relation:
+    """Outcome of evaluating a constraint relation, with the witnessing locations when contradicted."""
+
+    outcome: Outcome
+    subject_location: Node | None = None
+    object_location: Node | None = None
+
+
+class TraceError(Enum):
+    """Why a ``refersTo`` chain did not reach a Feature."""
+
+    #: a link names an object that is not in the document
+    MISSING = "missing"
+    #: a ComponentReference has no ``refersTo``
+    MISSING_REFERS_TO = "missing_refers_to"
+    CYCLE = "cycle"
+
+
+@dataclass(frozen=True)
+class FeatureTrace:
+    """Result of following a ``refersTo`` chain: the target and the ComponentReferences passed through."""
+
+    target: Node | None
+    path: tuple[Node, ...]
+    error: TraceError | None = None
+
+
+@dataclass(frozen=True)
+class FeatureIdentity:
+    """What a Feature stands for, for deciding whether two Features are the same thing."""
+
+    #: the Component a SubComponent instantiates, or the definition of an ExternallyDefined
+    referent: Node
+    #: whether ``referent`` is an external definition rather than an instantiated Component
+    external: bool
+    #: whether the Feature was reached through a ComponentReference
+    through_reference: bool
+
+    def same_as(self, other: FeatureIdentity) -> bool:
+        """Whether both Features stand for the same Component or the same external definition."""
+        return (self.external, self.referent) == (other.external, other.referent)
+
+
+@dataclass(frozen=True)
+class LinearLocation:
+    """A location as a half-open span ``[start, end)`` on a Sequence."""
+
+    identity: Node
+    sequence: Node
+    start: int
+    end: int
+    orientation: Orientation | None
+
+
+#: predicates whose values a derived Feature shares with the template Feature it derives from
 FEATURE_EQUIVALENCE_PREDICATES = (
     RDF_TYPE,
     spec.ROLE,
@@ -33,76 +113,132 @@ FEATURE_EQUIVALENCE_PREDICATES = (
 )
 
 
-@dataclass(frozen=True)
-class Relation:
-    """Outcome of evaluating a constraint relation, with the witnessing locations when contradicted."""
-
-    outcome: str
-    subject_location: Node | None = None
-    object_location: Node | None = None
+# --- containment and sequences ---
 
 
-@dataclass(frozen=True)
-class FeatureTrace:
-    """Result of following a ``refersTo`` chain: the target and the ComponentReferences passed through."""
-
-    target: Node | None
-    path: tuple[Node, ...]
-    #: "missing", "missing_refers_to", or "cycle" when the chain could not be resolved
-    error: str | None = None
+def component_contains(ctx: Sbol3Context, component: Node | None, predicate: str, child: Node) -> bool:
+    """Whether the object ``component`` lists ``child`` under ``predicate``."""
+    obj = ctx.get(component)
+    return obj is not None and child in obj.resources(predicate)
 
 
-@dataclass(frozen=True)
-class LinearLocation:
-    """A location as a half-open span ``[start, end)`` on a Sequence."""
+def component_allows_sequence(ctx: Sbol3Context, component: Node, sequence: Node) -> bool:
+    """Whether a Component declares a Sequence directly or through a Feature's EntireSequence location."""
+    obj = ctx.get(component)
+    if obj is None:
+        return False
+    if sequence in obj.resources(spec.HAS_SEQUENCE):
+        return True
+    return any(
+        location.has_class(spec.ENTIRE_SEQUENCE) and location.first_resource(spec.HAS_SEQUENCE) == sequence
+        for feature in ctx.referenced(obj, spec.HAS_FEATURE)
+        for location in ctx.referenced(feature, spec.HAS_LOCATION)
+    )
 
-    identity: Node
-    sequence: Node
-    start: int
-    end: int
-    orientation: str | None
+
+def collection_contains_only_components_or_collections(ctx: Sbol3Context, collection: Node, visited: set[Node]) -> bool:
+    """Whether every member of a Collection held in the document, recursively, is a Component or Collection."""
+    if collection in visited:
+        return True
+    visited.add(collection)
+    obj = ctx.get(collection)
+    if obj is None:
+        return True
+    for member in ctx.referenced(obj, spec.MEMBER):
+        if member.has_class(spec.COMPONENT):
+            continue
+        if not (
+            member.has_class(spec.COLLECTION)
+            and collection_contains_only_components_or_collections(ctx, member.identity, visited)
+        ):
+            return False
+    return True
 
 
-def directional_orientation(value: Node | None) -> str | None:
-    """Normalize SBOL and SO orientation IRIs to inline / reverseComplement."""
-    if value is None:
+def elements_length(elements: str) -> int:
+    """The length of a Sequence's ``elements``, counted in UTF-8 bytes as the reference validator counts it.
+
+    IUPAC and SMILES elements are ASCII, for which this is the number of characters.
+    """
+    return len(elements.encode("utf-8"))
+
+
+def sequence_length(ctx: Sbol3Context, sequence: Node | None) -> int | None:
+    """The length of the elements of a Sequence held in the document, when it has elements."""
+    obj = ctx.get(sequence)
+    elements = None if obj is None else obj.first_literal(spec.ELEMENTS)
+    return None if elements is None else elements_length(elements)
+
+
+def location_sequence_length(ctx: Sbol3Context, location: Sbol3Object) -> int | None:
+    """The length of the Sequence a Location refers to, when known."""
+    return sequence_length(ctx, location.first_resource(spec.HAS_SEQUENCE))
+
+
+def location_length(ctx: Sbol3Context, location: Node) -> int | None:
+    """The number of positions a Location held in the document covers, when known."""
+    obj = ctx.get(location)
+    if obj is None:
         return None
-    text = str(value)
-    if text in (spec.INLINE, spec.SO_INLINE):
-        return INLINE
-    if text in (spec.REVERSE_COMPLEMENT, spec.SO_REVERSE_COMPLEMENT):
-        return REVERSE_COMPLEMENT
+    if obj.has_class(spec.RANGE):
+        start, end = obj.integer(spec.START), obj.integer(spec.END)
+        if start is None or end is None or start <= 0 or end < start:
+            return None
+        return end - start + 1
+    if obj.has_class(spec.CUT):
+        return 0
+    if obj.has_class(spec.ENTIRE_SEQUENCE):
+        return location_sequence_length(ctx, obj)
     return None
 
 
+def sum_location_lengths(ctx: Sbol3Context, locations: list[Node]) -> int | None:
+    """The total length of several Locations, or None when any of them is unknown."""
+    lengths = [location_length(ctx, location) for location in locations]
+    return None if None in lengths else sum(length for length in lengths if length is not None)
+
+
+# --- ComponentReference chains ---
+
+
 def parent_by_identity_prefix(ctx: Sbol3Context, obj: Sbol3Object) -> Sbol3Object | None:
-    """The object whose identity is this object's identity with the last path segment removed."""
-    identity = str(obj.identity) if isinstance(obj.identity, URIRef) else "_:" + str(obj.identity)
-    if "/" not in identity:
+    """The object whose identity is this object's IRI with the last path segment removed."""
+    if not isinstance(obj.identity, URIRef) or "/" not in obj.identity:
         return None
-    return ctx.get(URIRef(identity.rsplit("/", 1)[0]))
+    return ctx.get(URIRef(obj.identity.rsplit("/", 1)[0]))
 
 
 def trace_feature(ctx: Sbol3Context, feature: Node) -> FeatureTrace:
-    """Follow ComponentReference ``refersTo`` links from ``feature`` to the first non-reference object."""
+    """Follow ComponentReference ``refersTo`` links from ``feature`` to the first object that is not a reference."""
+    return ctx.memo(("feature trace", feature), lambda: _trace_feature(ctx, feature))
+
+
+def _trace_feature(ctx: Sbol3Context, feature: Node) -> FeatureTrace:
     current = feature
     path: list[Node] = []
     visited: set[Node] = set()
     while True:
         if current in visited:
             path.append(current)
-            return FeatureTrace(None, tuple(path), "cycle")
+            return FeatureTrace(None, tuple(path), TraceError.CYCLE)
         visited.add(current)
         obj = ctx.get(current)
         if obj is None:
-            return FeatureTrace(None, tuple(path), "missing")
+            return FeatureTrace(None, tuple(path), TraceError.MISSING)
         if not obj.has_class(spec.COMPONENT_REFERENCE):
             return FeatureTrace(current, tuple(path))
         path.append(current)
-        nxt = obj.first_resource(spec.REFERS_TO)
-        if nxt is None:
-            return FeatureTrace(None, tuple(path), "missing_refers_to")
-        current = nxt
+        following = obj.first_resource(spec.REFERS_TO)
+        if following is None:
+            return FeatureTrace(None, tuple(path), TraceError.MISSING_REFERS_TO)
+        current = following
+
+
+def _traced(ctx: Sbol3Context, feature: Node) -> tuple[FeatureTrace, Sbol3Object] | None:
+    """The trace of ``feature`` and the object it reaches, when the chain resolves."""
+    trace = trace_feature(ctx, feature)
+    obj = ctx.get(trace.target) if trace.error is None else None
+    return None if obj is None else (trace, obj)
 
 
 def parent_reference(ctx: Sbol3Context, reference: Sbol3Object) -> Sbol3Object | None:
@@ -120,18 +256,20 @@ def reference_is_child_of(ctx: Sbol3Context, reference: Node, parent: Node) -> b
     return found is not None and found.identity == parent
 
 
+# --- locations and constraint relations ---
+
+
 def linear_location(ctx: Sbol3Context, identity: Node) -> LinearLocation | None:
-    """Normalize a local Range, Cut, or EntireSequence to a span."""
+    """The span of a Range, Cut, or EntireSequence held in the document, when its positions are well formed."""
     location = ctx.get(identity)
     if location is None:
         return None
     sequence = location.first_resource(spec.HAS_SEQUENCE)
     if sequence is None:
         return None
-    orientation = directional_orientation(location.first_iri(spec.ORIENTATION))
+    orientation = Orientation.of(location.first_iri(spec.ORIENTATION))
     if location.has_class(spec.RANGE):
-        start = location.integer(spec.START)
-        end = location.integer(spec.END)
+        start, end = location.integer(spec.START), location.integer(spec.END)
         if start is None or end is None or start <= 0 or end < start:
             return None
         return LinearLocation(identity, sequence, start - 1, end, orientation)
@@ -141,140 +279,120 @@ def linear_location(ctx: Sbol3Context, identity: Node) -> LinearLocation | None:
             return None
         return LinearLocation(identity, sequence, at, at, orientation)
     if location.has_class(spec.ENTIRE_SEQUENCE):
-        sequence_obj = ctx.get(sequence)
-        if sequence_obj is None:
-            return None
-        elements = sequence_obj.first_literal(spec.ELEMENTS)
-        if elements is None:
-            return None
-        return LinearLocation(identity, sequence, 0, len(elements.encode("utf-8")), orientation)
+        length = sequence_length(ctx, sequence)
+        return None if length is None else LinearLocation(identity, sequence, 0, length, orientation)
     return None
 
 
 def locations_for_feature(ctx: Sbol3Context, feature: Node) -> list[LinearLocation]:
-    """Spans of the (reference-resolved) feature's local locations."""
+    """The spans of the Locations of ``feature``, or of the Feature it refers to when that resolves."""
     trace = trace_feature(ctx, feature)
-    target = trace.target if trace.error is None else feature
-    obj = ctx.get(target)
+    obj = ctx.get(trace.target if trace.error is None else feature)
     if obj is None:
         return []
     spans = (linear_location(ctx, location) for location in obj.resources(spec.HAS_LOCATION))
     return [span for span in spans if span is not None]
 
 
-def _sequential_relation_satisfied(restriction: str, s: LinearLocation, o: LinearLocation) -> bool:
-    if restriction == spec.PRECEDES:
-        return s.start < o.start
-    if restriction == spec.STRICTLY_PRECEDES:
-        return s.end < o.start
-    if restriction == spec.MEETS:
-        return s.end == o.start
-    if restriction == spec.OVERLAPS:
-        return s.start < o.start < s.end < o.end
-    if restriction == spec.CONTAINS:
-        return s.start <= o.start and s.end >= o.end
-    if restriction == spec.STRICTLY_CONTAINS:
-        return s.start < o.start and s.end > o.end
-    if restriction == spec.EQUALS:
-        return s.start == o.start and s.end == o.end
-    if restriction == spec.FINISHES:
-        return s.start > o.start and s.end == o.end
-    if restriction == spec.STARTS:
-        return s.start == o.start and s.end < o.end
-    return True
+#: sequential restriction -> whether it holds between a subject span and an object span on the same Sequence
+_SEQUENTIAL_RELATIONS: dict[str, Callable[[LinearLocation, LinearLocation], bool]] = {
+    spec.PRECEDES: lambda s, o: s.start < o.start,
+    spec.STRICTLY_PRECEDES: lambda s, o: s.end < o.start,
+    spec.MEETS: lambda s, o: s.end == o.start,
+    spec.OVERLAPS: lambda s, o: s.start < o.start < s.end < o.end,
+    spec.CONTAINS: lambda s, o: s.start <= o.start and s.end >= o.end,
+    spec.STRICTLY_CONTAINS: lambda s, o: s.start < o.start and s.end > o.end,
+    spec.EQUALS: lambda s, o: s.start == o.start and s.end == o.end,
+    spec.FINISHES: lambda s, o: s.start > o.start and s.end == o.end,
+    spec.STARTS: lambda s, o: s.start == o.start and s.end < o.end,
+}
 
 
-def _identity_key(ctx: Sbol3Context, feature: Node) -> tuple[tuple[str, Node], bool] | None:
-    trace = trace_feature(ctx, feature)
-    if trace.error is not None:
+def _feature_identity(ctx: Sbol3Context, feature: Node) -> FeatureIdentity | None:
+    traced = _traced(ctx, feature)
+    if traced is None:
         return None
-    obj = ctx.get(trace.target)
-    if obj is None:
-        return None
-    through_reference = bool(trace.path)
+    trace, obj = traced
     if obj.has_class(spec.SUB_COMPONENT):
-        instance_of = obj.first_resource(spec.INSTANCE_OF)
-        return None if instance_of is None else (("instance", instance_of), through_reference)
-    if obj.has_class(spec.EXTERNALLY_DEFINED):
-        definition = obj.first_resource(spec.DEFINITION)
-        return None if definition is None else (("definition", definition), through_reference)
-    return None
-
-
-def _feature_orientation(ctx: Sbol3Context, feature: Node) -> str | None:
-    trace = trace_feature(ctx, feature)
-    if trace.error is not None:
+        referent, external = obj.first_resource(spec.INSTANCE_OF), False
+    elif obj.has_class(spec.EXTERNALLY_DEFINED):
+        referent, external = obj.first_resource(spec.DEFINITION), True
+    else:
         return None
-    obj = ctx.get(trace.target)
-    return None if obj is None else directional_orientation(obj.first_iri(spec.ORIENTATION))
+    return None if referent is None else FeatureIdentity(referent, external, through_reference=bool(trace.path))
+
+
+def _feature_orientation(ctx: Sbol3Context, feature: Node) -> Orientation | None:
+    traced = _traced(ctx, feature)
+    return None if traced is None else Orientation.of(traced[1].first_iri(spec.ORIENTATION))
 
 
 def table8_relation(ctx: Sbol3Context, restriction: str, subject: Node, obj: Node) -> Relation:
     """Evaluate an identity or orientation restriction (Tables 8 and 9) between two Features."""
     if restriction in (spec.VERIFY_IDENTICAL, spec.DIFFERENT_FROM):
-        subject_key = _identity_key(ctx, subject)
-        object_key = _identity_key(ctx, obj)
-        if subject_key is None or object_key is None:
-            return Relation(UNKNOWN)
-        same = subject_key[0] == object_key[0]
-        if restriction == spec.VERIFY_IDENTICAL:
-            if same:
-                return Relation(SATISFIED)
-            if subject_key[1] or object_key[1]:
-                return Relation(UNKNOWN)
-            return Relation(CONTRADICTED)
-        return Relation(CONTRADICTED) if same else Relation(SATISFIED)
+        subject_identity = _feature_identity(ctx, subject)
+        object_identity = _feature_identity(ctx, obj)
+        if subject_identity is None or object_identity is None:
+            return Relation(Outcome.UNKNOWN)
+        same = subject_identity.same_as(object_identity)
+        if restriction == spec.DIFFERENT_FROM:
+            return Relation(Outcome.CONTRADICTED if same else Outcome.SATISFIED)
+        if same:
+            return Relation(Outcome.SATISFIED)
+        # Features reached through a reference may still be unified by a Constraint in another Component
+        if subject_identity.through_reference or object_identity.through_reference:
+            return Relation(Outcome.UNKNOWN)
+        return Relation(Outcome.CONTRADICTED)
     if restriction in (spec.SAME_ORIENTATION_AS, spec.OPPOSITE_ORIENTATION_AS):
         subject_orientation = _feature_orientation(ctx, subject)
         object_orientation = _feature_orientation(ctx, obj)
         if subject_orientation is None or object_orientation is None:
-            return Relation(UNKNOWN)
-        same = subject_orientation == object_orientation
-        if (restriction == spec.SAME_ORIENTATION_AS) == same:
-            return Relation(SATISFIED)
-        return Relation(CONTRADICTED)
+            return Relation(Outcome.UNKNOWN)
+        same = subject_orientation is object_orientation
+        return Relation(
+            Outcome.SATISFIED if (restriction == spec.SAME_ORIENTATION_AS) == same else Outcome.CONTRADICTED
+        )
     if restriction == spec.REPLACES:
-        return Relation(UNKNOWN)
-    return Relation(UNSUPPORTED)
+        return Relation(Outcome.UNKNOWN)
+    return Relation(Outcome.UNSUPPORTED)
 
 
 def table10_relation(ctx: Sbol3Context, restriction: str, subject: Node, obj: Node) -> Relation:
-    """Evaluate a sequential restriction (Table 10) between the locations of two Features."""
-    if restriction not in spec.SEQUENTIAL_RESTRICTION_IRIS:
-        return Relation(UNSUPPORTED)
-    subject_locations = locations_for_feature(ctx, subject)
-    object_locations = locations_for_feature(ctx, obj)
+    """Evaluate a sequential restriction (Table 10) between the locations of two Features.
+
+    The restriction is satisfied when it holds for some pair of locations on the same Sequence, contradicted when
+    such pairs exist and it holds for none, and unknown when the Features share no Sequence.
+    """
+    holds = _SEQUENTIAL_RELATIONS.get(restriction)
+    if holds is None:
+        return Relation(Outcome.UNSUPPORTED)
     comparable: tuple[Node, Node] | None = None
-    for s in subject_locations:
-        for o in object_locations:
+    for s in locations_for_feature(ctx, subject):
+        for o in locations_for_feature(ctx, obj):
             if s.sequence != o.sequence:
                 continue
-            if _sequential_relation_satisfied(restriction, s, o):
-                return Relation(SATISFIED)
+            if holds(s, o):
+                return Relation(Outcome.SATISFIED)
             if comparable is None:
                 comparable = (s.identity, o.identity)
     if comparable is None:
-        return Relation(UNKNOWN)
-    return Relation(CONTRADICTED, comparable[0], comparable[1])
+        return Relation(Outcome.UNKNOWN)
+    return Relation(Outcome.CONTRADICTED, *comparable)
 
 
 def type_properties(ctx: Sbol3Context, feature: Node) -> frozenset[str] | None:
     """The ``sbol:type`` IRIs of the object that determines a Feature's type, when resolvable."""
-    trace = trace_feature(ctx, feature)
-    if trace.error is not None:
+    traced = _traced(ctx, feature)
+    if traced is None:
         return None
-    obj = ctx.get(trace.target)
-    if obj is None:
-        return None
+    trace, obj = traced
     referent: Node | None = None
-    if obj.has_class(spec.LOCAL_SUB_COMPONENT) or obj.has_class(spec.EXTERNALLY_DEFINED):
+    if obj.has_class(spec.LOCAL_SUB_COMPONENT, spec.EXTERNALLY_DEFINED):
         referent = trace.target
     elif obj.has_class(spec.SUB_COMPONENT):
         referent = obj.first_resource(spec.INSTANCE_OF)
     referent_obj = ctx.get(referent)
-    if referent_obj is None:
-        return None
-    return frozenset(str(i) for i in referent_obj.iris(spec.TYPE))
+    return None if referent_obj is None else frozenset(str(i) for i in referent_obj.iris(spec.TYPE))
 
 
 @dataclass
@@ -342,16 +460,18 @@ def static_feature_properties_match(ctx: Sbol3Context, derived: Node, template: 
     return all(set(derived_obj.values(p)) == set(template_obj.values(p)) for p in FEATURE_EQUIVALENCE_PREDICATES)
 
 
+#: VariableFeature cardinality -> whether it permits a number of derived Features
+_CARDINALITY_ALLOWS: dict[str, Callable[[int], bool]] = {
+    spec.ONE: lambda count: count == 1,
+    spec.ZERO_OR_ONE_VALUE: lambda count: count <= 1,
+    spec.ONE_OR_MORE_VALUE: lambda count: count >= 1,
+}
+
+
 def cardinality_allows(cardinality: Node | None, count: int) -> bool:
-    """Whether a derived Feature count satisfies a VariableFeature cardinality."""
-    value = None if cardinality is None else str(cardinality)
-    if value == spec.ONE:
-        return count == 1
-    if value == spec.ZERO_OR_ONE_VALUE:
-        return count <= 1
-    if value == spec.ONE_OR_MORE_VALUE:
-        return count >= 1
-    return True
+    """Whether a derived Feature count satisfies a VariableFeature cardinality; any other cardinality allows all."""
+    allows = _CARDINALITY_ALLOWS.get(str(cardinality))
+    return allows is None or allows(count)
 
 
 def _collect_collection_components(ctx: Sbol3Context, collection: Node, visited: set[Node], out: set[Node]) -> None:

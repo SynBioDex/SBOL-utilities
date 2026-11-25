@@ -5,9 +5,9 @@ from __future__ import annotations
 from sbol_utilities.validation.sbol3 import spec
 from sbol_utilities.validation.sbol3.context import Sbol3Context
 from sbol_utilities.validation.sbol3.helpers import (
+    EDAM_TEXTUAL_FORMAT,
     canonical_table_1_sequence_encoding_iri,
     first_invalid_sequence_element,
-    is_edam_textual_format,
 )
 from sbol_utilities.validation.sbol3.registry import REGISTRY
 
@@ -49,7 +49,7 @@ def sequences(ctx: Sbol3Context) -> None:
                     f"Sequence encoding `{text}` is equivalent to Table 1 URI `{canonical}`",
                     property=spec.ENCODING,
                 )
-            if is_edam_textual_format(ontology, text) is False:
+            if ontology.in_branch_if_known(text, EDAM_TEXTUAL_FORMAT) is False:
                 ctx.report(
                     "sbol3-10505",
                     obj,
