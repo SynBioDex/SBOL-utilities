@@ -7,7 +7,7 @@ from rdflib.term import URIRef
 
 from sbol_utilities.validation.datatypes import is_date_time_lexical, is_float_lexical, parse_i64
 from sbol_utilities.validation.sbol2 import spec as S
-from sbol_utilities.validation.sbol2.context import Lit, Obj, Sbol2Context, Term
+from sbol_utilities.validation.sbol2.context import Sbol2Context, Sbol2Literal, Sbol2Object, Term
 from sbol_utilities.validation.sbol2.registry import REGISTRY
 from sbol_utilities.validation.schema import ValueKind
 from sbol_utilities.vocab import SBOL2_NS
@@ -17,7 +17,7 @@ def value_matches_kind(term: Term, kind: ValueKind) -> bool:
     """Whether a value has the lexical shape a property's value kind requires."""
     if kind in (ValueKind.URI, ValueKind.URL):
         return isinstance(term, URIRef)
-    if not isinstance(term, Lit):
+    if not isinstance(term, Sbol2Literal):
         return False
     if kind is ValueKind.STRING:
         return True
@@ -142,10 +142,10 @@ def location_bounds(ctx: Sbol2Context) -> None:
                 )
 
 
-def regions(ctx: Sbol2Context, obj: Obj, predicate: str = S.LOCATION_P) -> list[tuple]:
+def regions(ctx: Sbol2Context, obj: Sbol2Object, predicate: str = S.LOCATION_P) -> list[tuple]:
     """The ``("range", start, end)`` / ``("cut", at)`` extents of the Locations ``obj`` names under ``predicate``."""
     result: list[tuple] = []
-    for location in ctx.children(obj, predicate):
+    for location in ctx.referenced(obj, predicate):
         if location.has_class(S.RANGE):
             start, end = location.integer(S.START), location.integer(S.END)
             if start is not None and end is not None:

@@ -1,7 +1,7 @@
 """Indexed view of an SBOL 3 graph shared by every SBOL 3 rule implementation.
 
 The graph is indexed once: each subject that carries an rdf:type or any SBOL, PROV, or OM predicate becomes an
-:class:`SbolObject` (mirroring sbol-rs ``collect_objects``), objects are ordered by identity (IRIs before blank
+:class:`Sbol3Object` (mirroring sbol-rs ``collect_objects``), objects are ordered by identity (IRIs before blank
 nodes), and composite parent/child edges are recorded in an ownership index.
 """
 
@@ -15,6 +15,7 @@ from rdflib.term import BNode, Literal, Node, URIRef
 
 from sbol_utilities.validation.catalog import Catalog, Context, NormativeLevel
 from sbol_utilities.validation.config import Severity, ValidationConfig
+from sbol_utilities.validation.datatypes import parse_i64
 from sbol_utilities.validation.ontology import Ontology
 from sbol_utilities.validation.sbol3 import spec
 from sbol_utilities.vocab import OM_NS, PROV_NS, RDF_LANG_STRING, RDF_TYPE, SBOL3_NS, XSD_STRING
@@ -46,10 +47,10 @@ def _is_extension_predicate(predicate: str) -> bool:
     )
 
 
-class SbolObject:
+class Sbol3Object:
     """One subject of the document: its identity, rdf:types, and property values."""
 
-    __slots__ = ("identity", "rdf_types", "properties", "classes", "ancestors", "display_id", "is_top_level")
+    __slots__ = ("identity", "rdf_types", "properties", "declared_classes", "classes", "display_id", "is_top_level")
 
     def __init__(self, identity: Node, properties: dict[str, list[Node]]):
         self.identity = identity
@@ -57,15 +58,15 @@ class SbolObject:
         self.rdf_types: tuple[str, ...] = tuple(
             sorted(str(t) for t in properties.get(RDF_TYPE, ()) if isinstance(t, URIRef))
         )
-        #: recognized SBOL / PROV / OM classes among the rdf:types
-        self.classes: tuple[str, ...] = tuple(t for t in self.rdf_types if t in spec.SCHEMA)
+        #: the rdf:types that are classes of the data model
+        self.declared_classes: tuple[str, ...] = tuple(t for t in self.rdf_types if t in spec.SCHEMA)
         #: every class this object is an instance of, through the class hierarchy
-        self.ancestors: frozenset[str] = frozenset().union(*(spec.SCHEMA.ancestors(cls) for cls in self.classes))
-        self.display_id: str | None = self.first_literal_value(spec.DISPLAY_ID)
-        self.is_top_level = any(c in spec.SCHEMA.top_level_classes for c in self.classes)
+        self.classes: frozenset[str] = frozenset().union(*(spec.SCHEMA.ancestors(t) for t in self.declared_classes))
+        self.display_id: str | None = self.first_literal(spec.DISPLAY_ID)
+        self.is_top_level = any(c in spec.SCHEMA.top_level_classes for c in self.declared_classes)
 
     def __repr__(self) -> str:
-        return f"SbolObject({self.identity!s})"
+        return f"Sbol3Object({self.identity!s})"
 
     def values(self, predicate: str) -> list[Node]:
         """All values of a predicate."""
@@ -97,40 +98,30 @@ class SbolObject:
                 return v
         return None
 
-    def first_literal_value(self, predicate: str) -> str | None:
+    def first_literal(self, predicate: str) -> str | None:
         """Lexical form of the first literal value of a predicate."""
         for v in self.values(predicate):
             if isinstance(v, Literal):
                 return str(v)
         return None
 
-    def has_class(self, class_iri: str) -> bool:
-        """Whether the object is an instance of a class or any of its subclasses."""
-        return class_iri in self.ancestors
+    def integer(self, predicate: str) -> int | None:
+        """The first literal value of ``predicate`` as a 64-bit integer, or None when it is not one."""
+        return parse_i64(self.first_literal(predicate))
+
+    def has_class(self, *class_iris: str) -> bool:
+        """Whether the object is an instance of one of these classes or of a subclass."""
+        return not self.classes.isdisjoint(class_iris)
 
     def has_rdf_type(self, iri: str) -> bool:
         """Whether the object carries exactly this rdf:type."""
         return iri in self.rdf_types
 
-    def derived_from(self) -> list[Node]:
-        """The object's prov:wasDerivedFrom resources."""
-        return self.resources(spec.PROV_WAS_DERIVED_FROM)
-
-
-def primary_kind(obj: SbolObject) -> str | None:
-    """The single typed class an object is read as (first match in sbol-rs dispatch order)."""
-    for cls in spec.TYPED_DISPATCH_ORDER:
-        if obj.has_class(cls):
-            return cls
-    if obj.has_class(spec.IDENTIFIED):
-        return spec.IDENTIFIED
-    return None
-
 
 class OwnershipIndex:
     """Composite parent/child edges of the document (``hasFeature``, ``hasLocation``, ...)."""
 
-    def __init__(self, objects: Iterable[SbolObject]):
+    def __init__(self, objects: Iterable[Sbol3Object]):
         self.parents_by_child: dict[Node, list[tuple[Node, str]]] = {}
         self.children_by_parent: dict[tuple[Node, str], list[Node]] = {}
         for obj in objects:
@@ -157,23 +148,23 @@ class OwnershipIndex:
         return child in self.children(parent, predicate)
 
 
-def collect_objects(graph: rdflib.Graph) -> dict[Node, SbolObject]:
+def collect_objects(graph: rdflib.Graph) -> dict[Node, Sbol3Object]:
     """Index the graph's SBOL-relevant subjects, ordered by identity.
 
     Property values keep the graph's insertion order (document order for a parsed file), so "first value" lookups
     agree with sbol-rs, which reads values in document order.
     """
-    objects: dict[Node, SbolObject] = {}
+    objects: dict[Node, Sbol3Object] = {}
     for subject in sorted(set(graph.subjects()), key=_term_order):
         properties: dict[str, list[Node]] = {}
         for p, o in graph.predicate_objects(subject):
             properties.setdefault(str(p), []).append(o)
         if any(not _is_extension_predicate(p) for p in properties):
-            objects[subject] = SbolObject(subject, properties)
+            objects[subject] = Sbol3Object(subject, properties)
     return objects
 
 
-class SBOL3Context(Context):
+class Sbol3Context(Context[Sbol3Object]):
     """Validation state for one SBOL 3 run: the indexed document.
 
     While the best-practice family is off, every rule whose normative level is SHOULD is silenced.
@@ -181,31 +172,15 @@ class SBOL3Context(Context):
 
     def __init__(self, graph: rdflib.Graph, config: ValidationConfig, catalog: Catalog, ontology: Ontology):
         super().__init__(graph, config, catalog, ontology)
-        self.objects: dict[Node, SbolObject] = collect_objects(graph)
+        self.objects: dict[Node, Sbol3Object] = collect_objects(graph)
         self.ownership = OwnershipIndex(self.objects.values())
-        self._typed: dict[str, list[SbolObject]] = {}
-        self._instances: dict[str, list[SbolObject]] = {}
-        for obj in self.objects.values():
-            kind = primary_kind(obj)
-            if kind is not None:
-                self._typed.setdefault(kind, []).append(obj)
+        self._index_instances(self.objects.values())
 
-    def get(self, identity: Node | None) -> SbolObject | None:
+    def get(self, identity: Node | None) -> Sbol3Object | None:
         """The object with this identity, if present in the document."""
         if identity is None:
             return None
         return self.objects.get(identity)
-
-    def typed(self, class_iri: str) -> list[SbolObject]:
-        """Objects whose primary typed kind is ``class_iri`` (sbol-rs ``Document::components()`` and friends)."""
-        return self._typed.get(class_iri, [])
-
-    def instances(self, class_iri: str) -> list[SbolObject]:
-        """Objects that are instances of ``class_iri`` or a subclass."""
-        found = self._instances.get(class_iri)
-        if found is None:
-            found = self._instances[class_iri] = [obj for obj in self.objects.values() if obj.has_class(class_iri)]
-        return found
 
     def report(
         self,

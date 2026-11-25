@@ -6,7 +6,7 @@ from rdflib.term import URIRef
 
 from sbol_utilities.identifiers import is_valid_display_id
 from sbol_utilities.validation.sbol3 import spec
-from sbol_utilities.validation.sbol3.context import SBOL3Context
+from sbol_utilities.validation.sbol3.context import Sbol3Context
 from sbol_utilities.validation.sbol3.helpers import is_url, url_is_child_of, url_matches_namespace_display_id
 from sbol_utilities.validation.sbol3.registry import REGISTRY
 from sbol_utilities.validation.sbol3.structural import check_object
@@ -14,7 +14,7 @@ from sbol_utilities.vocab import RDF_TYPE, SBOL3_NS
 
 
 @REGISTRY.rule("sbol3-10105", "sbol3-10108", "sbol3-10109")
-def sbol_vocabulary(ctx: SBOL3Context) -> None:
+def sbol_vocabulary(ctx: Sbol3Context) -> None:
     """Unknown SBOL types and properties, properties not allowed for the type, and untyped SBOL subjects."""
     for obj in ctx.objects.values():
         for rdf_type in obj.rdf_types:
@@ -35,10 +35,10 @@ def sbol_vocabulary(ctx: SBOL3Context) -> None:
 
 
 @REGISTRY.rule("sbol3-10106", "sbol3-10107")
-def sbol_types(ctx: SBOL3Context) -> None:
+def sbol_types(ctx: Sbol3Context) -> None:
     """Disjoint SBOL class combinations and multiple concrete classes."""
     for obj in ctx.objects.values():
-        classes = obj.classes
+        classes = obj.declared_classes
         for index, left in enumerate(classes):
             for right in classes[index + 1 :]:
                 if not spec.SCHEMA.is_a(left, right) and not spec.SCHEMA.is_a(right, left):
@@ -54,14 +54,14 @@ def sbol_types(ctx: SBOL3Context) -> None:
 
 
 @REGISTRY.rule("sbol3-10110", "sbol3-10111", "sbol3-10112", "sbol3-10113")
-def table_rules(ctx: SBOL3Context) -> None:
+def table_rules(ctx: Sbol3Context) -> None:
     """Table 23 cardinality, value kinds, and reference targets."""
     for obj in ctx.objects.values():
         check_object(ctx, obj)
 
 
 @REGISTRY.rule("sbol3-10201", "sbol3-10202")
-def display_id(ctx: SBOL3Context) -> None:
+def display_id(ctx: Sbol3Context) -> None:
     """displayId lexical form and self-derivation."""
     for obj in ctx.objects.values():
         if obj.display_id is None:
@@ -74,7 +74,7 @@ def display_id(ctx: SBOL3Context) -> None:
                 "digits, or underscores",
                 property=spec.DISPLAY_ID,
             )
-        if obj.identity in obj.derived_from():
+        if obj.identity in obj.resources(spec.PROV_WAS_DERIVED_FROM):
             ctx.report(
                 "sbol3-10202",
                 obj,
@@ -84,7 +84,7 @@ def display_id(ctx: SBOL3Context) -> None:
 
 
 @REGISTRY.rule("sbol3-10101", "sbol3-10301")
-def top_level_namespace(ctx: SBOL3Context) -> None:
+def top_level_namespace(ctx: Sbol3Context) -> None:
     """TopLevel identities are IRIs prefixed by their namespace."""
     for obj in ctx.objects.values():
         if not obj.is_top_level:
@@ -108,7 +108,7 @@ def top_level_namespace(ctx: SBOL3Context) -> None:
 
 
 @REGISTRY.rule("sbol3-10102", "sbol3-10103")
-def top_level_urls(ctx: SBOL3Context) -> None:
+def top_level_urls(ctx: Sbol3Context) -> None:
     """TopLevel URL pattern and URL prefix collisions between TopLevels."""
     top_levels = [
         (str(o.identity), o)
@@ -147,7 +147,7 @@ def top_level_urls(ctx: SBOL3Context) -> None:
 
 
 @REGISTRY.rule("sbol3-10104")
-def child_urls(ctx: SBOL3Context) -> None:
+def child_urls(ctx: Sbol3Context) -> None:
     """Child URLs are ``[parent URL]/[displayId]``."""
     for parent in ctx.objects.values():
         if not isinstance(parent.identity, URIRef):

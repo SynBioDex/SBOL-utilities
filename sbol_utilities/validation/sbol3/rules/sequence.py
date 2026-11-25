@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from sbol_utilities.validation.sbol3 import spec
-from sbol_utilities.validation.sbol3.context import SBOL3Context
+from sbol_utilities.validation.sbol3.context import Sbol3Context
 from sbol_utilities.validation.sbol3.helpers import (
     canonical_table_1_sequence_encoding_iri,
     first_invalid_sequence_element,
@@ -13,7 +13,7 @@ from sbol_utilities.validation.sbol3.registry import REGISTRY
 
 
 @REGISTRY.rule("sbol3-10501", "sbol3-10502", "sbol3-10503", "sbol3-10504", "sbol3-10505")
-def sequences(ctx: SBOL3Context) -> None:
+def sequences(ctx: Sbol3Context) -> None:
     """Encoding presence, ontology classification, Table 1 aliases, and IUPAC alphabets."""
     ontology = ctx.ontology
     for obj in ctx.instances(spec.SEQUENCE):
@@ -21,7 +21,7 @@ def sequences(ctx: SBOL3Context) -> None:
             ctx.report(
                 "sbol3-10501", obj, "Sequence objects with elements must provide an encoding", property=spec.ENCODING
             )
-        elements = obj.first_literal_value(spec.ELEMENTS)
+        elements = obj.first_literal(spec.ELEMENTS)
         first_encoding = obj.first_iri(spec.ENCODING)
         if elements is not None and first_encoding is not None:
             invalid = first_invalid_sequence_element(ontology, elements, str(first_encoding))

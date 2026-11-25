@@ -3,14 +3,14 @@
 from __future__ import annotations
 
 from sbol_utilities.validation.sbol3 import spec
-from sbol_utilities.validation.sbol3.context import SBOL3Context
+from sbol_utilities.validation.sbol3.context import Sbol3Context
 from sbol_utilities.validation.sbol3.helpers import component_contains
 from sbol_utilities.validation.sbol3.registry import REGISTRY
 from sbol_utilities.validation.sbol3.resolver import CONTRADICTED, table8_relation, table10_relation
 
 
 @REGISTRY.rule("sbol3-11701", "sbol3-11702", "sbol3-11703", "sbol3-11704", "sbol3-11705", "sbol3-11706")
-def constraints(ctx: SBOL3Context) -> None:
+def constraints(ctx: Sbol3Context) -> None:
     """Constraint containment, distinct subject/object, restriction vocabulary, and decidable contradictions."""
     for obj in ctx.instances(spec.CONSTRAINT):
         component = ctx.ownership.single_parent(obj.identity, spec.HAS_CONSTRAINT)

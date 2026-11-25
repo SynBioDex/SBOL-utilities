@@ -8,12 +8,12 @@ from __future__ import annotations
 from rdflib.term import BNode, URIRef
 
 from sbol_utilities.validation.sbol3 import spec
-from sbol_utilities.validation.sbol3.context import SBOL3Context, SbolObject
+from sbol_utilities.validation.sbol3.context import Sbol3Context, Sbol3Object
 from sbol_utilities.validation.sbol3.helpers import value_matches_kind
 from sbol_utilities.validation.schema import PropertySpec
 
 
-def check_property(ctx: SBOL3Context, obj: SbolObject, declared: PropertySpec) -> None:
+def check_property(ctx: Sbol3Context, obj: Sbol3Object, declared: PropertySpec) -> None:
     """Check one declared property against an object's values."""
     predicate = declared.predicate
     values = obj.values(predicate)
@@ -54,7 +54,7 @@ def check_property(ctx: SBOL3Context, obj: SbolObject, declared: PropertySpec) -
             )
 
 
-def check_object(ctx: SBOL3Context, obj: SbolObject) -> None:
+def check_object(ctx: Sbol3Context, obj: Sbol3Object) -> None:
     """Check every property an object's classes declare."""
     for declared in spec.SCHEMA.properties_for(obj.rdf_types).values():
         check_property(ctx, obj, declared)

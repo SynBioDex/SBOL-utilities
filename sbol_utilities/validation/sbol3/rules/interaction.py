@@ -3,17 +3,17 @@
 from __future__ import annotations
 
 from sbol_utilities.validation.sbol3 import spec
-from sbol_utilities.validation.sbol3.context import SBOL3Context, SbolObject
+from sbol_utilities.validation.sbol3.context import Sbol3Context, Sbol3Object
 from sbol_utilities.validation.sbol3.helpers import component_contains
 from sbol_utilities.validation.sbol3.registry import REGISTRY
 
 
-def _iris(obj: SbolObject, predicate: str) -> list[str]:
+def _iris(obj: Sbol3Object, predicate: str) -> list[str]:
     return [str(i) for i in obj.iris(predicate)]
 
 
 @REGISTRY.rule("sbol3-11901", "sbol3-11902", "sbol3-11903", "sbol3-11904", "sbol3-11905", "sbol3-11906")
-def participations(ctx: SBOL3Context) -> None:
+def participations(ctx: Sbol3Context) -> None:
     """Participation roles, participant kind, and participant containment."""
     ontology = ctx.ontology
     for obj in ctx.instances(spec.PARTICIPATION):
@@ -80,7 +80,7 @@ def participations(ctx: SBOL3Context) -> None:
 
 
 @REGISTRY.rule("sbol3-11801", "sbol3-11802", "sbol3-11803", "sbol3-11804")
-def interactions(ctx: SBOL3Context) -> None:
+def interactions(ctx: Sbol3Context) -> None:
     """Interaction types and their Participation roles (Tables 11 and 12)."""
     ontology = ctx.ontology
     for obj in ctx.instances(spec.INTERACTION):
@@ -148,7 +148,7 @@ def interactions(ctx: SBOL3Context) -> None:
 
 
 @REGISTRY.rule("sbol3-12001", "sbol3-12002", "sbol3-12003")
-def interfaces(ctx: SBOL3Context) -> None:
+def interfaces(ctx: Sbol3Context) -> None:
     """Interface inputs, outputs, and nondirectionals are Features of the containing Component."""
     for obj in ctx.instances(spec.INTERFACE):
         component = ctx.ownership.single_parent(obj.identity, spec.HAS_INTERFACE)

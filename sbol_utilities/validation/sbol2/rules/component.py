@@ -4,16 +4,16 @@ from __future__ import annotations
 
 from sbol_utilities.validation.graphs import nodes_reaching_cycles
 from sbol_utilities.validation.sbol2 import spec as S
-from sbol_utilities.validation.sbol2.context import Obj, Sbol2Context
+from sbol_utilities.validation.sbol2.context import Sbol2Context, Sbol2Object
 from sbol_utilities.validation.sbol2.registry import REGISTRY
 from sbol_utilities.validation.sbol2.rules.structural import regions
 
 
-def parent_definition(ctx: Sbol2Context, child: str) -> Obj | None:
+def parent_definition(ctx: Sbol2Context, child: str) -> Sbol2Object | None:
     """The first Component- or ModuleDefinition listing ``child`` as a component, functionalComponent, or module."""
-    best: Obj | None = None
+    best: Sbol2Object | None = None
     for predicate in (S.COMPONENT_P, S.FUNCTIONAL_COMPONENT_P, S.MODULE_P):
-        for candidate in ctx.containers(child, predicate):
+        for candidate in ctx.parents(child, predicate):
             if candidate.has_class(S.COMPONENT_DEFINITION) or candidate.has_class(S.MODULE_DEFINITION):
                 if best is None or candidate.index < best.index:
                     best = candidate
@@ -27,7 +27,7 @@ def self_containing_definitions(ctx: Sbol2Context) -> None:
     for obj in ctx.sbol_objects:
         if obj.iri is None or not (obj.has_class(S.COMPONENT) or obj.has_class(S.MODULE)):
             continue
-        definition = obj.first_ref(S.DEFINITION)
+        definition = obj.first_iri(S.DEFINITION)
         if definition is None:
             continue
         parent = parent_definition(ctx, obj.iri)
@@ -54,11 +54,11 @@ def sequence_annotation_components(ctx: Sbol2Context) -> None:
                 "a SequenceAnnotation must not include both a component and a roles property",
                 property=S.ROLE,
             )
-        component = obj.first_ref(S.COMPONENT_P)
+        component = obj.first_iri(S.COMPONENT_P)
         if component is None:
             continue
-        definition = ctx.container_of(obj, S.SEQUENCE_ANNOTATION_P)
-        if definition is not None and not definition.lists(S.COMPONENT_P, component):
+        definition = ctx.parent(obj, S.SEQUENCE_ANNOTATION_P)
+        if definition is not None and component not in definition.iris(S.COMPONENT_P):
             ctx.report(
                 "sbol2-10905",
                 obj,
@@ -67,16 +67,16 @@ def sequence_annotation_components(ctx: Sbol2Context) -> None:
             )
 
 
-def _annotation_for(ctx: Sbol2Context, definition: Obj, component: str) -> Obj | None:
-    for annotation in ctx.children(definition, S.SEQUENCE_ANNOTATION_P):
-        if annotation.first_ref(S.COMPONENT_P) == component:
+def _annotation_for(ctx: Sbol2Context, definition: Sbol2Object, component: str) -> Sbol2Object | None:
+    for annotation in ctx.referenced(definition, S.SEQUENCE_ANNOTATION_P):
+        if annotation.first_iri(S.COMPONENT_P) == component:
             return annotation
     return None
 
 
-def _position(ctx: Sbol2Context, annotation: Obj) -> tuple[int, int] | None:
+def _position(ctx: Sbol2Context, annotation: Sbol2Object) -> tuple[int, int] | None:
     best: tuple[int, int] | None = None
-    for location in ctx.children(annotation, S.LOCATION_P):
+    for location in ctx.referenced(annotation, S.LOCATION_P):
         position: tuple[int, int] | None = None
         if location.has_class(S.RANGE):
             start, end = location.integer(S.START), location.integer(S.END)
@@ -91,13 +91,13 @@ def _position(ctx: Sbol2Context, annotation: Obj) -> tuple[int, int] | None:
     return best
 
 
-def _orientations(ctx: Sbol2Context, annotation: Obj) -> list[str]:
-    return [location.first_ref(S.ORIENTATION) or S.INLINE for location in ctx.children(annotation, S.LOCATION_P)]
+def _orientations(ctx: Sbol2Context, annotation: Sbol2Object) -> list[str]:
+    return [location.first_iri(S.ORIENTATION) or S.INLINE for location in ctx.referenced(annotation, S.LOCATION_P)]
 
 
 def _definition_of(ctx: Sbol2Context, instance: str) -> str | None:
     obj = ctx.get(instance)
-    return None if obj is None else obj.first_ref(S.DEFINITION)
+    return None if obj is None else obj.first_iri(S.DEFINITION)
 
 
 @REGISTRY.rule(
@@ -115,7 +115,7 @@ def sequence_constraints(ctx: Sbol2Context) -> None:
     for obj in ctx.sbol_objects:
         if not obj.has_class(S.SEQUENCE_CONSTRAINT):
             continue
-        subject, target = obj.first_ref(S.SUBJECT), obj.first_ref(S.OBJECT)
+        subject, target = obj.first_iri(S.SUBJECT), obj.first_iri(S.OBJECT)
         if subject is not None and subject == target:
             ctx.report(
                 "sbol2-11406",
@@ -123,10 +123,10 @@ def sequence_constraints(ctx: Sbol2Context) -> None:
                 "the object of a SequenceConstraint must not be the same Component as its subject",
                 property=S.OBJECT,
             )
-        definition = ctx.container_of(obj, S.SEQUENCE_CONSTRAINT_P)
+        definition = ctx.parent(obj, S.SEQUENCE_CONSTRAINT_P)
         if definition is None:
             continue
-        restriction = obj.first_ref(S.RESTRICTION)
+        restriction = obj.first_iri(S.RESTRICTION)
         different_from = restriction == S.DIFFERENT_FROM
         same_definition = same_resolved = False
         if different_from and subject is not None and target is not None:
@@ -139,14 +139,14 @@ def sequence_constraints(ctx: Sbol2Context) -> None:
                 )
         if definition.iri is not None:
             _check_positions(ctx, obj, definition.iri, restriction, subject, target)
-        if subject is not None and not definition.lists(S.COMPONENT_P, subject):
+        if subject is not None and subject not in definition.iris(S.COMPONENT_P):
             ctx.report(
                 "sbol2-11403",
                 obj,
                 "the subject of a SequenceConstraint must be a Component of its ComponentDefinition",
                 property=S.SUBJECT,
             )
-        if target is not None and not definition.lists(S.COMPONENT_P, target):
+        if target is not None and target not in definition.iris(S.COMPONENT_P):
             ctx.report(
                 "sbol2-11405",
                 obj,
@@ -169,7 +169,7 @@ def sequence_constraints(ctx: Sbol2Context) -> None:
 
 def _check_positions(
     ctx: Sbol2Context,
-    constraint: Obj,
+    constraint: Sbol2Object,
     definition_id: str,
     restriction: str | None,
     subject: str | None,
@@ -219,15 +219,15 @@ def maps_to_locals(ctx: Sbol2Context) -> None:
     for obj in ctx.sbol_objects:
         if not obj.has_class(S.MAPS_TO):
             continue
-        local = obj.first_ref(S.LOCAL)
+        local = obj.first_iri(S.LOCAL)
         if local is None:
             continue
-        owner = ctx.container_of(obj, S.MAPS_TO_P)
+        owner = ctx.parent(obj, S.MAPS_TO_P)
         if owner is None or owner.iri is None:
             continue
-        definition = ctx.container(owner.iri, S.COMPONENT_P)
+        definition = ctx.parent(owner.iri, S.COMPONENT_P)
         if definition is not None:
-            if not definition.lists(S.COMPONENT_P, local):
+            if local not in definition.iris(S.COMPONENT_P):
                 ctx.report(
                     "sbol2-10803",
                     obj,
@@ -235,8 +235,8 @@ def maps_to_locals(ctx: Sbol2Context) -> None:
                     property=S.LOCAL,
                 )
             continue
-        module_definition = ctx.container(owner.iri, S.FUNCTIONAL_COMPONENT_P) or ctx.container(owner.iri, S.MODULE_P)
-        if module_definition is not None and not module_definition.lists(S.FUNCTIONAL_COMPONENT_P, local):
+        module_definition = ctx.parent(owner.iri, S.FUNCTIONAL_COMPONENT_P) or ctx.parent(owner.iri, S.MODULE_P)
+        if module_definition is not None and local not in module_definition.iris(S.FUNCTIONAL_COMPONENT_P):
             ctx.report(
                 "sbol2-10804",
                 obj,
@@ -252,8 +252,8 @@ def unique_annotated_components(ctx: Sbol2Context) -> None:
         if not obj.has_class(S.COMPONENT_DEFINITION):
             continue
         by_annotation: dict[str, str] = {}
-        for annotation in ctx.children(obj, S.SEQUENCE_ANNOTATION_P):
-            component = annotation.first_ref(S.COMPONENT_P)
+        for annotation in ctx.referenced(obj, S.SEQUENCE_ANNOTATION_P):
+            component = annotation.first_iri(S.COMPONENT_P)
             if annotation.iri is not None and component is not None:
                 by_annotation[annotation.iri] = component
         if len(set(by_annotation.values())) < len(by_annotation):
@@ -265,17 +265,19 @@ def unique_annotated_components(ctx: Sbol2Context) -> None:
             )
 
 
-def definition_cycles(ctx: Sbol2Context, class_iri: str, instance_predicate: str, link_predicate: str) -> list[Obj]:
+def definition_cycles(
+    ctx: Sbol2Context, class_iri: str, instance_predicate: str, link_predicate: str
+) -> list[Sbol2Object]:
     """Definitions of ``class_iri`` whose instance-to-definition reference graph reaches a cycle."""
     graph: dict[str, list[str]] = {}
-    members: list[Obj] = []
+    members: list[Sbol2Object] = []
     for obj in ctx.objects:
         if not obj.has_class(class_iri) or obj.iri is None:
             continue
         members.append(obj)
         successors = []
-        for instance in ctx.children(obj, instance_predicate):
-            link = instance.first_ref(link_predicate)
+        for instance in ctx.referenced(obj, instance_predicate):
+            link = instance.first_iri(link_predicate)
             target = ctx.resolve(link)
             if target is not None and target.iri is not None:
                 successors.append(target.iri)
@@ -296,7 +298,7 @@ def component_definition_cycles(ctx: Sbol2Context) -> None:
         )
 
 
-def use_remote_collisions(ctx: Sbol2Context, class_iri: str, instance_predicates: tuple[str, ...]) -> list[Obj]:
+def use_remote_collisions(ctx: Sbol2Context, class_iri: str, instance_predicates: tuple[str, ...]) -> list[Sbol2Object]:
     """Definitions in which two useRemote MapsTos of their instances share a local."""
     offenders = []
     for obj in ctx.objects:
@@ -304,11 +306,11 @@ def use_remote_collisions(ctx: Sbol2Context, class_iri: str, instance_predicates
             continue
         locals_: list[str] = []
         for predicate in instance_predicates:
-            for instance in ctx.children(obj, predicate):
-                for maps_to in ctx.children(instance, S.MAPS_TO_P):
-                    if maps_to.first_ref(S.REFINEMENT) != S.USE_REMOTE:
+            for instance in ctx.referenced(obj, predicate):
+                for maps_to in ctx.referenced(instance, S.MAPS_TO_P):
+                    if maps_to.first_iri(S.REFINEMENT) != S.USE_REMOTE:
                         continue
-                    local = maps_to.first_ref(S.LOCAL)
+                    local = maps_to.first_iri(S.LOCAL)
                     if local is not None:
                         locals_.append(local)
         if len(set(locals_)) < len(locals_):
@@ -363,10 +365,10 @@ def range_span(extents: list[tuple]) -> int | None:
 @REGISTRY.rule("sbol2-10711", "sbol2-10712")
 def component_source_locations(ctx: Sbol2Context) -> None:
     """A Component's source Locations do not overlap and span the same length as the Ranges annotating it."""
-    annotation_by_component: dict[str, Obj] = {}
+    annotation_by_component: dict[str, Sbol2Object] = {}
     for candidate in ctx.objects:
         if candidate.has_class(S.SEQUENCE_ANNOTATION):
-            component = candidate.first_ref(S.COMPONENT_P)
+            component = candidate.first_iri(S.COMPONENT_P)
             if component is not None:
                 annotation_by_component.setdefault(component, candidate)
     for obj in ctx.sbol_objects:

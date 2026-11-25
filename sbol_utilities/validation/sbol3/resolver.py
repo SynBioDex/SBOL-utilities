@@ -11,8 +11,7 @@ from dataclasses import dataclass, field
 from rdflib.term import Node, URIRef
 
 from sbol_utilities.validation.sbol3 import spec
-from sbol_utilities.validation.sbol3.context import SBOL3Context, SbolObject
-from sbol_utilities.validation.sbol3.helpers import integer_value
+from sbol_utilities.validation.sbol3.context import Sbol3Context, Sbol3Object
 from sbol_utilities.vocab import RDF_TYPE
 
 INLINE = "inline"
@@ -76,7 +75,7 @@ def directional_orientation(value: Node | None) -> str | None:
     return None
 
 
-def parent_by_identity_prefix(ctx: SBOL3Context, obj: SbolObject) -> SbolObject | None:
+def parent_by_identity_prefix(ctx: Sbol3Context, obj: Sbol3Object) -> Sbol3Object | None:
     """The object whose identity is this object's identity with the last path segment removed."""
     identity = str(obj.identity) if isinstance(obj.identity, URIRef) else "_:" + str(obj.identity)
     if "/" not in identity:
@@ -84,7 +83,7 @@ def parent_by_identity_prefix(ctx: SBOL3Context, obj: SbolObject) -> SbolObject 
     return ctx.get(URIRef(identity.rsplit("/", 1)[0]))
 
 
-def trace_feature(ctx: SBOL3Context, feature: Node) -> FeatureTrace:
+def trace_feature(ctx: Sbol3Context, feature: Node) -> FeatureTrace:
     """Follow ComponentReference ``refersTo`` links from ``feature`` to the first non-reference object."""
     current = feature
     path: list[Node] = []
@@ -106,13 +105,13 @@ def trace_feature(ctx: SBOL3Context, feature: Node) -> FeatureTrace:
         current = nxt
 
 
-def parent_reference(ctx: SBOL3Context, reference: SbolObject) -> SbolObject | None:
+def parent_reference(ctx: Sbol3Context, reference: Sbol3Object) -> Sbol3Object | None:
     """The ComponentReference whose identity prefixes this reference's identity."""
     parent = parent_by_identity_prefix(ctx, reference)
     return parent if parent is not None and parent.has_class(spec.COMPONENT_REFERENCE) else None
 
 
-def reference_is_child_of(ctx: SBOL3Context, reference: Node, parent: Node) -> bool:
+def reference_is_child_of(ctx: Sbol3Context, reference: Node, parent: Node) -> bool:
     """Whether ``reference`` is nested under ComponentReference ``parent`` by identity."""
     obj = ctx.get(reference)
     if obj is None:
@@ -121,7 +120,7 @@ def reference_is_child_of(ctx: SBOL3Context, reference: Node, parent: Node) -> b
     return found is not None and found.identity == parent
 
 
-def linear_location(ctx: SBOL3Context, identity: Node) -> LinearLocation | None:
+def linear_location(ctx: Sbol3Context, identity: Node) -> LinearLocation | None:
     """Normalize a local Range, Cut, or EntireSequence to a span."""
     location = ctx.get(identity)
     if location is None:
@@ -131,13 +130,13 @@ def linear_location(ctx: SBOL3Context, identity: Node) -> LinearLocation | None:
         return None
     orientation = directional_orientation(location.first_iri(spec.ORIENTATION))
     if location.has_class(spec.RANGE):
-        start = integer_value(location, spec.START)
-        end = integer_value(location, spec.END)
+        start = location.integer(spec.START)
+        end = location.integer(spec.END)
         if start is None or end is None or start <= 0 or end < start:
             return None
         return LinearLocation(identity, sequence, start - 1, end, orientation)
     if location.has_class(spec.CUT):
-        at = integer_value(location, spec.AT)
+        at = location.integer(spec.AT)
         if at is None or at < 0:
             return None
         return LinearLocation(identity, sequence, at, at, orientation)
@@ -145,14 +144,14 @@ def linear_location(ctx: SBOL3Context, identity: Node) -> LinearLocation | None:
         sequence_obj = ctx.get(sequence)
         if sequence_obj is None:
             return None
-        elements = sequence_obj.first_literal_value(spec.ELEMENTS)
+        elements = sequence_obj.first_literal(spec.ELEMENTS)
         if elements is None:
             return None
         return LinearLocation(identity, sequence, 0, len(elements.encode("utf-8")), orientation)
     return None
 
 
-def locations_for_feature(ctx: SBOL3Context, feature: Node) -> list[LinearLocation]:
+def locations_for_feature(ctx: Sbol3Context, feature: Node) -> list[LinearLocation]:
     """Spans of the (reference-resolved) feature's local locations."""
     trace = trace_feature(ctx, feature)
     target = trace.target if trace.error is None else feature
@@ -185,7 +184,7 @@ def _sequential_relation_satisfied(restriction: str, s: LinearLocation, o: Linea
     return True
 
 
-def _identity_key(ctx: SBOL3Context, feature: Node) -> tuple[tuple[str, Node], bool] | None:
+def _identity_key(ctx: Sbol3Context, feature: Node) -> tuple[tuple[str, Node], bool] | None:
     trace = trace_feature(ctx, feature)
     if trace.error is not None:
         return None
@@ -202,7 +201,7 @@ def _identity_key(ctx: SBOL3Context, feature: Node) -> tuple[tuple[str, Node], b
     return None
 
 
-def _feature_orientation(ctx: SBOL3Context, feature: Node) -> str | None:
+def _feature_orientation(ctx: Sbol3Context, feature: Node) -> str | None:
     trace = trace_feature(ctx, feature)
     if trace.error is not None:
         return None
@@ -210,7 +209,7 @@ def _feature_orientation(ctx: SBOL3Context, feature: Node) -> str | None:
     return None if obj is None else directional_orientation(obj.first_iri(spec.ORIENTATION))
 
 
-def table8_relation(ctx: SBOL3Context, restriction: str, subject: Node, obj: Node) -> Relation:
+def table8_relation(ctx: Sbol3Context, restriction: str, subject: Node, obj: Node) -> Relation:
     """Evaluate an identity or orientation restriction (Tables 8 and 9) between two Features."""
     if restriction in (spec.VERIFY_IDENTICAL, spec.DIFFERENT_FROM):
         subject_key = _identity_key(ctx, subject)
@@ -239,7 +238,7 @@ def table8_relation(ctx: SBOL3Context, restriction: str, subject: Node, obj: Nod
     return Relation(UNSUPPORTED)
 
 
-def table10_relation(ctx: SBOL3Context, restriction: str, subject: Node, obj: Node) -> Relation:
+def table10_relation(ctx: Sbol3Context, restriction: str, subject: Node, obj: Node) -> Relation:
     """Evaluate a sequential restriction (Table 10) between the locations of two Features."""
     if restriction not in spec.SEQUENTIAL_RESTRICTION_IRIS:
         return Relation(UNSUPPORTED)
@@ -259,7 +258,7 @@ def table10_relation(ctx: SBOL3Context, restriction: str, subject: Node, obj: No
     return Relation(CONTRADICTED, comparable[0], comparable[1])
 
 
-def type_properties(ctx: SBOL3Context, feature: Node) -> frozenset[str] | None:
+def type_properties(ctx: Sbol3Context, feature: Node) -> frozenset[str] | None:
     """The ``sbol:type`` IRIs of the object that determines a Feature's type, when resolvable."""
     trace = trace_feature(ctx, feature)
     if trace.error is not None:
@@ -289,7 +288,7 @@ class DerivationContext:
     static_features: list[Node] = field(default_factory=list)
 
 
-def derivation_context(ctx: SBOL3Context, derivation: SbolObject) -> DerivationContext | None:
+def derivation_context(ctx: Sbol3Context, derivation: Sbol3Object) -> DerivationContext | None:
     """Resolve a derivation's local template and variable features."""
     template = derivation.first_resource(spec.TEMPLATE)
     template_obj = ctx.get(template)
@@ -309,28 +308,32 @@ def derivation_context(ctx: SBOL3Context, derivation: SbolObject) -> DerivationC
     return DerivationContext(derivation.identity, template, frozenset(template_features), variables, static)
 
 
-def derived_objects(ctx: SBOL3Context, derivation: Node, class_iri: str) -> list[SbolObject]:
+def derived_objects(ctx: Sbol3Context, derivation: Node, class_iri: str) -> list[Sbol3Object]:
     """Objects of a class whose ``prov:wasDerivedFrom`` names the derivation."""
-    return [o for o in ctx.objects.values() if o.has_class(class_iri) and derivation in o.derived_from()]
+    return [
+        o
+        for o in ctx.objects.values()
+        if o.has_class(class_iri) and derivation in o.resources(spec.PROV_WAS_DERIVED_FROM)
+    ]
 
 
-def features_derived_from(ctx: SBOL3Context, component: SbolObject, template_feature: Node) -> list[Node]:
+def features_derived_from(ctx: Sbol3Context, component: Sbol3Object, template_feature: Node) -> list[Node]:
     """Features of a derived Component that derive from a template Feature."""
     result = []
     for feature in component.resources(spec.HAS_FEATURE):
         obj = ctx.get(feature)
-        if obj is not None and template_feature in obj.derived_from():
+        if obj is not None and template_feature in obj.resources(spec.PROV_WAS_DERIVED_FROM):
             result.append(feature)
     return result
 
 
-def feature_derives_from_template(ctx: SBOL3Context, feature: Node, template_features: frozenset[Node]) -> bool:
+def feature_derives_from_template(ctx: Sbol3Context, feature: Node, template_features: frozenset[Node]) -> bool:
     """Whether a Feature derives from any of the template's Features."""
     obj = ctx.get(feature)
-    return obj is not None and any(c in template_features for c in obj.derived_from())
+    return obj is not None and any(c in template_features for c in obj.resources(spec.PROV_WAS_DERIVED_FROM))
 
 
-def static_feature_properties_match(ctx: SBOL3Context, derived: Node, template: Node) -> bool | None:
+def static_feature_properties_match(ctx: Sbol3Context, derived: Node, template: Node) -> bool | None:
     """Whether a derived Feature preserves the template Feature's core properties."""
     derived_obj = ctx.get(derived)
     template_obj = ctx.get(template)
@@ -351,7 +354,7 @@ def cardinality_allows(cardinality: Node | None, count: int) -> bool:
     return True
 
 
-def _collect_collection_components(ctx: SBOL3Context, collection: Node, visited: set[Node], out: set[Node]) -> None:
+def _collect_collection_components(ctx: Sbol3Context, collection: Node, visited: set[Node], out: set[Node]) -> None:
     if collection in visited:
         return
     visited.add(collection)
@@ -368,7 +371,7 @@ def _collect_collection_components(ctx: SBOL3Context, collection: Node, visited:
             _collect_collection_components(ctx, member, visited, out)
 
 
-def allowed_variants(ctx: SBOL3Context, variable_feature: SbolObject) -> set[Node]:
+def allowed_variants(ctx: Sbol3Context, variable_feature: Sbol3Object) -> set[Node]:
     """Components a VariableFeature allows through variant, variantCollection, and variantDerivation."""
     allowed: set[Node] = set()
     for variant in variable_feature.resources(spec.VARIANT):
@@ -379,7 +382,7 @@ def allowed_variants(ctx: SBOL3Context, variable_feature: SbolObject) -> set[Nod
         _collect_collection_components(ctx, collection, set(), allowed)
     derivations = set(variable_feature.resources(spec.VARIANT_DERIVATION))
     if derivations:
-        for component in ctx.typed(spec.COMPONENT):
-            if any(c in derivations for c in component.derived_from()):
+        for component in ctx.instances(spec.COMPONENT):
+            if any(c in derivations for c in component.resources(spec.PROV_WAS_DERIVED_FROM)):
                 allowed.add(component.identity)
     return allowed

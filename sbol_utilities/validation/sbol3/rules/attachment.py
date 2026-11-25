@@ -10,7 +10,7 @@ from rdflib.term import Node, URIRef
 from sbol_utilities.validation.config import Severity
 from sbol_utilities.validation.datatypes import parse_i64
 from sbol_utilities.validation.sbol3 import spec
-from sbol_utilities.validation.sbol3.context import SBOL3Context, SbolObject
+from sbol_utilities.validation.sbol3.context import Sbol3Context, Sbol3Object
 from sbol_utilities.validation.sbol3.helpers import (
     canonical_model_framework_iri,
     canonical_model_language_iri,
@@ -24,7 +24,7 @@ from sbol_utilities.validation.sbol3.registry import REGISTRY
 
 
 @REGISTRY.rule("sbol3-12503", "sbol3-12504", "sbol3-12506", "sbol3-12507")
-def models(ctx: SBOL3Context) -> None:
+def models(ctx: Sbol3Context) -> None:
     """Model Table 15 / 16 aliases and the ontology branches of language and framework."""
     for obj in ctx.instances(spec.MODEL):
         for language in obj.iris(spec.LANGUAGE):
@@ -65,11 +65,11 @@ def models(ctx: SBOL3Context) -> None:
 
 
 @REGISTRY.rule("sbol3-12301", "sbol3-12302")
-def implementations(ctx: SBOL3Context) -> None:
+def implementations(ctx: Sbol3Context) -> None:
     """Implementation derivations refer to Components whose types do not conflict."""
     for obj in ctx.instances(spec.IMPLEMENTATION):
-        components: list[SbolObject] = []
-        for derived_from in obj.derived_from():
+        components: list[Sbol3Object] = []
+        for derived_from in obj.resources(spec.PROV_WAS_DERIVED_FROM):
             target = ctx.get(derived_from)
             if target is None:
                 continue
@@ -100,7 +100,7 @@ def implementations(ctx: SBOL3Context) -> None:
 
 
 @REGISTRY.rule("sbol3-12803", "sbol3-12804", "sbol3-12805", "sbol3-12806", "sbol3-12807", "sbol3-12808")
-def attachments(ctx: SBOL3Context) -> None:
+def attachments(ctx: Sbol3Context) -> None:
     """Attachment size, hash, hash algorithm, and format."""
     for obj in ctx.instances(spec.ATTACHMENT):
         for size in obj.literals(spec.SIZE):

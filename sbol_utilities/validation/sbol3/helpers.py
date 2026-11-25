@@ -12,7 +12,7 @@ from rdflib.term import Literal, Node, URIRef
 from sbol_utilities.validation.datatypes import is_date_time_lexical, is_float_lexical, parse_i64
 from sbol_utilities.validation.ontology import NUCLEIC_ACID, Ontology
 from sbol_utilities.validation.sbol3 import spec
-from sbol_utilities.validation.sbol3.context import SBOL3Context, SbolObject, literal_datatype
+from sbol_utilities.validation.sbol3.context import Sbol3Context, Sbol3Object, literal_datatype
 from sbol_utilities.validation.schema import ValueKind
 from sbol_utilities.vocab import RDF_LANG_STRING, XSD_NS, XSD_STRING
 
@@ -41,11 +41,6 @@ MODEL_FRAMEWORK_TABLE_16 = ("https://identifiers.org/SBO:0000062", "https://iden
 
 
 # --- lexical forms ---
-
-
-def integer_value(obj: SbolObject, predicate: str) -> int | None:
-    """The first literal value of a predicate parsed as an i64."""
-    return parse_i64(obj.first_literal_value(predicate))
 
 
 def is_url(value: str) -> bool:
@@ -279,13 +274,13 @@ def first_invalid_sequence_element(ontology: Ontology, elements: str, encoding: 
 # --- document queries ---
 
 
-def component_contains(ctx: SBOL3Context, component: Node | None, predicate: str, child: Node) -> bool:
+def component_contains(ctx: Sbol3Context, component: Node | None, predicate: str, child: Node) -> bool:
     """Whether the object ``component`` lists ``child`` under ``predicate``."""
     obj = ctx.get(component)
     return obj is not None and child in obj.resources(predicate)
 
 
-def component_allows_sequence(ctx: SBOL3Context, component: Node, sequence: Node) -> bool:
+def component_allows_sequence(ctx: Sbol3Context, component: Node, sequence: Node) -> bool:
     """Whether a Component declares a Sequence directly or through a Feature's EntireSequence location."""
     obj = ctx.get(component)
     if obj is None:
@@ -307,7 +302,7 @@ def component_allows_sequence(ctx: SBOL3Context, component: Node, sequence: Node
     return False
 
 
-def collection_contains_only_components_or_collections(ctx: SBOL3Context, collection: Node, visited: set[Node]) -> bool:
+def collection_contains_only_components_or_collections(ctx: Sbol3Context, collection: Node, visited: set[Node]) -> bool:
     """Whether every local member of a Collection, recursively, is a Component or Collection."""
     if collection in visited:
         return True
@@ -327,23 +322,23 @@ def collection_contains_only_components_or_collections(ctx: SBOL3Context, collec
     return True
 
 
-def location_sequence_length(ctx: SBOL3Context, location: SbolObject) -> int | None:
+def location_sequence_length(ctx: Sbol3Context, location: Sbol3Object) -> int | None:
     """Length of the elements of a Location's local Sequence."""
     sequence = ctx.get(location.first_resource(spec.HAS_SEQUENCE))
     if sequence is None:
         return None
-    elements = sequence.first_literal_value(spec.ELEMENTS)
+    elements = sequence.first_literal(spec.ELEMENTS)
     return None if elements is None else len(elements.encode("utf-8"))
 
 
-def location_length(ctx: SBOL3Context, location: Node) -> int | None:
+def location_length(ctx: Sbol3Context, location: Node) -> int | None:
     """Length covered by a local Location, when known."""
     obj = ctx.get(location)
     if obj is None:
         return None
     if obj.has_class(spec.RANGE):
-        start = integer_value(obj, spec.START)
-        end = integer_value(obj, spec.END)
+        start = obj.integer(spec.START)
+        end = obj.integer(spec.END)
         if start is None or end is None or start <= 0 or end < start:
             return None
         return end - start + 1
@@ -354,7 +349,7 @@ def location_length(ctx: SBOL3Context, location: Node) -> int | None:
     return None
 
 
-def sum_location_lengths(ctx: SBOL3Context, locations: list[Node]) -> int | None:
+def sum_location_lengths(ctx: Sbol3Context, locations: list[Node]) -> int | None:
     """Total length of several Locations, or None when any is unknown."""
     total = 0
     for location in locations:

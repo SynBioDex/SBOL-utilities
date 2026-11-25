@@ -8,7 +8,7 @@ from rdflib.term import Node
 
 from sbol_utilities.validation.ontology import PROTEIN, SIMPLE_CHEMICAL
 from sbol_utilities.validation.sbol3 import spec
-from sbol_utilities.validation.sbol3.context import SBOL3Context, SbolObject
+from sbol_utilities.validation.sbol3.context import Sbol3Context, Sbol3Object
 from sbol_utilities.validation.sbol3.helpers import (
     component_type,
     is_nucleic_acid_component_type,
@@ -53,19 +53,19 @@ EXTERNALLY_DEFINED_RULES = {
 }
 
 
-def _types(obj: SbolObject) -> list[str]:
+def _types(obj: Sbol3Object) -> list[str]:
     return [str(i) for i in obj.iris(spec.TYPE)]
 
 
-def _roles(obj: SbolObject) -> list[str]:
+def _roles(obj: Sbol3Object) -> list[str]:
     return [str(i) for i in obj.iris(spec.ROLE)]
 
 
-def _is_nucleic_acid(ctx: SBOL3Context, obj: SbolObject) -> bool:
+def _is_nucleic_acid(ctx: Sbol3Context, obj: Sbol3Object) -> bool:
     return any(is_nucleic_acid_component_type(ctx.ontology, t) for t in _types(obj))
 
 
-def _check_types(ctx: SBOL3Context, obj: SbolObject, rules: dict) -> None:
+def _check_types(ctx: Sbol3Context, obj: Sbol3Object, rules: dict) -> None:
     ontology = ctx.ontology
     types = _types(obj)
     if sum(1 for t in types if ontology.is_table_2_component_type(t)) > 1:
@@ -115,7 +115,7 @@ def _check_types(ctx: SBOL3Context, obj: SbolObject, rules: dict) -> None:
                 )
 
 
-def _check_roles(ctx: SBOL3Context, obj: SbolObject, rules: dict) -> None:
+def _check_roles(ctx: Sbol3Context, obj: Sbol3Object, rules: dict) -> None:
     ontology = ctx.ontology
     types = _types(obj)
     roles = _roles(obj)
@@ -184,7 +184,7 @@ class SequenceInfo:
     elements: str | None
 
 
-def _sequence_infos(ctx: SBOL3Context, component: SbolObject) -> list[SequenceInfo]:
+def _sequence_infos(ctx: Sbol3Context, component: Sbol3Object) -> list[SequenceInfo]:
     infos = []
     for identity in component.resources(spec.HAS_SEQUENCE):
         sequence = ctx.get(identity)
@@ -199,13 +199,13 @@ def _sequence_infos(ctx: SBOL3Context, component: SbolObject) -> list[SequenceIn
                 identity=identity,
                 encoding=None if encoding_iri is None else sequence_encoding(ctx.ontology, encoding_iri),
                 encoding_iri=encoding_iri,
-                elements=sequence.first_literal_value(spec.ELEMENTS),
+                elements=sequence.first_literal(spec.ELEMENTS),
             )
         )
     return infos
 
 
-def _check_component_sequences(ctx: SBOL3Context, component: SbolObject) -> None:
+def _check_component_sequences(ctx: Sbol3Context, component: Sbol3Object) -> None:
     ontology = ctx.ontology
     types = [c for c in (component_type(ontology, t) for t in _types(component)) if c is not None]
     sequences = _sequence_infos(ctx, component)
@@ -279,7 +279,7 @@ def _check_component_sequences(ctx: SBOL3Context, component: SbolObject) -> None
     "sbol3-10616",
     "sbol3-10617",
 )
-def components(ctx: SBOL3Context) -> None:
+def components(ctx: Sbol3Context) -> None:
     """Component types, roles, and Sequence compatibility."""
     for obj in ctx.instances(spec.COMPONENT):
         _check_types(ctx, obj, COMPONENT_RULES)
@@ -307,7 +307,7 @@ def components(ctx: SBOL3Context) -> None:
     "sbol3-11011",
     "sbol3-11012",
 )
-def local_sub_components(ctx: SBOL3Context) -> None:
+def local_sub_components(ctx: Sbol3Context) -> None:
     """LocalSubComponent types and roles."""
     for obj in ctx.instances(spec.LOCAL_SUB_COMPONENT):
         _check_types(ctx, obj, LOCAL_SUB_COMPONENT_RULES)
@@ -323,7 +323,7 @@ def local_sub_components(ctx: SBOL3Context) -> None:
     "sbol3-11108",
     "sbol3-11109",
 )
-def externally_defined(ctx: SBOL3Context) -> None:
+def externally_defined(ctx: Sbol3Context) -> None:
     """ExternallyDefined types and recommended definition resources."""
     for obj in ctx.instances(spec.EXTERNALLY_DEFINED):
         _check_types(ctx, obj, EXTERNALLY_DEFINED_RULES)

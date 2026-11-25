@@ -3,17 +3,17 @@
 from __future__ import annotations
 
 from sbol_utilities.validation.sbol3 import spec
-from sbol_utilities.validation.sbol3.context import SBOL3Context, SbolObject
-from sbol_utilities.validation.sbol3.helpers import integer_value, location_sequence_length
+from sbol_utilities.validation.sbol3.context import Sbol3Context, Sbol3Object
+from sbol_utilities.validation.sbol3.helpers import location_sequence_length
 from sbol_utilities.validation.sbol3.registry import REGISTRY
 
 
 @REGISTRY.rule("sbol3-11401", "sbol3-11402", "sbol3-11403")
-def ranges(ctx: SBOL3Context) -> None:
+def ranges(ctx: Sbol3Context) -> None:
     """Range bounds are ordered, positive, and within the local Sequence."""
     for obj in ctx.instances(spec.RANGE):
-        start = integer_value(obj, spec.START)
-        end = integer_value(obj, spec.END)
+        start = obj.integer(spec.START)
+        end = obj.integer(spec.END)
         if start is None or end is None:
             continue
         if end < start:
@@ -30,10 +30,10 @@ def ranges(ctx: SBOL3Context) -> None:
 
 
 @REGISTRY.rule("sbol3-11501")
-def cuts(ctx: SBOL3Context) -> None:
+def cuts(ctx: Sbol3Context) -> None:
     """Cut positions are nonnegative and within the local Sequence."""
     for obj in ctx.instances(spec.CUT):
-        at = integer_value(obj, spec.AT)
+        at = obj.integer(spec.AT)
         if at is None:
             continue
         if at < 0:
@@ -43,14 +43,14 @@ def cuts(ctx: SBOL3Context) -> None:
             ctx.report("sbol3-11501", obj, "Cut at exceeds referenced Sequence length", property=spec.AT)
 
 
-def _check_overlap(ctx: SBOL3Context, obj: SbolObject, rule: str) -> None:
+def _check_overlap(ctx: Sbol3Context, obj: Sbol3Object, rule: str) -> None:
     spans = []
     for location in obj.resources(spec.HAS_LOCATION):
         location_obj = ctx.get(location)
         if location_obj is None:
             continue
-        start = integer_value(location_obj, spec.START)
-        end = integer_value(location_obj, spec.END)
+        start = location_obj.integer(spec.START)
+        end = location_obj.integer(spec.END)
         if start is None or end is None:
             continue
         spans.append((location, location_obj.first_resource(spec.HAS_SEQUENCE), start, end))
@@ -61,7 +61,7 @@ def _check_overlap(ctx: SBOL3Context, obj: SbolObject, rule: str) -> None:
 
 
 @REGISTRY.rule("sbol3-10805", "sbol3-11013", "sbol3-11201")
-def location_overlap(ctx: SBOL3Context) -> None:
+def location_overlap(ctx: Sbol3Context) -> None:
     """Range locations of one Feature do not overlap."""
     for class_iri, rule in (
         (spec.SUB_COMPONENT, "sbol3-10805"),

@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 from sbol_utilities.validation.sbol3 import spec
-from sbol_utilities.validation.sbol3.context import SBOL3Context
+from sbol_utilities.validation.sbol3.context import Sbol3Context
 from sbol_utilities.validation.sbol3.registry import REGISTRY
 
 
 @REGISTRY.rule("sbol3-10701", "sbol3-10702", "sbol3-11301", "sbol3-10801", "sbol3-10802")
-def feature_vocabularies(ctx: SBOL3Context) -> None:
+def feature_vocabularies(ctx: Sbol3Context) -> None:
     """Feature roles and orientations, Location orientations, and SubComponent roleIntegration."""
     ontology = ctx.ontology
     for obj in ctx.objects.values():

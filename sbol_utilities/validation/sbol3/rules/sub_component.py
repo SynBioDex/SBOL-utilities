@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 from sbol_utilities.validation.sbol3 import spec
-from sbol_utilities.validation.sbol3.context import SBOL3Context, SbolObject
+from sbol_utilities.validation.sbol3.context import Sbol3Context, Sbol3Object
 from sbol_utilities.validation.sbol3.helpers import sum_location_lengths
 from sbol_utilities.validation.sbol3.registry import REGISTRY
 
 
-def _check_location_lengths(ctx: SBOL3Context, obj: SbolObject) -> None:
+def _check_location_lengths(ctx: Sbol3Context, obj: Sbol3Object) -> None:
     locations = obj.resources(spec.HAS_LOCATION)
     source_locations = obj.resources(spec.SOURCE_LOCATION)
     if locations and source_locations:
@@ -31,7 +31,7 @@ def _check_location_lengths(ctx: SBOL3Context, obj: SbolObject) -> None:
     if len(sequences) != 1:
         return
     sequence = ctx.get(sequences[0])
-    elements = None if sequence is None else sequence.first_literal_value(spec.ELEMENTS)
+    elements = None if sequence is None else sequence.first_literal(spec.ELEMENTS)
     if elements is None:
         return
     location_length = sum_location_lengths(ctx, locations)
@@ -45,7 +45,7 @@ def _check_location_lengths(ctx: SBOL3Context, obj: SbolObject) -> None:
 
 
 @REGISTRY.rule("sbol3-10803", "sbol3-10806", "sbol3-10807")
-def sub_components(ctx: SBOL3Context) -> None:
+def sub_components(ctx: Sbol3Context) -> None:
     """SubComponents do not instantiate their parent, and their location lengths agree."""
     for obj in ctx.instances(spec.SUB_COMPONENT):
         parent = ctx.ownership.single_parent(obj.identity, spec.HAS_FEATURE)

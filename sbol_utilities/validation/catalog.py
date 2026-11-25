@@ -20,7 +20,7 @@ import json
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 from functools import lru_cache
-from typing import Any, Callable, Generic, TypeVar
+from typing import Any, Callable, Generic, Protocol, TypeVar
 
 import rdflib
 from rdflib.term import BNode
@@ -127,11 +127,22 @@ def load_catalog(version: int) -> Catalog:
     return Catalog(spec_version=raw["meta"]["spec_version"], rules=rules)
 
 
-class Context:
+class ModelObject(Protocol):
+    """What the context needs of a document object: an identity and the classes it is an instance of."""
+
+    identity: Any
+    classes: frozenset[str]
+
+
+ObjectT = TypeVar("ObjectT", bound=ModelObject)
+
+
+class Context(Generic[ObjectT]):
     """State shared by every rule implementation during one validation run.
 
-    Version-specific validators subclass this to add indexes over the graph. Rule functions report violations with
-    :meth:`report`; the context applies gating, the rule's catalog severity, and configuration overrides.
+    Version-specific validators subclass this to read the graph into their object model. Rule functions find
+    objects with :meth:`instances` and report violations with :meth:`report`; the context applies gating, the
+    rule's catalog severity, and configuration overrides.
     """
 
     def __init__(self, graph: rdflib.Graph, config: ValidationConfig, catalog: Catalog, ontology: Ontology):
@@ -140,9 +151,24 @@ class Context:
         self.catalog = catalog
         self.ontology = ontology
         self.issues: list[Issue] = []
+        self._indexed: list[ObjectT] = []
+        self._instances: dict[str, list[ObjectT]] = {}
         self._seen: set[tuple[str, str | None, str | None, str]] = set()
         #: rule ids the running rule function declared, or None outside :meth:`Registry.run`
         self.declared_rules: frozenset[str] | None = None
+
+    def _index_instances(self, objects: Iterable[ObjectT]) -> None:
+        """Record the document's objects, in document order, for :meth:`instances`."""
+        self._indexed = list(objects)
+        for obj in self._indexed:
+            for class_iri in obj.classes:
+                self._instances.setdefault(class_iri, []).append(obj)
+
+    def instances(self, *class_iris: str) -> list[ObjectT]:
+        """The objects that are instances of one of these classes or of a subclass, in document order."""
+        if len(class_iris) == 1:
+            return self._instances.get(class_iris[0], [])
+        return [obj for obj in self._indexed if not obj.classes.isdisjoint(class_iris)]
 
     def enabled(self, rule_id: str) -> bool:
         """Whether the rule's gate is on; rule functions may skip expensive work for disabled rules."""
@@ -192,7 +218,7 @@ class Context:
             self.issues.append(issue)
 
 
-ContextT = TypeVar("ContextT", bound=Context)
+ContextT = TypeVar("ContextT", bound="Context[Any]")
 
 
 @dataclass

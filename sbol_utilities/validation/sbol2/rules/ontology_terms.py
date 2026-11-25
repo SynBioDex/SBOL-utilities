@@ -4,7 +4,7 @@ draw from (Tables 1, 2, 7, 11 and the ontology branches the specification names)
 from __future__ import annotations
 
 from sbol_utilities.validation.sbol2 import spec as S
-from sbol_utilities.validation.sbol2.context import Obj, Sbol2Context
+from sbol_utilities.validation.sbol2.context import Sbol2Context, Sbol2Object
 from sbol_utilities.validation.sbol2.registry import REGISTRY
 from sbol_utilities.validation.sbol2.rules.module import ontology_curie
 
@@ -23,8 +23,8 @@ def _count_in_branch(ctx: Sbol2Context, terms: list[str], root: str) -> int:
     return sum(1 for t in terms if ctx.ontology.is_in_branch(ontology_curie(t), root))
 
 
-def _definition_types(ctx: Sbol2Context, component: Obj) -> list[str] | None:
-    definition = ctx.get(component.first_ref(S.DEFINITION))
+def _definition_types(ctx: Sbol2Context, component: Sbol2Object) -> list[str] | None:
+    definition = ctx.get(component.first_iri(S.DEFINITION))
     return None if definition is None else definition.iris(S.TYPE)
 
 
@@ -126,7 +126,7 @@ def ontology_usage(ctx: Sbol2Context) -> None:
                 )
 
 
-def _component_definition(ctx: Sbol2Context, obj: Obj) -> None:
+def _component_definition(ctx: Sbol2Context, obj: Sbol2Object) -> None:
     types = obj.iris(S.TYPE)
     is_region = S.BIOPAX_DNA_REGION in types or S.BIOPAX_RNA_REGION in types
     is_molecule = S.BIOPAX_DNA_MOLECULE in types or S.BIOPAX_RNA_MOLECULE in types
@@ -172,7 +172,7 @@ def _component_definition(ctx: Sbol2Context, obj: Obj) -> None:
             )
 
 
-def _component(ctx: Sbol2Context, obj: Obj) -> None:
+def _component(ctx: Sbol2Context, obj: Sbol2Object) -> None:
     definition_types = _definition_types(ctx, obj)
     if definition_types is None:
         return

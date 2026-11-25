@@ -47,14 +47,14 @@ def participants_in_module_definition(ctx: Sbol2Context) -> None:
     for obj in ctx.sbol_objects:
         if not obj.has_class(S.PARTICIPATION):
             continue
-        participant = obj.first_ref(S.PARTICIPANT)
+        participant = obj.first_iri(S.PARTICIPANT)
         if participant is None:
             continue
-        interaction = ctx.container_of(obj, S.PARTICIPATION_P)
+        interaction = ctx.parent(obj, S.PARTICIPATION_P)
         if interaction is None:
             continue
-        module_definition = ctx.container_of(interaction, S.INTERACTION_P)
-        if module_definition is not None and not module_definition.lists(S.FUNCTIONAL_COMPONENT_P, participant):
+        module_definition = ctx.parent(interaction, S.INTERACTION_P)
+        if module_definition is not None and participant not in module_definition.iris(S.FUNCTIONAL_COMPONENT_P):
             ctx.report(
                 "sbol2-12003",
                 obj,
@@ -81,7 +81,7 @@ def interaction_participation_roles(ctx: Sbol2Context) -> None:
         if allowed is None:
             continue
         offending = False
-        for participation in ctx.children(obj, S.PARTICIPATION_P):
+        for participation in ctx.referenced(obj, S.PARTICIPATION_P):
             roles = [
                 ontology_curie(r)
                 for r in participation.iris(S.ROLE)

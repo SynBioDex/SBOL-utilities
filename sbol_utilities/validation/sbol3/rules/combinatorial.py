@@ -5,7 +5,7 @@ from __future__ import annotations
 from rdflib.term import Node
 
 from sbol_utilities.validation.sbol3 import spec
-from sbol_utilities.validation.sbol3.context import SBOL3Context, SbolObject
+from sbol_utilities.validation.sbol3.context import Sbol3Context, Sbol3Object
 from sbol_utilities.validation.sbol3.helpers import (
     collection_contains_only_components_or_collections,
     component_contains,
@@ -29,16 +29,16 @@ from sbol_utilities.validation.sbol3.resolver import (
 )
 
 
-def _iri_set(obj: SbolObject, predicate: str) -> set[str]:
+def _iri_set(obj: Sbol3Object, predicate: str) -> set[str]:
     return {str(i) for i in obj.iris(predicate)}
 
 
-def _roles_of(ctx: SBOL3Context, feature: Node) -> set[str]:
+def _roles_of(ctx: Sbol3Context, feature: Node) -> set[str]:
     obj = ctx.get(feature)
     return set() if obj is None else _iri_set(obj, spec.ROLE)
 
 
-def _derivation_semantics(ctx: SBOL3Context, derivation: SbolObject) -> None:
+def _derivation_semantics(ctx: Sbol3Context, derivation: Sbol3Object) -> None:
     context = derivation_context(ctx, derivation)
     if context is None:
         return
@@ -58,7 +58,7 @@ def _derivation_semantics(ctx: SBOL3Context, derivation: SbolObject) -> None:
     for collection in derived_objects(ctx, context.derivation, spec.COLLECTION):
         for member in collection.resources(spec.MEMBER):
             member_obj = ctx.get(member)
-            if member_obj is not None and context.derivation not in member_obj.derived_from():
+            if member_obj is not None and context.derivation not in member_obj.resources(spec.PROV_WAS_DERIVED_FROM):
                 ctx.report(
                     "sbol3-12106",
                     collection,
@@ -196,7 +196,7 @@ def _derivation_semantics(ctx: SBOL3Context, derivation: SbolObject) -> None:
     "sbol3-12114",
     "sbol3-12115",
 )
-def combinatorial_derivations(ctx: SBOL3Context) -> None:
+def combinatorial_derivations(ctx: Sbol3Context) -> None:
     """Strategy, cardinalities, unique variables, and local derivation semantics."""
     for obj in ctx.instances(spec.COMBINATORIAL_DERIVATION):
         strategy = obj.first_iri(spec.STRATEGY)
@@ -237,7 +237,7 @@ def combinatorial_derivations(ctx: SBOL3Context) -> None:
 
 
 @REGISTRY.rule("sbol3-12201", "sbol3-12202", "sbol3-12203")
-def variable_features(ctx: SBOL3Context) -> None:
+def variable_features(ctx: Sbol3Context) -> None:
     """VariableFeature cardinality, variable containment, and variantCollection membership."""
     for obj in ctx.instances(spec.VARIABLE_FEATURE):
         cardinality = obj.first_iri(spec.CARDINALITY)
@@ -270,7 +270,7 @@ def variable_features(ctx: SBOL3Context) -> None:
 
 
 @REGISTRY.rule("sbol3-10901", "sbol3-10902", "sbol3-10903", "sbol3-10904")
-def component_references(ctx: SBOL3Context) -> None:
+def component_references(ctx: Sbol3Context) -> None:
     """ComponentReference inChildOf and refersTo containment."""
     for obj in ctx.instances(spec.COMPONENT_REFERENCE):
         parent_component = ctx.ownership.single_parent(obj.identity, spec.HAS_FEATURE)

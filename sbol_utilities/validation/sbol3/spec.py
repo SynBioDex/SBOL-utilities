@@ -489,48 +489,6 @@ CLASS_SPECS: dict[str, ClassSpec] = {
 #: the SBOL 3 data model
 SCHEMA = Schema(CLASS_SPECS, TOP_LEVEL)
 
-#: Order in which a multiply-typed object is assigned its primary typed kind (sbol-rs ``SbolObject`` dispatch)
-TYPED_DISPATCH_ORDER: tuple[str, ...] = (
-    ATTACHMENT,
-    EXPERIMENT,
-    COLLECTION,
-    COMBINATORIAL_DERIVATION,
-    COMPONENT,
-    COMPONENT_REFERENCE,
-    CONSTRAINT,
-    CUT,
-    ENTIRE_SEQUENCE,
-    EXPERIMENTAL_DATA,
-    EXTERNALLY_DEFINED,
-    IMPLEMENTATION,
-    INTERACTION,
-    INTERFACE,
-    LOCAL_SUB_COMPONENT,
-    MODEL,
-    PARTICIPATION,
-    RANGE,
-    SEQUENCE,
-    SEQUENCE_FEATURE,
-    SUB_COMPONENT,
-    VARIABLE_FEATURE,
-    PROV_ACTIVITY,
-    PROV_AGENT,
-    PROV_ASSOCIATION,
-    PROV_PLAN,
-    PROV_USAGE,
-    OM_UNIT_DIVISION,
-    OM_UNIT_EXPONENTIATION,
-    OM_UNIT_MULTIPLICATION,
-    OM_SINGULAR_UNIT,
-    OM_COMPOUND_UNIT,
-    OM_PREFIXED_UNIT,
-    OM_UNIT,
-    OM_SI_PREFIX,
-    OM_BINARY_PREFIX,
-    OM_PREFIX,
-    OM_MEASURE,
-)
-
 
 def is_known_sbol_iri(iri: str) -> bool:
     """Whether an IRI is a known class, property, or vocabulary value."""

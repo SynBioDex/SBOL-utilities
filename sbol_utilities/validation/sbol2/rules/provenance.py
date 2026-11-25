@@ -19,9 +19,9 @@ def generation_cycles(ctx: Sbol2Context) -> None:
             continue
         starts.append(obj.iri)
         successors = []
-        for activity in ctx.children(obj, S.WAS_GENERATED_BY):
-            for usage in ctx.children(activity, S.QUALIFIED_USAGE):
-                entity = usage.first_ref(S.ENTITY)
+        for activity in ctx.referenced(obj, S.WAS_GENERATED_BY):
+            for usage in ctx.referenced(activity, S.QUALIFIED_USAGE):
+                entity = usage.first_iri(S.ENTITY)
                 if entity is not None:
                     successors.append(entity)
         if successors:
@@ -45,8 +45,8 @@ def generated_object_kinds(ctx: Sbol2Context) -> None:
     for obj in ctx.sbol_objects:
         is_implementation = obj.has_class(S.IMPLEMENTATION)
         is_experimental_data = obj.has_class(S.EXPERIMENTAL_DATA)
-        for activity in ctx.children(obj, S.WAS_GENERATED_BY):
-            for association in ctx.children(activity, S.QUALIFIED_ASSOCIATION):
+        for activity in ctx.referenced(obj, S.WAS_GENERATED_BY):
+            for association in ctx.referenced(activity, S.QUALIFIED_ASSOCIATION):
                 for role in association.iris(S.HAD_ROLE):
                     if role == S.ROLE_DESIGN and (is_implementation or not obj.is_top_level):
                         ctx.report(
@@ -84,8 +84,8 @@ def activity_usage_roles(ctx: Sbol2Context) -> None:
     for obj in ctx.sbol_objects:
         if not obj.has_class(S.ACTIVITY):
             continue
-        association_roles = {r for a in ctx.children(obj, S.QUALIFIED_ASSOCIATION) for r in a.iris(S.HAD_ROLE)}
-        usage_roles = {r for u in ctx.children(obj, S.QUALIFIED_USAGE) for r in u.iris(S.HAD_ROLE)}
+        association_roles = {r for a in ctx.referenced(obj, S.QUALIFIED_ASSOCIATION) for r in a.iris(S.HAD_ROLE)}
+        usage_roles = {r for u in ctx.referenced(obj, S.QUALIFIED_USAGE) for r in u.iris(S.HAD_ROLE)}
         for association_role, rule, forbidden in _ACTIVITY_CONFLICTS:
             if association_role in association_roles and any(r in usage_roles for r in forbidden):
                 ctx.report(
@@ -102,7 +102,7 @@ def usage_entity_kinds(ctx: Sbol2Context) -> None:
     for obj in ctx.sbol_objects:
         if not obj.has_class(S.USAGE):
             continue
-        entity = ctx.resolve(obj.first_ref(S.ENTITY))
+        entity = ctx.resolve(obj.first_iri(S.ENTITY))
         if entity is None:
             continue
         is_implementation = entity.has_class(S.IMPLEMENTATION)

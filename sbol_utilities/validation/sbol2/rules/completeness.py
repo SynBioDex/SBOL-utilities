@@ -8,7 +8,7 @@ from collections.abc import Iterable
 from rdflib.term import URIRef
 
 from sbol_utilities.validation.sbol2 import spec as S
-from sbol_utilities.validation.sbol2.context import Obj, Sbol2Context
+from sbol_utilities.validation.sbol2.context import Sbol2Context, Sbol2Object
 from sbol_utilities.validation.sbol2.registry import REGISTRY
 
 _COMPLETENESS_RULES = (
@@ -34,7 +34,7 @@ def _resolvable(ctx: Sbol2Context) -> set[str]:
     for obj in ctx.objects:
         if obj.iri is not None:
             uris.add(obj.iri)
-        pid = obj.first_ref(S.PERSISTENT_IDENTITY)
+        pid = obj.first_iri(S.PERSISTENT_IDENTITY)
         if pid is not None:
             uris.add(pid)
     return uris
@@ -62,7 +62,7 @@ def referenced_objects_present(ctx: Sbol2Context) -> None:
                     )
 
 
-def _wrong_class(ctx: Sbol2Context, obj: Obj, predicate: str, accept) -> Iterable[str]:
+def _wrong_class(ctx: Sbol2Context, obj: Sbol2Object, predicate: str, accept) -> Iterable[str]:
     for iri in obj.iris(predicate):
         target = ctx.resolve(iri)
         if target is not None and not accept(target):
@@ -117,7 +117,7 @@ def referenced_object_classes(ctx: Sbol2Context) -> None:
                     "sbol2-13506", obj, f"the hasUnit of a Measure `{iri}` must refer to a Unit", property=S.OM_HAS_UNIT
                 )
         if obj.has_class(S.MAPS_TO):
-            for iri in _wrong_class(ctx, obj, S.REMOTE, lambda t: t.lists(S.ACCESS, S.PUBLIC)):
+            for iri in _wrong_class(ctx, obj, S.REMOTE, lambda t: S.PUBLIC in t.iris(S.ACCESS)):
                 ctx.report("sbol2-10807", obj, f"the MapsTo remote `{iri}` must have public access", property=S.REMOTE)
         if obj.has_class(S.IMPLEMENTATION):
             for iri in obj.iris(S.BUILT):

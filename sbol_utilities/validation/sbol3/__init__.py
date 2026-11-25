@@ -13,11 +13,11 @@ from sbol_utilities.validation.config import ValidationConfig
 from sbol_utilities.validation.ontology import bundled_ontology
 from sbol_utilities.validation.report import ValidationReport
 from sbol_utilities.validation.sbol3 import rules  # noqa: F401  (registers rule implementations)
-from sbol_utilities.validation.sbol3.context import SBOL3Context
+from sbol_utilities.validation.sbol3.context import Sbol3Context
 from sbol_utilities.validation.sbol3.registry import REGISTRY
 
 
 def validate_graph(graph: rdflib.Graph, config: ValidationConfig) -> ValidationReport:
     """Run every SBOL 3 rule implementation against a graph."""
-    context = SBOL3Context(graph, config.for_version(3), REGISTRY.catalog, bundled_ontology())
+    context = Sbol3Context(graph, config.for_version(3), REGISTRY.catalog, bundled_ontology())
     return REGISTRY.run(context)

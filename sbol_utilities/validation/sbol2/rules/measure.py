@@ -4,11 +4,11 @@ carries are om:Measure objects."""
 from __future__ import annotations
 
 from sbol_utilities.validation.sbol2 import spec as S
-from sbol_utilities.validation.sbol2.context import Obj, Sbol2Context
+from sbol_utilities.validation.sbol2.context import Sbol2Context, Sbol2Object
 from sbol_utilities.validation.sbol2.registry import REGISTRY
 
 
-def _measure_rule(obj: Obj):
+def _measure_rule(obj: Sbol2Object):
     if obj.has_class(S.MODULE):
         return "sbol2-11707"
     if obj.has_class(S.COMPONENT) or obj.has_class(S.FUNCTIONAL_COMPONENT):

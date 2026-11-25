@@ -1,6 +1,6 @@
 """Indexed view of an SBOL 2 graph shared by the rule implementations.
 
-The graph is read once into :class:`Obj` records: one per subject that carries at least one data-model predicate
+The graph is read once into :class:`Sbol2Object` records: one per subject that carries at least one data-model predicate
 (``rdf:type``, an SBOL 2 / PROV / OM predicate, or the mapped Dublin Core and RDFS terms). Literal values of
 data-model properties are normalized to the datatype the schema assigns them, so ``sbol:start "10"`` and
 ``sbol:start 10`` are the same value. Property values keep the order the parser produced them in, which for
@@ -29,7 +29,7 @@ from sbol_utilities.vocab import RDF_TYPE, SBOL2_NS, XSD_STRING
 
 
 @dataclass(frozen=True)
-class Lit:
+class Sbol2Literal:
     """A literal value: its lexical form and datatype IRI (``None`` for a plain or language-tagged string)."""
 
     value: str
@@ -38,15 +38,10 @@ class Lit:
 
 
 Resource = Union[URIRef, BNode]
-Term = Union[URIRef, BNode, Lit]
+Term = Union[URIRef, BNode, Sbol2Literal]
 
 
-def is_resource(term: Term) -> bool:
-    """Whether a value is an IRI or blank node."""
-    return isinstance(term, (URIRef, BNode))
-
-
-class Obj:
+class Sbol2Object:
     """One subject of the document with its properties."""
 
     __slots__ = (
@@ -68,15 +63,14 @@ class Obj:
         self.rdf_types: tuple[str, ...] = tuple(
             sorted({str(t) for t in properties.get(RDF_TYPE, ()) if isinstance(t, URIRef)})
         )
-        self.classes: set[str] = set()
-        for rdf_type in self.rdf_types:
-            self.classes |= spec.SCHEMA.ancestors(rdf_type)
-        self.is_sbol = any(t in spec.SCHEMA for t in self.rdf_types)
+        #: every class this object is an instance of, through the class hierarchy
+        self.classes: frozenset[str] = frozenset().union(*(spec.SCHEMA.ancestors(t) for t in self.rdf_types))
+        self.is_sbol = bool(self.classes)
         self.is_top_level = any(t in spec.SCHEMA.top_level_classes for t in self.rdf_types)
-        self.display_id = self.literal(spec.DISPLAY_ID)
+        self.display_id = self.first_literal(spec.DISPLAY_ID)
 
     def __repr__(self) -> str:
-        return f"Obj({self.identity!s})"
+        return f"Sbol2Object({self.identity!s})"
 
     @property
     def iri(self) -> str | None:
@@ -88,9 +82,13 @@ class Obj:
         """The properties this object's classes declare, by predicate, in predicate order."""
         return spec.SCHEMA.properties_for(self.rdf_types)
 
-    def has_class(self, class_iri: str) -> bool:
-        """Whether one of the object's types is ``class_iri`` or a subclass of it."""
-        return class_iri in self.classes
+    def has_class(self, *class_iris: str) -> bool:
+        """Whether the object is an instance of one of these classes or of a subclass."""
+        return not self.classes.isdisjoint(class_iris)
+
+    def has_rdf_type(self, iri: str) -> bool:
+        """Whether the object carries exactly this rdf:type."""
+        return iri in self.rdf_types
 
     def values(self, predicate: str) -> list[Term]:
         """Every value of ``predicate``."""
@@ -98,51 +96,47 @@ class Obj:
 
     def resources(self, predicate: str) -> list[Resource]:
         """IRI and blank-node values of ``predicate``."""
-        return [v for v in self.properties.get(predicate, ()) if not isinstance(v, Lit)]  # type: ignore[misc]
+        return [v for v in self.properties.get(predicate, ()) if not isinstance(v, Sbol2Literal)]  # type: ignore[misc]
 
     def iris(self, predicate: str) -> list[str]:
         """IRI values of ``predicate`` as strings."""
         return [str(v) for v in self.properties.get(predicate, ()) if isinstance(v, URIRef)]
 
-    def first_ref(self, predicate: str) -> str | None:
-        """The first IRI-or-blank value of ``predicate`` as a string when it is an IRI (None for a blank node)."""
+    def first_iri(self, predicate: str) -> str | None:
+        """The first non-literal value of ``predicate`` as a string, or None when that value is a blank node."""
         for v in self.properties.get(predicate, ()):
-            if isinstance(v, Lit):
+            if isinstance(v, Sbol2Literal):
                 continue
             return str(v) if isinstance(v, URIRef) else None
         return None
 
-    def literal(self, predicate: str) -> str | None:
+    def first_literal(self, predicate: str) -> str | None:
         """The lexical form of the first literal value of ``predicate``."""
         for v in self.properties.get(predicate, ()):
-            if isinstance(v, Lit):
+            if isinstance(v, Sbol2Literal):
                 return v.value
         return None
 
     def integer(self, predicate: str) -> int | None:
         """The first literal value of ``predicate`` that parses as a 64-bit integer."""
         for v in self.properties.get(predicate, ()):
-            if isinstance(v, Lit):
+            if isinstance(v, Sbol2Literal):
                 parsed = parse_i64(v.value)
                 if parsed is not None:
                     return parsed
         return None
-
-    def lists(self, predicate: str, target: str) -> bool:
-        """Whether ``predicate`` has the IRI ``target`` among its values."""
-        return any(isinstance(v, URIRef) and str(v) == target for v in self.properties.get(predicate, ()))
 
 
 def _term(node: rdflib.term.Node, predicate: str) -> Term:
     if isinstance(node, Literal):
         datatype = spec.LITERAL_DATATYPES.get(predicate)
         if datatype is not None:
-            return Lit(str(node), datatype)
+            return Sbol2Literal(str(node), datatype)
         if node.datatype is not None:
-            return Lit(str(node), str(node.datatype))
+            return Sbol2Literal(str(node), str(node.datatype))
         if node.language:
-            return Lit(str(node), None, str(node.language))
-        return Lit(str(node), XSD_STRING)
+            return Sbol2Literal(str(node), None, str(node.language))
+        return Sbol2Literal(str(node), XSD_STRING)
     return node  # type: ignore[return-value]
 
 
@@ -150,7 +144,7 @@ def _object_order(node: Resource) -> tuple[int, str]:
     return (0 if isinstance(node, URIRef) else 1, str(node))
 
 
-class Sbol2Context(Context):
+class Sbol2Context(Context[Sbol2Object]):
     """Validation context holding the SBOL 2 object model and lookup indexes."""
 
     def __init__(self, graph: rdflib.Graph, config: ValidationConfig, catalog: Catalog, ontology: Ontology):
@@ -172,20 +166,22 @@ class Sbol2Context(Context):
                 properties.setdefault(s, {}).setdefault(predicate, []).append(term)
         self.triple_count = len(graph)
         #: every object of the document, IRIs before blank nodes, each group sorted
-        self.objects: list[Obj] = []
-        self.by_identity: dict[Resource, Obj] = {}
+        self.objects: list[Sbol2Object] = []
+        self.by_identity: dict[Resource, Sbol2Object] = {}
         for subject in sorted(properties, key=_object_order):
             props = properties[subject]
             if not _is_model_relevant(props):
                 continue
-            obj = Obj(subject, props, len(self.objects))
+            obj = Sbol2Object(subject, props, len(self.objects))
             self.objects.append(obj)
             self.by_identity[subject] = obj
         #: objects whose rdf:types include an SBOL 2, PROV, or OM schema class
-        self.sbol_objects: list[Obj] = [o for o in self.objects if o.is_sbol]
-        self._resolve_index: dict[str, Obj] | None = None
-        self._containers: dict[str, dict[str, list[Obj]]] = {}
-        self._uses_predicate = any(
+        self.sbol_objects: list[Sbol2Object] = [o for o in self.objects if o.is_sbol]
+        self._index_instances(self.objects)
+        self._resolve_index: dict[str, Sbol2Object] | None = None
+        self._parents: dict[str, dict[str, list[Sbol2Object]]] = {}
+        #: whether any triple has an SBOL 2 predicate or an SBOL 2 rdf:type
+        self.uses_sbol2_namespace: bool = any(
             p.startswith(SBOL2_NS) or (p == RDF_TYPE and _sbol2_type(props))
             for props in properties.values()
             for p in props
@@ -193,32 +189,33 @@ class Sbol2Context(Context):
 
     # --- lookups -------------------------------------------------------------------------------------------------
 
-    def get(self, node: Resource | str | None) -> Obj | None:
+    def get(self, node: Resource | str | None) -> Sbol2Object | None:
         """The object whose identity is exactly ``node`` (an rdflib node or IRI string)."""
-        if node is None or isinstance(node, Lit):
+        if node is None or isinstance(node, Sbol2Literal):
             return None
         if isinstance(node, str) and not isinstance(node, (URIRef, BNode)):
             node = URIRef(node)
         return self.by_identity.get(node)
 
-    def resolve(self, uri: str | None) -> Obj | None:
+    def resolve(self, uri: str | None) -> Sbol2Object | None:
         """The first object whose identity or persistentIdentity is ``uri``."""
         if uri is None:
             return None
         if self._resolve_index is None:
-            index: dict[str, Obj] = {}
+            index: dict[str, Sbol2Object] = {}
             for obj in self.objects:
-                for key in (obj.iri, obj.first_ref(spec.PERSISTENT_IDENTITY)):
+                for key in (obj.iri, obj.first_iri(spec.PERSISTENT_IDENTITY)):
                     if key is not None and key not in index:
                         index[key] = obj
             self._resolve_index = index
         return self._resolve_index.get(uri)
 
-    def containers(self, child: str | None, predicate: str) -> list[Obj]:
-        """Every object whose ``predicate`` property lists the IRI ``child``, in object order."""
-        if child is None:
+    def parents(self, child: Sbol2Object | str | None, predicate: str) -> list[Sbol2Object]:
+        """Every object whose ``predicate`` property lists ``child`` (an object or its IRI), in object order."""
+        iri = child.iri if isinstance(child, Sbol2Object) else child
+        if iri is None:
             return []
-        index = self._containers.get(predicate)
+        index = self._parents.get(predicate)
         if index is None:
             index = {}
             for obj in self.objects:
@@ -227,28 +224,20 @@ class Sbol2Context(Context):
                         holders = index.setdefault(str(v), [])
                         if not holders or holders[-1] is not obj:
                             holders.append(obj)
-            self._containers[predicate] = index
-        return index.get(child, [])
+            self._parents[predicate] = index
+        return index.get(iri, [])
 
-    def container(self, child: str | None, predicate: str) -> Obj | None:
-        """The first object whose ``predicate`` property lists the IRI ``child``."""
-        holders = self.containers(child, predicate)
+    def parent(self, child: Sbol2Object | str | None, predicate: str) -> Sbol2Object | None:
+        """The first object whose ``predicate`` property lists ``child`` (an object or its IRI)."""
+        holders = self.parents(child, predicate)
         return holders[0] if holders else None
 
-    def container_of(self, child: Obj, predicate: str) -> Obj | None:
-        """The first object listing ``child``'s identity under ``predicate``."""
-        return self.container(child.iri, predicate)
-
-    def children(self, obj: Obj, predicate: str) -> Iterator[Obj]:
-        """The in-document objects named by ``obj``'s ``predicate`` values."""
+    def referenced(self, obj: Sbol2Object, predicate: str) -> Iterator[Sbol2Object]:
+        """The objects in the document that ``obj``'s ``predicate`` values name."""
         for ref in obj.resources(predicate):
-            child = self.by_identity.get(ref)
-            if child is not None:
-                yield child
-
-    def uses_sbol2_namespace(self) -> bool:
-        """Whether any triple has an SBOL 2 predicate or an SBOL 2 rdf:type."""
-        return self._uses_predicate
+            target = self.by_identity.get(ref)
+            if target is not None:
+                yield target
 
 
 def _sbol2_type(props: dict[str, list[Term]]) -> bool:

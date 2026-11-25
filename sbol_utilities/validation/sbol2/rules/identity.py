@@ -6,7 +6,7 @@ from __future__ import annotations
 from sbol_utilities.identifiers import is_valid_display_id
 from sbol_utilities.validation.graphs import nodes_on_cycles
 from sbol_utilities.validation.sbol2 import spec as S
-from sbol_utilities.validation.sbol2.context import Obj, Sbol2Context
+from sbol_utilities.validation.sbol2.context import Sbol2Context, Sbol2Object
 from sbol_utilities.validation.sbol2.registry import REGISTRY
 from sbol_utilities.vocab import PROV_NS, SBOL2_NS
 
@@ -34,7 +34,7 @@ def identity_syntax(ctx: Sbol2Context) -> None:
                 "not begin with a digit",
                 property=S.DISPLAY_ID,
             )
-        version = obj.literal(S.VERSION)
+        version = obj.first_literal(S.VERSION)
         if version is not None and not is_valid_version(version):
             ctx.report(
                 "sbol2-10206", obj, f"version `{version}` is not a valid SBOL 2 version string", property=S.VERSION
@@ -54,11 +54,11 @@ def persistent_identity_classes(ctx: Sbol2Context) -> None:
     """Objects sharing a persistentIdentity are instances of the same class."""
     classes: dict[str, set[str]] = {}
     for obj in ctx.objects:
-        pid = obj.first_ref(S.PERSISTENT_IDENTITY)
+        pid = obj.first_iri(S.PERSISTENT_IDENTITY)
         if pid is not None:
             classes.setdefault(pid, set()).add(",".join(obj.rdf_types))
     for obj in ctx.objects:
-        pid = obj.first_ref(S.PERSISTENT_IDENTITY)
+        pid = obj.first_iri(S.PERSISTENT_IDENTITY)
         if pid is not None and len(classes[pid]) > 1:
             ctx.report(
                 "sbol2-10220",
@@ -71,7 +71,7 @@ def persistent_identity_classes(ctx: Sbol2Context) -> None:
 @REGISTRY.rule("sbol2-10101")
 def document_namespace(ctx: Sbol2Context) -> None:
     """A non-empty document names SBOL 2 properties or classes (its SBOL prefix is bound to the SBOL 2 namespace)."""
-    if ctx.triple_count and not ctx.uses_sbol2_namespace():
+    if ctx.triple_count and not ctx.uses_sbol2_namespace:
         ctx.report("sbol2-10101", SBOL2_NS, f"an SBOL document must declare and use the SBOL 2 namespace `{SBOL2_NS}`")
 
 
@@ -125,15 +125,15 @@ def derivation_version_order(ctx: Sbol2Context) -> None:
     for obj in ctx.sbol_objects:
         if not obj.is_top_level:
             continue
-        pid = obj.first_ref(S.PERSISTENT_IDENTITY)
-        version = obj.literal(S.VERSION)
+        pid = obj.first_iri(S.PERSISTENT_IDENTITY)
+        version = obj.first_literal(S.VERSION)
         if pid is None or version is None:
             continue
         for target in obj.iris(S.WAS_DERIVED_FROM):
             source = ctx.resolve(target)
-            if source is None or not source.is_top_level or source.first_ref(S.PERSISTENT_IDENTITY) != pid:
+            if source is None or not source.is_top_level or source.first_iri(S.PERSISTENT_IDENTITY) != pid:
                 continue
-            source_version = source.literal(S.VERSION)
+            source_version = source.first_literal(S.VERSION)
             if source_version is not None and not version_precedes(source_version, version):
                 ctx.report(
                     "sbol2-10302",
@@ -166,9 +166,9 @@ def compliant_identities(ctx: Sbol2Context) -> None:
         if display_id is None:
             ctx.report("sbol2-10215", obj, "a compliant Identified object requires a displayId", property=S.DISPLAY_ID)
             continue
-        pid = obj.first_ref(S.PERSISTENT_IDENTITY)
+        pid = obj.first_iri(S.PERSISTENT_IDENTITY)
         identity = obj.iri
-        version = obj.literal(S.VERSION)
+        version = obj.first_literal(S.VERSION)
         if obj.is_top_level:
             if pid is None:
                 ctx.report(
@@ -221,11 +221,11 @@ def compliant_children(ctx: Sbol2Context) -> None:
         display_id = obj.display_id
         if parent_id is None or display_id is None:
             continue
-        parent: Obj | None = ctx.resolve(parent_id)
+        parent: Sbol2Object | None = ctx.resolve(parent_id)
         if parent is None:
             continue
-        child_pid = obj.first_ref(S.PERSISTENT_IDENTITY)
-        parent_pid = parent.first_ref(S.PERSISTENT_IDENTITY)
+        child_pid = obj.first_iri(S.PERSISTENT_IDENTITY)
+        parent_pid = parent.first_iri(S.PERSISTENT_IDENTITY)
         if child_pid is None:
             ctx.report(
                 "sbol2-10217",
@@ -241,7 +241,7 @@ def compliant_children(ctx: Sbol2Context) -> None:
                 f"`{parent_pid}` with displayId `{display_id}`",
                 property=S.PERSISTENT_IDENTITY,
             )
-        if parent.literal(S.VERSION) != obj.literal(S.VERSION):
+        if parent.first_literal(S.VERSION) != obj.first_literal(S.VERSION):
             ctx.report(
                 "sbol2-10219",
                 obj,

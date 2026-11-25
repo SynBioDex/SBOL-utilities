@@ -3,6 +3,6 @@
 from __future__ import annotations
 
 from sbol_utilities.validation.catalog import Registry
-from sbol_utilities.validation.sbol3.context import SBOL3Context
+from sbol_utilities.validation.sbol3.context import Sbol3Context
 
-REGISTRY: Registry[SBOL3Context] = Registry(3)
+REGISTRY: Registry[Sbol3Context] = Registry(3)

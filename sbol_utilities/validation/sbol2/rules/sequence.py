@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from sbol_utilities.validation.sbol2 import spec as S
-from sbol_utilities.validation.sbol2.context import Obj, Sbol2Context
+from sbol_utilities.validation.sbol2.context import Sbol2Context, Sbol2Object
 from sbol_utilities.validation.sbol2.registry import REGISTRY
 from sbol_utilities.validation.sbol2.rules.structural import regions
 
@@ -14,8 +14,8 @@ def elements_match_encoding(ctx: Sbol2Context) -> None:
     for obj in ctx.sbol_objects:
         if not obj.has_class(S.SEQUENCE):
             continue
-        encoding = obj.first_ref(S.ENCODING)
-        elements = obj.literal(S.ELEMENTS)
+        encoding = obj.first_iri(S.ENCODING)
+        elements = obj.first_literal(S.ELEMENTS)
         if encoding is None or elements is None:
             continue
         if encoding == S.IUPAC_NUCLEIC_ENCODING:
@@ -37,12 +37,12 @@ def _ascii_upper(text: str) -> str:
     return "".join(c.upper() if c.isascii() else c for c in text)
 
 
-def _nucleic_length(ctx: Sbol2Context, definition: Obj) -> int | None:
+def _nucleic_length(ctx: Sbol2Context, definition: Sbol2Object) -> int | None:
     for iri in definition.iris(S.SEQUENCE_P):
         sequence = ctx.resolve(iri)
-        if sequence is None or sequence.first_ref(S.ENCODING) != S.IUPAC_NUCLEIC_ENCODING:
+        if sequence is None or sequence.first_iri(S.ENCODING) != S.IUPAC_NUCLEIC_ENCODING:
             continue
-        elements = sequence.literal(S.ELEMENTS)
+        elements = sequence.first_literal(S.ELEMENTS)
         if elements is not None:
             return len(elements)
     return None
@@ -56,16 +56,16 @@ def definition_sequences(ctx: Sbol2Context) -> None:
             _check_definition(ctx, obj)
 
 
-def _check_definition(ctx: Sbol2Context, obj: Obj) -> None:
+def _check_definition(ctx: Sbol2Context, obj: Sbol2Object) -> None:
     sequences: list[tuple[str, int]] = []
     for iri in obj.iris(S.SEQUENCE_P):
         sequence = ctx.resolve(iri)
         if sequence is None:
             continue
-        encoding = sequence.first_ref(S.ENCODING)
+        encoding = sequence.first_iri(S.ENCODING)
         if encoding is None:
             continue
-        elements = sequence.literal(S.ELEMENTS)
+        elements = sequence.first_literal(S.ELEMENTS)
         sequences.append((encoding, len(elements) if elements is not None else 0))
     if not sequences:
         return
@@ -92,8 +92,8 @@ def _check_definition(ctx: Sbol2Context, obj: Obj) -> None:
     out_of_bounds = False
     hierarchy_inconsistent = False
     if nucleic is not None:
-        for annotation in ctx.children(obj, S.SEQUENCE_ANNOTATION_P):
-            for location in ctx.children(annotation, S.LOCATION_P):
+        for annotation in ctx.referenced(obj, S.SEQUENCE_ANNOTATION_P):
+            for location in ctx.referenced(annotation, S.LOCATION_P):
                 if location.has_class(S.RANGE):
                     start = location.integer(S.START)
                     end = location.integer(S.END)
@@ -106,15 +106,15 @@ def _check_definition(ctx: Sbol2Context, obj: Obj) -> None:
                     at = 0 if at is None else at
                     if at < 0 or at > nucleic:
                         out_of_bounds = True
-        for annotation in ctx.children(obj, S.SEQUENCE_ANNOTATION_P):
-            component_iri = annotation.first_ref(S.COMPONENT_P)
+        for annotation in ctx.referenced(obj, S.SEQUENCE_ANNOTATION_P):
+            component_iri = annotation.first_iri(S.COMPONENT_P)
             if component_iri is None:
                 continue
             span = next((e[2] - e[1] + 1 for e in regions(ctx, annotation) if e[0] == "range"), None)
             if span is None:
                 continue
             component = ctx.resolve(component_iri)
-            definition_iri = None if component is None else component.first_ref(S.DEFINITION)
+            definition_iri = None if component is None else component.first_iri(S.DEFINITION)
             if definition_iri is None:
                 continue
             definition = ctx.resolve(definition_iri)
