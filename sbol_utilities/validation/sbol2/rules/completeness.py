@@ -26,6 +26,7 @@ _COMPLETENESS_RULES = (
     "sbol2-10222",
     "sbol2-12407",
     "sbol2-12604",
+    "sbol2-12606",
 )
 
 
@@ -76,6 +77,7 @@ _CLASS_CHECKS = (
     (S.WAS_GENERATED_BY, (S.ACTIVITY,), "sbol2-10222"),
     (S.WAS_INFORMED_BY, (S.ACTIVITY,), "sbol2-12407"),
     (S.AGENT_P, (S.AGENT,), "sbol2-12606"),
+    (S.HAD_PLAN, (S.PLAN,), "sbol2-12604"),
     (S.MODEL_P, (S.MODEL,), "sbol2-11608"),
     (S.VARIANT_COLLECTION, (S.COLLECTION,), "sbol2-13010"),
     (S.VARIANT_DERIVATION, (S.COMBINATORIAL_DERIVATION,), "sbol2-13014"),
@@ -87,6 +89,7 @@ _CLASS_CHECKS = (
     "sbol2-10604",
     "sbol2-10222",
     "sbol2-12407",
+    "sbol2-12604",
     "sbol2-12606",
     "sbol2-11608",
     "sbol2-13010",
@@ -99,8 +102,6 @@ _CLASS_CHECKS = (
 def referenced_object_classes(context: Context) -> None:
     """References resolved in the document name objects of the class the property requires."""
     ctx: Sbol2Context = context  # type: ignore[assignment]
-    if not ctx.config.complete:
-        return
     for obj in ctx.sbol_objects:
         if (obj.has_class(S.COMPONENT) or obj.has_class(S.FUNCTIONAL_COMPONENT)) and not obj.has_class(S.MODULE):
             for iri in _wrong_class(ctx, obj, S.DEFINITION, lambda t: t.has_class(S.COMPONENT_DEFINITION)):

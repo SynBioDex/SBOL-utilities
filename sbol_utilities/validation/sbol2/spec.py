@@ -659,7 +659,8 @@ _COMPLETENESS_RULES = {
     VARIANT_DERIVATION: "sbol2-13012",
     WAS_GENERATED_BY: "sbol2-10222",
     WAS_INFORMED_BY: "sbol2-12407",
-    AGENT_P: "sbol2-12604",
+    AGENT_P: "sbol2-12606",
+    HAD_PLAN: "sbol2-12604",
 }
 
 #: permitted participant-role SBO terms for each interaction-type SBO term (Table 11)
