@@ -98,7 +98,7 @@ _CLASS_CHECKS = (
 def referenced_object_classes(ctx: Sbol2Context) -> None:
     """References resolved in the document name objects of the class the property requires."""
     for obj in ctx.sbol_objects:
-        if (obj.has_class(S.COMPONENT) or obj.has_class(S.FUNCTIONAL_COMPONENT)) and not obj.has_class(S.MODULE):
+        if (obj.has_class(S.COMPONENT, S.FUNCTIONAL_COMPONENT)) and not obj.has_class(S.MODULE):
             for iri in _wrong_class(ctx, obj, S.DEFINITION, lambda t: t.has_class(S.COMPONENT_DEFINITION)):
                 ctx.report(
                     "sbol2-10604",
@@ -122,9 +122,7 @@ def referenced_object_classes(ctx: Sbol2Context) -> None:
         if obj.has_class(S.IMPLEMENTATION):
             for iri in obj.iris(S.BUILT):
                 target = ctx.resolve(iri)
-                if target is None or not (
-                    target.has_class(S.COMPONENT_DEFINITION) or target.has_class(S.MODULE_DEFINITION)
-                ):
+                if target is None or not (target.has_class(S.COMPONENT_DEFINITION, S.MODULE_DEFINITION)):
                     ctx.report(
                         "sbol2-13103",
                         obj,

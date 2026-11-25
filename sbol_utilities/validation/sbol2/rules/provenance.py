@@ -81,9 +81,7 @@ _ACTIVITY_CONFLICTS = (
 @REGISTRY.rule("sbol2-12408", "sbol2-12409", "sbol2-12410", "sbol2-12411")
 def activity_usage_roles(ctx: Sbol2Context) -> None:
     """An Activity's Usage roles do not conflict with the role of its Association."""
-    for obj in ctx.sbol_objects:
-        if not obj.has_class(S.ACTIVITY):
-            continue
+    for obj in ctx.instances(S.ACTIVITY):
         association_roles = {r for a in ctx.referenced(obj, S.QUALIFIED_ASSOCIATION) for r in a.iris(S.HAD_ROLE)}
         usage_roles = {r for u in ctx.referenced(obj, S.QUALIFIED_USAGE) for r in u.iris(S.HAD_ROLE)}
         for association_role, rule, forbidden in _ACTIVITY_CONFLICTS:
@@ -99,14 +97,12 @@ def activity_usage_roles(ctx: Sbol2Context) -> None:
 @REGISTRY.rule("sbol2-12504", "sbol2-12505", "sbol2-12506", "sbol2-12507")
 def usage_entity_kinds(ctx: Sbol2Context) -> None:
     """A Usage with a design/build/test/learn role refers to an entity of the kind that role expects."""
-    for obj in ctx.sbol_objects:
-        if not obj.has_class(S.USAGE):
-            continue
+    for obj in ctx.instances(S.USAGE):
         entity = ctx.resolve(obj.first_iri(S.ENTITY))
         if entity is None:
             continue
         is_implementation = entity.has_class(S.IMPLEMENTATION)
-        is_attachment_or_collection = entity.has_class(S.ATTACHMENT) or entity.has_class(S.COLLECTION)
+        is_attachment_or_collection = entity.has_class(S.ATTACHMENT, S.COLLECTION)
         offends = {
             S.ROLE_DESIGN: ("sbol2-12504", is_implementation),
             S.ROLE_BUILD: ("sbol2-12505", not is_implementation),

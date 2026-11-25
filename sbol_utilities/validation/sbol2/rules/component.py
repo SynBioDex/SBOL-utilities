@@ -19,7 +19,7 @@ def parent_definition(ctx: Sbol2Context, child: str) -> Sbol2Object | None:
     best: Sbol2Object | None = None
     for predicate in (S.COMPONENT_P, S.FUNCTIONAL_COMPONENT_P, S.MODULE_P):
         for candidate in ctx.parents(child, predicate):
-            if candidate.has_class(S.COMPONENT_DEFINITION) or candidate.has_class(S.MODULE_DEFINITION):
+            if candidate.has_class(S.COMPONENT_DEFINITION, S.MODULE_DEFINITION):
                 if best is None or candidate.index < best.index:
                     best = candidate
                 break
@@ -30,7 +30,7 @@ def parent_definition(ctx: Sbol2Context, child: str) -> Sbol2Object | None:
 def self_containing_definitions(ctx: Sbol2Context) -> None:
     """A Component or Module does not instantiate the definition that contains it."""
     for obj in ctx.sbol_objects:
-        if obj.iri is None or not (obj.has_class(S.COMPONENT) or obj.has_class(S.MODULE)):
+        if obj.iri is None or not (obj.has_class(S.COMPONENT, S.MODULE)):
             continue
         definition = obj.first_iri(S.DEFINITION)
         if definition is None:
@@ -49,9 +49,7 @@ def self_containing_definitions(ctx: Sbol2Context) -> None:
 @REGISTRY.rule("sbol2-10909", "sbol2-10905")
 def sequence_annotation_components(ctx: Sbol2Context) -> None:
     """A SequenceAnnotation names either a Component of its own definition or roles, not both."""
-    for obj in ctx.sbol_objects:
-        if not obj.has_class(S.SEQUENCE_ANNOTATION):
-            continue
+    for obj in ctx.instances(S.SEQUENCE_ANNOTATION):
         if obj.values(S.COMPONENT_P) and obj.values(S.ROLE):
             ctx.report(
                 "sbol2-10909",
@@ -105,9 +103,7 @@ def _definition_of(ctx: Sbol2Context, instance: str) -> str | None:
 )
 def sequence_constraints(ctx: Sbol2Context) -> None:
     """SequenceConstraint subject/object membership, distinctness, and agreement with annotated positions."""
-    for obj in ctx.sbol_objects:
-        if not obj.has_class(S.SEQUENCE_CONSTRAINT):
-            continue
+    for obj in ctx.instances(S.SEQUENCE_CONSTRAINT):
         subject, target = obj.first_iri(S.SUBJECT), obj.first_iri(S.OBJECT)
         if subject is not None and subject == target:
             ctx.report(
@@ -209,9 +205,7 @@ def _check_positions(
 @REGISTRY.rule("sbol2-10803", "sbol2-10804")
 def maps_to_locals(ctx: Sbol2Context) -> None:
     """A MapsTo local names an instance held by the same definition as the MapsTo's owner."""
-    for obj in ctx.sbol_objects:
-        if not obj.has_class(S.MAPS_TO):
-            continue
+    for obj in ctx.instances(S.MAPS_TO):
         local = obj.first_iri(S.LOCAL)
         if local is None:
             continue
@@ -241,9 +235,7 @@ def maps_to_locals(ctx: Sbol2Context) -> None:
 @REGISTRY.rule("sbol2-10522")
 def unique_annotated_components(ctx: Sbol2Context) -> None:
     """No two SequenceAnnotations of a ComponentDefinition refer to the same Component."""
-    for obj in ctx.sbol_objects:
-        if not obj.has_class(S.COMPONENT_DEFINITION):
-            continue
+    for obj in ctx.instances(S.COMPONENT_DEFINITION):
         by_annotation: dict[str, str] = {}
         for annotation in ctx.referenced(obj, S.SEQUENCE_ANNOTATION_P):
             component = annotation.first_iri(S.COMPONENT_P)
@@ -301,9 +293,7 @@ def component_source_locations(ctx: Sbol2Context) -> None:
             component = candidate.first_iri(S.COMPONENT_P)
             if component is not None:
                 annotation_by_component.setdefault(component, candidate)
-    for obj in ctx.sbol_objects:
-        if not obj.has_class(S.COMPONENT):
-            continue
+    for obj in ctx.instances(S.COMPONENT):
         source = extents(ctx, obj, S.SOURCE_LOCATION)
         if extents_overlap(source):
             ctx.report(

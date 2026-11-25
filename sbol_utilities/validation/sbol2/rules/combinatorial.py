@@ -12,9 +12,7 @@ from sbol_utilities.validation.sbol2.registry import REGISTRY
 @REGISTRY.rule("sbol2-12903", "sbol2-12907")
 def variable_components(ctx: Sbol2Context) -> None:
     """An enumerate derivation uses bounded operators, and no two VariableComponents share a variable."""
-    for obj in ctx.sbol_objects:
-        if not obj.has_class(S.COMBINATORIAL_DERIVATION):
-            continue
+    for obj in ctx.instances(S.COMBINATORIAL_DERIVATION):
         variable_components = list(ctx.referenced(obj, S.VARIABLE_COMPONENT_P))
         if S.ENUMERATE in obj.iris(S.STRATEGY) and any(
             op in (S.OP_ZERO_OR_MORE, S.OP_ONE_OR_MORE) for vc in variable_components for op in vc.iris(S.OPERATOR)

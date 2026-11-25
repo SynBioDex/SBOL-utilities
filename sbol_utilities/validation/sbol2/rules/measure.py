@@ -11,7 +11,7 @@ from sbol_utilities.validation.sbol2.registry import REGISTRY
 def _measure_rule(obj: Sbol2Object):
     if obj.has_class(S.MODULE):
         return "sbol2-11707"
-    if obj.has_class(S.COMPONENT) or obj.has_class(S.FUNCTIONAL_COMPONENT):
+    if obj.has_class(S.COMPONENT, S.FUNCTIONAL_COMPONENT):
         return "sbol2-10608"
     if obj.has_class(S.PARTICIPATION):
         return "sbol2-12008"

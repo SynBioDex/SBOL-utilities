@@ -18,9 +18,7 @@ def _matching_literals(ctx: Sbol3Context, obj: Sbol3Object, rule: str, left: str
 @REGISTRY.rule("sbol3-13401")
 def measures(ctx: Sbol3Context) -> None:
     """om:Measure types come from the SBO systems description parameter branch."""
-    for obj in ctx.objects.values():
-        if not obj.has_class(spec.OM_MEASURE):
-            continue
+    for obj in ctx.instances(spec.OM_MEASURE):
         for type_iri in obj.iris(spec.TYPE):
             if ctx.ontology.in_branch_if_known(str(type_iri), SBO_SYSTEMS_DESCRIPTION_PARAMETER) is False:
                 ctx.report(

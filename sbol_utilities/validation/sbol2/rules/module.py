@@ -35,9 +35,7 @@ def module_definition_use_remote(ctx: Sbol2Context) -> None:
 @REGISTRY.rule("sbol2-12003")
 def participants_in_module_definition(ctx: Sbol2Context) -> None:
     """A Participation's participant is a FunctionalComponent of the ModuleDefinition holding its Interaction."""
-    for obj in ctx.sbol_objects:
-        if not obj.has_class(S.PARTICIPATION):
-            continue
+    for obj in ctx.instances(S.PARTICIPATION):
         participant = obj.first_iri(S.PARTICIPANT)
         if participant is None:
             continue
@@ -58,9 +56,7 @@ def participants_in_module_definition(ctx: Sbol2Context) -> None:
 def interaction_participation_roles(ctx: Sbol2Context) -> None:
     """An Interaction's participant roles are compatible with its SBO type (Table 11)."""
     ontology = ctx.ontology
-    for obj in ctx.sbol_objects:
-        if not obj.has_class(S.INTERACTION):
-            continue
+    for obj in ctx.instances(S.INTERACTION):
         types = [
             ontology_curie(t)
             for t in obj.iris(S.TYPE)

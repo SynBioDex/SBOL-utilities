@@ -11,9 +11,7 @@ from sbol_utilities.validation.sbol2.registry import REGISTRY
 @REGISTRY.rule("sbol2-10405")
 def elements_match_encoding(ctx: Sbol2Context) -> None:
     """A Sequence's elements use the IUPAC nucleic-acid or protein alphabet its encoding names."""
-    for obj in ctx.sbol_objects:
-        if not obj.has_class(S.SEQUENCE):
-            continue
+    for obj in ctx.instances(S.SEQUENCE):
         encoding = obj.first_iri(S.ENCODING)
         elements = obj.first_literal(S.ELEMENTS)
         if encoding is None or elements is None:
