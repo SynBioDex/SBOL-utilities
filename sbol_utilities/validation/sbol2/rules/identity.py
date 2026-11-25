@@ -202,8 +202,8 @@ def parent_map(ctx: Sbol2Context) -> dict[str, str]:
     for obj in ctx.objects:
         if obj.iri is None:
             continue
-        for predicate, field in obj.fields.items():
-            if field.reference is None or not field.reference.local:
+        for predicate, declared in obj.property_specs.items():
+            if declared.reference is None or not declared.reference.local:
                 continue
             for child in obj.iris(predicate):
                 parents[child] = obj.iri

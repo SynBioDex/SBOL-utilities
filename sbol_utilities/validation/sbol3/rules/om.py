@@ -4,10 +4,7 @@ from __future__ import annotations
 
 from sbol_utilities.validation.sbol3 import spec
 from sbol_utilities.validation.sbol3.context import SBOL3Context, SbolObject
-from sbol_utilities.validation.sbol3.helpers import (
-    is_sbo_systems_description_parameter_term,
-    object_type_is_or_inherits,
-)
+from sbol_utilities.validation.sbol3.helpers import is_sbo_systems_description_parameter_term
 from sbol_utilities.validation.sbol3.registry import REGISTRY
 
 
@@ -22,7 +19,7 @@ def _matching_literals(ctx: SBOL3Context, obj: SbolObject, rule: str, left: str,
 def measures(ctx: SBOL3Context) -> None:
     """om:Measure types come from the SBO systems description parameter branch."""
     for obj in ctx.objects.values():
-        if not object_type_is_or_inherits(obj, spec.OM_MEASURE):
+        if not obj.has_class(spec.OM_MEASURE):
             continue
         for type_iri in obj.iris(spec.TYPE):
             if is_sbo_systems_description_parameter_term(ctx.ontology, str(type_iri)) is False:
@@ -39,7 +36,7 @@ def measures(ctx: SBOL3Context) -> None:
 def unit_and_prefix_strings(ctx: SBOL3Context) -> None:
     """sbol:name / om:label and sbol:description / om:comment agree on Units and Prefixes."""
     for obj in ctx.objects.values():
-        if object_type_is_or_inherits(obj, spec.OM_UNIT):
+        if obj.has_class(spec.OM_UNIT):
             _matching_literals(
                 ctx, obj, "sbol3-13501", spec.NAME, spec.OM_LABEL, "om:Unit sbol:name and om:label should match"
             )
@@ -51,7 +48,7 @@ def unit_and_prefix_strings(ctx: SBOL3Context) -> None:
                 spec.OM_COMMENT,
                 "om:Unit sbol:description and om:comment should match",
             )
-        if object_type_is_or_inherits(obj, spec.OM_PREFIX):
+        if obj.has_class(spec.OM_PREFIX):
             _matching_literals(
                 ctx, obj, "sbol3-14201", spec.NAME, spec.OM_LABEL, "om:Prefix sbol:name and om:label should match"
             )

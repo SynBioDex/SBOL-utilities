@@ -9,89 +9,61 @@ from sbol_utilities.validation.datatypes import is_date_time_lexical, is_float_l
 from sbol_utilities.validation.sbol2 import spec as S
 from sbol_utilities.validation.sbol2.context import Lit, Obj, Sbol2Context, Term
 from sbol_utilities.validation.sbol2.registry import REGISTRY
+from sbol_utilities.validation.schema import ValueKind
 from sbol_utilities.vocab import SBOL2_NS
 
 
-def value_matches_kind(term: Term, kind: str) -> bool:
+def value_matches_kind(term: Term, kind: ValueKind) -> bool:
     """Whether a value has the lexical shape a property's value kind requires."""
-    if kind in (S.URI, S.URL):
+    if kind in (ValueKind.URI, ValueKind.URL):
         return isinstance(term, URIRef)
     if not isinstance(term, Lit):
         return False
-    if kind == S.STRING:
+    if kind is ValueKind.STRING:
         return True
-    if kind in (S.INTEGER, S.LONG):
+    if kind in (ValueKind.INTEGER, ValueKind.LONG):
         return parse_i64(term.value) is not None
-    if kind == S.FLOAT:
+    if kind is ValueKind.FLOAT:
         return is_float_lexical(term.value)
-    if kind == S.DATE_TIME:
-        return is_date_time_lexical(term.value)
-    return False
+    return is_date_time_lexical(term.value)
 
 
-def matches_target(obj: Obj, reference: S.Reference) -> bool:
-    """Whether an object satisfies the class a reference property targets."""
-    if reference.match == S.TARGET_EXACT_TYPE:
-        return obj.has_type(reference.target)
-    return obj.has_class(reference.target)
-
-
-_CARDINALITY_MESSAGES = {
-    S.EXACTLY_ONE: "must have exactly one value",
-    S.ZERO_OR_ONE: "must have zero or one value",
-    S.ONE_OR_MORE: "must have one or more values",
-}
-
-
-def _cardinality_violated(cardinality: str, count: int) -> bool:
-    if cardinality == S.EXACTLY_ONE:
-        return count != 1
-    if cardinality == S.ZERO_OR_ONE:
-        return count > 1
-    if cardinality == S.ONE_OR_MORE:
-        return count == 0
-    return False
-
-
-@REGISTRY.rule(*S.field_rules())
+@REGISTRY.rule(*S.SCHEMA.rules())
 def property_table(ctx: Sbol2Context) -> None:
     """Cardinality, value kind, and composite-child resolution of every declared property."""
-    catalog = ctx.catalog
     for obj in ctx.sbol_objects:
-        for predicate, field in obj.fields.items():
-            if field.rule not in catalog:
+        for predicate, declared in obj.property_specs.items():
+            rule = declared.rule
+            if rule is None:
                 continue
             values = obj.values(predicate)
-            if _cardinality_violated(field.cardinality, len(values)):
+            if not declared.cardinality.allows(len(values)):
                 ctx.report(
-                    field.rule,
+                    rule,
                     obj,
-                    f"property `{predicate}` {_CARDINALITY_MESSAGES[field.cardinality]}; found {len(values)}",
+                    f"property `{predicate}` must have {declared.cardinality.description}; found {len(values)}",
                     property=predicate,
                 )
             for value in values:
-                if not value_matches_kind(value, field.kind):
+                if not value_matches_kind(value, declared.kind):
                     ctx.report(
-                        field.rule,
+                        rule,
                         obj,
-                        f"property `{predicate}` value does not match expected {field.kind}",
+                        f"property `{predicate}` value does not match expected {declared.kind.value}",
                         property=predicate,
                     )
                     continue
-                reference = field.reference
+                reference = declared.reference
                 if reference is None or not reference.local:
                     continue
                 target = ctx.get(value)  # type: ignore[arg-type]
                 if target is None:
                     ctx.report(
-                        field.rule,
-                        obj,
-                        f"property `{predicate}` refers to missing local child `{value}`",
-                        property=predicate,
+                        rule, obj, f"property `{predicate}` refers to missing local child `{value}`", property=predicate
                     )
-                elif not matches_target(target, reference):
+                elif not target.has_class(reference.target):
                     ctx.report(
-                        field.rule,
+                        rule,
                         obj,
                         f"property `{predicate}` refers to `{value}`, which is not the expected class",
                         property=predicate,
@@ -105,7 +77,7 @@ def closed_property_sets(ctx: Sbol2Context) -> None:
         rule = next((r for cls, r in S.CLOSED_PROPERTY_RULES if obj.has_class(cls)), None)
         if rule is None:
             continue
-        allowed = obj.fields
+        allowed = obj.property_specs
         for predicate in sorted(obj.properties):
             if predicate.startswith(SBOL2_NS) and predicate not in allowed:
                 ctx.report(rule, obj, f"property `{predicate}` is not permitted on this object's class")

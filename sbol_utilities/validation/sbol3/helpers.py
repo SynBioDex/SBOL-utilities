@@ -13,6 +13,7 @@ from sbol_utilities.validation.datatypes import is_date_time_lexical, is_float_l
 from sbol_utilities.validation.ontology import NUCLEIC_ACID, Ontology
 from sbol_utilities.validation.sbol3 import spec
 from sbol_utilities.validation.sbol3.context import SBOL3Context, SbolObject, literal_datatype
+from sbol_utilities.validation.schema import ValueKind
 from sbol_utilities.vocab import RDF_LANG_STRING, XSD_NS, XSD_STRING
 
 _HEX = re.compile(r"^[0-9A-Fa-f]+\Z")
@@ -111,59 +112,23 @@ _INTEGER_TYPES = frozenset(
 _FLOAT_TYPES = frozenset(XSD_NS + t for t in ("float", "double", "decimal"))
 
 
-def value_matches_kind(term: Node, value_kind: str) -> bool:
-    """Table 23 value-kind check: compatible datatype and well-formed lexical value (sbol3-10111)."""
-    if value_kind == spec.URI:
+def value_matches_kind(term: Node, kind: ValueKind) -> bool:
+    """Whether a value has a datatype compatible with a property's value kind and a well-formed lexical form."""
+    if kind is ValueKind.URI:
         return isinstance(term, URIRef)
-    if value_kind == spec.URL:
+    if kind is ValueKind.URL:
         return isinstance(term, URIRef) and is_namespace_url(str(term))
     if not isinstance(term, Literal):
         return False
     datatype = literal_datatype(term)
     value = str(term)
-    if value_kind == spec.STRING:
+    if kind is ValueKind.STRING:
         return _is_string_datatype(datatype)
-    if value_kind in (spec.INTEGER, spec.LONG):
+    if kind in (ValueKind.INTEGER, ValueKind.LONG):
         return (datatype in _INTEGER_TYPES or _is_string_datatype(datatype)) and parse_i64(value) is not None
-    if value_kind == spec.FLOAT:
+    if kind is ValueKind.FLOAT:
         return (datatype in _FLOAT_TYPES or _is_string_datatype(datatype)) and is_float_lexical(value)
-    if value_kind == spec.DATE_TIME:
-        return (datatype == XSD_NS + "dateTime" or _is_string_datatype(datatype)) and is_date_time_lexical(value)
-    return False
-
-
-# --- class targets ---
-
-
-def class_inherits(class_iri: str, target: str) -> bool:
-    """Whether a class equals or inherits from ``target`` in the class tables."""
-    return spec.is_a(class_iri, target)
-
-
-def object_type_is_or_inherits(obj: SbolObject, target: str) -> bool:
-    """Whether any rdf:type of the object is or inherits from ``target``."""
-    return any(class_inherits(t, target) for t in obj.rdf_types)
-
-
-_EXACT_TARGETS = {
-    spec.PROV_ACTIVITY_TARGET: spec.PROV_ACTIVITY,
-    spec.PROV_AGENT_TARGET: spec.PROV_AGENT,
-    spec.PROV_ASSOCIATION_TARGET: spec.PROV_ASSOCIATION,
-    spec.PROV_PLAN_TARGET: spec.PROV_PLAN,
-    spec.PROV_USAGE_TARGET: spec.PROV_USAGE,
-    spec.OM_MEASURE_TARGET: spec.OM_MEASURE,
-}
-
-
-def object_matches_target(obj: SbolObject, target: str) -> bool:
-    """Whether a referenced object satisfies a property's reference target."""
-    if target in _EXACT_TARGETS:
-        return obj.has_rdf_type(_EXACT_TARGETS[target])
-    if target == spec.OM_UNIT_TARGET:
-        return object_type_is_or_inherits(obj, spec.OM_UNIT)
-    if target == spec.OM_PREFIX_TARGET:
-        return object_type_is_or_inherits(obj, spec.OM_PREFIX)
-    return obj.has_class(target)
+    return (datatype == XSD_NS + "dateTime" or _is_string_datatype(datatype)) and is_date_time_lexical(value)
 
 
 def known_external_resource(iri: str) -> str | None:

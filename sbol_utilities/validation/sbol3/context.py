@@ -58,14 +58,11 @@ class SbolObject:
             sorted(str(t) for t in properties.get(RDF_TYPE, ()) if isinstance(t, URIRef))
         )
         #: recognized SBOL / PROV / OM classes among the rdf:types
-        self.classes: tuple[str, ...] = tuple(t for t in self.rdf_types if t in spec.CLASS_SPECS)
-        ancestors: set[str] = set()
-        for cls in self.classes:
-            ancestors |= spec.ANCESTORS[cls]
+        self.classes: tuple[str, ...] = tuple(t for t in self.rdf_types if t in spec.SCHEMA)
         #: every class this object is an instance of, through the class hierarchy
-        self.ancestors = frozenset(ancestors)
+        self.ancestors: frozenset[str] = frozenset().union(*(spec.SCHEMA.ancestors(cls) for cls in self.classes))
         self.display_id: str | None = self.first_literal_value(spec.DISPLAY_ID)
-        self.is_top_level = any(c in spec.TOP_LEVEL_CLASSES for c in self.classes)
+        self.is_top_level = any(c in spec.SCHEMA.top_level_classes for c in self.classes)
 
     def __repr__(self) -> str:
         return f"SbolObject({self.identity!s})"

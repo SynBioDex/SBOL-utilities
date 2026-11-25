@@ -1,16 +1,12 @@
-"""Declarative SBOL 3.1.0 class and property tables (Table 23 and the adopted PROV-O / OM classes).
+"""The SBOL 3.1.0 data model (Table 23 and the adopted PROV-O and OM classes), as a schema the validator reads.
 
-Mirrors sbol-rs ``crates/sbol3/src/validation/spec``: each class lists its direct parents and the properties declared
-on it, with cardinality, lexical value kind, and, for reference properties, the target class and whether the target
-must be a child held in the same document. The structural engine (:mod:`.structural`) and the class hierarchy used by
-every rule read these tables.
+Each class lists its direct parents and the properties it declares, with cardinality, value kind, and, for
+references, the target class and whether the target is a child held in the same document.
 """
 
 from __future__ import annotations
 
-from collections.abc import Iterable
-from dataclasses import dataclass
-
+from sbol_utilities.validation.schema import Cardinality, ClassSpec, PropertySpec, Reference, Schema, ValueKind
 from sbol_utilities.vocab import OM_NS, PROV_NS, SBOL3_NS
 
 
@@ -26,65 +22,33 @@ def _om(local: str) -> str:
     return OM_NS + local
 
 
-# Cardinalities
-EXACTLY_ONE = "ExactlyOne"
-ZERO_OR_ONE = "ZeroOrOne"
-ONE_OR_MORE = "OneOrMore"
-ZERO_OR_MORE = "ZeroOrMore"
+EXACTLY_ONE = Cardinality.EXACTLY_ONE
+ZERO_OR_ONE = Cardinality.ZERO_OR_ONE
+ONE_OR_MORE = Cardinality.ONE_OR_MORE
+ZERO_OR_MORE = Cardinality.ZERO_OR_MORE
 
-# Value kinds
-URI = "Uri"
-URL = "Url"
-STRING = "String"
-INTEGER = "Integer"
-LONG = "Long"
-FLOAT = "Float"
-DATE_TIME = "DateTime"
-
-# Reference targets that are not SBOL classes (matched by exact rdf:type, or by OM class inheritance)
-PROV_ACTIVITY_TARGET = "ProvActivity"
-PROV_AGENT_TARGET = "ProvAgent"
-PROV_ASSOCIATION_TARGET = "ProvAssociation"
-PROV_PLAN_TARGET = "ProvPlan"
-PROV_USAGE_TARGET = "ProvUsage"
-OM_MEASURE_TARGET = "OmMeasure"
-OM_UNIT_TARGET = "OmUnit"
-OM_PREFIX_TARGET = "OmPrefix"
+URI = ValueKind.URI
+URL = ValueKind.URL
+STRING = ValueKind.STRING
+INTEGER = ValueKind.INTEGER
+LONG = ValueKind.LONG
+FLOAT = ValueKind.FLOAT
+DATE_TIME = ValueKind.DATE_TIME
 
 
-@dataclass(frozen=True)
-class PropertySpec:
-    """One property row: predicate, cardinality, value kind, and optional reference target."""
-
-    predicate: str
-    cardinality: str
-    value_kind: str
-    #: an SBOL class IRI or one of the ``*_TARGET`` tokens, for reference properties
-    target: str | None = None
-    #: the target must be present in the document (a contained child)
-    require_local: bool = False
-    #: rule policing this property's cardinality
-    rule: str = "sbol3-10110"
-
-
-@dataclass(frozen=True)
-class ClassSpec:
-    """One class: its direct parents and the properties it declares."""
-
-    parents: tuple[str, ...]
-    fields: tuple[PropertySpec, ...]
-
-
-def _p(predicate: str, cardinality: str, kind: str) -> PropertySpec:
+def _value(predicate: str, cardinality: Cardinality, kind: ValueKind) -> PropertySpec:
+    """A property holding literals or IRIs that are not references to objects of the model."""
     return PropertySpec(predicate, cardinality, kind)
 
 
-def _local(predicate: str, cardinality: str, target: str) -> PropertySpec:
-    return PropertySpec(predicate, cardinality, URI, target, True)
+def _child(predicate: str, cardinality: Cardinality, target: str) -> PropertySpec:
+    """A property referring to children held in the same document."""
+    return PropertySpec(predicate, cardinality, URI, Reference(target, local=True))
 
 
-def _external(predicate: str, cardinality: str, target: str) -> PropertySpec:
-    return PropertySpec(predicate, cardinality, URI, target, False)
+def _reference(predicate: str, cardinality: Cardinality, target: str) -> PropertySpec:
+    """A property referring to objects that may live in another document."""
+    return PropertySpec(predicate, cardinality, URI, Reference(target, local=False))
 
 
 IDENTIFIED = _sbol("Identified")
@@ -302,252 +266,228 @@ CLASS_SPECS: dict[str, ClassSpec] = {
     IDENTIFIED: ClassSpec(
         (),
         (
-            _p(DISPLAY_ID, ZERO_OR_ONE, STRING),
-            _p(NAME, ZERO_OR_ONE, STRING),
-            _p(DESCRIPTION, ZERO_OR_ONE, STRING),
-            _local(HAS_MEASURE, ZERO_OR_MORE, OM_MEASURE_TARGET),
-            _p(PROV_WAS_DERIVED_FROM, ZERO_OR_MORE, URI),
-            _external(PROV_WAS_GENERATED_BY, ZERO_OR_MORE, PROV_ACTIVITY_TARGET),
+            _value(DISPLAY_ID, ZERO_OR_ONE, STRING),
+            _value(NAME, ZERO_OR_ONE, STRING),
+            _value(DESCRIPTION, ZERO_OR_ONE, STRING),
+            _child(HAS_MEASURE, ZERO_OR_MORE, OM_MEASURE),
+            _value(PROV_WAS_DERIVED_FROM, ZERO_OR_MORE, URI),
+            _reference(PROV_WAS_GENERATED_BY, ZERO_OR_MORE, PROV_ACTIVITY),
         ),
     ),
     TOP_LEVEL: ClassSpec(
         (IDENTIFIED,),
         (
-            _p(HAS_NAMESPACE, EXACTLY_ONE, URL),
-            _external(HAS_ATTACHMENT, ZERO_OR_MORE, ATTACHMENT),
+            _value(HAS_NAMESPACE, EXACTLY_ONE, URL),
+            _reference(HAS_ATTACHMENT, ZERO_OR_MORE, ATTACHMENT),
         ),
     ),
     ATTACHMENT: ClassSpec(
         (TOP_LEVEL,),
         (
-            _p(SOURCE, EXACTLY_ONE, URI),
-            _p(FORMAT, ZERO_OR_ONE, URI),
-            _p(HASH_ALGORITHM, ZERO_OR_ONE, STRING),
-            _p(HASH, ZERO_OR_ONE, STRING),
-            _p(SIZE, ZERO_OR_ONE, LONG),
+            _value(SOURCE, EXACTLY_ONE, URI),
+            _value(FORMAT, ZERO_OR_ONE, URI),
+            _value(HASH_ALGORITHM, ZERO_OR_ONE, STRING),
+            _value(HASH, ZERO_OR_ONE, STRING),
+            _value(SIZE, ZERO_OR_ONE, LONG),
         ),
     ),
-    COLLECTION: ClassSpec((TOP_LEVEL,), (_external(MEMBER, ZERO_OR_MORE, TOP_LEVEL),)),
+    COLLECTION: ClassSpec((TOP_LEVEL,), (_reference(MEMBER, ZERO_OR_MORE, TOP_LEVEL),)),
     COMBINATORIAL_DERIVATION: ClassSpec(
         (TOP_LEVEL,),
         (
-            _external(TEMPLATE, EXACTLY_ONE, COMPONENT),
-            _p(STRATEGY, ZERO_OR_ONE, URI),
-            _local(HAS_VARIABLE_FEATURE, ZERO_OR_MORE, VARIABLE_FEATURE),
+            _reference(TEMPLATE, EXACTLY_ONE, COMPONENT),
+            _value(STRATEGY, ZERO_OR_ONE, URI),
+            _child(HAS_VARIABLE_FEATURE, ZERO_OR_MORE, VARIABLE_FEATURE),
         ),
     ),
     COMPONENT: ClassSpec(
         (TOP_LEVEL,),
         (
-            _external(HAS_SEQUENCE, ZERO_OR_MORE, SEQUENCE),
-            _p(ROLE, ZERO_OR_MORE, URI),
-            _p(TYPE, ONE_OR_MORE, URI),
-            _local(HAS_CONSTRAINT, ZERO_OR_MORE, CONSTRAINT),
-            _local(HAS_FEATURE, ZERO_OR_MORE, FEATURE),
-            _local(HAS_INTERACTION, ZERO_OR_MORE, INTERACTION),
-            _local(HAS_INTERFACE, ZERO_OR_MORE, INTERFACE),
-            _external(HAS_MODEL, ZERO_OR_MORE, MODEL),
+            _reference(HAS_SEQUENCE, ZERO_OR_MORE, SEQUENCE),
+            _value(ROLE, ZERO_OR_MORE, URI),
+            _value(TYPE, ONE_OR_MORE, URI),
+            _child(HAS_CONSTRAINT, ZERO_OR_MORE, CONSTRAINT),
+            _child(HAS_FEATURE, ZERO_OR_MORE, FEATURE),
+            _child(HAS_INTERACTION, ZERO_OR_MORE, INTERACTION),
+            _child(HAS_INTERFACE, ZERO_OR_MORE, INTERFACE),
+            _reference(HAS_MODEL, ZERO_OR_MORE, MODEL),
         ),
     ),
     COMPONENT_REFERENCE: ClassSpec(
         (FEATURE,),
         (
-            _external(REFERS_TO, EXACTLY_ONE, FEATURE),
-            _external(IN_CHILD_OF, EXACTLY_ONE, SUB_COMPONENT),
+            _reference(REFERS_TO, EXACTLY_ONE, FEATURE),
+            _reference(IN_CHILD_OF, EXACTLY_ONE, SUB_COMPONENT),
         ),
     ),
     CONSTRAINT: ClassSpec(
         (IDENTIFIED,),
         (
-            _external(OBJECT, EXACTLY_ONE, FEATURE),
-            _p(RESTRICTION, EXACTLY_ONE, URI),
-            _external(SUBJECT, EXACTLY_ONE, FEATURE),
+            _reference(OBJECT, EXACTLY_ONE, FEATURE),
+            _value(RESTRICTION, EXACTLY_ONE, URI),
+            _reference(SUBJECT, EXACTLY_ONE, FEATURE),
         ),
     ),
-    CUT: ClassSpec((LOCATION,), (_p(AT, EXACTLY_ONE, INTEGER),)),
+    CUT: ClassSpec((LOCATION,), (_value(AT, EXACTLY_ONE, INTEGER),)),
     ENTIRE_SEQUENCE: ClassSpec((LOCATION,), ()),
     EXPERIMENT: ClassSpec((COLLECTION,), ()),
     EXPERIMENTAL_DATA: ClassSpec((TOP_LEVEL,), ()),
     EXTERNALLY_DEFINED: ClassSpec(
         (FEATURE,),
-        (_p(DEFINITION, EXACTLY_ONE, URI), _p(TYPE, ONE_OR_MORE, URI)),
+        (_value(DEFINITION, EXACTLY_ONE, URI), _value(TYPE, ONE_OR_MORE, URI)),
     ),
-    FEATURE: ClassSpec((IDENTIFIED,), (_p(ROLE, ZERO_OR_MORE, URI), _p(ORIENTATION, ZERO_OR_ONE, URI))),
-    IMPLEMENTATION: ClassSpec((TOP_LEVEL,), (_external(BUILT, ZERO_OR_ONE, COMPONENT),)),
+    FEATURE: ClassSpec((IDENTIFIED,), (_value(ROLE, ZERO_OR_MORE, URI), _value(ORIENTATION, ZERO_OR_ONE, URI))),
+    IMPLEMENTATION: ClassSpec((TOP_LEVEL,), (_reference(BUILT, ZERO_OR_ONE, COMPONENT),)),
     INTERACTION: ClassSpec(
         (IDENTIFIED,),
-        (_p(TYPE, ONE_OR_MORE, URI), _local(HAS_PARTICIPATION, ZERO_OR_MORE, PARTICIPATION)),
+        (_value(TYPE, ONE_OR_MORE, URI), _child(HAS_PARTICIPATION, ZERO_OR_MORE, PARTICIPATION)),
     ),
     INTERFACE: ClassSpec(
         (IDENTIFIED,),
         (
-            _external(INPUT, ZERO_OR_MORE, FEATURE),
-            _external(OUTPUT, ZERO_OR_MORE, FEATURE),
-            _external(NONDIRECTIONAL, ZERO_OR_MORE, FEATURE),
+            _reference(INPUT, ZERO_OR_MORE, FEATURE),
+            _reference(OUTPUT, ZERO_OR_MORE, FEATURE),
+            _reference(NONDIRECTIONAL, ZERO_OR_MORE, FEATURE),
         ),
     ),
     LOCATION: ClassSpec(
         (IDENTIFIED,),
         (
-            _p(ORIENTATION, ZERO_OR_ONE, URI),
-            _p(ORDER, ZERO_OR_ONE, INTEGER),
-            _external(HAS_SEQUENCE, EXACTLY_ONE, SEQUENCE),
+            _value(ORIENTATION, ZERO_OR_ONE, URI),
+            _value(ORDER, ZERO_OR_ONE, INTEGER),
+            _reference(HAS_SEQUENCE, EXACTLY_ONE, SEQUENCE),
         ),
     ),
     LOCAL_SUB_COMPONENT: ClassSpec(
         (FEATURE,),
-        (_local(HAS_LOCATION, ZERO_OR_MORE, LOCATION), _p(TYPE, ONE_OR_MORE, URI)),
+        (_child(HAS_LOCATION, ZERO_OR_MORE, LOCATION), _value(TYPE, ONE_OR_MORE, URI)),
     ),
     MODEL: ClassSpec(
         (TOP_LEVEL,),
-        (_p(SOURCE, EXACTLY_ONE, URI), _p(FRAMEWORK, EXACTLY_ONE, URI), _p(LANGUAGE, EXACTLY_ONE, URI)),
+        (_value(SOURCE, EXACTLY_ONE, URI), _value(FRAMEWORK, EXACTLY_ONE, URI), _value(LANGUAGE, EXACTLY_ONE, URI)),
     ),
     PARTICIPATION: ClassSpec(
         (IDENTIFIED,),
         (
-            _external(PARTICIPANT, ZERO_OR_ONE, FEATURE),
-            _external(HIGHER_ORDER_PARTICIPANT, ZERO_OR_ONE, INTERACTION),
-            _p(ROLE, ONE_OR_MORE, URI),
+            _reference(PARTICIPANT, ZERO_OR_ONE, FEATURE),
+            _reference(HIGHER_ORDER_PARTICIPANT, ZERO_OR_ONE, INTERACTION),
+            _value(ROLE, ONE_OR_MORE, URI),
         ),
     ),
-    RANGE: ClassSpec((LOCATION,), (_p(END, EXACTLY_ONE, INTEGER), _p(START, EXACTLY_ONE, INTEGER))),
-    SEQUENCE: ClassSpec((TOP_LEVEL,), (_p(ELEMENTS, ZERO_OR_ONE, STRING), _p(ENCODING, ZERO_OR_ONE, URI))),
-    SEQUENCE_FEATURE: ClassSpec((FEATURE,), (_local(HAS_LOCATION, ONE_OR_MORE, LOCATION),)),
+    RANGE: ClassSpec((LOCATION,), (_value(END, EXACTLY_ONE, INTEGER), _value(START, EXACTLY_ONE, INTEGER))),
+    SEQUENCE: ClassSpec((TOP_LEVEL,), (_value(ELEMENTS, ZERO_OR_ONE, STRING), _value(ENCODING, ZERO_OR_ONE, URI))),
+    SEQUENCE_FEATURE: ClassSpec((FEATURE,), (_child(HAS_LOCATION, ONE_OR_MORE, LOCATION),)),
     SUB_COMPONENT: ClassSpec(
         (FEATURE,),
         (
-            _external(INSTANCE_OF, EXACTLY_ONE, COMPONENT),
-            _p(ROLE_INTEGRATION, ZERO_OR_ONE, URI),
-            _local(SOURCE_LOCATION, ZERO_OR_MORE, LOCATION),
-            _local(HAS_LOCATION, ZERO_OR_MORE, LOCATION),
+            _reference(INSTANCE_OF, EXACTLY_ONE, COMPONENT),
+            _value(ROLE_INTEGRATION, ZERO_OR_ONE, URI),
+            _child(SOURCE_LOCATION, ZERO_OR_MORE, LOCATION),
+            _child(HAS_LOCATION, ZERO_OR_MORE, LOCATION),
         ),
     ),
     VARIABLE_FEATURE: ClassSpec(
         (IDENTIFIED,),
         (
-            _p(CARDINALITY, EXACTLY_ONE, URI),
-            _external(VARIABLE, EXACTLY_ONE, FEATURE),
-            _external(VARIANT_COLLECTION, ZERO_OR_MORE, COLLECTION),
-            _external(VARIANT_DERIVATION, ZERO_OR_MORE, COMBINATORIAL_DERIVATION),
-            _local(VARIANT_MEASURE, ZERO_OR_MORE, OM_MEASURE_TARGET),
-            _external(VARIANT, ZERO_OR_MORE, COMPONENT),
+            _value(CARDINALITY, EXACTLY_ONE, URI),
+            _reference(VARIABLE, EXACTLY_ONE, FEATURE),
+            _reference(VARIANT_COLLECTION, ZERO_OR_MORE, COLLECTION),
+            _reference(VARIANT_DERIVATION, ZERO_OR_MORE, COMBINATORIAL_DERIVATION),
+            _child(VARIANT_MEASURE, ZERO_OR_MORE, OM_MEASURE),
+            _reference(VARIANT, ZERO_OR_MORE, COMPONENT),
         ),
     ),
     PROV_ACTIVITY: ClassSpec(
         (TOP_LEVEL,),
         (
-            _p(PROV_ENDED_AT_TIME, ZERO_OR_ONE, DATE_TIME),
-            _local(PROV_QUALIFIED_USAGE, ZERO_OR_MORE, PROV_USAGE_TARGET),
-            _p(PROV_STARTED_AT_TIME, ZERO_OR_ONE, DATE_TIME),
-            _external(PROV_WAS_INFORMED_BY, ZERO_OR_MORE, PROV_ACTIVITY_TARGET),
-            _p(TYPE, ZERO_OR_MORE, URI),
-            _local(PROV_QUALIFIED_ASSOCIATION, ZERO_OR_MORE, PROV_ASSOCIATION_TARGET),
+            _value(PROV_ENDED_AT_TIME, ZERO_OR_ONE, DATE_TIME),
+            _child(PROV_QUALIFIED_USAGE, ZERO_OR_MORE, PROV_USAGE),
+            _value(PROV_STARTED_AT_TIME, ZERO_OR_ONE, DATE_TIME),
+            _reference(PROV_WAS_INFORMED_BY, ZERO_OR_MORE, PROV_ACTIVITY),
+            _value(TYPE, ZERO_OR_MORE, URI),
+            _child(PROV_QUALIFIED_ASSOCIATION, ZERO_OR_MORE, PROV_ASSOCIATION),
         ),
     ),
     PROV_AGENT: ClassSpec((TOP_LEVEL,), ()),
     PROV_ASSOCIATION: ClassSpec(
         (IDENTIFIED,),
         (
-            _external(PROV_AGENT_PREDICATE, EXACTLY_ONE, PROV_AGENT_TARGET),
-            _p(PROV_HAD_ROLE, ZERO_OR_MORE, URI),
-            _external(PROV_HAD_PLAN, ZERO_OR_ONE, PROV_PLAN_TARGET),
+            _reference(PROV_AGENT_PREDICATE, EXACTLY_ONE, PROV_AGENT),
+            _value(PROV_HAD_ROLE, ZERO_OR_MORE, URI),
+            _reference(PROV_HAD_PLAN, ZERO_OR_ONE, PROV_PLAN),
         ),
     ),
     PROV_PLAN: ClassSpec((TOP_LEVEL,), ()),
-    PROV_USAGE: ClassSpec((IDENTIFIED,), (_p(PROV_ENTITY, EXACTLY_ONE, URI), _p(PROV_HAD_ROLE, ZERO_OR_MORE, URI))),
+    PROV_USAGE: ClassSpec(
+        (IDENTIFIED,), (_value(PROV_ENTITY, EXACTLY_ONE, URI), _value(PROV_HAD_ROLE, ZERO_OR_MORE, URI))
+    ),
     OM_MEASURE: ClassSpec(
         (IDENTIFIED,),
         (
-            _p(TYPE, ZERO_OR_MORE, URI),
-            _external(OM_HAS_UNIT, EXACTLY_ONE, OM_UNIT_TARGET),
-            _p(OM_HAS_NUMERICAL_VALUE, EXACTLY_ONE, FLOAT),
+            _value(TYPE, ZERO_OR_MORE, URI),
+            _reference(OM_HAS_UNIT, EXACTLY_ONE, OM_UNIT),
+            _value(OM_HAS_NUMERICAL_VALUE, EXACTLY_ONE, FLOAT),
         ),
     ),
     OM_UNIT: ClassSpec(
         (TOP_LEVEL,),
         (
-            _p(OM_ALTERNATIVE_LABEL, ZERO_OR_MORE, STRING),
-            _p(OM_LABEL, EXACTLY_ONE, STRING),
-            _p(OM_LONG_COMMENT, ZERO_OR_ONE, STRING),
-            _p(OM_SYMBOL, EXACTLY_ONE, STRING),
-            _p(OM_ALTERNATIVE_SYMBOL, ZERO_OR_MORE, STRING),
-            _p(OM_COMMENT, ZERO_OR_ONE, STRING),
+            _value(OM_ALTERNATIVE_LABEL, ZERO_OR_MORE, STRING),
+            _value(OM_LABEL, EXACTLY_ONE, STRING),
+            _value(OM_LONG_COMMENT, ZERO_OR_ONE, STRING),
+            _value(OM_SYMBOL, EXACTLY_ONE, STRING),
+            _value(OM_ALTERNATIVE_SYMBOL, ZERO_OR_MORE, STRING),
+            _value(OM_COMMENT, ZERO_OR_ONE, STRING),
         ),
     ),
     OM_SINGULAR_UNIT: ClassSpec(
         (OM_UNIT,),
-        (_external(OM_HAS_UNIT, ZERO_OR_ONE, OM_UNIT_TARGET), _p(OM_HAS_FACTOR, ZERO_OR_ONE, FLOAT)),
+        (_reference(OM_HAS_UNIT, ZERO_OR_ONE, OM_UNIT), _value(OM_HAS_FACTOR, ZERO_OR_ONE, FLOAT)),
     ),
     OM_COMPOUND_UNIT: ClassSpec((OM_UNIT,), ()),
     OM_UNIT_DIVISION: ClassSpec(
         (OM_COMPOUND_UNIT,),
         (
-            _external(OM_HAS_DENOMINATOR, EXACTLY_ONE, OM_UNIT_TARGET),
-            _external(OM_HAS_NUMERATOR, EXACTLY_ONE, OM_UNIT_TARGET),
+            _reference(OM_HAS_DENOMINATOR, EXACTLY_ONE, OM_UNIT),
+            _reference(OM_HAS_NUMERATOR, EXACTLY_ONE, OM_UNIT),
         ),
     ),
     OM_UNIT_EXPONENTIATION: ClassSpec(
         (OM_COMPOUND_UNIT,),
-        (_external(OM_HAS_BASE, EXACTLY_ONE, OM_UNIT_TARGET), _p(OM_HAS_EXPONENT, EXACTLY_ONE, INTEGER)),
+        (_reference(OM_HAS_BASE, EXACTLY_ONE, OM_UNIT), _value(OM_HAS_EXPONENT, EXACTLY_ONE, INTEGER)),
     ),
     OM_UNIT_MULTIPLICATION: ClassSpec(
         (OM_COMPOUND_UNIT,),
         (
-            _external(OM_HAS_TERM1, EXACTLY_ONE, OM_UNIT_TARGET),
-            _external(OM_HAS_TERM2, EXACTLY_ONE, OM_UNIT_TARGET),
+            _reference(OM_HAS_TERM1, EXACTLY_ONE, OM_UNIT),
+            _reference(OM_HAS_TERM2, EXACTLY_ONE, OM_UNIT),
         ),
     ),
     OM_PREFIXED_UNIT: ClassSpec(
         (OM_UNIT,),
         (
-            _external(OM_HAS_UNIT, EXACTLY_ONE, OM_UNIT_TARGET),
-            _external(OM_HAS_PREFIX, EXACTLY_ONE, OM_PREFIX_TARGET),
+            _reference(OM_HAS_UNIT, EXACTLY_ONE, OM_UNIT),
+            _reference(OM_HAS_PREFIX, EXACTLY_ONE, OM_PREFIX),
         ),
     ),
     OM_PREFIX: ClassSpec(
         (TOP_LEVEL,),
         (
-            _p(OM_ALTERNATIVE_LABEL, ZERO_OR_MORE, STRING),
-            _p(OM_COMMENT, ZERO_OR_ONE, STRING),
-            _p(OM_HAS_FACTOR, EXACTLY_ONE, FLOAT),
-            _p(OM_LABEL, EXACTLY_ONE, STRING),
-            _p(OM_LONG_COMMENT, ZERO_OR_ONE, STRING),
-            _p(OM_ALTERNATIVE_SYMBOL, ZERO_OR_MORE, STRING),
-            _p(OM_SYMBOL, EXACTLY_ONE, STRING),
+            _value(OM_ALTERNATIVE_LABEL, ZERO_OR_MORE, STRING),
+            _value(OM_COMMENT, ZERO_OR_ONE, STRING),
+            _value(OM_HAS_FACTOR, EXACTLY_ONE, FLOAT),
+            _value(OM_LABEL, EXACTLY_ONE, STRING),
+            _value(OM_LONG_COMMENT, ZERO_OR_ONE, STRING),
+            _value(OM_ALTERNATIVE_SYMBOL, ZERO_OR_MORE, STRING),
+            _value(OM_SYMBOL, EXACTLY_ONE, STRING),
         ),
     ),
     OM_SI_PREFIX: ClassSpec((OM_PREFIX,), ()),
     OM_BINARY_PREFIX: ClassSpec((OM_PREFIX,), ()),
 }
 
-#: Classes that make an object a TopLevel
-TOP_LEVEL_CLASSES: frozenset[str] = frozenset(
-    {
-        TOP_LEVEL,
-        ATTACHMENT,
-        COLLECTION,
-        COMBINATORIAL_DERIVATION,
-        COMPONENT,
-        EXPERIMENT,
-        EXPERIMENTAL_DATA,
-        IMPLEMENTATION,
-        MODEL,
-        SEQUENCE,
-        PROV_ACTIVITY,
-        PROV_AGENT,
-        PROV_PLAN,
-        OM_UNIT,
-        OM_SINGULAR_UNIT,
-        OM_COMPOUND_UNIT,
-        OM_UNIT_DIVISION,
-        OM_UNIT_EXPONENTIATION,
-        OM_UNIT_MULTIPLICATION,
-        OM_PREFIXED_UNIT,
-        OM_PREFIX,
-        OM_SI_PREFIX,
-        OM_BINARY_PREFIX,
-    }
-)
+#: the SBOL 3 data model
+SCHEMA = Schema(CLASS_SPECS, TOP_LEVEL)
 
 #: Order in which a multiply-typed object is assigned its primary typed kind (sbol-rs ``SbolObject`` dispatch)
 TYPED_DISPATCH_ORDER: tuple[str, ...] = (
@@ -591,47 +531,10 @@ TYPED_DISPATCH_ORDER: tuple[str, ...] = (
     OM_MEASURE,
 )
 
-KNOWN_PROPERTIES: frozenset[str] = frozenset(f.predicate for c in CLASS_SPECS.values() for f in c.fields)
-
-
-def _ancestors(class_iri: str) -> frozenset[str]:
-    result = {class_iri}
-    for parent in CLASS_SPECS[class_iri].parents:
-        result |= _ancestors(parent)
-    return frozenset(result)
-
-
-#: class IRI -> the class and every ancestor
-ANCESTORS: dict[str, frozenset[str]] = {iri: _ancestors(iri) for iri in CLASS_SPECS}
-
-
-def is_a(class_iri: str, target: str) -> bool:
-    """Whether a known class equals or inherits from ``target``."""
-    ancestors = ANCESTORS.get(class_iri)
-    return bool(ancestors and target in ancestors)
-
 
 def is_known_sbol_iri(iri: str) -> bool:
     """Whether an IRI is a known class, property, or vocabulary value."""
-    return iri in CLASS_SPECS or iri in KNOWN_PROPERTIES or iri in KNOWN_VALUE_IRIS
-
-
-def property_specs_for(rdf_types: Iterable[str]) -> dict[str, PropertySpec]:
-    """Allowed properties for an object with these rdf:types; subclass rows override inherited ones."""
-    specs: dict[str, PropertySpec] = {}
-
-    def collect(iri: str) -> None:
-        spec = CLASS_SPECS.get(iri)
-        if spec is None:
-            return
-        for parent in spec.parents:
-            collect(parent)
-        for field in spec.fields:
-            specs[field.predicate] = field
-
-    for rdf_type in sorted(rdf_types):
-        collect(rdf_type)
-    return specs
+    return iri in SCHEMA or iri in SCHEMA.predicates or iri in KNOWN_VALUE_IRIS
 
 
 def local_name(class_iri: str) -> str:

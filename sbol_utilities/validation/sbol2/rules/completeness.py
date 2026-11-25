@@ -45,8 +45,8 @@ def referenced_objects_present(ctx: Sbol2Context) -> None:
     """Every external reference names an object held in the document."""
     resolvable = _resolvable(ctx)
     for obj in ctx.sbol_objects:
-        for predicate, field in obj.fields.items():
-            reference = field.reference
+        for predicate, declared in obj.property_specs.items():
+            reference = declared.reference
             if reference is None or reference.local:
                 continue
             rule = S.completeness_rule(predicate, reference.target)
@@ -112,7 +112,7 @@ def referenced_object_classes(ctx: Sbol2Context) -> None:
                     rule, obj, f"`{predicate}` refers to `{iri}`, which is not the required class", property=predicate
                 )
         if obj.has_class(S.OM_MEASURE):
-            for iri in _wrong_class(ctx, obj, S.OM_HAS_UNIT, lambda t: any(t.has_class(c) for c in S.UNIT_CLASSES)):
+            for iri in _wrong_class(ctx, obj, S.OM_HAS_UNIT, lambda t: t.has_class(S.OM_UNIT)):
                 ctx.report(
                     "sbol2-13506", obj, f"the hasUnit of a Measure `{iri}` must refer to a Unit", property=S.OM_HAS_UNIT
                 )

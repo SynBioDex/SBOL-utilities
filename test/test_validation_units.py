@@ -9,6 +9,9 @@ from sbol_utilities.identifiers import is_valid_display_id
 from sbol_utilities.validation import ValidationConfig, validate_sbol3
 from sbol_utilities.validation.datatypes import I64_MAX, I64_MIN, is_date_time_lexical, is_float_lexical, parse_i64
 from sbol_utilities.validation.graphs import nodes_on_cycles, nodes_reaching, nodes_reaching_cycles
+from sbol_utilities.validation.sbol2 import spec as sbol2_spec
+from sbol_utilities.validation.sbol3 import spec as sbol3_spec
+from sbol_utilities.validation.schema import Cardinality, ClassSpec, PropertySpec, Schema, ValueKind
 from sbol_utilities.vocab import PROV, SBOL3, TYPE
 
 EX = "https://example.org/"
@@ -146,3 +149,59 @@ def test_float_lexical_form(text, valid):
 )
 def test_date_time_lexical_form(text, valid):
     assert is_date_time_lexical(text) is valid
+
+
+@pytest.mark.parametrize(
+    "cardinality, allowed",
+    [
+        (Cardinality.EXACTLY_ONE, [False, True, False]),
+        (Cardinality.ZERO_OR_ONE, [True, True, False]),
+        (Cardinality.ONE_OR_MORE, [False, True, True]),
+        (Cardinality.ZERO_OR_MORE, [True, True, True]),
+    ],
+)
+def test_cardinality_allows(cardinality, allowed):
+    assert [cardinality.allows(count) for count in (0, 1, 2)] == allowed
+
+
+def toy_schema() -> Schema:
+    name = PropertySpec("ex:name", Cardinality.ZERO_OR_ONE, ValueKind.STRING, rule="r-1")
+    required_name = PropertySpec("ex:name", Cardinality.EXACTLY_ONE, ValueKind.STRING, rule="r-2")
+    size = PropertySpec("ex:size", Cardinality.ZERO_OR_ONE, ValueKind.INTEGER)
+    return Schema(
+        {
+            "ex:Thing": ClassSpec((), (name,)),
+            "ex:Top": ClassSpec(("ex:Thing",)),
+            "ex:Part": ClassSpec(("ex:Top",), (required_name, size)),
+            "ex:Note": ClassSpec(("ex:Thing",)),
+        },
+        top_level="ex:Top",
+    )
+
+
+def test_schema_inheritance():
+    schema = toy_schema()
+    assert schema.ancestors("ex:Part") == {"ex:Part", "ex:Top", "ex:Thing"}
+    assert schema.ancestors("ex:Unknown") == frozenset()
+    assert schema.is_a("ex:Part", "ex:Thing") and not schema.is_a("ex:Thing", "ex:Part")
+    assert schema.top_level_classes == {"ex:Top", "ex:Part"}
+    assert "ex:Note" in schema and "ex:Unknown" not in schema
+
+
+def test_schema_properties():
+    schema = toy_schema()
+    assert schema.predicates == {"ex:name", "ex:size"}
+    assert schema.rules() == ["r-1", "r-2"]
+    assert schema.literal_datatypes()["ex:size"].endswith("#integer")
+    assert list(schema.properties_for(("ex:Note",))) == ["ex:name"]
+    part = schema.properties_for(("ex:Part", "ex:Unknown"))
+    assert list(part) == ["ex:name", "ex:size"]
+    assert part["ex:name"].cardinality is Cardinality.EXACTLY_ONE
+
+
+@pytest.mark.parametrize("spec", [sbol2_spec, sbol3_spec], ids=["sbol2", "sbol3"])
+def test_data_model_references_name_classes_of_the_model(spec):
+    for class_iri, declared in spec.SCHEMA.classes.items():
+        assert all(parent in spec.SCHEMA for parent in declared.parents), class_iri
+        for prop in declared.properties:
+            assert prop.reference is None or prop.reference.target in spec.SCHEMA, (class_iri, prop.predicate)

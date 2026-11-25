@@ -24,11 +24,11 @@ def sbol_vocabulary(ctx: SBOL3Context) -> None:
         has_sbol_type = any(t.startswith(SBOL3_NS) for t in obj.rdf_types)
         if has_sbol_property and not has_sbol_type:
             ctx.report("sbol3-10108", obj, "object has SBOL properties but no SBOL rdf:type")
-        allowed = spec.property_specs_for(obj.rdf_types)
+        allowed = spec.SCHEMA.properties_for(obj.rdf_types)
         for predicate in sorted(obj.properties):
             if not predicate.startswith(SBOL3_NS):
                 continue
-            if predicate not in spec.KNOWN_PROPERTIES:
+            if predicate not in spec.SCHEMA.predicates:
                 ctx.report("sbol3-10105", obj, f"unknown SBOL property `{predicate}`")
             elif predicate not in allowed:
                 ctx.report("sbol3-10109", obj, f"property `{predicate}` is not allowed for the object's SBOL type")
@@ -41,7 +41,7 @@ def sbol_types(ctx: SBOL3Context) -> None:
         classes = obj.classes
         for index, left in enumerate(classes):
             for right in classes[index + 1 :]:
-                if not spec.is_a(left, right) and not spec.is_a(right, left):
+                if not spec.SCHEMA.is_a(left, right) and not spec.SCHEMA.is_a(right, left):
                     ctx.report(
                         "sbol3-10106",
                         obj,

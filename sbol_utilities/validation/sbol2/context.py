@@ -12,7 +12,7 @@ under a property) are served from indexes built on first use.
 
 from __future__ import annotations
 
-from collections.abc import Iterator
+from collections.abc import Iterator, Mapping
 from dataclasses import dataclass
 from typing import Union
 
@@ -24,6 +24,7 @@ from sbol_utilities.validation.config import ValidationConfig
 from sbol_utilities.validation.datatypes import parse_i64
 from sbol_utilities.validation.ontology import Ontology
 from sbol_utilities.validation.sbol2 import spec
+from sbol_utilities.validation.schema import PropertySpec
 from sbol_utilities.vocab import RDF_TYPE, SBOL2_NS, XSD_STRING
 
 
@@ -57,7 +58,6 @@ class Obj:
         "is_sbol",
         "is_top_level",
         "display_id",
-        "_fields",
     )
 
     def __init__(self, identity: Resource, properties: dict[str, list[Term]], index: int = 0):
@@ -70,11 +70,10 @@ class Obj:
         )
         self.classes: set[str] = set()
         for rdf_type in self.rdf_types:
-            self.classes |= spec.ancestors(rdf_type)
-        self.is_sbol = any(t in spec.CLASSES for t in self.rdf_types)
-        self.is_top_level = any(t in spec.TOP_LEVEL_CLASSES for t in self.rdf_types)
+            self.classes |= spec.SCHEMA.ancestors(rdf_type)
+        self.is_sbol = any(t in spec.SCHEMA for t in self.rdf_types)
+        self.is_top_level = any(t in spec.SCHEMA.top_level_classes for t in self.rdf_types)
         self.display_id = self.literal(spec.DISPLAY_ID)
-        self._fields: dict[str, spec.Field] | None = None
 
     def __repr__(self) -> str:
         return f"Obj({self.identity!s})"
@@ -85,19 +84,13 @@ class Obj:
         return str(self.identity) if isinstance(self.identity, URIRef) else None
 
     @property
-    def fields(self) -> dict[str, spec.Field]:
-        """Schema fields of this object's classes, keyed by predicate (sorted)."""
-        if self._fields is None:
-            self._fields = spec.fields_for_types(self.rdf_types)
-        return self._fields
+    def property_specs(self) -> Mapping[str, PropertySpec]:
+        """The properties this object's classes declare, by predicate, in predicate order."""
+        return spec.SCHEMA.properties_for(self.rdf_types)
 
     def has_class(self, class_iri: str) -> bool:
         """Whether one of the object's types is ``class_iri`` or a subclass of it."""
         return class_iri in self.classes
-
-    def has_type(self, class_iri: str) -> bool:
-        """Whether the object carries exactly this rdf:type."""
-        return class_iri in self.rdf_types
 
     def values(self, predicate: str) -> list[Term]:
         """Every value of ``predicate``."""
@@ -265,4 +258,4 @@ def _sbol2_type(props: dict[str, list[Term]]) -> bool:
 def _is_model_relevant(props: dict[str, list[Term]]) -> bool:
     if any(not spec.is_extension_predicate(p) for p in props):
         return True
-    return any(isinstance(t, URIRef) and str(t) in spec.CLASSES for t in props.get(RDF_TYPE, ()))
+    return any(isinstance(t, URIRef) and str(t) in spec.SCHEMA for t in props.get(RDF_TYPE, ()))
