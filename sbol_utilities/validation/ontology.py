@@ -109,7 +109,7 @@ class Ontology:
         self.component_role_terms: set[str] = set()
         self.component_role_compatibilities: set[tuple[str, str]] = set()
         self.participation_compatibilities: set[tuple[str, str]] = set()
-        self._ancestors: dict[str, frozenset] = {}
+        self._ancestors: dict[str, frozenset[str]] = {}
 
     @classmethod
     def from_tsv(cls, text: str) -> Ontology:
@@ -255,7 +255,8 @@ class Ontology:
 
     # --- hierarchy ---
 
-    def _ancestor_set(self, term_id: str) -> frozenset:
+    def _ancestor_set(self, term_id: str) -> frozenset[str]:
+        """Every term a term descends from, computed once per term."""
         cached = self._ancestors.get(term_id)
         if cached is not None:
             return cached

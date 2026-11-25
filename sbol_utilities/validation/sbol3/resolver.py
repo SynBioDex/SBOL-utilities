@@ -309,6 +309,7 @@ _SEQUENTIAL_RELATIONS: dict[str, Callable[[LinearLocation, LinearLocation], bool
 
 
 def _feature_identity(ctx: Sbol3Context, feature: Node) -> FeatureIdentity | None:
+    """What ``feature`` stands for, when it resolves to a SubComponent or ExternallyDefined that says."""
     traced = _traced(ctx, feature)
     if traced is None:
         return None

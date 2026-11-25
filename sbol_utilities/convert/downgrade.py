@@ -148,7 +148,8 @@ PREDICATES: dict[str, str] = {
     )
 }
 
-#: the order in which sbol-rs's typed document model picks the class of a multiply-typed subject
+#: classes in the order they are tried for a subject with several rdf:types: the first one it has decides whether
+#: the subject is a top-level
 DISPATCH_ORDER = [
     S3.base + name
     for name in (

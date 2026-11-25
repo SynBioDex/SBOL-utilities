@@ -128,6 +128,11 @@ class Sbol2Object:
 
 
 def _term(node: rdflib.term.Node, predicate: str) -> Term:
+    """A graph value as the object model holds it.
+
+    A literal of a property the data model declares takes the datatype the model gives that property, whatever
+    datatype it was written with; any other literal keeps its own datatype or language, a plain one being a string.
+    """
     if isinstance(node, Literal):
         datatype = spec.LITERAL_DATATYPES.get(predicate)
         if datatype is not None:
@@ -144,32 +149,30 @@ def _object_order(node: Resource) -> tuple[int, str]:
     return (0 if isinstance(node, URIRef) else 1, str(node))
 
 
+def _properties(graph: rdflib.Graph, subject: Resource) -> dict[str, list[Term]]:
+    """A subject's distinct values by predicate, each list in the order the graph holds them.
+
+    rdflib keeps a subject's values in document order, which "first value" lookups rely on.
+    """
+    values: dict[str, dict[Term, None]] = {}
+    for p, o in graph.predicate_objects(subject):
+        predicate = str(p)
+        values.setdefault(predicate, {})[_term(o, predicate)] = None
+    return {predicate: list(distinct) for predicate, distinct in values.items()}
+
+
 class Sbol2Context(Context[Sbol2Object]):
     """Validation context holding the SBOL 2 object model and lookup indexes."""
 
     def __init__(self, graph: rdflib.Graph, config: ValidationConfig, catalog: Catalog, ontology: Ontology):
         super().__init__(graph, config, catalog, ontology)
-        properties: dict[Resource, dict[str, list[Term]]] = {}
-        seen: set[tuple[Resource, str, Term]] = set()
-        # Values are read per subject: rdflib keeps a subject's values in document order, which "first value"
-        # lookups rely on, while whole-graph iteration order varies with the process hash seed.
-        for s in sorted(set(graph.subjects()), key=_object_order):
-            if isinstance(s, Literal):
-                continue
-            for p, o in graph.predicate_objects(s):
-                predicate = str(p)
-                term = _term(o, predicate)
-                key = (s, predicate, term)
-                if key in seen:
-                    continue
-                seen.add(key)
-                properties.setdefault(s, {}).setdefault(predicate, []).append(term)
+        # subjects are visited in a fixed order, as whole-graph iteration order varies with the process hash seed
+        properties = {s: _properties(graph, s) for s in sorted(set(graph.subjects()), key=_object_order)}
         self.triple_count = len(graph)
         #: every object of the document, IRIs before blank nodes, each group sorted
         self.objects: list[Sbol2Object] = []
         self.by_identity: dict[Resource, Sbol2Object] = {}
-        for subject in sorted(properties, key=_object_order):
-            props = properties[subject]
+        for subject, props in properties.items():
             if not _is_model_relevant(props):
                 continue
             obj = Sbol2Object(subject, props, len(self.objects))

@@ -16,7 +16,7 @@ import sbol3
 
 from sbol_utilities.vocab import SBOL2_NS, SBOL3_NS
 
-#: Base IRI for resolving relative IRIs in documents that declare none (the base sbol-rs uses)
+#: Base IRI for resolving relative IRIs in documents that declare none; SBOLTestSuite's expected outputs use it too
 DEFAULT_BASE = "http://sbols.org/unspecified/"
 
 #: rdflib format names keyed by file extension

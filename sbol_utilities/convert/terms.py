@@ -116,8 +116,7 @@ def _unwrap(term) -> Term:
 def graph_triples(graph: rdflib.Graph) -> list[Triple]:
     """The graph's triples as engine tuples, in a stable (sorted) order.
 
-    ``xsd:string`` literals become simple literals: RDF 1.1 treats the two as the same term, and sbol-rs never
-    distinguishes them.
+    ``xsd:string`` literals become simple literals: RDF 1.1 treats the two as the same term.
     """
     triples = [(_unwrap(s), str(p), _unwrap(o)) for s, p, o in graph]
     triples.sort(key=_sort_key)

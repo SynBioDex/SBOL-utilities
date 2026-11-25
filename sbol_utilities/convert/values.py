@@ -109,8 +109,8 @@ def refinement_for(restriction: str, cref_is_subject: bool) -> str | None:
 
 
 # Literal datatypes the SBOL 2 data model assigns, by predicate. SBOL 2 files differ in how they type literals (RDF/XML
-# leaves ``sbol:start`` untyped where Turtle writes an integer), so sbol-rs normalizes every literal of a recognized
-# property to its model datatype before converting; extension properties keep their literals verbatim.
+# leaves ``sbol:start`` untyped where Turtle writes an integer), so every literal of a recognized property is retyped
+# to its model datatype before converting; extension properties keep their literals verbatim.
 SBOL2_LITERAL_DATATYPES: dict[str, str] = {
     S2.displayId: XSD_STRING,
     S2.version: XSD_STRING,

@@ -1,8 +1,8 @@
 """Indexed view of an SBOL 3 graph shared by every SBOL 3 rule implementation.
 
 The graph is indexed once: each subject that carries an rdf:type or any SBOL, PROV, or OM predicate becomes an
-:class:`Sbol3Object` (mirroring sbol-rs ``collect_objects``), objects are ordered by identity (IRIs before blank
-nodes), and composite parent/child edges are recorded in an ownership index.
+:class:`Sbol3Object`, objects are ordered by identity (IRIs before blank nodes), and composite parent/child edges
+are recorded in an ownership index.
 """
 
 from __future__ import annotations
@@ -142,8 +142,8 @@ class OwnershipIndex:
 def collect_objects(graph: rdflib.Graph) -> dict[Node, Sbol3Object]:
     """Index the graph's SBOL-relevant subjects, ordered by identity.
 
-    Property values keep the graph's insertion order (document order for a parsed file), so "first value" lookups
-    agree with sbol-rs, which reads values in document order.
+    Property values keep the graph's insertion order (document order for a parsed file), so a "first value" lookup
+    returns the value written first.
     """
     objects: dict[Node, Sbol3Object] = {}
     for subject in sorted(set(graph.subjects()), key=_term_order):

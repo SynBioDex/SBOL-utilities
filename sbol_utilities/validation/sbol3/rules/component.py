@@ -194,6 +194,7 @@ class SequenceInfo:
 
 
 def _sequence_infos(ctx: Sbol3Context, component: Sbol3Object) -> list[SequenceInfo]:
+    """The Sequences of a Component that are held in the document."""
     infos = []
     for sequence in ctx.referenced(component, spec.HAS_SEQUENCE):
         encoding = sequence.first_iri(spec.ENCODING)

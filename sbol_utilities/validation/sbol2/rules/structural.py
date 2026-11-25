@@ -1,5 +1,5 @@
 """Schema-driven structural rules: property cardinality, value kinds, composite children, closed property sets,
-enumerated vocabularies, and positional bounds. All run on every document (the libSBOLj always-on checks)."""
+enumerated vocabularies, and positional bounds. None of these rules is gated, so all run on every document."""
 
 from __future__ import annotations
 
