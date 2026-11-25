@@ -5,6 +5,7 @@ import tempfile
 import unittest
 import os
 import filecmp
+import inspect
 import collections
 from unittest.mock import patch
 
@@ -12,7 +13,7 @@ import sbol2
 import sbol3
 
 from sbol_utilities.conversion import convert2to3, convert3to2, convert_to_genbank, convert_to_fasta, \
-    convert_from_fasta, convert_from_genbank, \
+    convert_from_fasta, convert_from_genbank, convert_identities2to3, \
     main, sbol2fasta, sbol2genbank, sbol2to3, sbol3to2, fasta2sbol, genbank2sbol
 from sbol_utilities.sbol3_genbank_conversion import GenBankSBOL3Converter
 from helpers import copy_to_tmp, assert_files_identical
@@ -26,9 +27,7 @@ TEST_FILES = Path(__file__).parent / 'test_files'
 class Test2To3Conversion(unittest.TestCase):
     def test_convert_identities(self):
         """Test conversion of a complex file"""
-        test_dir = os.path.dirname(os.path.realpath(__file__))
-        # sbol3-small-molecule.rdf is a partially converted SBOL3 file that only the sbolgraph converter accepts
-        doc = convert2to3(str(TEST_FILES / 'sbol3-small-molecule.rdf'), converter='sbolgraph')
+        doc = convert2to3(str(TEST_FILES / 'sbol2-small-molecule.xml'))
         # check for issues in converted document
         report = doc.validate()
         assert len(report) == 0, "\n".join(str(issue) for issue in report)
@@ -37,17 +36,33 @@ class Test2To3Conversion(unittest.TestCase):
 
     def test_convert_object(self):
         """Test conversion of a loaded SBOL2 document"""
-        test_dir = os.path.dirname(os.path.realpath(__file__))
-        input_path = os.path.join(test_dir, 'test_files', 'sbol3-small-molecule.rdf')
         doc2 = sbol2.Document()
-        doc2.read(input_path)
-        # sbol3-small-molecule.rdf is a partially converted SBOL3 file that only the sbolgraph converter accepts
-        doc = convert2to3(doc2, converter='sbolgraph')
+        doc2.read(str(TEST_FILES / 'sbol2-small-molecule.xml'))
+        doc = convert2to3(doc2)
         # check for issues in converted document
         report = doc.validate()
         assert len(report) == 0, "\n".join(str(issue) for issue in report)
         # Expecting 9 top level objects, 4 Components, 4 Sequences, and 1 prov:Activity
         self.assertEqual(9, len(doc.objects))
+
+    def test_convert2to3_rejects_sbol3_input(self):
+        """An SBOL3 document is not accepted as SBOL2 input"""
+        with self.assertRaisesRegex(ValueError, 'already SBOL3'):
+            convert2to3(str(TEST_FILES / 'BBa_J23101.nt'))
+
+    def test_released_signatures(self):
+        """The conversion functions keep the parameters of the published sbol-utilities release"""
+        expected = {
+            convert2to3: ['sbol2_doc', 'namespaces'],
+            convert3to2: ['doc3'],
+            convert_identities2to3: ['sbol3_data'],
+            convert_to_fasta: ['doc3', 'path'],
+            convert_from_fasta: ['path', 'namespace', 'identity_map'],
+            convert_from_genbank: ['path', 'namespace', 'allow_genbank_online', 'force_new_converter'],
+            convert_to_genbank: ['doc3', 'path', 'allow_genbank_online', 'force_new_converter'],
+        }
+        for function, parameters in expected.items():
+            self.assertEqual(list(inspect.signature(function).parameters), parameters, function.__name__)
 
     def test_3to2_conversion(self):
         """Test ability to convert from SBOL3 to SBOL2"""
@@ -65,8 +80,7 @@ class Test2To3Conversion(unittest.TestCase):
         finally:
             sbol2.Config.setOption(sbol2.ConfigOptions.VALIDATE_ONLINE, validate_online)
         assert len(doc2.componentDefinitions) == 1, f'Expected 1 CD, but found {len(doc2.componentDefinitions)}'
-        # TODO: bring this back after resolution of https://github.com/sboltools/sbolgraph/issues/15
-        # assert len(doc2.activities) == 1, f'Expected 1 Activity, but found {len(doc2.activities)}'
+        assert len(doc2.activities) == 1, f'Expected 1 Activity, but found {len(doc2.activities)}'
         assert len(doc2.sequences) == 1, f'Expected 1 Sequence, but found {len(doc2.sequences)}'
         assert doc2.componentDefinitions[0].identity == 'https://synbiohub.org/public/igem/BBa_J23101'
         assert doc2.componentDefinitions[0].sequences[0] == 'https://synbiohub.org/public/igem/BBa_J23101_sequence'

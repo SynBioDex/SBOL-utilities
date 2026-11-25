@@ -21,10 +21,6 @@ sbol-utilities converts between SBOL 2 and SBOL 3, and validates both versions, 
 | `sbol_utilities/rdf_io.py`, `sbol_utilities/vocab.py` | RDF loading/serialization, SBOL version detection, shared namespaces |
 | `sbol_utilities/conversion.py` | The command-line converters and `convert2to3()` / `convert3to2()`, which return pySBOL documents |
 
-`sbol_utilities/sbol3_sbol2_conversion.py` (the pySBOL-based visitor) and the `sbolgraph` JavaScript converter
-are deprecated. They stay reachable through `convert2to3(..., converter='legacy_native' | 'sbolgraph')` until they
-are removed.
-
 ```python
 from sbol_utilities.convert import upgrade, downgrade
 from sbol_utilities.validation import validate
@@ -59,8 +55,7 @@ pip install -e '.[dev]' pre-commit
 pre-commit install
 ```
 
-The pre-commit hooks (isort, black, flake8, mypy) cover the conversion and validation packages, their tests, and
-`tools/`.
+The pre-commit hooks (isort, black, flake8, mypy) cover the conversion and validation packages and their tests.
 
 ## Tests and the SBOLTestSuite harness
 

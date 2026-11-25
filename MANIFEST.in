@@ -1,4 +1,3 @@
-include sbol_utilities/sbolgraph-standalone.js
 include sbol_utilities/validation/data/Rules/*.json
 include sbol_utilities/validation/data/Ontology/*.tsv
 include THIRD_PARTY_NOTICES.md

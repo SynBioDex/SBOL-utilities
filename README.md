@@ -22,8 +22,6 @@ pip3 install sbol-utilities
 
 Certain utilities also have non-Python dependencies, which must be installed separately:
 - `graph-sbol` requires [Graphviz](https://graphviz.org/) to be able to render diagrams.
-- `sbol-converter` needs [node.js](https://nodejs.org/en/) only for the deprecated `--converter sbolgraph` option;
-  SBOL2/SBOL3 conversion and validation otherwise run in pure Python.
 
 ## 🔗 Mapping: Command-Line Tools to Python Modules
 

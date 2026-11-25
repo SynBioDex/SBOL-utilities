@@ -97,7 +97,6 @@ setup(name='sbol-utilities',
       package_data={
           'sbol_utilities': [
               'gb2so.csv',
-              'sbolgraph-standalone.js',
               'so2gb.csv',
               'validation/data/Rules/*.json',
               'validation/data/Ontology/*.tsv',

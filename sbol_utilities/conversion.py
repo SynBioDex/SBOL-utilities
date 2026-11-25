@@ -1,10 +1,8 @@
 import argparse
 import logging
-import subprocess
-import os
+import re
 import sys
 import tempfile
-import urllib
 import warnings
 from typing import Union, Dict, List, Any, Optional
 
@@ -17,51 +15,15 @@ from Bio.Seq import Seq
 from sbol_utilities.convert import DowngradeOptions, UpgradeOptions, downgrade, upgrade
 from sbol_utilities.helper_functions import strip_sbol2_version, GENETIC_DESIGN_FILE_TYPES, \
     find_top_level
-from sbol_utilities.rdf_io import load_graph, to_sbol2_document, to_sbol3_document
+from sbol_utilities.rdf_io import detect_sbol_version, load_graph, to_sbol2_document, to_sbol3_document
 from sbol_utilities.sbol3_genbank_conversion import GenBankSBOL3Converter
-import sbol_utilities.sbol3_sbol2_conversion
 from sbol_utilities.validation import ValidationConfig, validate_sbol2, validate_sbol3
 from sbol_utilities.vocab import LEGACY_BACKPORT, SBOL2
 from sbol_utilities.workarounds import id_sort
 
-# sbol javascript executable based on https://github.com/sboltools/sbolgraph, used by the deprecated
-# 'sbolgraph' converter
-SBOLGRAPH = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'sbolgraph-standalone.js')
-
-#: Pure-Python converter in sbol_utilities.convert (the default)
-CONVERTER_SBOL_UTILITIES = 'sbol_utilities'
-#: Deprecated: the sbolgraph JavaScript converter, run through Node.js
-CONVERTER_SBOLGRAPH = 'sbolgraph'
-#: Deprecated: the pySBOL-based visitor in sbol_utilities.sbol3_sbol2_conversion
-CONVERTER_LEGACY_NATIVE = 'legacy_native'
-CONVERTERS = (CONVERTER_SBOL_UTILITIES, CONVERTER_SBOLGRAPH, CONVERTER_LEGACY_NATIVE)
-
-SBOL23_CONVERTER_HELP = ("SBOL2/SBOL3 converter: 'sbol_utilities' (default, pure Python); 'sbolgraph' and "
-                         "'legacy_native' are deprecated")
-SBOL23_FORCE_NEW_HELP = ('Accepted for compatibility: SBOL2/SBOL3 conversion uses the pure-Python converter unless '
-                         '--converter selects another.')
-
 #: Conversion output is checked against every rule except the completeness family, because converted designs
 #: routinely reference parts held in other documents
 CONVERSION_VALIDATION = ValidationConfig(complete=False, best_practice=False)
-
-
-def _select_converter(converter: Optional[str], use_native_converter: bool) -> str:
-    """Resolve the converter argument, warning when a deprecated converter is chosen."""
-    if converter is None:
-        converter = CONVERTER_LEGACY_NATIVE if use_native_converter else CONVERTER_SBOL_UTILITIES
-    elif use_native_converter:
-        raise ValueError('Pass either converter or use_native_converter, not both')
-    if converter not in CONVERTERS:
-        raise ValueError(f'Unknown converter {converter!r}; expected one of {CONVERTERS}')
-    if converter == CONVERTER_SBOLGRAPH:
-        warnings.warn("The 'sbolgraph' SBOL 2/3 converter is deprecated and will be removed; the default "
-                      "pure-Python converter (sbol_utilities.convert) replaces it.", DeprecationWarning, stacklevel=3)
-    elif converter == CONVERTER_LEGACY_NATIVE:
-        warnings.warn("use_native_converter / the 'legacy_native' SBOL 2/3 converter is deprecated and will be "
-                      "removed; the default pure-Python converter (sbol_utilities.convert) replaces it.",
-                      DeprecationWarning, stacklevel=3)
-    return converter
 
 
 def convert_identities2to3(sbol3_data: str) -> str:
@@ -69,13 +31,15 @@ def convert_identities2to3(sbol3_data: str) -> str:
 
     Takes RDF-XML data as a string, converts all SBOL2 identities into
     SBOL3 identities, and returns RDF-XML as a string.
+
+    Deprecated: :func:`convert2to3` produces SBOL3 identities directly.
     """
+    warnings.warn('convert_identities2to3 is deprecated and will be removed; convert2to3 produces SBOL3 identities '
+                  'directly.', DeprecationWarning, stacklevel=2)
     # Convert the /[version] identities of SBOL2 into identities for SBOL3
     g = rdflib.Graph().parse(data=sbol3_data, format=sbol3.RDF_XML)
 
-    # TODO: remove workaround after conversion errors fixed in https://github.com/sboltools/sbolgraph/issues/14
     # for all objects in the prov namespace, add an SBOL type
-    # TODO: likely need to do this for OM namespace too
     for s, p, o in g.triples((None, rdflib.RDF.type, None)):
         if o.startswith(sbol3.PROV_NS):
             if str(o) in {sbol3.PROV_ASSOCIATION, sbol3.PROV_USAGE}:
@@ -110,8 +74,7 @@ def convert_identities2to3(sbol3_data: str) -> str:
     return g.serialize(format="xml")
 
 
-def convert2to3(sbol2_doc: Union[str, sbol2.Document], namespaces=None, use_native_converter: bool = False,
-                converter: Optional[str] = None, preserve_backport: bool = True) -> sbol3.Document:
+def convert2to3(sbol2_doc: Union[str, sbol2.Document], namespaces=None) -> sbol3.Document:
     """Convert an SBOL2 document to an equivalent SBOL3 document
 
     The conversion runs in pure Python (:func:`sbol_utilities.convert.upgrade`) and its output is checked with
@@ -119,21 +82,19 @@ def convert2to3(sbol2_doc: Union[str, sbol2.Document], namespaces=None, use_nati
 
     :param sbol2_doc: Document to convert, or the path of an SBOL2 file
     :param namespaces: list of URI prefixes to treat as namespaces
-    :param use_native_converter: deprecated; selects the 'legacy_native' converter
-    :param converter: 'sbol_utilities' (default), or the deprecated 'sbolgraph' or 'legacy_native'
-    :param preserve_backport: record the SBOL2 detail a later SBOL3-to-SBOL2 conversion needs, as
-        https://sbols.org/backport/2_3# annotations
     :return: equivalent SBOL3 document
-    :raises ValueError: if the converted document violates an SBOL3 validation rule
+    :raises ValueError: if the input is not SBOL2, or the converted document violates an SBOL3 validation rule
     """
-    converter = _select_converter(converter, use_native_converter)
-    if converter == CONVERTER_LEGACY_NATIVE:
-        return sbol_utilities.sbol3_sbol2_conversion.convert2to3(sbol2_doc, namespaces)
-    if converter == CONVERTER_SBOLGRAPH:
-        return _sbolgraph_convert2to3(sbol2_doc, namespaces)
+    return _upgrade(sbol2_doc, namespaces, preserve_backport=True)
 
+
+def _upgrade(sbol2_doc: Union[str, sbol2.Document], namespaces, preserve_backport: bool) -> sbol3.Document:
+    """Convert SBOL2 to SBOL3, optionally without the https://sbols.org/backport/2_3# round-trip annotations"""
+    source = _without_legacy_backport(sbol2_doc)
+    if detect_sbol_version(source) == 3:
+        raise ValueError('Cannot convert from SBOL2 to SBOL3: the input is already SBOL3')
     options = UpgradeOptions(namespaces=list(namespaces) if namespaces else None, preserve_backport=preserve_backport)
-    graph, conversion_report = upgrade(_without_legacy_backport(sbol2_doc), options)
+    graph, conversion_report = upgrade(source, options)
     for warning in conversion_report.warnings:
         logging.warning('SBOL2-to-SBOL3 conversion: %s', warning)
     validation_report = validate_sbol3(graph, CONVERSION_VALIDATION)
@@ -144,10 +105,10 @@ def convert2to3(sbol2_doc: Union[str, sbol2.Document], namespaces=None, use_nati
 
 
 def _without_legacy_backport(source: Union[str, sbol2.Document, sbol3.Document]) -> rdflib.Graph:
-    """The source's triples minus annotations in the deprecated http://sboltools.org/backport# namespace.
+    """The source's triples minus annotations in the http://sboltools.org/backport# namespace.
 
-    Those annotations are conversion metadata written by the deprecated sbolgraph and pySBOL-based converters; the
-    converter records its own in https://sbols.org/backport/2_3#.
+    Those annotations are conversion metadata written by the sbolgraph converter; the converter records its own in
+    https://sbols.org/backport/2_3#.
     """
     graph = rdflib.Graph()
     for triple in load_graph(source):
@@ -156,101 +117,19 @@ def _without_legacy_backport(source: Union[str, sbol2.Document, sbol3.Document])
     return graph
 
 
-def _sbolgraph_convert2to3(sbol2_doc: Union[str, sbol2.Document], namespaces=None) -> sbol3.Document:
-    """Convert SBOL2 to SBOL3 with the sbolgraph JavaScript converter, patching its known output errors"""
-    # if we've started with a Document in memory, write it to a temp file
-    if namespaces is None:
-        namespaces = []
-    if isinstance(sbol2_doc, sbol2.Document):
-        sbol2_path = tempfile.mkstemp(suffix='.xml')[1]
-        validate_online = sbol2.Config.getOption(sbol2.ConfigOptions.VALIDATE_ONLINE)
-        try:
-            sbol2.Config.setOption(sbol2.ConfigOptions.VALIDATE_ONLINE, False)
-            sbol2_doc.write(sbol2_path)
-        finally:
-            sbol2.Config.setOption(sbol2.ConfigOptions.VALIDATE_ONLINE, validate_online)
-    else:
-        sbol2_path = sbol2_doc
+def _without_sbol2_properties(graph: rdflib.Graph) -> rdflib.Graph:
+    """The SBOL3 graph minus properties in the SBOL2 namespace.
 
-    cmd = ['node', SBOLGRAPH, '-output', 'sbol3',
-           'import', sbol2_path,
-           'convert', '--target-sbol-version', '3']
-    # This will raise an exception if the command fails
-    try:
-        proc = subprocess.run(cmd, capture_output=True, check=True)
-        # Extract the rdf_xml output from the sbol converter
-        rdf_xml = proc.stdout.decode('utf-8')
-    except subprocess.CalledProcessError:
-        raise ValueError('Embedded SBOL 2-to-3 converter failed opaquely, indicating a likely invalid SBOL file.')
-    # Post-process the conversion by updating object identities
-    rdf_xml = convert_identities2to3(rdf_xml)
-    doc = sbol3.Document()
-    doc.read_string(rdf_xml, sbol3.RDF_XML)
-
-    # TODO: remove workaround after conversion errors fixed in https://github.com/sboltools/sbolgraph/issues/14
-    # add in the missing namespace fields where possible, defaulting otherwise
-    # TODO: add check for non-TopLevel? See https://github.com/SynBioDex/pySBOL3/issues/295
-    needs_namespace = {o for o in doc.objects if o.namespace is None}
-    for n in namespaces:
-        assignable = {o for o in needs_namespace if o.identity.startswith(n)}
-        for a in assignable:
-            a.namespace = n
-        needs_namespace = needs_namespace - assignable
-    for o in needs_namespace:  # if no supplied namespace matches, default to scheme//netloc
-        # figure out the server to access from the URL
-        p = urllib.parse.urlparse(o.identity)
-        server = urllib.parse.urlunparse([p.scheme, p.netloc, '', '', '', ''])
-        o.namespace = server
-    # infer sequences for locations:
-    for s in (o for o in doc.objects if isinstance(o, sbol3.Component)):
-        if len(s.sequences) != 1:  # can only infer sequences if there is precisely one
-            continue
-        for f in (f for f in s.features if isinstance(f, sbol3.SequenceFeature) or isinstance(f, sbol3.SubComponent)):
-            for loc in f.locations:
-                loc.sequence = s.sequences[0]
-    # TODO: remove remap workarounds after conversions error fixed in https://github.com/sboltools/sbolgraph/issues/17
-    # remap sequence encodings:
-    encoding_remapping = {
-        sbol2.SBOL_ENCODING_IUPAC: sbol3.IUPAC_DNA_ENCODING,
-        sbol2.SBOL_ENCODING_IUPAC_PROTEIN: sbol3.IUPAC_PROTEIN_ENCODING,
-        sbol2.SBOL_ENCODING_SMILES: sbol3.SMILES_ENCODING
-    }
-    for s in (o for o in doc.objects if isinstance(o, sbol3.Sequence)):
-        if s.encoding in encoding_remapping:
-            s.encoding = encoding_remapping[s.encoding]
-    # remap component types:
-    type_remapping = {
-        sbol2.BIOPAX_DNA: sbol3.SBO_DNA,
-        sbol2.BIOPAX_RNA: sbol3.SBO_RNA,
-        sbol2.BIOPAX_PROTEIN: sbol3.SBO_PROTEIN,
-        sbol2.BIOPAX_SMALL_MOLECULE: sbol3.SBO_SIMPLE_CHEMICAL,
-        sbol2.BIOPAX_COMPLEX: sbol3.SBO_NON_COVALENT_COMPLEX
-    }
-    for c in (o for o in doc.objects if isinstance(o, sbol3.Component)):
-        c.types = [(type_remapping[t] if t in type_remapping else t) for t in c.types]
-
-    # remap orientation types
-    orientation_remapping = {
-        sbol2.SBOL_ORIENTATION_INLINE: sbol3.SBOL_INLINE,
-        sbol2.SBOL_ORIENTATION_REVERSE_COMPLEMENT: sbol3.SBOL_REVERSE_COMPLEMENT
-    }
-
-    def change_orientation(o):
-        if isinstance(o, sbol3.Location):
-            if hasattr(o, 'orientation') and o.orientation in orientation_remapping:
-                o.orientation = orientation_remapping[o.orientation]
-    doc.traverse(change_orientation)
-
-    report = doc.validate()
-    if len(report):
-        report_string = "\n".join(str(e) for e in doc.validate())
-        raise ValueError(f'Conversion from SBOL2 to SBOL3 produced an invalid document: {report_string}')
-
-    return doc
+    The sbolgraph converter leaves SBOL2 identity properties (such as persistentIdentity) in its SBOL3 output; the
+    downgrade derives every SBOL2 identity property itself.
+    """
+    for triple in list(graph):
+        if str(triple[1]).startswith(str(SBOL2)):
+            graph.remove(triple)
+    return graph
 
 
-def convert3to2(doc3: sbol3.Document, use_native_converter: bool = False, converter: Optional[str] = None,
-                default_version: Optional[str] = None) -> sbol2.Document:
+def convert3to2(doc3: sbol3.Document) -> sbol2.Document:
     """Convert an SBOL3 document to an equivalent SBOL2 document
 
     The conversion runs in pure Python (:func:`sbol_utilities.convert.downgrade`) and its output is checked with
@@ -258,19 +137,16 @@ def convert3to2(doc3: sbol3.Document, use_native_converter: bool = False, conver
     modified.
 
     :param doc3: Document to convert
-    :param use_native_converter: deprecated; selects the 'legacy_native' converter
-    :param converter: 'sbol_utilities' (default), or the deprecated 'sbolgraph' or 'legacy_native'
-    :param default_version: SBOL2 version for objects whose SBOL3 IRI carries none (default: leave them unversioned)
     :return: equivalent SBOL2 document
     :raises ValueError: if the converted document violates an SBOL2 validation rule
     """
-    converter = _select_converter(converter, use_native_converter)
-    if converter == CONVERTER_LEGACY_NATIVE:
-        return sbol_utilities.sbol3_sbol2_conversion.convert3to2(doc3)
-    if converter == CONVERTER_SBOLGRAPH:
-        return _sbolgraph_convert3to2(doc3)
+    return _downgrade(doc3, default_version=None)
 
-    graph, conversion_report = downgrade(_without_legacy_backport(doc3), DowngradeOptions(default_version=default_version))
+
+def _downgrade(doc3: sbol3.Document, default_version: Optional[str]) -> sbol2.Document:
+    """Convert SBOL3 to SBOL2, giving default_version to objects whose SBOL3 IRI carries no version"""
+    source = _without_sbol2_properties(_without_legacy_backport(doc3))
+    graph, conversion_report = downgrade(source, DowngradeOptions(default_version=default_version))
     for warning in conversion_report.warnings:
         logging.warning('SBOL3-to-SBOL2 conversion: %s', warning)
     validation_report = validate_sbol2(graph, CONVERSION_VALIDATION)
@@ -278,7 +154,30 @@ def convert3to2(doc3: sbol3.Document, use_native_converter: bool = False, conver
         report_string = "\n".join(str(e) for e in validation_report.errors)
         raise ValueError(f'Conversion from SBOL3 to SBOL2 produced an invalid document: {report_string}')
     _drop_location_sequences(graph)
+    _add_activity_time_milliseconds(graph)
     return to_sbol2_document(graph)
+
+
+#: An xsd:dateTime lexical form with whole seconds: date and time, then an optional time zone
+WHOLE_SECOND_DATETIME = re.compile(r'^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})(Z|[+-]\d{2}:\d{2})?$')
+
+#: PROV Activity properties whose dateTime values libSBOLj parses
+ACTIVITY_TIMES = (rdflib.URIRef(sbol3.PROV_NS + 'startedAtTime'), rdflib.URIRef(sbol3.PROV_NS + 'endedAtTime'))
+
+
+def _add_activity_time_milliseconds(graph: rdflib.Graph) -> None:
+    """Write Activity start and end times with milliseconds, which libSBOLj requires.
+
+    libSBOLj, which pySBOL2 uses to validate and to export GenBank, rejects a valid xsd:dateTime without fractional
+    seconds (sbol-12403). The rewritten value denotes the same instant.
+    """
+    for predicate in ACTIVITY_TIMES:
+        for subject, value in list(graph.subject_objects(predicate)):
+            match = WHOLE_SECOND_DATETIME.match(str(value)) if isinstance(value, rdflib.Literal) else None
+            if match:
+                graph.remove((subject, predicate, value))
+                lexical = f'{match.group(1)}.000{match.group(2) or ""}'
+                graph.add((subject, predicate, rdflib.Literal(lexical, datatype=value.datatype)))
 
 
 def _drop_location_sequences(graph: rdflib.Graph) -> None:
@@ -290,78 +189,6 @@ def _drop_location_sequences(graph: rdflib.Graph) -> None:
     """
     for location in set(graph.objects(None, SBOL2.location)):
         graph.remove((location, SBOL2.sequence, None))
-
-
-def _sbolgraph_convert3to2(doc3: sbol3.Document) -> sbol2.Document:
-    """Convert SBOL3 to SBOL2 with the sbolgraph JavaScript converter, patching its known input and output errors"""
-    # TODO: remove workarounds after conversion errors fixed in https://github.com/sboltools/sbolgraph/issues/16
-    # remap sequence encodings:
-    encoding_remapping = {
-        sbol3.IUPAC_DNA_ENCODING: sbol2.SBOL_ENCODING_IUPAC,
-        sbol3.IUPAC_PROTEIN_ENCODING: sbol2.SBOL_ENCODING_IUPAC_PROTEIN,
-        sbol3.SMILES_ENCODING: sbol2.SBOL_ENCODING_SMILES
-    }
-    for s in (o for o in doc3.objects if isinstance(o, sbol3.Sequence)):
-        if s.encoding in encoding_remapping:
-            s.encoding = encoding_remapping[s.encoding]
-    # remap component types:
-    type_remapping = {
-        sbol3.SBO_DNA: sbol2.BIOPAX_DNA,
-        sbol3.SBO_RNA: sbol2.BIOPAX_RNA,
-        sbol3.SBO_PROTEIN: sbol2.BIOPAX_PROTEIN,
-        sbol3.SBO_SIMPLE_CHEMICAL: sbol2.BIOPAX_SMALL_MOLECULE,
-        sbol3.SBO_NON_COVALENT_COMPLEX: sbol2.BIOPAX_COMPLEX
-    }
-    for c in (o for o in doc3.objects if isinstance(o, sbol3.Component)):
-        c.types = [(type_remapping[t] if t in type_remapping else t) for t in c.types]
-
-    # remap orientation types
-    orientation_remapping = {
-        sbol3.SBOL_INLINE: sbol2.SBOL_ORIENTATION_INLINE,
-        sbol3.SBOL_REVERSE_COMPLEMENT: sbol2.SBOL_ORIENTATION_REVERSE_COMPLEMENT
-    }
-
-    def change_orientation(o):
-        if isinstance(o, sbol3.Location) or isinstance(o, sbol3.Feature):
-            if o.orientation in orientation_remapping:
-                o.orientation = orientation_remapping[o.orientation]
-    doc3.traverse(change_orientation)
-
-    # Write to an RDF-XML temp file to run through the converter:
-    sbol3_path = tempfile.mkstemp(suffix='.xml')[1]
-    doc3.write(sbol3_path, sbol3.RDF_XML)
-
-    # Run the actual conversion and return the resulting document
-    cmd = ['node', SBOLGRAPH, '-output', 'sbol2',
-           'import', sbol3_path,
-           'convert', '--target-sbol-version', '2']
-    # This will raise an exception if the command fails
-    try:
-        proc = subprocess.run(cmd, capture_output=True, check=True)
-        # Extract the rdf_xml output from the sbol converter
-        rdf_xml = proc.stdout.decode('utf-8')
-    except subprocess.CalledProcessError:
-        raise ValueError('Embedded SBOL 3-to-2 converter failed opaquely, possibly indicating an invalid SBOL file.')
-
-    doc2 = sbol2.Document()
-    doc2.readString(rdf_xml)
-    # TODO: remove workaround after resolution of https://github.com/SynBioDex/libSBOLj/issues/621
-    for c in doc2.componentDefinitions:
-        for sa in c.sequenceAnnotations:
-            for loc in sa.locations:
-                loc.sequence = None  # remove optional sequences, per https://github.com/SynBioDex/libSBOLj/issues/621
-
-    # Validate document offline
-    validate_online = sbol2.Config.getOption(sbol2.ConfigOptions.VALIDATE_ONLINE)
-    try:
-        sbol2.Config.setOption(sbol2.ConfigOptions.VALIDATE_ONLINE, False)
-        result = doc2.validate()
-        if not result == "Valid.":
-            raise ValueError(f'Conversion from SBOL3 to SBOL2 produced an invalid document: {result}')
-    finally:
-        sbol2.Config.setOption(sbol2.ConfigOptions.VALIDATE_ONLINE, validate_online)
-
-    return doc2
 
 
 def convert_to_fasta(doc3: sbol3.Document, path: str) -> None:
@@ -441,7 +268,7 @@ def convert_from_genbank(path: str, namespace: str, allow_genbank_online: bool =
     # identities are {namespace}/{genbank_id}
     graph = load_graph(doc2)
     _drop_sbol2_versions(graph)
-    doc = convert2to3(to_sbol2_document(graph), [namespace], preserve_backport=False)
+    doc = _upgrade(to_sbol2_document(graph), [namespace], preserve_backport=False)
     return doc
 
 
@@ -482,7 +309,7 @@ def convert_to_genbank(doc3: sbol3.Document, path: str, allow_genbank_online: bo
         return result_dict["seqrecords"]
     # first convert to SBOL2, then export to a temp GenBank file
     # GenBank records carry a version (VERSION <accession>.<n>); unversioned designs are exported as version 1
-    doc2 = convert3to2(doc3, default_version='1')
+    doc2 = _downgrade(doc3, default_version='1')
 
     # TODO: remove this kludge after resolution of https://github.com/SynBioDex/libSBOLj/issues/622
     keepers = {'http://sbols.org/v2', 'http://www.w3.org/ns/prov', 'http://purl.org/dc/terms/',
@@ -553,7 +380,7 @@ def command_line_converter(args_dict: Dict[str, Any]):
     elif input_file_type == 'SBOL2':
         doc2 = sbol2.Document()
         doc2.read(input_file)
-        doc3 = convert2to3(doc2, [namespace] if namespace else [], converter=args_dict.get('converter'))
+        doc3 = convert2to3(doc2, [namespace] if namespace else [])
     elif input_file_type == 'SBOL3':
         doc3 = sbol3.Document()
         doc3.read(input_file)
@@ -567,7 +394,7 @@ def command_line_converter(args_dict: Dict[str, Any]):
     elif output_file_type == 'GenBank':
         convert_to_genbank(doc3, output_file, args_dict['allow_genbank_online'], args_dict['force_new_converter'])
     elif output_file_type == 'SBOL2':
-        doc2 = convert3to2(doc3, converter=args_dict.get('converter'))
+        doc2 = convert3to2(doc3)
         validate_online = sbol2.Config.getOption(sbol2.ConfigOptions.VALIDATE_ONLINE)
         try:
             sbol2.Config.setOption(sbol2.ConfigOptions.VALIDATE_ONLINE, False)
@@ -596,8 +423,6 @@ def main():
                         help='Perform GenBank conversion using online converter')
     parser.add_argument('--force-new-converter', dest='force_new_converter', action='store_true', default=False,
                         help='Use the direct GenBank converter instead of the pySBOL2-based GenBank converter.')
-    parser.add_argument('--converter', dest='converter', choices=CONVERTERS, default=None,
-                        help=SBOL23_CONVERTER_HELP)
     args_dict = vars(parser.parse_args())
     # Call the shared command-line conversion routine
     command_line_converter(args_dict)
@@ -649,10 +474,6 @@ def sbol2to3():
                         help='Namespace URL, optional for conversions from SBOL2')
     parser.add_argument('-o', '--output', dest='output_file', default='out',
                         help='Name of output file to be written')
-    parser.add_argument('--force-new-converter', dest='force_new_converter', action='store_true', default=False,
-                        help=SBOL23_FORCE_NEW_HELP)
-    parser.add_argument('--converter', dest='converter', choices=CONVERTERS, default=None,
-                        help=SBOL23_CONVERTER_HELP)
     parser.add_argument('--verbose', '-v', dest='verbose', action='count', default=0,
                         help="Print running explanation of conversion process")
     args_dict = vars(parser.parse_args())
@@ -704,10 +525,6 @@ def sbol3to2():
     parser.add_argument('input_file', help='Genetic design file used as input')
     parser.add_argument('-o', '--output', dest='output_file', default='out',
                         help='Name of output file to be written')
-    parser.add_argument('--force-new-converter', dest='force_new_converter', action='store_true', default=False,
-                        help=SBOL23_FORCE_NEW_HELP)
-    parser.add_argument('--converter', dest='converter', choices=CONVERTERS, default=None,
-                        help=SBOL23_CONVERTER_HELP)
     parser.add_argument('--verbose', '-v', dest='verbose', action='count', default=0,
                         help="Print running explanation of conversion process")
     args_dict = vars(parser.parse_args())

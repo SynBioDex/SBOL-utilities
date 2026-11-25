@@ -16,7 +16,7 @@ OM = Namespace("http://www.ontology-of-units-of-measure.org/resource/om-2/")
 DCTERMS = Namespace("http://purl.org/dc/terms/")
 #: Conversion-provenance namespace of the SynBioDex/SBOL-Converter reference, also used by sbol-rs
 BACKPORT = Namespace("https://sbols.org/backport/2_3#")
-#: Backport namespace written by the deprecated sbol_utilities.sbol3_sbol2_conversion visitor
+#: Backport namespace written by the sbolgraph converter
 LEGACY_BACKPORT = Namespace("http://sboltools.org/backport#")
 
 XSD_NS = "http://www.w3.org/2001/XMLSchema#"

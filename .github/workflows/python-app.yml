@@ -38,9 +38,6 @@ jobs:
         python -m pip install interrogate
     - name: Setup Graphviz
       uses: ts-graphviz/setup-graphviz@v2
-    - name: Show Node.js version
-      run: |
-        node --version
     - name: Cache the SBOLTestSuite corpus
       uses: actions/cache@v4
       with:
@@ -84,9 +81,6 @@ jobs:
         python -m pip install pytest
     - name: Setup Graphviz
       uses: ts-graphviz/setup-graphviz@v2
-    - name: Show Node.js version
-      run: |
-        node --version
     - name: Test external API functionality (complexity scoring)
       run: |
         pip install .
