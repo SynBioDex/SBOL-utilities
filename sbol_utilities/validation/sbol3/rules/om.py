@@ -3,16 +3,9 @@
 from __future__ import annotations
 
 from sbol_utilities.validation.sbol3 import spec
-from sbol_utilities.validation.sbol3.context import Sbol3Context, Sbol3Object
+from sbol_utilities.validation.sbol3.context import Sbol3Context
 from sbol_utilities.validation.sbol3.helpers import SBO_SYSTEMS_DESCRIPTION_PARAMETER
 from sbol_utilities.validation.sbol3.registry import REGISTRY
-
-
-def _matching_literals(ctx: Sbol3Context, obj: Sbol3Object, rule: str, left: str, right: str, message: str) -> None:
-    left_value = obj.first_literal(left)
-    right_value = obj.first_literal(right)
-    if left_value is not None and right_value is not None and left_value != right_value:
-        ctx.report(rule, obj, message, property=right)
 
 
 @REGISTRY.rule("sbol3-13401")
@@ -30,31 +23,32 @@ def measures(ctx: Sbol3Context) -> None:
                 )
 
 
-@REGISTRY.rule("sbol3-13501", "sbol3-13502", "sbol3-14201", "sbol3-14202")
+#: (class, SBOL property, OM property holding the same text, rule, message)
+_MATCHING_STRINGS = (
+    (spec.OM_UNIT, spec.NAME, spec.OM_LABEL, "sbol3-13501", "om:Unit sbol:name and om:label should match"),
+    (
+        spec.OM_UNIT,
+        spec.DESCRIPTION,
+        spec.OM_COMMENT,
+        "sbol3-13502",
+        "om:Unit sbol:description and om:comment should match",
+    ),
+    (spec.OM_PREFIX, spec.NAME, spec.OM_LABEL, "sbol3-14201", "om:Prefix sbol:name and om:label should match"),
+    (
+        spec.OM_PREFIX,
+        spec.DESCRIPTION,
+        spec.OM_COMMENT,
+        "sbol3-14202",
+        "om:Prefix sbol:description and om:comment should match",
+    ),
+)
+
+
+@REGISTRY.rule(*(rule for _, _, _, rule, _ in _MATCHING_STRINGS))
 def unit_and_prefix_strings(ctx: Sbol3Context) -> None:
     """sbol:name / om:label and sbol:description / om:comment agree on Units and Prefixes."""
-    for obj in ctx.objects.values():
-        if obj.has_class(spec.OM_UNIT):
-            _matching_literals(
-                ctx, obj, "sbol3-13501", spec.NAME, spec.OM_LABEL, "om:Unit sbol:name and om:label should match"
-            )
-            _matching_literals(
-                ctx,
-                obj,
-                "sbol3-13502",
-                spec.DESCRIPTION,
-                spec.OM_COMMENT,
-                "om:Unit sbol:description and om:comment should match",
-            )
-        if obj.has_class(spec.OM_PREFIX):
-            _matching_literals(
-                ctx, obj, "sbol3-14201", spec.NAME, spec.OM_LABEL, "om:Prefix sbol:name and om:label should match"
-            )
-            _matching_literals(
-                ctx,
-                obj,
-                "sbol3-14202",
-                spec.DESCRIPTION,
-                spec.OM_COMMENT,
-                "om:Prefix sbol:description and om:comment should match",
-            )
+    for class_iri, sbol_property, om_property, rule, message in _MATCHING_STRINGS:
+        for obj in ctx.instances(class_iri):
+            sbol_text, om_text = obj.first_literal(sbol_property), obj.first_literal(om_property)
+            if sbol_text is not None and om_text is not None and sbol_text != om_text:
+                ctx.report(rule, obj, message, property=om_property)

@@ -6,51 +6,46 @@ from sbol_utilities.validation.sbol3 import spec
 from sbol_utilities.validation.sbol3.context import Sbol3Context
 from sbol_utilities.validation.sbol3.registry import REGISTRY
 
+#: (class, property, the values it may take, rule, what an unrecognized value is called)
+_VOCABULARIES = (
+    (spec.FEATURE, spec.ORIENTATION, spec.ORIENTATION_IRIS, "sbol3-10702", "Feature orientation"),
+    (spec.LOCATION, spec.ORIENTATION, spec.ORIENTATION_IRIS, "sbol3-11301", "Location orientation"),
+    (spec.SUB_COMPONENT, spec.ROLE_INTEGRATION, spec.ROLE_INTEGRATION_IRIS, "sbol3-10801", "roleIntegration"),
+)
 
-@REGISTRY.rule("sbol3-10701", "sbol3-10702", "sbol3-11301", "sbol3-10801", "sbol3-10802")
-def feature_vocabularies(ctx: Sbol3Context) -> None:
-    """Feature roles and orientations, Location orientations, and SubComponent roleIntegration."""
-    ontology = ctx.ontology
-    for obj in ctx.objects.values():
-        if obj.has_class(spec.FEATURE):
-            for role in obj.iris(spec.ROLE):
-                if ontology.is_feature_role_term(str(role)) is False:
-                    ctx.report(
-                        "sbol3-10701",
-                        obj,
-                        f"Feature role `{role}` is not an ontology Feature role term",
-                        property=spec.ROLE,
-                    )
-            for orientation in obj.iris(spec.ORIENTATION):
-                if str(orientation) not in spec.ORIENTATION_IRIS:
-                    ctx.report(
-                        "sbol3-10702",
-                        obj,
-                        f"unsupported Feature orientation `{orientation}`",
-                        property=spec.ORIENTATION,
-                    )
-        if obj.has_class(spec.LOCATION):
-            for orientation in obj.iris(spec.ORIENTATION):
-                if str(orientation) not in spec.ORIENTATION_IRIS:
-                    ctx.report(
-                        "sbol3-11301",
-                        obj,
-                        f"unsupported Location orientation `{orientation}`",
-                        property=spec.ORIENTATION,
-                    )
-        if obj.has_class(spec.SUB_COMPONENT):
-            for role_integration in obj.iris(spec.ROLE_INTEGRATION):
-                if str(role_integration) not in spec.ROLE_INTEGRATION_IRIS:
-                    ctx.report(
-                        "sbol3-10801",
-                        obj,
-                        f"unsupported roleIntegration `{role_integration}`",
-                        property=spec.ROLE_INTEGRATION,
-                    )
-            if obj.values(spec.ROLE) and not obj.values(spec.ROLE_INTEGRATION):
+
+@REGISTRY.rule(*(rule for _, _, _, rule, _ in _VOCABULARIES))
+def controlled_values(ctx: Sbol3Context) -> None:
+    """Orientations and roleIntegration take values from their SBOL vocabularies."""
+    for class_iri, predicate, allowed, rule, name in _VOCABULARIES:
+        for obj in ctx.instances(class_iri):
+            for value in obj.iris(predicate):
+                if str(value) not in allowed:
+                    ctx.report(rule, obj, f"unsupported {name} `{value}`", property=predicate)
+
+
+@REGISTRY.rule("sbol3-10701")
+def feature_roles(ctx: Sbol3Context) -> None:
+    """A Feature role that the ontology snapshot knows is a Feature role term."""
+    for obj in ctx.instances(spec.FEATURE):
+        for role in obj.iris(spec.ROLE):
+            if ctx.ontology.is_feature_role_term(str(role)) is False:
                 ctx.report(
-                    "sbol3-10802",
+                    "sbol3-10701",
                     obj,
-                    "SubComponent with role values must provide roleIntegration",
-                    property=spec.ROLE_INTEGRATION,
+                    f"Feature role `{role}` is not an ontology Feature role term",
+                    property=spec.ROLE,
                 )
+
+
+@REGISTRY.rule("sbol3-10802")
+def sub_component_role_integration(ctx: Sbol3Context) -> None:
+    """A SubComponent that has roles says how they combine with those of the Component it instantiates."""
+    for obj in ctx.instances(spec.SUB_COMPONENT):
+        if obj.values(spec.ROLE) and not obj.values(spec.ROLE_INTEGRATION):
+            ctx.report(
+                "sbol3-10802",
+                obj,
+                "SubComponent with role values must provide roleIntegration",
+                property=spec.ROLE_INTEGRATION,
+            )
