@@ -60,25 +60,24 @@ def validate_sbol2(
 
 def validate(
     source: GraphSource,
-    version: str = "auto",
+    version: int | None = None,
     config: ValidationConfig | None = None,
     fmt: str | None = None,
 ) -> ValidationReport:
     """Validate an SBOL 2 or SBOL 3 document.
 
     :param source: an rdflib Graph, path, RDF text, sbol2.Document, or sbol3.Document
-    :param version: ``"2"``, ``"3"``, or ``"auto"`` to detect the version from the document's rdf:type namespaces
+    :param version: 2 or 3; when omitted, the version is detected from the document's rdf:type namespaces
     :param config: rule gates and severity overrides
     :param fmt: RDF format of a path or text source, when it can't be inferred
+    :raises ValueError: when ``version`` is neither 2 nor 3, or is omitted and cannot be detected
     """
     graph = load_graph(source, fmt)
-    if str(version) == "auto":
-        detected = detect_sbol_version(graph)
-        if detected is None:
+    if version is None:
+        version = detect_sbol_version(graph)
+        if version is None:
             raise ValueError("Cannot detect the SBOL version: the document types no subject in an SBOL namespace")
-        version = str(detected)
-    if str(version) == "3":
-        return validate_sbol3(graph, config)
-    if str(version) == "2":
-        return validate_sbol2(graph, config)
-    raise ValueError(f"Unknown SBOL version {version!r}; expected '2', '3', or 'auto'")
+    validators = {2: validate_sbol2, 3: validate_sbol3}
+    if version not in validators:
+        raise ValueError(f"Unknown SBOL version {version!r}; expected 2 or 3")
+    return validators[version](graph, config)

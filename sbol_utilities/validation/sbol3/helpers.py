@@ -88,11 +88,6 @@ def is_hash_algorithm_token(value: str) -> bool:
     return bool(_HASH_TOKEN.match(value))
 
 
-def is_known_hash_algorithm(value: str) -> bool:
-    """One of the curated hash algorithm names."""
-    return value in ("sha2-256", "sha3-256", "blake3", "sha2-512", "sha3-512")
-
-
 def url_is_child_of(candidate: str, parent: str) -> bool:
     """Whether ``candidate`` lies strictly under ``parent`` as a path."""
     base = parent.rstrip("/")
@@ -198,11 +193,6 @@ def object_matches_target(obj: SbolObject, target: str) -> bool:
     if target == spec.OM_PREFIX_TARGET:
         return object_type_is_or_inherits(obj, spec.OM_PREFIX)
     return obj.has_class(target)
-
-
-def is_external_top_level_reference(target: str) -> bool:
-    """Whether a reference target is a TopLevel SBOL class (so the target may live in another document)."""
-    return target in spec.TOP_LEVEL_CLASSES and target.startswith(spec.SBOL)
 
 
 def known_external_resource(iri: str) -> str | None:

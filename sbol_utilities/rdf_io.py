@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import Any, Union
+from typing import Union
 
 import rdflib
 import sbol2
@@ -46,7 +46,9 @@ FORMAT_ALIASES = {
     "json-ld": "json-ld",
 }
 
-GraphSource = Union[rdflib.Graph, str, "os.PathLike[str]", Any]
+#: What the conversion and validation entry points accept as a document: a graph, a path, RDF text, or a pySBOL
+#: document
+GraphSource = Union[rdflib.Graph, str, "os.PathLike[str]", sbol2.Document, sbol3.Document]
 
 
 def rdflib_format(fmt: str | None) -> str | None:
@@ -89,12 +91,19 @@ def load_graph(source: GraphSource, fmt: str | None = None) -> rdflib.Graph:
         return source.graph()
     if isinstance(source, sbol2.Document):
         return rdflib.Graph().parse(data=source.writeString(), format="xml")
-    if isinstance(source, os.PathLike) or (isinstance(source, str) and "\n" not in source and os.path.exists(source)):
+    if _names_a_file(source):
         path = Path(source)
         return rdflib.Graph().parse(str(path), format=fmt or guess_format(path), publicID=DEFAULT_BASE)
     if isinstance(source, str):
         return rdflib.Graph().parse(data=source, format=fmt or _sniff_text_format(source), publicID=DEFAULT_BASE)
     raise TypeError(f"Cannot load an SBOL graph from {type(source).__name__}")
+
+
+def _names_a_file(source: object) -> bool:
+    """Whether a source is a path rather than RDF text: a path object, or a one-line string naming an existing file."""
+    if isinstance(source, os.PathLike):
+        return True
+    return isinstance(source, str) and "\n" not in source and os.path.exists(source)
 
 
 def detect_sbol_version(graph: rdflib.Graph) -> int | None:

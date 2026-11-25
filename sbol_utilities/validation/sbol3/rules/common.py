@@ -56,7 +56,7 @@ def sbol_types(ctx: SBOL3Context) -> None:
             ctx.report("sbol3-10107", obj, "object has more than one concrete SBOL rdf:type", property=spec.RDF_TYPE)
 
 
-@REGISTRY.rule("sbol3-10110", "sbol3-10111", "sbol3-10112", "sbol3-10113", "sbol3-10114")
+@REGISTRY.rule("sbol3-10110", "sbol3-10111", "sbol3-10112", "sbol3-10113")
 def table_rules(ctx: SBOL3Context) -> None:
     """Table 23 cardinality, value kinds, and reference targets."""
     for obj in ctx.objects.values():

@@ -48,8 +48,6 @@ class ValidationConfig:
     #: SHOULD-level best-practice rules, emitted as warnings; ``None`` means the version default (on for SBOL 3,
     #: off for SBOL 2)
     best_practice: bool | None = None
-    #: compliant URIs may carry an optional type segment (SBOL 2 only)
-    types_in_uri: bool = False
     #: per-rule overrides: rule id -> :data:`SUPPRESS` or a :class:`Severity` (or its string value)
     rule_overrides: dict[str, str] = field(default_factory=dict)
     #: report nothing below this severity: ``Severity.ERROR`` turns every warning into an error

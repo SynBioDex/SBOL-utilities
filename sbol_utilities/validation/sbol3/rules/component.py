@@ -8,7 +8,7 @@ from rdflib.term import Node
 
 from sbol_utilities.validation.ontology import PROTEIN, SIMPLE_CHEMICAL
 from sbol_utilities.validation.sbol3 import spec
-from sbol_utilities.validation.sbol3.context import TOPOLOGY_REQUIRE_KNOWN, SBOL3Context, SbolObject
+from sbol_utilities.validation.sbol3.context import SBOL3Context, SbolObject
 from sbol_utilities.validation.sbol3.helpers import (
     component_type,
     is_nucleic_acid_component_type,
@@ -25,7 +25,6 @@ COMPONENT_RULES = {
     "table_2_count": "sbol3-10601",
     "type_terms": "sbol3-10602",
     "type_conflicts": "sbol3-10605",
-    "topology_required": "sbol3-10606",
     "topology_count": "sbol3-10607",
     "topology_without_na": "sbol3-10608",
     "role_type": "sbol3-10609",
@@ -38,7 +37,6 @@ LOCAL_SUB_COMPONENT_RULES = {
     "type_terms": "sbol3-11002",
     "table_2_recommendation": "sbol3-11004",
     "type_conflicts": "sbol3-11005",
-    "topology_required": "sbol3-11006",
     "topology_count": "sbol3-11007",
     "topology_without_na": "sbol3-11008",
     "role_type": "sbol3-11009",
@@ -50,7 +48,6 @@ EXTERNALLY_DEFINED_RULES = {
     "type_terms": "sbol3-11102",
     "table_2_recommendation": "sbol3-11104",
     "type_conflicts": "sbol3-11105",
-    "topology_required": "sbol3-11106",
     "topology_count": "sbol3-11107",
     "topology_without_na": "sbol3-11108",
 }
@@ -99,14 +96,6 @@ def _check_types(ctx: SBOL3Context, obj: SbolObject, rules: dict) -> None:
                     rules["type_conflicts"], obj, f"type `{left}` conflicts with type `{right}`", property=spec.TYPE
                 )
     nucleic_acid = _is_nucleic_acid(ctx, obj)
-    if ctx.topology_completeness == TOPOLOGY_REQUIRE_KNOWN and nucleic_acid:
-        if not any(is_topology_type_term(ontology, t) is True for t in types):
-            ctx.report(
-                rules["topology_required"],
-                obj,
-                "DNA/RNA object is missing a known SO topology type under topology-complete validation",
-                property=spec.TYPE,
-            )
     if nucleic_acid:
         if sum(1 for t in types if is_topology_type_term(ontology, t) is True) > 1:
             ctx.report(
@@ -279,7 +268,6 @@ def _check_component_sequences(ctx: SBOL3Context, component: SbolObject) -> None
     "sbol3-10602",
     "sbol3-10604",
     "sbol3-10605",
-    "sbol3-10606",
     "sbol3-10607",
     "sbol3-10608",
     "sbol3-10609",
@@ -313,7 +301,6 @@ def components(ctx: SBOL3Context) -> None:
     "sbol3-11002",
     "sbol3-11004",
     "sbol3-11005",
-    "sbol3-11006",
     "sbol3-11007",
     "sbol3-11008",
     "sbol3-11009",
@@ -332,7 +319,6 @@ def local_sub_components(ctx: SBOL3Context) -> None:
     "sbol3-11102",
     "sbol3-11104",
     "sbol3-11105",
-    "sbol3-11106",
     "sbol3-11107",
     "sbol3-11108",
     "sbol3-11109",

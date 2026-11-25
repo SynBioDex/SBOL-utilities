@@ -22,20 +22,6 @@ XSD = "http://www.w3.org/2001/XMLSchema#"
 XSD_STRING = XSD + "string"
 RDF_LANG_STRING = "http://www.w3.org/1999/02/22-rdf-syntax-ns#langString"
 
-#: External validation modes (sbol-rs ``ExternalValidationMode``)
-EXTERNAL_OFF = "Off"
-EXTERNAL_PROVIDED_ONLY = "ProvidedOnly"
-EXTERNAL_ALLOWED = "ExternalAllowed"
-
-#: Topology completeness policies (sbol-rs ``TopologyCompleteness``)
-TOPOLOGY_CONSERVATIVE = "Conservative"
-TOPOLOGY_REQUIRE_KNOWN = "RequireKnownForNucleicAcids"
-
-#: Hash algorithm policies (sbol-rs ``HashAlgorithmRegistry``)
-HASH_CONSERVATIVE = "Conservative"
-HASH_STRICT = "Strict"
-HASH_LENIENT = "Lenient"
-
 
 def _term_order(node: Node) -> tuple[int, str]:
     if isinstance(node, URIRef):
@@ -194,26 +180,13 @@ def collect_objects(graph: rdflib.Graph) -> dict[Node, SbolObject]:
 
 
 class SBOL3Context(Context):
-    """Validation state for one SBOL 3 run: the indexed document plus sbol-rs policy options.
+    """Validation state for one SBOL 3 run: the indexed document.
 
-    Best-practice handling mirrors sbol-rs: when the best-practice family is off, every rule whose normative
-    severity is SHOULD is silenced.
+    While the best-practice family is off, every rule whose normative level is SHOULD is silenced.
     """
 
-    def __init__(
-        self,
-        graph: rdflib.Graph,
-        config: ValidationConfig,
-        catalog: Catalog,
-        ontology: Ontology,
-        external_mode: str = EXTERNAL_OFF,
-        topology_completeness: str = TOPOLOGY_CONSERVATIVE,
-        hash_algorithm_registry: str = HASH_CONSERVATIVE,
-    ):
+    def __init__(self, graph: rdflib.Graph, config: ValidationConfig, catalog: Catalog, ontology: Ontology):
         super().__init__(graph, config, catalog, ontology)
-        self.external_mode = external_mode
-        self.topology_completeness = topology_completeness
-        self.hash_algorithm_registry = hash_algorithm_registry
         self.objects: dict[Node, SbolObject] = collect_objects(graph)
         self.ownership = OwnershipIndex(self.objects.values())
         self._typed: dict[str, list[SbolObject]] = {}

@@ -9,12 +9,8 @@ from __future__ import annotations
 from rdflib.term import BNode, URIRef
 
 from sbol_utilities.validation.sbol3 import spec
-from sbol_utilities.validation.sbol3.context import EXTERNAL_OFF, SBOL3Context, SbolObject
-from sbol_utilities.validation.sbol3.helpers import (
-    is_external_top_level_reference,
-    object_matches_target,
-    value_matches_kind,
-)
+from sbol_utilities.validation.sbol3.context import SBOL3Context, SbolObject
+from sbol_utilities.validation.sbol3.helpers import object_matches_target, value_matches_kind
 
 
 def check_property(ctx: SBOL3Context, obj: SbolObject, prop: spec.PropertySpec) -> None:
@@ -63,14 +59,6 @@ def check_property(ctx: SBOL3Context, obj: SbolObject, prop: spec.PropertySpec) 
                 "sbol3-10112",
                 obj,
                 f"property `{prop.predicate}` refers to missing local child `{value}`",
-                property=prop.predicate,
-            )
-        elif is_external_top_level_reference(prop.target) and ctx.external_mode != EXTERNAL_OFF:
-            # No documents or resolvers are available to this validator, so every external TopLevel stays unresolved.
-            ctx.report(
-                "sbol3-10114",
-                obj,
-                f"property `{prop.predicate}` refers to unresolved external TopLevel `{value}`",
                 property=prop.predicate,
             )
 

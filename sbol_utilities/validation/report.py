@@ -7,6 +7,7 @@ from either implementation can be compared directly.
 from __future__ import annotations
 
 import json
+from collections.abc import Iterator
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -121,14 +122,8 @@ class ValidationReport:
         """True when no Error-severity issue was found."""
         return not self.errors
 
-    def __len__(self) -> int:
-        return len(self.issues)
-
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Issue]:
         return iter(self.issues)
-
-    def __bool__(self) -> bool:
-        return True
 
     def __str__(self) -> str:
         if not self.issues:
@@ -158,7 +153,7 @@ class ValidationReport:
                 "complete": cfg.complete,
                 "compliant": cfg.compliant,
                 "best_practice": cfg.best_practice,
-                "types_in_uri": cfg.types_in_uri,
+                "types_in_uri": False,  # part of the report schema; type segments in URIs are not supported
                 "severity_floor": cfg.severity_floor,
                 "severity_ceiling": cfg.severity_ceiling,
                 "overridden_rules": overridden,

@@ -1,7 +1,6 @@
 """Model, Implementation, and Attachment rules (sbol3-123xx, 125xx, 128xx).
 
-External content (Model and Attachment sources) is never fetched: with external validation off the availability
-rules stay silent, and otherwise they report that no content resolver is configured.
+External content (Model and Attachment sources) is never fetched, so the source-availability rules are not checked.
 """
 
 from __future__ import annotations
@@ -10,20 +9,13 @@ from rdflib.term import Node, URIRef
 
 from sbol_utilities.validation.config import Severity
 from sbol_utilities.validation.sbol3 import spec
-from sbol_utilities.validation.sbol3.context import (
-    EXTERNAL_OFF,
-    HASH_CONSERVATIVE,
-    HASH_STRICT,
-    SBOL3Context,
-    SbolObject,
-)
+from sbol_utilities.validation.sbol3.context import SBOL3Context, SbolObject
 from sbol_utilities.validation.sbol3.helpers import (
     canonical_model_framework_iri,
     canonical_model_language_iri,
     is_edam_format_term,
     is_hash_algorithm_token,
     is_hex_digest,
-    is_known_hash_algorithm,
     is_known_non_edam_namespace,
     is_sbo_modeling_framework_term,
     parse_i64,
@@ -31,24 +23,10 @@ from sbol_utilities.validation.sbol3.helpers import (
 from sbol_utilities.validation.sbol3.registry import REGISTRY
 
 
-def _check_external_content(ctx: SBOL3Context, obj: SbolObject, rule: str) -> None:
-    source = obj.first_iri(spec.SOURCE)
-    if source is None or ctx.external_mode == EXTERNAL_OFF:
-        return
-    ctx.report(
-        rule,
-        obj,
-        f"source `{source}` was not checked because no content resolver was configured",
-        property=spec.SOURCE,
-        severity=Severity.WARNING,
-    )
-
-
-@REGISTRY.rule("sbol3-12501", "sbol3-12503", "sbol3-12504", "sbol3-12506", "sbol3-12507")
+@REGISTRY.rule("sbol3-12503", "sbol3-12504", "sbol3-12506", "sbol3-12507")
 def models(ctx: SBOL3Context) -> None:
-    """Model source availability, Table 15 / 16 aliases, and ontology branches of language and framework."""
+    """Model Table 15 / 16 aliases and the ontology branches of language and framework."""
     for obj in ctx.instances(spec.MODEL):
-        _check_external_content(ctx, obj, "sbol3-12501")
         for language in obj.iris(spec.LANGUAGE):
             text = str(language)
             canonical = canonical_model_language_iri(text)
@@ -121,9 +99,9 @@ def implementations(ctx: SBOL3Context) -> None:
                     )
 
 
-@REGISTRY.rule("sbol3-12801", "sbol3-12803", "sbol3-12804", "sbol3-12805", "sbol3-12806", "sbol3-12807", "sbol3-12808")
+@REGISTRY.rule("sbol3-12803", "sbol3-12804", "sbol3-12805", "sbol3-12806", "sbol3-12807", "sbol3-12808")
 def attachments(ctx: SBOL3Context) -> None:
-    """Attachment size, hash, hash algorithm, format, and source availability."""
+    """Attachment size, hash, hash algorithm, and format."""
     for obj in ctx.instances(spec.ATTACHMENT):
         for size in obj.literals(spec.SIZE):
             value = parse_i64(str(size))
@@ -136,22 +114,13 @@ def attachments(ctx: SBOL3Context) -> None:
                 )
         for algorithm in obj.literals(spec.HASH_ALGORITHM):
             value_text = str(algorithm)
-            if ctx.hash_algorithm_registry == HASH_CONSERVATIVE and not is_hash_algorithm_token(value_text):
+            if not is_hash_algorithm_token(value_text):
                 ctx.report(
                     "sbol3-12806",
                     obj,
                     "Attachment hashAlgorithm should be a registry-style hash algorithm token",
                     property=spec.HASH_ALGORITHM,
                     severity=Severity.WARNING,
-                )
-                continue
-            if ctx.hash_algorithm_registry == HASH_STRICT and not is_known_hash_algorithm(value_text):
-                ctx.report(
-                    "sbol3-12806",
-                    obj,
-                    f"Attachment hashAlgorithm `{value_text}` is not in the known set "
-                    "(sha2-256, sha3-256, blake3, sha2-512, sha3-512)",
-                    property=spec.HASH_ALGORITHM,
                 )
                 continue
             if value_text != "sha3-256":
@@ -168,4 +137,3 @@ def attachments(ctx: SBOL3Context) -> None:
                 )
         if obj.values(spec.HASH) and not obj.values(spec.HASH_ALGORITHM):
             ctx.report("sbol3-12808", obj, "Attachment hash requires hashAlgorithm", property=spec.HASH_ALGORITHM)
-        _check_external_content(ctx, obj, "sbol3-12801")
