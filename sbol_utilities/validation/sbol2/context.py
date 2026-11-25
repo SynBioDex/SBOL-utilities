@@ -210,6 +210,13 @@ class Sbol2Context(Context[Sbol2Object]):
             self._resolve_index = index
         return self._resolve_index.get(uri)
 
+    def resolved(self, obj: Sbol2Object, predicate: str) -> Iterator[tuple[str, Sbol2Object]]:
+        """Each IRI value of ``obj``'s ``predicate`` that resolves in the document, with the object it names."""
+        for iri in obj.iris(predicate):
+            target = self.resolve(iri)
+            if target is not None:
+                yield iri, target
+
     def parents(self, child: Sbol2Object | str | None, predicate: str) -> list[Sbol2Object]:
         """Every object whose ``predicate`` property lists ``child`` (an object or its IRI), in object order."""
         iri = child.iri if isinstance(child, Sbol2Object) else child

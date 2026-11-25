@@ -83,6 +83,7 @@ def closed_property_sets(ctx: Sbol2Context) -> None:
                 ctx.report(rule, obj, f"property `{predicate}` is not permitted on this object's class")
 
 
+#: (property, rule, the values it may take)
 _ENUMS = (
     (S.ACCESS, "sbol2-10607", (S.PUBLIC, S.PRIVATE)),
     (S.ROLE_INTEGRATION, "sbol2-10708", (S.MERGE_ROLES, S.OVERRIDE_ROLES)),
@@ -92,9 +93,9 @@ _ENUMS = (
 )
 
 
-@REGISTRY.rule("sbol2-10607", "sbol2-10708", "sbol2-10810", "sbol2-12902", "sbol2-13003", "sbol2-10709", "sbol2-12303")
+@REGISTRY.rule(*(rule for _, rule, _ in _ENUMS))
 def controlled_values(ctx: Sbol2Context) -> None:
-    """Enumerated properties take values from their fixed tables; related presence and namespace constraints."""
+    """Enumerated properties take values from their fixed tables."""
     for obj in ctx.sbol_objects:
         for predicate, rule, allowed in _ENUMS:
             for value in obj.iris(predicate):
@@ -102,41 +103,55 @@ def controlled_values(ctx: Sbol2Context) -> None:
                     ctx.report(
                         rule, obj, f"value `{value}` of `{predicate}` is not an allowed term", property=predicate
                     )
-        if obj.has_class(S.COMPONENT) and obj.values(S.ROLE) and not obj.values(S.ROLE_INTEGRATION):
+
+
+@REGISTRY.rule("sbol2-10709")
+def component_role_integration(ctx: Sbol2Context) -> None:
+    """A Component that specifies roles also specifies how they combine with its definition's roles."""
+    for obj in ctx.instances(S.COMPONENT):
+        if obj.values(S.ROLE) and not obj.values(S.ROLE_INTEGRATION):
             ctx.report(
                 "sbol2-10709",
                 obj,
                 "a Component that specifies roles must also specify a roleIntegration",
                 property=S.ROLE_INTEGRATION,
             )
-        if obj.has_class(S.GENERIC_TOP_LEVEL):
-            for value in obj.iris(S.RDF_TYPE_P):
-                if value.startswith(SBOL2_NS):
-                    ctx.report(
-                        "sbol2-12303",
-                        obj,
-                        "the rdfType of a GenericTopLevel must not be in the SBOL 2 namespace",
-                        property=S.RDF_TYPE_P,
-                    )
 
 
-@REGISTRY.rule("sbol2-11102", "sbol2-11103", "sbol2-11104", "sbol2-11202")
-def location_bounds(ctx: Sbol2Context) -> None:
-    """Range start/end are positive and ordered; Cut positions are non-negative."""
-    for obj in ctx.sbol_objects:
-        if obj.has_class(S.RANGE):
-            start, end = obj.integer(S.START), obj.integer(S.END)
-            if start is not None and start < 1:
-                ctx.report("sbol2-11102", obj, "the start of a Range must be greater than zero", property=S.START)
-            if end is not None and end < 1:
-                ctx.report("sbol2-11103", obj, "the end of a Range must be greater than zero", property=S.END)
-            if start is not None and end is not None and end < start:
-                ctx.report(
-                    "sbol2-11104", obj, "the end of a Range must be greater than or equal to its start", property=S.END
-                )
-        if obj.has_class(S.CUT):
-            at = obj.integer(S.AT)
-            if at is not None and at < 0:
-                ctx.report(
-                    "sbol2-11202", obj, "the at position of a Cut must be greater than or equal to zero", property=S.AT
-                )
+@REGISTRY.rule("sbol2-12303")
+def generic_top_level_types(ctx: Sbol2Context) -> None:
+    """The rdfType of a GenericTopLevel lies outside the SBOL 2 namespace."""
+    for obj in ctx.instances(S.GENERIC_TOP_LEVEL):
+        if any(value.startswith(SBOL2_NS) for value in obj.iris(S.RDF_TYPE_P)):
+            ctx.report(
+                "sbol2-12303",
+                obj,
+                "the rdfType of a GenericTopLevel must not be in the SBOL 2 namespace",
+                property=S.RDF_TYPE_P,
+            )
+
+
+@REGISTRY.rule("sbol2-11102", "sbol2-11103", "sbol2-11104")
+def range_bounds(ctx: Sbol2Context) -> None:
+    """The start and end of a Range are positive and ordered."""
+    for obj in ctx.instances(S.RANGE):
+        start, end = obj.integer(S.START), obj.integer(S.END)
+        if start is not None and start < 1:
+            ctx.report("sbol2-11102", obj, "the start of a Range must be greater than zero", property=S.START)
+        if end is not None and end < 1:
+            ctx.report("sbol2-11103", obj, "the end of a Range must be greater than zero", property=S.END)
+        if start is not None and end is not None and end < start:
+            ctx.report(
+                "sbol2-11104", obj, "the end of a Range must be greater than or equal to its start", property=S.END
+            )
+
+
+@REGISTRY.rule("sbol2-11202")
+def cut_bounds(ctx: Sbol2Context) -> None:
+    """The position of a Cut is not negative."""
+    for obj in ctx.instances(S.CUT):
+        at = obj.integer(S.AT)
+        if at is not None and at < 0:
+            ctx.report(
+                "sbol2-11202", obj, "the at position of a Cut must be greater than or equal to zero", property=S.AT
+            )

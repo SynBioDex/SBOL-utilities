@@ -515,7 +515,7 @@ def is_extension_predicate(predicate: str) -> bool:
 
 
 #: reference predicate -> the rule requiring the referenced object to be in the document
-_COMPLETENESS_RULES = {
+COMPLETENESS_RULES = {
     SEQUENCE_P: "sbol2-10513",
     MODEL_P: "sbol2-11608",
     MEMBER: "sbol2-12103",
@@ -530,12 +530,15 @@ _COMPLETENESS_RULES = {
     HAD_PLAN: "sbol2-12604",
 }
 
+#: class a ``definition`` refers to -> the rule requiring that object to be in the document
+DEFINITION_COMPLETENESS_RULES = {COMPONENT_DEFINITION: "sbol2-10604", MODULE_DEFINITION: "sbol2-11703"}
+
 
 def completeness_rule(predicate: str, target: str) -> str | None:
-    """The Complete-gated rule governing presence of an object referenced through ``predicate``."""
+    """The rule requiring an object referenced through ``predicate``, of class ``target``, to be in the document."""
     if predicate == DEFINITION:
-        return {COMPONENT_DEFINITION: "sbol2-10604", MODULE_DEFINITION: "sbol2-11703"}.get(target)
-    return _COMPLETENESS_RULES.get(predicate)
+        return DEFINITION_COMPLETENESS_RULES.get(target)
+    return COMPLETENESS_RULES.get(predicate)
 
 
 #: permitted participant-role SBO terms for each interaction-type SBO term (Table 11)
