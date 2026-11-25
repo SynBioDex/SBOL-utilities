@@ -2,11 +2,16 @@
 
 from __future__ import annotations
 
-from sbol_utilities.validation.graphs import nodes_reaching_cycles
 from sbol_utilities.validation.sbol2 import spec as S
 from sbol_utilities.validation.sbol2.context import Sbol2Context, Sbol2Object
+from sbol_utilities.validation.sbol2.helpers import (
+    definition_cycles,
+    extents,
+    extents_overlap,
+    range_span,
+    use_remote_collisions,
+)
 from sbol_utilities.validation.sbol2.registry import REGISTRY
-from sbol_utilities.validation.sbol2.rules.structural import regions
 
 
 def parent_definition(ctx: Sbol2Context, child: str) -> Sbol2Object | None:
@@ -75,20 +80,8 @@ def _annotation_for(ctx: Sbol2Context, definition: Sbol2Object, component: str) 
 
 
 def _position(ctx: Sbol2Context, annotation: Sbol2Object) -> tuple[int, int] | None:
-    best: tuple[int, int] | None = None
-    for location in ctx.referenced(annotation, S.LOCATION_P):
-        position: tuple[int, int] | None = None
-        if location.has_class(S.RANGE):
-            start, end = location.integer(S.START), location.integer(S.END)
-            if start is not None and end is not None:
-                position = (start, end)
-        elif location.has_class(S.CUT):
-            at = location.integer(S.AT)
-            if at is not None:
-                position = (at, at)
-        if position is not None and (best is None or position < best):
-            best = position
-    return best
+    """The first and last position of the SequenceAnnotation's earliest Location."""
+    return min((extent.bounds for extent in extents(ctx, annotation)), default=None)
 
 
 def _orientations(ctx: Sbol2Context, annotation: Sbol2Object) -> list[str]:
@@ -265,27 +258,6 @@ def unique_annotated_components(ctx: Sbol2Context) -> None:
             )
 
 
-def definition_cycles(
-    ctx: Sbol2Context, class_iri: str, instance_predicate: str, link_predicate: str
-) -> list[Sbol2Object]:
-    """Definitions of ``class_iri`` whose instance-to-definition reference graph reaches a cycle."""
-    graph: dict[str, list[str]] = {}
-    members: list[Sbol2Object] = []
-    for obj in ctx.objects:
-        if not obj.has_class(class_iri) or obj.iri is None:
-            continue
-        members.append(obj)
-        successors = []
-        for instance in ctx.referenced(obj, instance_predicate):
-            link = instance.first_iri(link_predicate)
-            target = ctx.resolve(link)
-            if target is not None and target.iri is not None:
-                successors.append(target.iri)
-        graph[obj.iri] = successors
-    offenders = nodes_reaching_cycles(graph, lambda node: graph.get(node, ()))
-    return [o for o in members if o.iri in offenders]
-
-
 @REGISTRY.rule("sbol2-10605")
 def component_definition_cycles(ctx: Sbol2Context) -> None:
     """ComponentDefinitions do not form a cycle through their Components' definitions."""
@@ -296,26 +268,6 @@ def component_definition_cycles(ctx: Sbol2Context) -> None:
             "a ComponentDefinition must not form a cycle through its Components' definitions",
             property=S.COMPONENT_P,
         )
-
-
-def use_remote_collisions(ctx: Sbol2Context, class_iri: str, instance_predicates: tuple[str, ...]) -> list[Sbol2Object]:
-    """Definitions in which two useRemote MapsTos of their instances share a local."""
-    offenders = []
-    for obj in ctx.objects:
-        if not obj.has_class(class_iri):
-            continue
-        locals_: list[str] = []
-        for predicate in instance_predicates:
-            for instance in ctx.referenced(obj, predicate):
-                for maps_to in ctx.referenced(instance, S.MAPS_TO_P):
-                    if maps_to.first_iri(S.REFINEMENT) != S.USE_REMOTE:
-                        continue
-                    local = maps_to.first_iri(S.LOCAL)
-                    if local is not None:
-                        locals_.append(local)
-        if len(set(locals_)) < len(locals_):
-            offenders.append(obj)
-    return offenders
 
 
 @REGISTRY.rule("sbol2-10526")
@@ -334,32 +286,10 @@ def component_definition_use_remote(ctx: Sbol2Context) -> None:
 def annotation_location_overlaps(ctx: Sbol2Context) -> None:
     """The Locations of one SequenceAnnotation do not overlap."""
     for obj in ctx.sbol_objects:
-        if obj.has_class(S.SEQUENCE_ANNOTATION) and regions_overlap(regions(ctx, obj)):
+        if obj.has_class(S.SEQUENCE_ANNOTATION) and extents_overlap(extents(ctx, obj)):
             ctx.report(
                 "sbol2-10903", obj, "the Locations of a SequenceAnnotation should not overlap", property=S.LOCATION_P
             )
-
-
-def regions_overlap(extents: list[tuple]) -> bool:
-    """Whether any two Range/Cut extents overlap, using libSBOLj's pairwise test."""
-    for i, a in enumerate(extents):
-        for b in extents[i + 1 :]:
-            if a[0] == "range" and b[0] == "range":
-                overlap = (b[1] <= a[1] <= b[2]) or (a[1] <= b[1] <= a[2])
-            elif a[0] == "cut" and b[0] == "cut":
-                overlap = a[1] == b[1]
-            else:
-                (_, s, e), (_, at) = (a, b) if a[0] == "range" else (b, a)
-                overlap = e > at >= s
-            if overlap:
-                return True
-    return False
-
-
-def range_span(extents: list[tuple]) -> int | None:
-    """The summed inclusive length of the Range extents, or None when there are none."""
-    spans = [e[2] - e[1] + 1 for e in extents if e[0] == "range"]
-    return sum(spans) if spans else None
 
 
 @REGISTRY.rule("sbol2-10711", "sbol2-10712")
@@ -374,8 +304,8 @@ def component_source_locations(ctx: Sbol2Context) -> None:
     for obj in ctx.sbol_objects:
         if not obj.has_class(S.COMPONENT):
             continue
-        source = regions(ctx, obj, S.SOURCE_LOCATION)
-        if regions_overlap(source):
+        source = extents(ctx, obj, S.SOURCE_LOCATION)
+        if extents_overlap(source):
             ctx.report(
                 "sbol2-10711", obj, "the source Locations of a Component should not overlap", property=S.SOURCE_LOCATION
             )
@@ -384,7 +314,7 @@ def component_source_locations(ctx: Sbol2Context) -> None:
         annotation = annotation_by_component.get(obj.iri)
         if annotation is None:
             continue
-        source_len, target_len = range_span(source), range_span(regions(ctx, annotation))
+        source_len, target_len = range_span(source), range_span(extents(ctx, annotation))
         if source_len is not None and target_len is not None and source_len != target_len:
             ctx.report(
                 "sbol2-10712",

@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from sbol_utilities.validation.sbol2 import spec as S
 from sbol_utilities.validation.sbol2.context import Sbol2Context, Sbol2Object
+from sbol_utilities.validation.sbol2.helpers import RangeExtent, extents
 from sbol_utilities.validation.sbol2.registry import REGISTRY
-from sbol_utilities.validation.sbol2.rules.structural import regions
 
 
 @REGISTRY.rule("sbol2-10405")
@@ -110,7 +110,7 @@ def _check_definition(ctx: Sbol2Context, obj: Sbol2Object) -> None:
             component_iri = annotation.first_iri(S.COMPONENT_P)
             if component_iri is None:
                 continue
-            span = next((e[2] - e[1] + 1 for e in regions(ctx, annotation) if e[0] == "range"), None)
+            span = next((e.length for e in extents(ctx, annotation) if isinstance(e, RangeExtent)), None)
             if span is None:
                 continue
             component = ctx.resolve(component_iri)

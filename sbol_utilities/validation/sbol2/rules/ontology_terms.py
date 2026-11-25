@@ -5,8 +5,8 @@ from __future__ import annotations
 
 from sbol_utilities.validation.sbol2 import spec as S
 from sbol_utilities.validation.sbol2.context import Sbol2Context, Sbol2Object
+from sbol_utilities.validation.sbol2.helpers import ontology_curie
 from sbol_utilities.validation.sbol2.registry import REGISTRY
-from sbol_utilities.validation.sbol2.rules.module import ontology_curie
 
 
 def is_edam_iri(iri: str) -> bool:

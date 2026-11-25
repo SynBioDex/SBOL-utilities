@@ -2,19 +2,10 @@
 
 from __future__ import annotations
 
-import re
-
 from sbol_utilities.validation.sbol2 import spec as S
 from sbol_utilities.validation.sbol2.context import Sbol2Context
+from sbol_utilities.validation.sbol2.helpers import definition_cycles, ontology_curie, use_remote_collisions
 from sbol_utilities.validation.sbol2.registry import REGISTRY
-from sbol_utilities.validation.sbol2.rules.component import definition_cycles, use_remote_collisions
-
-_SEGMENT = re.compile(r"[/#]")
-
-
-def ontology_curie(iri: str) -> str:
-    """The compact ontology id an SBOL 2 term IRI ends with: its last path or fragment segment."""
-    return _SEGMENT.split(iri)[-1]
 
 
 @REGISTRY.rule("sbol2-11705")

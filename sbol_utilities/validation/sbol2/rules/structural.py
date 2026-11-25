@@ -7,7 +7,7 @@ from rdflib.term import URIRef
 
 from sbol_utilities.validation.datatypes import is_date_time_lexical, is_float_lexical, parse_i64
 from sbol_utilities.validation.sbol2 import spec as S
-from sbol_utilities.validation.sbol2.context import Sbol2Context, Sbol2Literal, Sbol2Object, Term
+from sbol_utilities.validation.sbol2.context import Sbol2Context, Sbol2Literal, Term
 from sbol_utilities.validation.sbol2.registry import REGISTRY
 from sbol_utilities.validation.schema import ValueKind
 from sbol_utilities.vocab import SBOL2_NS
@@ -140,18 +140,3 @@ def location_bounds(ctx: Sbol2Context) -> None:
                 ctx.report(
                     "sbol2-11202", obj, "the at position of a Cut must be greater than or equal to zero", property=S.AT
                 )
-
-
-def regions(ctx: Sbol2Context, obj: Sbol2Object, predicate: str = S.LOCATION_P) -> list[tuple]:
-    """The ``("range", start, end)`` / ``("cut", at)`` extents of the Locations ``obj`` names under ``predicate``."""
-    result: list[tuple] = []
-    for location in ctx.referenced(obj, predicate):
-        if location.has_class(S.RANGE):
-            start, end = location.integer(S.START), location.integer(S.END)
-            if start is not None and end is not None:
-                result.append(("range", start, end))
-        elif location.has_class(S.CUT):
-            at = location.integer(S.AT)
-            if at is not None:
-                result.append(("cut", at))
-    return result
