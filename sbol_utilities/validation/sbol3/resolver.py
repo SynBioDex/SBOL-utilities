@@ -295,7 +295,7 @@ def derivation_context(ctx: SBOL3Context, derivation: SbolObject) -> Optional[De
     template_obj = ctx.get(template)
     if template is None or template_obj is None:
         return None
-    template_features = frozenset(template_obj.resources(spec.HAS_FEATURE))
+    template_features = list(dict.fromkeys(template_obj.resources(spec.HAS_FEATURE)))
     variables: Dict[Node, Node] = {}
     for variable_feature in derivation.resources(spec.HAS_VARIABLE_FEATURE):
         variable_feature_obj = ctx.get(variable_feature)
@@ -306,7 +306,7 @@ def derivation_context(ctx: SBOL3Context, derivation: SbolObject) -> Optional[De
             continue
         variables[variable] = variable_feature
     static = [f for f in template_features if f not in variables]
-    return DerivationContext(derivation.identity, template, template_features, variables, static)
+    return DerivationContext(derivation.identity, template, frozenset(template_features), variables, static)
 
 
 def derived_objects(ctx: SBOL3Context, derivation: Node, class_iri: str) -> List[SbolObject]:
