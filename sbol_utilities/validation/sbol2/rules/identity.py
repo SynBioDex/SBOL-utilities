@@ -6,10 +6,11 @@ from __future__ import annotations
 from typing import Dict, List, Optional, Set
 
 from sbol_utilities.validation.catalog import Context
+from sbol_utilities.validation.graphs import nodes_on_cycles
 from sbol_utilities.validation.rdf import has_valid_display_id
 from sbol_utilities.validation.sbol2 import REGISTRY
 from sbol_utilities.validation.sbol2 import spec as S
-from sbol_utilities.validation.sbol2.context import Obj, Sbol2Context, nodes_on_cycles
+from sbol_utilities.validation.sbol2.context import Obj, Sbol2Context
 
 DELIMITERS = ("/", "#", ":")
 
@@ -95,7 +96,7 @@ def derivation_cycles(context: Context) -> None:
             if source is not None and source.is_top_level:
                 successors.append(target)
         graph[obj.iri] = successors
-    cyclic = nodes_on_cycles(graph)
+    cyclic = nodes_on_cycles(graph, lambda node: graph.get(node, ()))
     for obj in ctx.sbol_objects:
         if not obj.is_top_level or obj.iri is None:
             continue

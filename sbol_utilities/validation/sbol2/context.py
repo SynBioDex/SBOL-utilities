@@ -13,7 +13,7 @@ under a property) are served from indexes built on first use.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, Iterable, Iterator, List, Optional, Set, Tuple, Union
+from typing import Dict, Iterator, List, Optional, Set, Tuple, Union
 
 import rdflib
 from rdflib.term import BNode, Literal, URIRef
@@ -292,87 +292,3 @@ def _is_model_relevant(props: Dict[str, List[Term]]) -> bool:
     if any(not spec.is_extension_predicate(p) for p in props):
         return True
     return any(isinstance(t, URIRef) and str(t) in spec.CLASSES for t in props.get(spec.RDF_TYPE, ()))
-
-
-def nodes_reaching_cycles(graph: Dict[str, List[str]], starts: Iterable[str]) -> Set[str]:
-    """Nodes of ``starts`` from which a directed walk in ``graph`` reaches a cycle (self-loops included)."""
-    state: Dict[str, int] = {}  # 1 = on the stack, 2 = finished
-    reaches: Dict[str, bool] = {}
-    for start in starts:
-        if start in state:
-            continue
-        stack: List[Tuple[str, Iterator[str]]] = [(start, iter(graph.get(start, ())))]
-        state[start] = 1
-        reaches[start] = False
-        while stack:
-            node, successors = stack[-1]
-            advanced = False
-            for successor in successors:
-                status = state.get(successor)
-                if status == 1:
-                    reaches[node] = True
-                elif status == 2:
-                    if reaches[successor]:
-                        reaches[node] = True
-                else:
-                    state[successor] = 1
-                    reaches[successor] = False
-                    stack.append((successor, iter(graph.get(successor, ()))))
-                    advanced = True
-                    break
-            if advanced:
-                continue
-            stack.pop()
-            state[node] = 2
-            if stack and reaches[node]:
-                reaches[stack[-1][0]] = True
-    return {node for node in starts if reaches.get(node)}
-
-
-def nodes_on_cycles(graph: Dict[str, List[str]]) -> Set[str]:
-    """Nodes lying on a directed cycle of ``graph`` (strongly connected components of size > 1, or self-loops)."""
-    index_of: Dict[str, int] = {}
-    low: Dict[str, int] = {}
-    on_stack: Set[str] = set()
-    stack: List[str] = []
-    result: Set[str] = set()
-    counter = 0
-    for root in graph:
-        if root in index_of:
-            continue
-        work: List[Tuple[str, Iterator[str]]] = [(root, iter(graph.get(root, ())))]
-        index_of[root] = low[root] = counter
-        counter += 1
-        stack.append(root)
-        on_stack.add(root)
-        while work:
-            node, successors = work[-1]
-            advanced = False
-            for successor in successors:
-                if successor not in index_of:
-                    index_of[successor] = low[successor] = counter
-                    counter += 1
-                    stack.append(successor)
-                    on_stack.add(successor)
-                    work.append((successor, iter(graph.get(successor, ()))))
-                    advanced = True
-                    break
-                if successor in on_stack:
-                    low[node] = min(low[node], index_of[successor])
-            if advanced:
-                continue
-            work.pop()
-            if work:
-                parent = work[-1][0]
-                low[parent] = min(low[parent], low[node])
-            if low[node] == index_of[node]:
-                component = []
-                while True:
-                    member = stack.pop()
-                    on_stack.discard(member)
-                    component.append(member)
-                    if member == node:
-                        break
-                if len(component) > 1 or node in graph.get(node, ()):
-                    result.update(component)
-    return result

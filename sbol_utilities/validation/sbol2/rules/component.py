@@ -5,9 +5,10 @@ from __future__ import annotations
 from typing import Dict, List, Optional, Tuple
 
 from sbol_utilities.validation.catalog import Context
+from sbol_utilities.validation.graphs import nodes_reaching_cycles
 from sbol_utilities.validation.sbol2 import REGISTRY
 from sbol_utilities.validation.sbol2 import spec as S
-from sbol_utilities.validation.sbol2.context import Obj, Sbol2Context, nodes_reaching_cycles
+from sbol_utilities.validation.sbol2.context import Obj, Sbol2Context
 from sbol_utilities.validation.sbol2.rules.structural import regions
 
 
@@ -282,7 +283,7 @@ def definition_cycles(ctx: Sbol2Context, class_iri: str, instance_predicate: str
             if target is not None and target.iri is not None:
                 successors.append(target.iri)
         graph[obj.iri] = successors
-    offenders = nodes_reaching_cycles(graph, [o.iri for o in members])  # type: ignore[misc]
+    offenders = nodes_reaching_cycles(graph, lambda node: graph.get(node, ()))
     return [o for o in members if o.iri in offenders]
 
 

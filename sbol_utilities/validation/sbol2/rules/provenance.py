@@ -6,9 +6,10 @@ from __future__ import annotations
 from typing import Dict, List
 
 from sbol_utilities.validation.catalog import Context
+from sbol_utilities.validation.graphs import nodes_reaching_cycles
 from sbol_utilities.validation.sbol2 import REGISTRY
 from sbol_utilities.validation.sbol2 import spec as S
-from sbol_utilities.validation.sbol2.context import Sbol2Context, nodes_reaching_cycles
+from sbol_utilities.validation.sbol2.context import Sbol2Context
 
 
 @REGISTRY.rule("sbol2-10223")
@@ -31,7 +32,7 @@ def generation_cycles(context: Context) -> None:
             graph[obj.iri] = successors
     if not graph:
         return
-    offenders = nodes_reaching_cycles(graph, starts)
+    offenders = nodes_reaching_cycles(starts, lambda node: graph.get(node, ()))
     for obj in ctx.objects:
         if obj.iri in offenders:
             ctx.error(
