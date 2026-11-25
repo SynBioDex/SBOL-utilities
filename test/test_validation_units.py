@@ -5,7 +5,9 @@ from __future__ import annotations
 import pytest
 from rdflib import Graph, URIRef
 
+from sbol_utilities.identifiers import is_valid_display_id
 from sbol_utilities.validation import ValidationConfig, validate_sbol3
+from sbol_utilities.validation.datatypes import I64_MAX, I64_MIN, is_date_time_lexical, is_float_lexical, parse_i64
 from sbol_utilities.validation.graphs import nodes_on_cycles, nodes_reaching, nodes_reaching_cycles
 from sbol_utilities.vocab import PROV, SBOL3, TYPE
 
@@ -89,3 +91,58 @@ def test_long_derivation_chain_validates():
 def test_derivation_ladder_validates():
     edges = {f"{side}{rung}": [f"l{rung + 1}", f"r{rung + 1}"] for rung in range(40) for side in "lr"}
     assert derivation_cycle_subjects(edges) == set()
+
+
+@pytest.mark.parametrize(
+    "text, valid",
+    [
+        ("promoter", True),
+        ("_x1", True),
+        ("BBa_J23101", True),
+        ("1x", False),
+        ("a-b", False),
+        ("", False),
+        ("a\n", False),
+    ],
+)
+def test_display_id_syntax(text, valid):
+    assert is_valid_display_id(text) is valid
+
+
+@pytest.mark.parametrize(
+    "text, value",
+    [
+        ("0", 0),
+        ("+7", 7),
+        ("-12", -12),
+        (str(I64_MAX), I64_MAX),
+        (str(I64_MIN), I64_MIN),
+        (str(I64_MAX + 1), None),
+        (str(I64_MIN - 1), None),
+        ("1.0", None),
+        ("", None),
+        ("١٢", None),
+        ("12\n", None),
+        (None, None),
+    ],
+)
+def test_parse_i64(text, value):
+    assert parse_i64(text) == value
+
+
+@pytest.mark.parametrize(
+    "text, valid",
+    [("1", True), ("-1.5e3", True), (".5", True), ("5.", True), ("INF", True), ("-inf", True), ("NaN", True)]
+    + [("", False), ("e3", False), ("1e", False), ("1.5\n", False)],
+)
+def test_float_lexical_form(text, valid):
+    assert is_float_lexical(text) is valid
+
+
+@pytest.mark.parametrize(
+    "text, valid",
+    [("2024-01-02T03:04:05", True), ("2024-01-02T03:04:05.250Z", True), ("2024-01-02T03:04:05+01:00", True)]
+    + [("2024-01-02", False), ("2024-01-02 03:04:05", False), ("2024-01-02T03:04:05Z\n", False)],
+)
+def test_date_time_lexical_form(text, valid):
+    assert is_date_time_lexical(text) is valid

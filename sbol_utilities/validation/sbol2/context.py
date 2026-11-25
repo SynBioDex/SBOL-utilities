@@ -21,6 +21,7 @@ from rdflib.term import BNode, Literal, URIRef
 
 from sbol_utilities.validation.catalog import Catalog, Context
 from sbol_utilities.validation.config import ValidationConfig
+from sbol_utilities.validation.datatypes import parse_i64
 from sbol_utilities.validation.ontology import Ontology
 from sbol_utilities.validation.sbol2 import spec
 from sbol_utilities.vocab import RDF_TYPE, SBOL2_NS, XSD_STRING
@@ -137,19 +138,6 @@ class Obj:
     def lists(self, predicate: str, target: str) -> bool:
         """Whether ``predicate`` has the IRI ``target`` among its values."""
         return any(isinstance(v, URIRef) and str(v) == target for v in self.properties.get(predicate, ()))
-
-
-I64_MIN = -(2**63)
-I64_MAX = 2**63 - 1
-
-
-def parse_i64(text: str) -> int | None:
-    """Parse a decimal integer with an optional sign, as Rust's ``i64::from_str`` does."""
-    body = text[1:] if text[:1] in ("+", "-") else text
-    if not body or not body.isascii() or not body.isdigit():
-        return None
-    value = int(text)
-    return value if I64_MIN <= value <= I64_MAX else None
 
 
 def _term(node: rdflib.term.Node, predicate: str) -> Term:

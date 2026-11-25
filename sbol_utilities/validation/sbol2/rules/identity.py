@@ -3,8 +3,8 @@ wasDerivedFrom cycles and version order, and the compliant-URI family."""
 
 from __future__ import annotations
 
+from sbol_utilities.identifiers import is_valid_display_id
 from sbol_utilities.validation.graphs import nodes_on_cycles
-from sbol_utilities.validation.rdf import has_valid_display_id
 from sbol_utilities.validation.sbol2 import spec as S
 from sbol_utilities.validation.sbol2.context import Obj, Sbol2Context
 from sbol_utilities.validation.sbol2.registry import REGISTRY
@@ -26,7 +26,7 @@ def identity_syntax(ctx: Sbol2Context) -> None:
     for obj in ctx.sbol_objects:
         if obj.iri is None:
             ctx.report("sbol2-10201", obj, "the identity of an Identified object must be a URI")
-        if obj.display_id is not None and not has_valid_display_id(obj.display_id):
+        if obj.display_id is not None and not is_valid_display_id(obj.display_id):
             ctx.report(
                 "sbol2-10204",
                 obj,

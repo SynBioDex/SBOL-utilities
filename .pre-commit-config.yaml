@@ -1,6 +1,6 @@
 # Lint and type-check the pure-Python conversion and validation packages and their tests.
 # The pattern deliberately leaves the rest of the repository's existing files untouched.
-files: ^(sbol_utilities/(convert|validation)/.*|sbol_utilities/(rdf_io|vocab)\.py|test/(test_(convert|validation)_.*|sboltestsuite|conftest|validation_goldens|conversion_goldens)\.py)$
+files: ^(sbol_utilities/(convert|validation)/.*|sbol_utilities/(identifiers|rdf_io|vocab)\.py|test/(test_(convert|validation)_.*|sboltestsuite|conftest|validation_goldens|conversion_goldens)\.py)$
 repos:
   - repo: https://github.com/pycqa/isort
     rev: 5.13.2

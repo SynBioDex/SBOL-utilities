@@ -3,21 +3,13 @@ enumerated vocabularies, and positional bounds. All run on every document (the l
 
 from __future__ import annotations
 
-import re
-
 from rdflib.term import URIRef
 
+from sbol_utilities.validation.datatypes import is_date_time_lexical, is_float_lexical, parse_i64
 from sbol_utilities.validation.sbol2 import spec as S
-from sbol_utilities.validation.sbol2.context import Lit, Obj, Sbol2Context, Term, parse_i64
+from sbol_utilities.validation.sbol2.context import Lit, Obj, Sbol2Context, Term
 from sbol_utilities.validation.sbol2.registry import REGISTRY
 from sbol_utilities.vocab import SBOL2_NS
-
-_FLOAT = re.compile(
-    r"^[+-]?(?:[0-9]+\.?[0-9]*(?:[eE][+-]?[0-9]+)?|\.[0-9]+(?:[eE][+-]?[0-9]+)?|inf|infinity|nan)$", re.IGNORECASE
-)
-_DATE_TIME = re.compile(
-    r"^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\.[0-9]+)?(?:Z|[+-][0-9]{2}:[0-9]{2})?$"
-)
 
 
 def value_matches_kind(term: Term, kind: str) -> bool:
@@ -31,9 +23,9 @@ def value_matches_kind(term: Term, kind: str) -> bool:
     if kind in (S.INTEGER, S.LONG):
         return parse_i64(term.value) is not None
     if kind == S.FLOAT:
-        return term.value in ("INF", "+INF", "-INF", "NaN") or bool(_FLOAT.match(term.value))
+        return is_float_lexical(term.value)
     if kind == S.DATE_TIME:
-        return bool(_DATE_TIME.match(term.value))
+        return is_date_time_lexical(term.value)
     return False
 
 

@@ -8,6 +8,7 @@ from __future__ import annotations
 from rdflib.term import Node, URIRef
 
 from sbol_utilities.validation.config import Severity
+from sbol_utilities.validation.datatypes import parse_i64
 from sbol_utilities.validation.sbol3 import spec
 from sbol_utilities.validation.sbol3.context import SBOL3Context, SbolObject
 from sbol_utilities.validation.sbol3.helpers import (
@@ -18,7 +19,6 @@ from sbol_utilities.validation.sbol3.helpers import (
     is_hex_digest,
     is_known_non_edam_namespace,
     is_sbo_modeling_framework_term,
-    parse_i64,
 )
 from sbol_utilities.validation.sbol3.registry import REGISTRY
 

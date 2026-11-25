@@ -9,21 +9,12 @@ import re
 
 from rdflib.term import Literal, Node, URIRef
 
+from sbol_utilities.validation.datatypes import is_date_time_lexical, is_float_lexical, parse_i64
 from sbol_utilities.validation.ontology import NUCLEIC_ACID, Ontology
 from sbol_utilities.validation.sbol3 import spec
 from sbol_utilities.validation.sbol3.context import SBOL3Context, SbolObject, literal_datatype
 from sbol_utilities.vocab import RDF_LANG_STRING, XSD_NS, XSD_STRING
 
-I64_MIN = -(2**63)
-I64_MAX = 2**63 - 1
-
-_INTEGER = re.compile(r"^[+-]?[0-9]+\Z")
-_FLOAT = re.compile(r"^[+-]?(?:inf|infinity|nan|(?:[0-9]+\.?[0-9]*|\.[0-9]+)(?:e[+-]?[0-9]+)?)\Z", re.IGNORECASE)
-_XSD_INTEGER = re.compile(r"^[+-]?[0-9]+\Z")
-_DATETIME = re.compile(
-    r"^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\.[0-9]+)?(?:Z|[+-][0-9]{2}:[0-9]{2})?\Z"
-)
-_DISPLAY_ID = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*\Z")
 _HEX = re.compile(r"^[0-9A-Fa-f]+\Z")
 _HASH_TOKEN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*\Z")
 
@@ -51,14 +42,6 @@ MODEL_FRAMEWORK_TABLE_16 = ("https://identifiers.org/SBO:0000062", "https://iden
 # --- lexical forms ---
 
 
-def parse_i64(value: str | None) -> int | None:
-    """Parse a signed 64-bit integer the way Rust's ``i64::from_str`` does, or None."""
-    if value is None or not _INTEGER.match(value):
-        return None
-    number = int(value)
-    return number if I64_MIN <= number <= I64_MAX else None
-
-
 def integer_value(obj: SbolObject, predicate: str) -> int | None:
     """The first literal value of a predicate parsed as an i64."""
     return parse_i64(obj.first_literal_value(predicate))
@@ -72,11 +55,6 @@ def is_url(value: str) -> bool:
 def is_namespace_url(value: str) -> bool:
     """http, https, or urn IRI."""
     return is_url(value) or value.startswith("urn:")
-
-
-def is_valid_display_id(value: str) -> bool:
-    """displayId lexical form: letter or underscore, then letters, digits, or underscores (ASCII)."""
-    return bool(_DISPLAY_ID.match(value))
 
 
 def is_hex_digest(value: str) -> bool:
@@ -133,10 +111,6 @@ _INTEGER_TYPES = frozenset(
 _FLOAT_TYPES = frozenset(XSD_NS + t for t in ("float", "double", "decimal"))
 
 
-def _is_float_lexical(value: str) -> bool:
-    return value in ("INF", "+INF", "-INF", "NaN") or bool(_FLOAT.match(value))
-
-
 def value_matches_kind(term: Node, value_kind: str) -> bool:
     """Table 23 value-kind check: compatible datatype and well-formed lexical value (sbol3-10111)."""
     if value_kind == spec.URI:
@@ -150,15 +124,11 @@ def value_matches_kind(term: Node, value_kind: str) -> bool:
     if value_kind == spec.STRING:
         return _is_string_datatype(datatype)
     if value_kind in (spec.INTEGER, spec.LONG):
-        return (
-            (datatype in _INTEGER_TYPES or _is_string_datatype(datatype))
-            and bool(_XSD_INTEGER.match(value))
-            and parse_i64(value) is not None
-        )
+        return (datatype in _INTEGER_TYPES or _is_string_datatype(datatype)) and parse_i64(value) is not None
     if value_kind == spec.FLOAT:
-        return (datatype in _FLOAT_TYPES or _is_string_datatype(datatype)) and _is_float_lexical(value)
+        return (datatype in _FLOAT_TYPES or _is_string_datatype(datatype)) and is_float_lexical(value)
     if value_kind == spec.DATE_TIME:
-        return (datatype == XSD_NS + "dateTime" or _is_string_datatype(datatype)) and bool(_DATETIME.match(value))
+        return (datatype == XSD_NS + "dateTime" or _is_string_datatype(datatype)) and is_date_time_lexical(value)
     return False
 
 
