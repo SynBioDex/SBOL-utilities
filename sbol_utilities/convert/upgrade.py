@@ -30,6 +30,7 @@ from sbol_utilities.convert.terms import (
     DCTERMS_TITLE,
     EDAM_IUPAC_DNA_RNA,
     OM_NS,
+    OM_TOP_LEVELS,
     PROV_ACTIVITY,
     PROV_AGENT,
     PROV_NS,
@@ -116,6 +117,9 @@ KNOWN_CLASSES = frozenset(CLASSES) | {S2.MapsTo}
 
 PROV_TOP_LEVELS = frozenset({PROV_ACTIVITY, PROV_AGENT, PROV_PLAN})
 
+#: top-level classes of the vocabularies SBOL extends
+EXTENSION_TOP_LEVELS = PROV_TOP_LEVELS | OM_TOP_LEVELS
+
 TOP_LEVEL_CLASSES = (
     frozenset(
         S2.base + name
@@ -124,7 +128,7 @@ TOP_LEVEL_CLASSES = (
             "ExperimentalData CombinatorialDerivation"
         ).split()
     )
-    | PROV_TOP_LEVELS
+    | EXTENSION_TOP_LEVELS
 )
 
 #: SBOL 2 predicate -> SBOL 3 predicate, for predicates that convert one-to-one
@@ -189,7 +193,7 @@ DIRECTIONS = {S2.base + "in": "input", S2.out: "output", S2.inout: "nondirection
 
 
 def _type_precedence(type_iri: str) -> int:
-    if type_iri in KNOWN_CLASSES or type_iri in PROV_TOP_LEVELS:
+    if type_iri in KNOWN_CLASSES or type_iri in EXTENSION_TOP_LEVELS:
         return 2
     return 1 if type_iri.startswith(S2.base) else 0
 
@@ -211,7 +215,7 @@ class _Upgrader:
         self.report = report
         self.identity = IdentityMap(triples)
         self.out: List[Triple] = []
-        #: original subject IRI -> its SBOL 2 (or PROV top-level) class
+        #: original subject IRI -> its SBOL 2 (or PROV/OM top-level) class
         self.typed: Dict[str, str] = {}
         #: CD (or Location) IRI -> the Sequences it references via sbol2:sequence
         self.cd_sequences: Dict[str, List[str]] = defaultdict(list)
@@ -229,6 +233,8 @@ class _Upgrader:
         self.location_display_id_overrides: Dict[str, str] = {}
         #: canonical IRI -> original IRI of custom-typed (GenericTopLevel) subjects
         self.generic_top_levels: Dict[str, str] = {}
+        #: subjects with SBOL 2 identity properties and only classes from other vocabularies (PROV, OM, custom)
+        self.extension_objects: Set[str] = set()
 
     def run(self) -> List[Triple]:
         """Convert the input, returning the SBOL 3 triples."""
@@ -236,6 +242,7 @@ class _Upgrader:
         for triple in self.triples:
             self._handle(triple)
         self._emit_namespaces()
+        self._emit_extension_markers()
         self._infer_location_sequences()
         self._decompose_mapstos()
         self._synthesize_interfaces()
@@ -273,7 +280,7 @@ class _Upgrader:
                         recognized_typed.add(s)
                     else:
                         custom_typed.add(s)
-                    if o.startswith(S2.base) or o in PROV_TOP_LEVELS:
+                    if o.startswith(S2.base) or o in EXTENSION_TOP_LEVELS:
                         existing = self.typed.get(s)
                         if existing is None or _type_precedence(o) > _type_precedence(existing):
                             self.typed[s] = o
@@ -294,7 +301,7 @@ class _Upgrader:
                 self.owned_by[o] = s
 
         has_recognized_type = bool(recognized_typed) or any(
-            t.startswith(S2.base) or t in PROV_TOP_LEVELS for t in self.typed.values()
+            t.startswith(S2.base) or t in EXTENSION_TOP_LEVELS for t in self.typed.values()
         )
         if self.triples and not saw_sbol2_predicate and not has_recognized_type:
             raise ValueError("input contains no SBOL 2 typed subjects or properties; nothing to upgrade")
@@ -309,6 +316,10 @@ class _Upgrader:
             canonical = rewrite(subject)
             if not any(canonical.startswith(prefix) for prefix in prefixes):
                 self.generic_top_levels.setdefault(canonical, subject)
+
+        self.extension_objects = {
+            s for s in sbol2_identified if (s in custom_typed or s in recognized_typed) and not self._has_sbol2_class(s)
+        }
 
         for s, p, o in self.triples:
             if p == S2.component and is_iri(s) and is_iri(o) and self.typed.get(s) == S2.SequenceAnnotation:
@@ -364,6 +375,10 @@ class _Upgrader:
                 info.refinement = o
             elif p == S2.displayId and isinstance(o, Literal):
                 info.display_id = str(o)
+
+    def _has_sbol2_class(self, subject: str) -> bool:
+        cls = self.typed.get(subject)
+        return cls is not None and cls.startswith(S2.base)
 
     def _owning_top_level(self, subject: str) -> str:
         current, seen = subject, {subject}
@@ -518,6 +533,19 @@ class _Upgrader:
                 namespace = self._fallback_namespace(fallback_source)
             if namespace is not None:
                 self.out.append((canonical, S3.hasNamespace, namespace))
+
+    def _emit_extension_markers(self) -> None:
+        """Type each PROV, OM, or custom-class object as an SBOL TopLevel or Identified (SBOL 3.1.0 §6.11).
+
+        Objects without SBOL 2 identity properties (plain nested annotations) stay outside the SBOL data model.
+        """
+        markers: Dict[str, str] = {}
+        for subject in sorted(self.extension_objects):
+            canonical = self.identity.rewrite(subject)
+            top_level = self.typed.get(subject) in EXTENSION_TOP_LEVELS or canonical in self.generic_top_levels
+            markers.setdefault(canonical, S3.TopLevel if top_level else S3.Identified)
+        for canonical in sorted(markers):
+            self.out.append((canonical, RDF_TYPE, markers[canonical]))
 
     def _fallback_namespace(self, iri: str) -> Optional[str]:
         origin = uri.url_origin(iri)

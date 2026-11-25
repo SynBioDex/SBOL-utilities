@@ -28,6 +28,7 @@ from sbol_utilities.convert.terms import (
     BP,
     DCTERMS_DESCRIPTION,
     DCTERMS_TITLE,
+    EXTENSION_MARKERS,
     PROV_ACTIVITY,
     PROV_AGENT,
     PROV_NS,
@@ -449,9 +450,15 @@ class _Downgrader:
             self.sa_wrappers[subcomponent] = _SaWrapper(display_id, iri, parent, locations)
 
     def _discover_unsupported(self) -> None:
-        """Drop subjects whose only SBOL 3 classes have no SBOL 2 equivalent."""
+        """Drop subjects whose only SBOL 3 classes have no SBOL 2 equivalent.
+
+        An object of another vocabulary's class (PROV, OM, custom) typed TopLevel or Identified keeps that class.
+        """
         for subject in sorted(self.types):
-            sbol_types = sorted(t for t in self.types[subject] if t.startswith(S3.base))
+            types = self.types[subject]
+            sbol_types = sorted(t for t in types if t.startswith(S3.base))
+            if any(not t.startswith(S3.base) for t in types) and all(t in EXTENSION_MARKERS for t in sbol_types):
+                continue
             if not sbol_types or any(self._sbol2_type(subject, t) is not None for t in sbol_types):
                 continue
             if (
@@ -591,6 +598,8 @@ class _Downgrader:
 
     def _handle_type(self, triple: Triple) -> None:
         s, p, o = triple
+        if o in EXTENSION_MARKERS and any(not t.startswith(S3.base) for t in self.types.get(s, ())):
+            return  # SBOL 2 places objects of other vocabularies' classes in its data model without a marker type
         if not is_iri(s) or not is_iri(o) or not o.startswith(S3.base):
             self._passthrough(triple)
             return
@@ -740,8 +749,19 @@ class _Downgrader:
             existing.add((subject, predicate))
 
     def _emit_identity_metadata(self) -> None:
-        """Give every rewritten object its ``persistentIdentity`` and (when it has one) ``version``."""
+        """Give every rewritten object its ``persistentIdentity`` and (when it has one) ``version``.
+
+        Subjects outside the SBOL data model (plain RDF annotations, with no SBOL 3 type or property) take no SBOL 2
+        identity.
+        """
+        sbol_subjects = {
+            s
+            for s, p, o in self.triples
+            if is_iri(s) and (p.startswith(S3.base) or (p == RDF_TYPE and is_iri(o) and o.startswith(S3.base)))
+        }
         for sbol3 in sorted(self.rewrites):
+            if sbol3 not in sbol_subjects:
+                continue
             if sbol3 in self.mapstos or sbol3 in self.mapsto_constraints or sbol3 in self.interfaces:
                 continue
             if sbol3 in self.discarded:

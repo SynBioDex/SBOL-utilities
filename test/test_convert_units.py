@@ -440,3 +440,83 @@ def test_fragment_style_sequence_annotation_downgrades_to_valid_iris():
     downgraded, _ = downgrade(upgraded)
     assert all(str(s).count("#") <= 1 for s in downgraded.subjects())
     assert "SequenceAnnotation" in serialize(downgraded, "xml")
+
+
+EXTENSION_OBJECTS_SBOL2 = """
+@prefix sbol: <http://sbols.org/v2#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix om: <http://www.ontology-of-units-of-measure.org/resource/om-2/> .
+@prefix biopax: <http://www.biopax.org/release/biopax-level3.owl#> .
+@prefix myapp: <http://myapp.org/> .
+
+<https://example.org/lab/act> a prov:Activity ;
+    sbol:displayId "act" ; sbol:persistentIdentity <https://example.org/lab/act> ;
+    prov:qualifiedUsage <https://example.org/lab/act/use> .
+<https://example.org/lab/act/use> a prov:Usage ;
+    sbol:displayId "use" ; sbol:persistentIdentity <https://example.org/lab/act/use> ;
+    prov:entity <https://example.org/lab/cd> .
+<https://example.org/lab/sheet> a myapp:Datasheet ;
+    sbol:displayId "sheet" ; sbol:persistentIdentity <https://example.org/lab/sheet> .
+<https://example.org/lab/cd> a sbol:ComponentDefinition ;
+    sbol:displayId "cd" ; sbol:persistentIdentity <https://example.org/lab/cd> ; sbol:type biopax:DnaRegion ;
+    prov:wasGeneratedBy <https://example.org/lab/act> ;
+    sbol:measure <https://example.org/lab/cd/mass> ;
+    myapp:information <https://example.org/lab/cd/info> .
+<https://example.org/lab/cd/mass> a om:Measure ;
+    sbol:displayId "mass" ; sbol:persistentIdentity <https://example.org/lab/cd/mass> ;
+    om:hasNumericalValue "1.5"^^<http://www.w3.org/2001/XMLSchema#float> ; om:hasUnit om:gram .
+<https://example.org/lab/cd/info> a myapp:Information ; myapp:note "plain annotation" .
+"""
+
+EXTENSION_OBJECTS_SBOL3 = """
+@prefix sbol: <http://sbols.org/v3#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix ex: <http://example.org/vocab/> .
+
+<https://example.org/lab/act> a sbol:TopLevel , prov:Activity ;
+    sbol:displayId "act" ; sbol:hasNamespace <https://example.org/lab> ;
+    prov:qualifiedUsage <https://example.org/lab/act/use> .
+<https://example.org/lab/act/use> a sbol:Identified , prov:Usage ;
+    sbol:displayId "use" ; prov:entity <https://example.org/lab/part> .
+<https://example.org/lab/repository> a sbol:TopLevel , ex:Repository ;
+    sbol:displayId "repository" ; sbol:hasNamespace <https://example.org/lab> .
+<https://example.org/lab/part> a sbol:Component ;
+    sbol:displayId "part" ; sbol:hasNamespace <https://example.org/lab> ;
+    sbol:type <https://identifiers.org/SBO:0000251> ;
+    prov:wasGeneratedBy <https://example.org/lab/act> ;
+    ex:storedIn <https://example.org/lab/repository> ;
+    ex:note <https://example.org/lab/part/note> .
+<https://example.org/lab/part/note> a ex:Note ; ex:text "plain annotation" .
+"""
+
+
+def test_extension_objects_gain_sbol_marker_types():
+    """PROV, OM, and custom-class objects with SBOL identity are typed TopLevel or Identified (SBOL 3.1.0 §6.11)."""
+    upgraded, _ = upgrade(EXTENSION_OBJECTS_SBOL2, fmt="turtle")
+    rdf_type = URIRef("http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
+    for iri, marker in (
+        ("https://example.org/lab/act", S3.TopLevel),
+        ("https://example.org/lab/sheet", S3.TopLevel),
+        ("https://example.org/lab/act/use", S3.Identified),
+        ("https://example.org/lab/cd/mass", S3.Identified),
+    ):
+        assert (URIRef(iri), rdf_type, URIRef(marker)) in upgraded, iri
+    note_types = set(upgraded.objects(URIRef("https://example.org/lab/cd/info"), rdf_type))
+    assert note_types == {URIRef("http://myapp.org/Information")}
+    assert not validate_sbol3(upgraded, ValidationConfig(complete=False)).errors
+
+
+def test_marked_extension_objects_survive_downgrade():
+    """The downgrade keeps PROV and custom-class objects, dropping only their SBOL 3 marker types."""
+    downgraded, report = downgrade(EXTENSION_OBJECTS_SBOL3, fmt="turtle")
+    rdf_type = URIRef("http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
+    for iri, cls in (
+        ("https://example.org/lab/act", "http://www.w3.org/ns/prov#Activity"),
+        ("https://example.org/lab/act/use", "http://www.w3.org/ns/prov#Usage"),
+        ("https://example.org/lab/repository", "http://example.org/vocab/Repository"),
+    ):
+        assert (URIRef(iri), rdf_type, URIRef(cls)) in downgraded, iri
+    assert not any(str(term).startswith(S3.base) for triple in downgraded for term in triple)
+    note = URIRef("https://example.org/lab/part/note")
+    assert (note, URIRef(S2.persistentIdentity), None) not in downgraded
+    assert not report.warnings

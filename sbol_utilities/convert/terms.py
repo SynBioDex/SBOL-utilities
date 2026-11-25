@@ -41,6 +41,18 @@ PROV_ACTIVITY = PROV_NS + "Activity"
 PROV_AGENT = PROV_NS + "Agent"
 PROV_PLAN = PROV_NS + "Plan"
 
+#: OM classes whose instances are top-level objects (SBOL 3.1.0 Appendix A.2); om:Measure is a child object
+OM_TOP_LEVELS = frozenset(
+    OM_NS + name
+    for name in (
+        "Unit SingularUnit CompoundUnit UnitMultiplication UnitDivision UnitExponentiation PrefixedUnit Prefix "
+        "SIPrefix BinaryPrefix"
+    ).split()
+)
+
+#: SBOL 3 types that place an object of another vocabulary's class in the SBOL data model (SBOL 3.1.0 §6.11)
+EXTENSION_MARKERS = frozenset({str(SBOL3) + "TopLevel", str(SBOL3) + "Identified"})
+
 #: SBO "functional entity": the type the upgrade gives every ModuleDefinition-derived Component
 SBO_FUNCTIONAL_ENTITY = "https://identifiers.org/SBO:0000241"
 EDAM_IUPAC_DNA_RNA = "https://identifiers.org/edam:format_1207"
