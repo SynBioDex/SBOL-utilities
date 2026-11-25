@@ -2,78 +2,92 @@
 
 from __future__ import annotations
 
+from enum import Enum
+
 from rdflib.term import Node
 
 from sbol_utilities.validation.sbol3 import spec
 from sbol_utilities.validation.sbol3.context import Sbol3Context, Sbol3Object
 from sbol_utilities.validation.sbol3.registry import REGISTRY
 
-DESIGN = "design"
-BUILD = "build"
-TEST = "test"
-LEARN = "learn"
 
-STAGES: dict[str, str] = {spec.DESIGN: DESIGN, spec.BUILD: BUILD, spec.TEST: TEST, spec.LEARN: LEARN}
-#: Table 21: the stage preceding each stage
-PRECEDING = {DESIGN: LEARN, BUILD: DESIGN, TEST: BUILD, LEARN: TEST}
-REFERRED_TYPE = {
-    DESIGN: "a TopLevel other than Implementation",
-    BUILD: "an Implementation",
-    TEST: "an ExperimentalData",
-    LEARN: "an Identified other than Implementation",
+class Stage(Enum):
+    """A stage of the design-build-test-learn workflow (Table 21)."""
+
+    DESIGN = spec.DESIGN
+    BUILD = spec.BUILD
+    TEST = spec.TEST
+    LEARN = spec.LEARN
+
+    @classmethod
+    def of(cls, iri: Node) -> Stage | None:
+        """The stage a role or type IRI names, if any."""
+        return _STAGES.get(str(iri))
+
+    @property
+    def label(self) -> str:
+        """The stage's name in messages."""
+        return self.name.lower()
+
+    @property
+    def preceding(self) -> Stage:
+        """The stage whose results this stage uses."""
+        return _PRECEDING[self]
+
+    @property
+    def product(self) -> str:
+        """What an object of this stage is, in words."""
+        return _PRODUCTS[self]
+
+    def suits(self, obj: Sbol3Object) -> bool:
+        """Whether an object has the type this stage produces and uses."""
+        if self is Stage.BUILD:
+            return obj.has_rdf_type(spec.IMPLEMENTATION)
+        if self is Stage.TEST:
+            return obj.has_rdf_type(spec.EXPERIMENTAL_DATA)
+        return not obj.has_rdf_type(spec.IMPLEMENTATION)
+
+
+_STAGES = {stage.value: stage for stage in Stage}
+_PRECEDING = {Stage.DESIGN: Stage.LEARN, Stage.BUILD: Stage.DESIGN, Stage.TEST: Stage.BUILD, Stage.LEARN: Stage.TEST}
+_PRODUCTS = {
+    Stage.DESIGN: "a TopLevel other than Implementation",
+    Stage.BUILD: "an Implementation",
+    Stage.TEST: "an ExperimentalData",
+    Stage.LEARN: "an Identified other than Implementation",
 }
 
 
-def _stage(iri: Node) -> str | None:
-    return STAGES.get(str(iri))
-
-
-def matches_target(stage: str, target: Sbol3Object) -> bool:
-    """Whether an object's rdf:types suit the Table 21 referred-object type of a stage."""
-    is_implementation = target.has_rdf_type(spec.IMPLEMENTATION)
-    if stage == BUILD:
-        return is_implementation
-    if stage == TEST:
-        return target.has_rdf_type(spec.EXPERIMENTAL_DATA)
-    return not is_implementation
+def _stages(obj: Sbol3Object, predicate: str) -> list[Stage]:
+    """The workflow stages among an object's values of ``predicate``, in value order."""
+    return [stage for stage in map(Stage.of, obj.iris(predicate)) if stage is not None]
 
 
 @REGISTRY.rule("sbol3-12901", "sbol3-12902")
 def activities(ctx: Sbol3Context) -> None:
     """Usage and Association roles agree with their Activity's workflow stage."""
-    for activity in ctx.objects.values():
-        if not activity.has_rdf_type(spec.PROV_ACTIVITY):
-            continue
-        stages = [s for s in (_stage(i) for i in activity.iris(spec.TYPE)) if s is not None]
+    for activity in ctx.instances(spec.PROV_ACTIVITY):
+        stages = _stages(activity, spec.TYPE)
         if not stages:
             continue
-        for usage in activity.resources(spec.PROV_QUALIFIED_USAGE):
-            usage_obj = ctx.get(usage)
-            if usage_obj is None:
-                continue
-            for role in usage_obj.iris(spec.PROV_HAD_ROLE):
-                role_stage = _stage(role)
-                if role_stage is None:
-                    continue
-                if not any(s == role_stage or PRECEDING[s] == role_stage for s in stages):
+        usable = {*stages, *(stage.preceding for stage in stages)}
+        for usage in ctx.referenced(activity, spec.PROV_QUALIFIED_USAGE):
+            for role in _stages(usage, spec.PROV_HAD_ROLE):
+                if role not in usable:
                     ctx.report(
                         "sbol3-12901",
-                        usage_obj,
-                        f"Usage role `{role_stage}` is not the same as or preceding any of the Activity's workflow "
+                        usage,
+                        f"Usage role `{role.label}` is not the same as or preceding any of the Activity's workflow "
                         "stages",
                         property=spec.PROV_HAD_ROLE,
                     )
-        for association in activity.resources(spec.PROV_QUALIFIED_ASSOCIATION):
-            association_obj = ctx.get(association)
-            if association_obj is None:
-                continue
-            for role in association_obj.iris(spec.PROV_HAD_ROLE):
-                role_stage = _stage(role)
-                if role_stage is not None and role_stage not in stages:
+        for association in ctx.referenced(activity, spec.PROV_QUALIFIED_ASSOCIATION):
+            for role in _stages(association, spec.PROV_HAD_ROLE):
+                if role not in stages:
                     ctx.report(
                         "sbol3-12902",
-                        association_obj,
-                        f"Association role `{role_stage}` does not match any of the Activity's workflow stages",
+                        association,
+                        f"Association role `{role.label}` does not match any of the Activity's workflow stages",
                         property=spec.PROV_HAD_ROLE,
                     )
 
@@ -81,43 +95,34 @@ def activities(ctx: Sbol3Context) -> None:
 @REGISTRY.rule("sbol3-13001")
 def usages(ctx: Sbol3Context) -> None:
     """Usage entities suit the Usage's workflow-stage role."""
-    for usage in ctx.objects.values():
-        if not usage.has_rdf_type(spec.PROV_USAGE):
-            continue
-        for role in usage.iris(spec.PROV_HAD_ROLE):
-            stage = _stage(role)
-            if stage is None:
-                continue
-            for entity in usage.resources(spec.PROV_ENTITY):
-                entity_obj = ctx.get(entity)
-                if entity_obj is not None and not matches_target(stage, entity_obj):
-                    ctx.report(
-                        "sbol3-13001",
-                        usage,
-                        f"Usage role `{stage}` requires entity to be {REFERRED_TYPE[stage]}",
-                        property=spec.PROV_ENTITY,
-                    )
+    for usage in ctx.instances(spec.PROV_USAGE):
+        entities = list(ctx.referenced(usage, spec.PROV_ENTITY))
+        for role in _stages(usage, spec.PROV_HAD_ROLE):
+            if not all(role.suits(entity) for entity in entities):
+                ctx.report(
+                    "sbol3-13001",
+                    usage,
+                    f"Usage role `{role.label}` requires entity to be {role.product}",
+                    property=spec.PROV_ENTITY,
+                )
 
 
 @REGISTRY.rule("sbol3-10205")
 def generated_objects(ctx: Sbol3Context) -> None:
     """Objects generated by an Activity suit the Activity's Association workflow roles."""
     for obj in ctx.objects.values():
-        for activity_id in obj.resources(spec.PROV_WAS_GENERATED_BY):
-            activity = ctx.get(activity_id)
-            if activity is None:
-                continue
-            for association in activity.resources(spec.PROV_QUALIFIED_ASSOCIATION):
-                association_obj = ctx.get(association)
-                if association_obj is None:
-                    continue
-                for role in association_obj.iris(spec.PROV_HAD_ROLE):
-                    stage = _stage(role)
-                    if stage is not None and not matches_target(stage, obj):
-                        ctx.report(
-                            "sbol3-10205",
-                            obj,
-                            f"wasGeneratedBy Association role `{stage}` requires the generated object to be "
-                            f"{REFERRED_TYPE[stage]}",
-                            property=spec.PROV_WAS_GENERATED_BY,
-                        )
+        roles = (
+            role
+            for activity in ctx.referenced(obj, spec.PROV_WAS_GENERATED_BY)
+            for association in ctx.referenced(activity, spec.PROV_QUALIFIED_ASSOCIATION)
+            for role in _stages(association, spec.PROV_HAD_ROLE)
+        )
+        for role in roles:
+            if not role.suits(obj):
+                ctx.report(
+                    "sbol3-10205",
+                    obj,
+                    f"wasGeneratedBy Association role `{role.label}` requires the generated object to be "
+                    f"{role.product}",
+                    property=spec.PROV_WAS_GENERATED_BY,
+                )

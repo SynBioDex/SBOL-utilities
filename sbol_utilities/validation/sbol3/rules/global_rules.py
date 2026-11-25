@@ -9,7 +9,7 @@ from rdflib.term import Node
 
 from sbol_utilities.validation.graphs import nodes_reaching, nodes_reaching_cycles
 from sbol_utilities.validation.sbol3 import spec
-from sbol_utilities.validation.sbol3.context import Sbol3Context
+from sbol_utilities.validation.sbol3.context import Sbol3Context, Sbol3Object
 from sbol_utilities.validation.sbol3.registry import REGISTRY
 from sbol_utilities.validation.sbol3.resolver import component_allows_sequence
 
@@ -117,33 +117,32 @@ def variant_derivation_cycles(ctx: Sbol3Context) -> None:
         )
 
 
-@REGISTRY.rule("sbol3-11302", "sbol3-11303")
-def location_sequence_membership(ctx: Sbol3Context) -> None:
-    """Feature Locations refer to Sequences of their Component; sourceLocations to the instanceOf's Sequences."""
-    checks: list[tuple[Node, Node, str, str]] = []
-    for kind in (spec.SUB_COMPONENT, spec.SEQUENCE_FEATURE, spec.LOCAL_SUB_COMPONENT):
-        for feature in ctx.instances(kind):
-            component = ctx.ownership.single_parent(feature.identity, spec.HAS_FEATURE)
-            if component is None:
-                continue
-            for location in feature.resources(spec.HAS_LOCATION):
-                checks.append((location, component, spec.HAS_LOCATION, "sbol3-11302"))
-            if kind == spec.SUB_COMPONENT:
-                instance_of = feature.first_resource(spec.INSTANCE_OF)
-                if instance_of is not None:
-                    for location in feature.resources(spec.SOURCE_LOCATION):
-                        checks.append((location, instance_of, spec.SOURCE_LOCATION, "sbol3-11303"))
-    for location, component, predicate, rule in checks:
-        location_obj = ctx.get(location)
-        if location_obj is None or location_obj.has_class(spec.ENTIRE_SEQUENCE):
-            continue
-        sequence = location_obj.first_resource(spec.HAS_SEQUENCE)
-        if sequence is None:
+def _check_location_sequences(
+    ctx: Sbol3Context, feature: Sbol3Object, predicate: str, component: Node, rule: str
+) -> None:
+    """Report each of ``feature``'s Locations under ``predicate`` whose Sequence ``component`` does not declare."""
+    for location in ctx.referenced(feature, predicate):
+        sequence = location.first_resource(spec.HAS_SEQUENCE)
+        if sequence is None or location.has_class(spec.ENTIRE_SEQUENCE):
             continue
         if not component_allows_sequence(ctx, component, sequence):
             ctx.report(
                 rule,
-                location_obj,
+                location,
                 "Location sequence must be declared on the relevant Component or by a sibling EntireSequence",
                 property=predicate,
             )
+
+
+@REGISTRY.rule("sbol3-11302", "sbol3-11303")
+def location_sequence_membership(ctx: Sbol3Context) -> None:
+    """A Feature's Locations refer to Sequences of its Component, and a SubComponent's source Locations to
+    Sequences of the Component it instantiates."""
+    for feature in ctx.instances(spec.SUB_COMPONENT, spec.SEQUENCE_FEATURE, spec.LOCAL_SUB_COMPONENT):
+        component = ctx.parent(feature, spec.HAS_FEATURE)
+        if component is None:
+            continue
+        _check_location_sequences(ctx, feature, spec.HAS_LOCATION, component.identity, "sbol3-11302")
+        instance_of = feature.first_resource(spec.INSTANCE_OF) if feature.has_class(spec.SUB_COMPONENT) else None
+        if instance_of is not None:
+            _check_location_sequences(ctx, feature, spec.SOURCE_LOCATION, instance_of, "sbol3-11303")

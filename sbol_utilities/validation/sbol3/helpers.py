@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import re
-from collections.abc import Iterable
+from collections.abc import Iterable, Iterator, Sequence
+from itertools import combinations
 
 from rdflib.term import Literal, Node, URIRef
 
@@ -152,6 +153,25 @@ def known_external_resource(iri: str) -> str | None:
 
 
 # --- ontology tables ---
+
+
+def exactly_one_known(answers: Iterable[bool | None]) -> bool:
+    """Whether a property that should hold one term of some kind may do so.
+
+    Each answer says whether one of the property's terms is of that kind, None meaning the ontology snapshot does
+    not know the term. The property passes with exactly one term known to be of the kind, or with none when some
+    term is unknown and so might be.
+    """
+    answers = list(answers)
+    known = sum(1 for answer in answers if answer is True)
+    return known == 1 or (known == 0 and None in answers)
+
+
+def conflicting_pairs(ontology: Ontology, terms: Sequence[str]) -> Iterator[tuple[str, str]]:
+    """Each pair of ``terms`` that the ontology snapshot knows to conflict."""
+    for left, right in combinations(terms, 2):
+        if ontology.terms_conflict(left, right):
+            yield left, right
 
 
 def is_sbo_physical_entity_term(ontology: Ontology, iri: str) -> bool | None:

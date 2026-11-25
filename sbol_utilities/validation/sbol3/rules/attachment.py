@@ -5,7 +5,7 @@ External content (Model and Attachment sources) is never fetched, so the source-
 
 from __future__ import annotations
 
-from rdflib.term import Node, URIRef
+from itertools import combinations
 
 from sbol_utilities.validation.config import Severity
 from sbol_utilities.validation.datatypes import parse_i64
@@ -66,37 +66,29 @@ def models(ctx: Sbol3Context) -> None:
 
 @REGISTRY.rule("sbol3-12301", "sbol3-12302")
 def implementations(ctx: Sbol3Context) -> None:
-    """Implementation derivations refer to Components whose types do not conflict."""
+    """An Implementation derives from Components, and those Components' types do not conflict."""
     for obj in ctx.instances(spec.IMPLEMENTATION):
         components: list[Sbol3Object] = []
-        for derived_from in obj.resources(spec.PROV_WAS_DERIVED_FROM):
-            target = ctx.get(derived_from)
-            if target is None:
-                continue
-            if not target.has_class(spec.COMPONENT):
+        for source in ctx.referenced(obj, spec.PROV_WAS_DERIVED_FROM):
+            if source.has_class(spec.COMPONENT):
+                components.append(source)
+            else:
                 ctx.report(
                     "sbol3-12301",
                     obj,
-                    f"Implementation prov:wasDerivedFrom `{derived_from}` must refer to a Component",
+                    f"Implementation prov:wasDerivedFrom `{source.identity}` must refer to a Component",
                     property=spec.PROV_WAS_DERIVED_FROM,
                 )
-                continue
-            components.append(target)
-        if len(components) < 2:
-            continue
-        typed: list[tuple[Node, URIRef]] = [(c.identity, t) for c in components for t in c.iris(spec.TYPE)]
-        for index, (left_component, left_type) in enumerate(typed):
-            for right_component, right_type in typed[index + 1 :]:
-                if left_component == right_component:
-                    continue
-                if ctx.ontology.terms_conflict(str(left_type), str(right_type)) is True:
-                    ctx.report(
-                        "sbol3-12302",
-                        obj,
-                        f"Implementation prov:wasDerivedFrom Components have conflicting types: `{left_component}` "
-                        f"has `{left_type}` while `{right_component}` has `{right_type}`",
-                        property=spec.PROV_WAS_DERIVED_FROM,
-                    )
+        typed = [(component.identity, type_iri) for component in components for type_iri in component.iris(spec.TYPE)]
+        for (left_component, left_type), (right_component, right_type) in combinations(typed, 2):
+            if left_component != right_component and ctx.ontology.terms_conflict(str(left_type), str(right_type)):
+                ctx.report(
+                    "sbol3-12302",
+                    obj,
+                    f"Implementation prov:wasDerivedFrom Components have conflicting types: `{left_component}` "
+                    f"has `{left_type}` while `{right_component}` has `{right_type}`",
+                    property=spec.PROV_WAS_DERIVED_FROM,
+                )
 
 
 @REGISTRY.rule("sbol3-12803", "sbol3-12804", "sbol3-12805", "sbol3-12806", "sbol3-12807", "sbol3-12808")

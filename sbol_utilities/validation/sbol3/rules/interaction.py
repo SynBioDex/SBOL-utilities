@@ -4,17 +4,17 @@ from __future__ import annotations
 
 from sbol_utilities.validation.sbol3 import spec
 from sbol_utilities.validation.sbol3.context import Sbol3Context, Sbol3Object
+from sbol_utilities.validation.sbol3.helpers import conflicting_pairs, exactly_one_known
 from sbol_utilities.validation.sbol3.registry import REGISTRY
-from sbol_utilities.validation.sbol3.resolver import component_contains
 
 
 def _iris(obj: Sbol3Object, predicate: str) -> list[str]:
     return [str(i) for i in obj.iris(predicate)]
 
 
-@REGISTRY.rule("sbol3-11901", "sbol3-11902", "sbol3-11903", "sbol3-11904", "sbol3-11905", "sbol3-11906")
-def participations(ctx: Sbol3Context) -> None:
-    """Participation roles, participant kind, and participant containment."""
+@REGISTRY.rule("sbol3-11904", "sbol3-11905", "sbol3-11906")
+def participation_roles(ctx: Sbol3Context) -> None:
+    """A Participation has one known SBO participant role, and its roles do not conflict."""
     ontology = ctx.ontology
     for obj in ctx.instances(spec.PARTICIPATION):
         roles = _iris(obj, spec.ROLE)
@@ -26,24 +26,11 @@ def participations(ctx: Sbol3Context) -> None:
                     f"Participation role `{role}` is not an ontology Participation role term",
                     property=spec.ROLE,
                 )
-        for index, left in enumerate(roles):
-            for right in roles[index + 1 :]:
-                if ontology.terms_conflict(left, right) is True:
-                    ctx.report(
-                        "sbol3-11905",
-                        obj,
-                        f"Participation role `{left}` conflicts with role `{right}`",
-                        property=spec.ROLE,
-                    )
-        known = 0
-        unknown = False
-        for role in roles:
-            answer = ontology.is_participation_role_term(role)
-            if answer is True:
-                known += 1
-            elif answer is None:
-                unknown = True
-        if known > 1 or (known == 0 and not unknown):
+        for left, right in conflicting_pairs(ontology, roles):
+            ctx.report(
+                "sbol3-11905", obj, f"Participation role `{left}` conflicts with role `{right}`", property=spec.ROLE
+            )
+        if not exactly_one_known(ontology.is_participation_role_term(role) for role in roles):
             ctx.report(
                 "sbol3-11906",
                 obj,
@@ -51,26 +38,29 @@ def participations(ctx: Sbol3Context) -> None:
                 property=spec.ROLE,
             )
 
+
+@REGISTRY.rule("sbol3-11901", "sbol3-11902", "sbol3-11903")
+def participants(ctx: Sbol3Context) -> None:
+    """A Participation names one participant, which belongs to the Component holding its Interaction."""
+    for obj in ctx.instances(spec.PARTICIPATION):
         participant = obj.first_resource(spec.PARTICIPANT)
         higher = obj.first_resource(spec.HIGHER_ORDER_PARTICIPANT)
-        if (participant is not None) + (higher is not None) != 1:
+        if (participant is None) == (higher is None):
             ctx.report(
                 "sbol3-11901", obj, "Participation must contain precisely one participant or higherOrderParticipant"
             )
-        interaction = ctx.ownership.single_parent(obj.identity, spec.HAS_PARTICIPATION)
-        if interaction is None:
-            continue
-        component = ctx.ownership.single_parent(interaction, spec.HAS_INTERACTION)
+        interaction = ctx.parent(obj, spec.HAS_PARTICIPATION)
+        component = None if interaction is None else ctx.parent(interaction, spec.HAS_INTERACTION)
         if component is None:
             continue
-        if participant is not None and not component_contains(ctx, component, spec.HAS_FEATURE, participant):
+        if participant is not None and participant not in component.resources(spec.HAS_FEATURE):
             ctx.report(
                 "sbol3-11902",
                 obj,
                 "Participation participant must be a Feature of the containing Component",
                 property=spec.PARTICIPANT,
             )
-        if higher is not None and not component_contains(ctx, component, spec.HAS_INTERACTION, higher):
+        if higher is not None and higher not in component.resources(spec.HAS_INTERACTION):
             ctx.report(
                 "sbol3-11903",
                 obj,
@@ -79,38 +69,25 @@ def participations(ctx: Sbol3Context) -> None:
             )
 
 
-@REGISTRY.rule("sbol3-11801", "sbol3-11802", "sbol3-11803", "sbol3-11804")
-def interactions(ctx: Sbol3Context) -> None:
-    """Interaction types and their Participation roles (Tables 11 and 12)."""
+@REGISTRY.rule("sbol3-11801", "sbol3-11802", "sbol3-11803")
+def interaction_types(ctx: Sbol3Context) -> None:
+    """An Interaction has one known SBO occurring-entity type, and its types do not conflict."""
     ontology = ctx.ontology
     for obj in ctx.instances(spec.INTERACTION):
         types = _iris(obj, spec.TYPE)
-        for t in types:
-            if ontology.is_interaction_type_term(t) is False:
+        for type_iri in types:
+            if ontology.is_interaction_type_term(type_iri) is False:
                 ctx.report(
                     "sbol3-11801",
                     obj,
-                    f"Interaction type `{t}` is not an ontology Interaction type term",
+                    f"Interaction type `{type_iri}` is not an ontology Interaction type term",
                     property=spec.TYPE,
                 )
-        for index, left in enumerate(types):
-            for right in types[index + 1 :]:
-                if ontology.terms_conflict(left, right) is True:
-                    ctx.report(
-                        "sbol3-11802",
-                        obj,
-                        f"Interaction type `{left}` conflicts with type `{right}`",
-                        property=spec.TYPE,
-                    )
-        known = 0
-        unknown = False
-        for t in types:
-            answer = ontology.is_interaction_type_term(t)
-            if answer is True:
-                known += 1
-            elif answer is None:
-                unknown = True
-        if known > 1 or (known == 0 and not unknown):
+        for left, right in conflicting_pairs(ontology, types):
+            ctx.report(
+                "sbol3-11802", obj, f"Interaction type `{left}` conflicts with type `{right}`", property=spec.TYPE
+            )
+        if not exactly_one_known(ontology.is_interaction_type_term(type_iri) for type_iri in types):
             ctx.report(
                 "sbol3-11803",
                 obj,
@@ -118,52 +95,50 @@ def interactions(ctx: Sbol3Context) -> None:
                 property=spec.TYPE,
             )
 
-        known_types = [t for t in types if ontology.is_interaction_type_term(t) is True]
+
+@REGISTRY.rule("sbol3-11804")
+def participation_roles_suit_interaction(ctx: Sbol3Context) -> None:
+    """A Participation of an Interaction with a known type has a known role cross-listed with that type
+    (Tables 11 and 12), unless one of its roles is unknown and so might be."""
+    ontology = ctx.ontology
+    for obj in ctx.instances(spec.INTERACTION):
+        known_types = [t for t in _iris(obj, spec.TYPE) if ontology.is_interaction_type_term(t) is True]
         if not known_types:
             continue
-        for participation in obj.resources(spec.HAS_PARTICIPATION):
-            participation_obj = ctx.get(participation)
-            if participation_obj is None:
-                continue
-            known_roles = 0
-            unknown_role = False
-            compatible = False
-            for role in _iris(participation_obj, spec.ROLE):
-                answer = ontology.is_participation_role_term(role)
-                if answer is True:
-                    known_roles += 1
-                    compatible = compatible or any(
-                        ontology.participation_role_compatible_with_interaction_type(role, t) is True
-                        for t in known_types
-                    )
-                elif answer is None:
-                    unknown_role = True
-            if not compatible and (known_roles == 0 or not unknown_role):
+        for participation in ctx.referenced(obj, spec.HAS_PARTICIPATION):
+            roles = _iris(participation, spec.ROLE)
+            answers = [ontology.is_participation_role_term(role) for role in roles]
+            compatible = any(
+                answer is True
+                and any(ontology.participation_role_compatible_with_interaction_type(role, t) for t in known_types)
+                for role, answer in zip(roles, answers)
+            )
+            if not compatible and (True not in answers or None not in answers):
                 ctx.report(
                     "sbol3-11804",
-                    participation_obj,
+                    participation,
                     "Participation should have a known role cross-listed with the Interaction type",
                     property=spec.ROLE,
                 )
 
 
-@REGISTRY.rule("sbol3-12001", "sbol3-12002", "sbol3-12003")
+#: Interface property -> the rule requiring its values to be Features of the Component holding the Interface
+_INTERFACE_RULES = ((spec.INPUT, "sbol3-12001"), (spec.OUTPUT, "sbol3-12002"), (spec.NONDIRECTIONAL, "sbol3-12003"))
+
+
+@REGISTRY.rule(*(rule for _, rule in _INTERFACE_RULES))
 def interfaces(ctx: Sbol3Context) -> None:
     """Interface inputs, outputs, and nondirectionals are Features of the containing Component."""
     for obj in ctx.instances(spec.INTERFACE):
-        component = ctx.ownership.single_parent(obj.identity, spec.HAS_INTERFACE)
+        component = ctx.parent(obj, spec.HAS_INTERFACE)
         if component is None:
             continue
-        for predicate, rule in (
-            (spec.INPUT, "sbol3-12001"),
-            (spec.OUTPUT, "sbol3-12002"),
-            (spec.NONDIRECTIONAL, "sbol3-12003"),
-        ):
-            for feature in obj.resources(predicate):
-                if not component_contains(ctx, component, spec.HAS_FEATURE, feature):
-                    ctx.report(
-                        rule,
-                        obj,
-                        f"Interface property `{predicate}` must refer to a Feature of the containing Component",
-                        property=predicate,
-                    )
+        features = component.resources(spec.HAS_FEATURE)
+        for predicate, rule in _INTERFACE_RULES:
+            if not all(feature in features for feature in obj.resources(predicate)):
+                ctx.report(
+                    rule,
+                    obj,
+                    f"Interface property `{predicate}` must refer to a Feature of the containing Component",
+                    property=predicate,
+                )
