@@ -30,13 +30,8 @@ def name_params() -> list:
     """pytest parameters for every file with expected issues, safe to call at collection time."""
     try:
         return [pytest.param(name, id=name) for name in sorted(expectations()["files"])]
-    except sboltestsuite.SuiteUnavailable as error:
-        mark = (
-            pytest.mark.xfail(strict=True, reason=str(error))
-            if sboltestsuite.required()
-            else pytest.mark.skip(reason=str(error))
-        )
-        return [pytest.param(None, id="sboltestsuite-unavailable", marks=mark)]
+    except sboltestsuite.SuiteUnavailable:
+        return [sboltestsuite.UNAVAILABLE]
 
 
 def configs(version: str) -> Dict[str, ValidationConfig]:

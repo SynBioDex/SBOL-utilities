@@ -43,6 +43,11 @@ EXPECTED = "Expected"
 DIRECTORIES = SBOL2_CORPORA + (SBOL2_INVALID, SBOL3_CORPUS, SBOL3_INVALID, EXPECTED, "Rules", "Ontology")
 
 
+#: Placeholder parameter for a parametrized test whose corpus is unavailable; the ``sbol_test_suite`` fixture
+#: decides whether that case skips or fails
+UNAVAILABLE = pytest.param(None, id="sboltestsuite-unavailable")
+
+
 class SuiteUnavailable(RuntimeError):
     """The corpus is neither configured nor downloadable."""
 
@@ -103,14 +108,13 @@ def relative_name(path: Path) -> str:
 def corpus_params(files: Callable[[], Iterable[Path]]) -> list:
     """pytest parameters for corpus files, safe to call at collection time.
 
-    When the corpus is unavailable this yields a single parameter that skips (or, under SBOL_TEST_SUITE_REQUIRED,
-    fails) instead of raising during collection.
+    When the corpus is unavailable this yields a single placeholder parameter instead of raising during collection;
+    the ``sbol_test_suite`` fixture then skips that case or, under SBOL_TEST_SUITE_REQUIRED, fails it.
     """
     try:
         return [pytest.param(path, id=relative_name(path)) for path in files()]
-    except SuiteUnavailable as error:
-        mark = pytest.mark.xfail(strict=True, reason=str(error)) if required() else pytest.mark.skip(reason=str(error))
-        return [pytest.param(None, id="sboltestsuite-unavailable", marks=mark)]
+    except SuiteUnavailable:
+        return [UNAVAILABLE]
 
 
 if __name__ == "__main__":
