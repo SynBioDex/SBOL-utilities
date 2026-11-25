@@ -12,7 +12,7 @@ import sbol3
 from Bio import SeqIO, SeqRecord
 from Bio.Seq import Seq
 
-from sbol_utilities.convert import DowngradeOptions, UpgradeOptions, downgrade, upgrade
+from sbol_utilities.convert import ConversionResult, DowngradeOptions, UpgradeOptions, downgrade, upgrade
 from sbol_utilities.helper_functions import strip_sbol2_version, GENETIC_DESIGN_FILE_TYPES, \
     find_top_level
 from sbol_utilities.rdf_io import detect_sbol_version, load_graph, to_sbol2_document, to_sbol3_document
@@ -24,6 +24,12 @@ from sbol_utilities.workarounds import id_sort
 #: Conversion output is checked against every rule except the completeness family, because converted designs
 #: routinely reference parts held in other documents
 CONVERSION_VALIDATION = ValidationConfig(complete=False, best_practice=False)
+
+#: An xsd:dateTime lexical form with whole seconds: date and time, then an optional time zone
+WHOLE_SECOND_DATETIME = re.compile(r'^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})(Z|[+-]\d{2}:\d{2})?$')
+
+#: PROV Activity properties whose dateTime values libSBOLj parses
+ACTIVITY_TIMES = (rdflib.URIRef(sbol3.PROV_NS + 'startedAtTime'), rdflib.URIRef(sbol3.PROV_NS + 'endedAtTime'))
 
 
 def convert_identities2to3(sbol3_data: str) -> str:
@@ -94,14 +100,27 @@ def _upgrade(sbol2_doc: Union[str, sbol2.Document], namespaces, preserve_backpor
     if detect_sbol_version(source) == 3:
         raise ValueError('Cannot convert from SBOL2 to SBOL3: the input is already SBOL3')
     options = UpgradeOptions(namespaces=list(namespaces) if namespaces else None, preserve_backport=preserve_backport)
-    graph, conversion_report = upgrade(source, options)
-    for warning in conversion_report.warnings:
-        logging.warning('SBOL2-to-SBOL3 conversion: %s', warning)
-    validation_report = validate_sbol3(graph, CONVERSION_VALIDATION)
-    if validation_report.errors:
-        report_string = "\n".join(str(e) for e in validation_report.errors)
-        raise ValueError(f'Conversion from SBOL2 to SBOL3 produced an invalid document: {report_string}')
+    graph = _checked(upgrade(source, options), 'SBOL2', 'SBOL3', validate_sbol3)
     return to_sbol3_document(graph)
+
+
+def _checked(result: ConversionResult, source_version: str, target_version: str, validate) -> rdflib.Graph:
+    """The converted graph, after logging the conversion's warnings and confirming the graph is valid
+
+    :param result: outcome of an upgrade or downgrade
+    :param source_version: name of the version converted from, for messages
+    :param target_version: name of the version converted to, for messages
+    :param validate: validator for the target version
+    :raises ValueError: if the converted graph violates a validation rule of the target version
+    """
+    for warning in result.report.warnings:
+        logging.warning('%s-to-%s conversion: %s', source_version, target_version, warning)
+    errors = validate(result.graph, CONVERSION_VALIDATION).errors
+    if errors:
+        report_string = "\n".join(str(e) for e in errors)
+        raise ValueError(f'Conversion from {source_version} to {target_version} produced an invalid document: '
+                         f'{report_string}')
+    return result.graph
 
 
 def _without_legacy_backport(source: Union[str, sbol2.Document, sbol3.Document]) -> rdflib.Graph:
@@ -146,23 +165,11 @@ def convert3to2(doc3: sbol3.Document) -> sbol2.Document:
 def _downgrade(doc3: sbol3.Document, default_version: Optional[str]) -> sbol2.Document:
     """Convert SBOL3 to SBOL2, giving default_version to objects whose SBOL3 IRI carries no version"""
     source = _without_sbol2_properties(_without_legacy_backport(doc3))
-    graph, conversion_report = downgrade(source, DowngradeOptions(default_version=default_version))
-    for warning in conversion_report.warnings:
-        logging.warning('SBOL3-to-SBOL2 conversion: %s', warning)
-    validation_report = validate_sbol2(graph, CONVERSION_VALIDATION)
-    if validation_report.errors:
-        report_string = "\n".join(str(e) for e in validation_report.errors)
-        raise ValueError(f'Conversion from SBOL3 to SBOL2 produced an invalid document: {report_string}')
+    result = downgrade(source, DowngradeOptions(default_version=default_version))
+    graph = _checked(result, 'SBOL3', 'SBOL2', validate_sbol2)
     _drop_location_sequences(graph)
     _add_activity_time_milliseconds(graph)
     return to_sbol2_document(graph)
-
-
-#: An xsd:dateTime lexical form with whole seconds: date and time, then an optional time zone
-WHOLE_SECOND_DATETIME = re.compile(r'^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})(Z|[+-]\d{2}:\d{2})?$')
-
-#: PROV Activity properties whose dateTime values libSBOLj parses
-ACTIVITY_TIMES = (rdflib.URIRef(sbol3.PROV_NS + 'startedAtTime'), rdflib.URIRef(sbol3.PROV_NS + 'endedAtTime'))
 
 
 def _add_activity_time_milliseconds(graph: rdflib.Graph) -> None:
