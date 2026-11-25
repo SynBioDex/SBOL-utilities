@@ -85,7 +85,7 @@ SBOL2/SBOL3 conversion runs in pure Python (`sbol_utilities.convert`) and makes 
 ### Validate SBOL2 and SBOL3 documents
 
 `sbol_utilities.validation` checks SBOL 2.3.0 and SBOL 3.1.0 documents against every machine-checkable rule of
-the specification, offline:
+the specification that one document can decide. An installed package needs no network access:
 
 ```python
 from sbol_utilities.validation import validate
