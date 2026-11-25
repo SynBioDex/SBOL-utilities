@@ -7,13 +7,15 @@ and looks for those files in order:
 1. ``$SBOL_TEST_SUITE_DIR``, a checkout of SBOLTestSuite, when that variable is set;
 2. the package's own ``data/`` directory, which ``setup.py`` fills when the package is built, when it was filled
    for the pinned commit;
-3. a per-user cache, downloading the pinned commit's ``Rules/`` and ``Ontology/`` the first time they are needed.
+3. a per-user cache, downloading those four files of the pinned commit, and checking their SHA-256, the first time
+   they are needed.
 
 This module uses only the standard library, so ``setup.py`` can load it before any dependency is installed.
 """
 
 from __future__ import annotations
 
+import hashlib
 import io
 import os
 import shutil
@@ -34,13 +36,15 @@ PACKAGE_DATA_DIR = Path(__file__).resolve().parent / "data"
 STAMP = "COMMIT"
 #: Environment variable naming an SBOLTestSuite checkout to read instead of the bundled or cached files
 CHECKOUT_VARIABLE = "SBOL_TEST_SUITE_DIR"
-#: Suite-relative paths of the runtime data files
-RUNTIME_FILES = (
-    "Rules/sbol2-rules.json",
-    "Rules/sbol3-rules.json",
-    "Ontology/ontology_facts.tsv",
-    "Ontology/ontology_sources.tsv",
-)
+#: Suite-relative path of each runtime data file -> the SHA-256 of its content at the pinned commit
+RUNTIME_FILES = {
+    "Rules/sbol2-rules.json": "9d82aa81453b6649b7fdea4c1e021f9917b8c9ee79288a5761161c06d9d069e1",
+    "Rules/sbol3-rules.json": "e910dcb7e6ef8348f1cac9b5d4cb9d2397a8ac567f27a8cc72d2122f03ef190b",
+    "Ontology/ontology_facts.tsv": "ce289073f2c37ed8cce7b639a4c88eb47bef3a1ac7cce4d72aaccc334812b6a9",
+    "Ontology/ontology_sources.tsv": "5b113467da9f7ebac788d7504130ee4f649a67705223ef4a42a79643481db16f",
+}
+#: Where a single file of the pinned commit is served from
+RAW_URL = f"https://raw.githubusercontent.com/SynBioDex/SBOLTestSuite/{SBOL_TEST_SUITE_COMMIT}/"
 
 
 class DataUnavailable(RuntimeError):
@@ -64,6 +68,8 @@ def checkout_revision(path: Path) -> str | None:
 
 def download(destination: Path, directories: Collection[str] | None = None) -> None:
     """Extract the pinned SBOLTestSuite archive's top-level ``directories`` (all when None) into ``destination``.
+
+    This fetches the whole repository archive; the tests use it for the conformance corpus.
 
     The files are staged beside ``destination`` and moved into place once all are written, so ``destination``
     appears complete or not at all. Files already in ``destination`` are replaced.
@@ -126,10 +132,34 @@ def _is_current_bundle(root: Path) -> bool:
     return _has_runtime_files(root) and stamp.is_file() and stamp.read_text().strip() == SBOL_TEST_SUITE_COMMIT
 
 
+def fetch_runtime_files(destination: Path) -> None:
+    """Download each runtime data file of the pinned commit into ``destination``, checking its SHA-256.
+
+    A file is put in place only once its content is verified, so ``destination`` never holds unverified data.
+
+    :raises DataUnavailable: when a file cannot be downloaded or does not have the expected content
+    """
+    for name, expected in RUNTIME_FILES.items():
+        url = RAW_URL + name
+        try:
+            with urllib.request.urlopen(url, timeout=120) as response:  # noqa: S310 (fixed https URL)
+                content = response.read()
+        except OSError as error:
+            raise DataUnavailable(f"Could not download {url}: {error}") from error
+        actual = hashlib.sha256(content).hexdigest()
+        if actual != expected:
+            raise DataUnavailable(f"{url} has SHA-256 {actual}; expected {expected}")
+        target = destination / name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        partial = target.with_name(f"{target.name}.{os.getpid()}.partial")
+        partial.write_bytes(content)
+        os.replace(partial, target)
+
+
 def _cached_root() -> Path:
     cache = user_cache_dir()
     if not _has_runtime_files(cache):
-        download(cache, ("Rules", "Ontology"))
+        fetch_runtime_files(cache)
     return cache
 
 

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import io
 import zipfile
 from pathlib import Path
@@ -139,4 +140,48 @@ def test_current_bundle_is_kept_without_a_checkout(monkeypatch, tmp_path):
 
     monkeypatch.setattr(runtime_data.urllib.request, "urlopen", no_network)
     runtime_data.bundle(destination)
-    assert (destination / runtime_data.RUNTIME_FILES[0]).read_text() == "bundled"
+    assert (destination / next(iter(runtime_data.RUNTIME_FILES))).read_text() == "bundled"
+
+
+@pytest.fixture
+def raw_files(monkeypatch):
+    """Serve the given content for every runtime file URL, recording the URLs requested."""
+    requested: list[str] = []
+
+    def serve(content: dict[str, bytes]) -> list[str]:
+        def urlopen(url, **kwargs):
+            requested.append(url)
+            return io.BytesIO(content[url[len(runtime_data.RAW_URL) :]])
+
+        monkeypatch.setattr(runtime_data.urllib.request, "urlopen", urlopen)
+        return requested
+
+    return serve
+
+
+def test_fetch_runtime_files_verifies_checksums(monkeypatch, tmp_path, raw_files):
+    content = {name: f"content of {name}".encode() for name in runtime_data.RUNTIME_FILES}
+    checksums = {name: hashlib.sha256(data).hexdigest() for name, data in content.items()}
+    monkeypatch.setattr(runtime_data, "RUNTIME_FILES", checksums)
+    requested = raw_files(content)
+    runtime_data.fetch_runtime_files(tmp_path / "cache")
+    assert requested == [runtime_data.RAW_URL + name for name in checksums]
+    assert all((tmp_path / "cache" / name).read_bytes() == data for name, data in content.items())
+
+
+def test_fetch_runtime_files_rejects_unexpected_content(tmp_path, raw_files):
+    raw_files({name: b"tampered" for name in runtime_data.RUNTIME_FILES})
+    with pytest.raises(runtime_data.DataUnavailable, match="SHA-256"):
+        runtime_data.fetch_runtime_files(tmp_path / "cache")
+    assert not [path for path in (tmp_path / "cache").rglob("*") if path.is_file()]
+
+
+def test_checksums_describe_the_pinned_commit():
+    """The recorded checksums are those of the runtime files at the pinned commit, when a checkout at it is at hand."""
+    configured = runtime_data.os.environ.get(runtime_data.CHECKOUT_VARIABLE)
+    checkout = Path(configured).expanduser() if configured else None
+    if checkout is None or runtime_data.checkout_revision(checkout) != runtime_data.SBOL_TEST_SUITE_COMMIT:
+        pytest.skip("no SBOLTestSuite checkout at the pinned commit")
+    for name, expected in runtime_data.RUNTIME_FILES.items():
+        content = (checkout / name).read_bytes().replace(b"\r\n", b"\n")
+        assert hashlib.sha256(content).hexdigest() == expected, name
