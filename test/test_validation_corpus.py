@@ -16,8 +16,8 @@ checked against that file in ``test_validation_differential.py``.
 from __future__ import annotations
 
 import pytest
-import sboltestsuite as suite
 
+import sboltestsuite as suite
 from sbol_utilities.validation import ValidationConfig, validate_sbol2, validate_sbol3
 
 pytestmark = pytest.mark.sboltestsuite

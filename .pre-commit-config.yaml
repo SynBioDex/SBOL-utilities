@@ -1,17 +1,29 @@
-# Lint and type-check the pure-Python conversion and validation packages and their tests.
-# The pattern deliberately leaves the rest of the repository's existing files untouched.
-files: ^(sbol_utilities/(convert|validation)/.*|sbol_utilities/(identifiers|rdf_io|vocab)\.py|test/(test_(convert|validation)_.*|sboltestsuite|conftest|validation_goldens|conversion_goldens)\.py)$
+# Lint and type-check every Python file except the ones listed here, which predate these hooks and keep their own
+# style. A new file is checked unless it is added to the list.
+exclude: |
+  (?x)^(
+    docs/.*|
+    setup\.py|
+    sbol_utilities/(
+      __init__|calculate_complexity_scores|calculate_sequences|component|conversion|excel_to_sbol|
+      expand_combinatorial_derivations|graph_sbol|helper_functions|sbol3_genbank_conversion|sbol_diff|sequence|
+      workarounds
+    )\.py|
+    test/(
+      helpers|test_calculate_complexity_scores|test_calculate_sequences|test_component|test_conversion|
+      test_docstr_coverage|test_excel_to_sbol|test_expand_combinatorial_derivations|test_genbank_sbol3_direct|
+      test_graph_sbol|test_helpers|test_sbol_diff|test_sequence
+    )\.py
+  )$
 repos:
   - repo: https://github.com/pycqa/isort
     rev: 5.13.2
     hooks:
       - id: isort
-        args: ["--profile", "black", "--line-length", "120"]
   - repo: https://github.com/psf/black
     rev: 24.10.0
     hooks:
       - id: black
-        args: ["--line-length", "120"]
   - repo: https://github.com/pycqa/flake8
     rev: 7.1.1
     hooks:
@@ -20,5 +32,4 @@ repos:
     rev: v1.13.0
     hooks:
       - id: mypy
-        args: ["--ignore-missing-imports", "--follow-imports=silent"]
-        additional_dependencies: ["types-requests"]
+        additional_dependencies: ["rdflib>=6.2", "types-requests"]

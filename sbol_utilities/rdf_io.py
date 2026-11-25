@@ -125,8 +125,7 @@ def detect_sbol_version(graph: rdflib.Graph) -> int | None:
 
 def serialize(graph: rdflib.Graph, fmt: str = "turtle") -> str:
     """Serialize a graph to text in a user-facing or rdflib format name."""
-    result = graph.serialize(format=rdflib_format(fmt) or "turtle")
-    return result.decode("utf-8") if isinstance(result, bytes) else result
+    return graph.serialize(format=rdflib_format(fmt) or "turtle")
 
 
 def to_sbol3_document(graph: rdflib.Graph) -> sbol3.Document:

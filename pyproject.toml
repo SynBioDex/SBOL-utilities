@@ -1,3 +1,19 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[tool.black]
+line-length = 120
+
+[tool.isort]
+profile = "black"
+line_length = 120
+known_first_party = ["sbol_utilities", "sboltestsuite", "conversion_goldens", "validation_goldens"]
+
+[tool.mypy]
+ignore_missing_imports = true
+follow_imports = "silent"
+
 [tool.interrogate]
 
 # custom docstring conventions

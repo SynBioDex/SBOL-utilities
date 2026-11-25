@@ -9,7 +9,6 @@ from __future__ import annotations
 from pathlib import Path
 
 import sboltestsuite
-
 from sbol_utilities.validation import ValidationConfig, ValidationReport
 
 IssueKey = tuple[str, str, str]

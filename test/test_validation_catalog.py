@@ -9,9 +9,9 @@ documents that must be clean.
 from __future__ import annotations
 
 import pytest
+
 import sboltestsuite as suite
 import validation_goldens as vg
-
 from sbol_utilities.validation import ValidationConfig, validate_sbol3
 from sbol_utilities.validation.sbol2 import REGISTRY as SBOL2
 from sbol_utilities.validation.sbol3 import REGISTRY as SBOL3

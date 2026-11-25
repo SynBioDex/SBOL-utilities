@@ -7,10 +7,10 @@ corpus file the downgrade, and the upgrade of that downgrade, must match.
 
 from __future__ import annotations
 
-import conversion_goldens as cg
 import pytest
-import sboltestsuite as suite
 
+import conversion_goldens as cg
+import sboltestsuite as suite
 from sbol_utilities.convert import downgrade, upgrade
 from sbol_utilities.rdf_io import load_graph
 

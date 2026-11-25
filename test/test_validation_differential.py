@@ -10,11 +10,11 @@ from __future__ import annotations
 from xml.sax import SAXException
 
 import pytest
-import sboltestsuite as suite
-import validation_goldens as vg
 from rdflib.exceptions import ParserError
 from rdflib.plugins.parsers.notation3 import BadSyntax
 
+import sboltestsuite as suite
+import validation_goldens as vg
 from sbol_utilities.rdf_io import load_graph
 from sbol_utilities.validation import validate_sbol2, validate_sbol3
 

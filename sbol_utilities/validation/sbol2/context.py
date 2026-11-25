@@ -167,7 +167,8 @@ class Sbol2Context(Context[Sbol2Object]):
     def __init__(self, graph: rdflib.Graph, config: ValidationConfig, catalog: Catalog, ontology: Ontology):
         super().__init__(graph, config, catalog, ontology)
         # subjects are visited in a fixed order, as whole-graph iteration order varies with the process hash seed
-        properties = {s: _properties(graph, s) for s in sorted(set(graph.subjects()), key=_object_order)}
+        subjects = {s for s in graph.subjects() if isinstance(s, (URIRef, BNode))}
+        properties = {s: _properties(graph, s) for s in sorted(subjects, key=_object_order)}
         self.triple_count = len(graph)
         #: every object of the document, IRIs before blank nodes, each group sorted
         self.objects: list[Sbol2Object] = []

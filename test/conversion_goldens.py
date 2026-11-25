@@ -7,10 +7,10 @@ isomorphism.
 
 from __future__ import annotations
 
-import sboltestsuite
 from rdflib import Graph
 from rdflib.compare import to_canonical_graph
 
+import sboltestsuite
 from sbol_utilities.rdf_io import load_graph
 
 

@@ -12,11 +12,11 @@ import hashlib
 import re
 from pathlib import Path
 
-import conversion_goldens as cg
 import pytest
-import sboltestsuite as suite
 from rdflib import Graph, URIRef
 
+import conversion_goldens as cg
+import sboltestsuite as suite
 from sbol_utilities.convert import downgrade, upgrade
 from sbol_utilities.rdf_io import load_graph
 
