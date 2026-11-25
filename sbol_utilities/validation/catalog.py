@@ -152,34 +152,34 @@ class Context(Generic[ObjectT]):
         self.catalog = catalog
         self.ontology = ontology
         self.issues: list[Issue] = []
-        self._indexed: list[ObjectT] = []
-        self._instances: dict[str, list[ObjectT]] = {}
-        self._memo: dict[Hashable, Any] = {}
-        self._seen: set[tuple[str, str | None, str | None, str]] = set()
+        self.indexed: list[ObjectT] = []
+        self.instances_by_class: dict[str, list[ObjectT]] = {}
+        self.memoized_values: dict[Hashable, Any] = {}
+        self.seen: set[tuple[str, str | None, str | None, str]] = set()
         #: rule ids the running rule function declared, or None outside :meth:`Registry.run`
         self.declared_rules: frozenset[str] | None = None
 
-    def _index_instances(self, objects: Iterable[ObjectT]) -> None:
+    def index_instances(self, objects: Iterable[ObjectT]) -> None:
         """Record the document's objects, in document order, for :meth:`instances`."""
-        self._indexed = list(objects)
-        for obj in self._indexed:
+        self.indexed = list(objects)
+        for obj in self.indexed:
             for class_iri in obj.classes:
-                self._instances.setdefault(class_iri, []).append(obj)
+                self.instances_by_class.setdefault(class_iri, []).append(obj)
 
     def instances(self, *class_iris: str) -> list[ObjectT]:
         """The objects that are instances of one of these classes or of a subclass, in document order."""
         if len(class_iris) == 1:
-            return self._instances.get(class_iris[0], [])
-        return [obj for obj in self._indexed if not obj.classes.isdisjoint(class_iris)]
+            return self.instances_by_class.get(class_iris[0], [])
+        return [obj for obj in self.indexed if not obj.classes.isdisjoint(class_iris)]
 
     def memo(self, key: Hashable, compute: Callable[[], T]) -> T:
         """The value ``compute`` returns, computed once per validation run for each ``key``.
 
         Rule helpers use this for indexes and derived facts that several rules, or several objects, need.
         """
-        if key not in self._memo:
-            self._memo[key] = compute()
-        return self._memo[key]
+        if key not in self.memoized_values:
+            self.memoized_values[key] = compute()
+        return self.memoized_values[key]
 
     def enabled(self, rule_id: str) -> bool:
         """Whether the rule's gate is on; rule functions may skip expensive work for disabled rules."""
@@ -224,8 +224,8 @@ class Context(Generic[ObjectT]):
             hint=hint,
         )
         key = (issue.rule, issue.subject, issue.property, issue.message)
-        if key not in self._seen:
-            self._seen.add(key)
+        if key not in self.seen:
+            self.seen.add(key)
             self.issues.append(issue)
 
 
@@ -254,6 +254,7 @@ class Registry(Generic[ContextT]):
                 raise KeyError(f"{rule_id} is not in the SBOL {self.version} rule catalog")
 
         def register(function: Callable[[ContextT], None]) -> Callable[[ContextT], None]:
+            """Record the decorated function as the implementation of the rule ids."""
             self.functions.append((tuple(rule_ids), function))
             return function
 

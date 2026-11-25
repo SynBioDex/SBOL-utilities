@@ -70,7 +70,7 @@ def sequence_annotation_components(ctx: Sbol2Context) -> None:
             )
 
 
-def _annotation_for(ctx: Sbol2Context, definition: Sbol2Object, component: str) -> Sbol2Object | None:
+def annotation_for(ctx: Sbol2Context, definition: Sbol2Object, component: str) -> Sbol2Object | None:
     """The first SequenceAnnotation of ``definition`` that refers to ``component``."""
     return next(
         (a for a in ctx.referenced(definition, S.SEQUENCE_ANNOTATION_P) if a.first_iri(S.COMPONENT_P) == component),
@@ -78,12 +78,12 @@ def _annotation_for(ctx: Sbol2Context, definition: Sbol2Object, component: str) 
     )
 
 
-def _position(ctx: Sbol2Context, annotation: Sbol2Object) -> tuple[int, int] | None:
+def annotation_bounds(ctx: Sbol2Context, annotation: Sbol2Object) -> tuple[int, int] | None:
     """The first and last position of the SequenceAnnotation's earliest Location."""
     return min((extent.bounds for extent in extents(ctx, annotation)), default=None)
 
 
-def _orientations(ctx: Sbol2Context, annotation: Sbol2Object) -> list[str]:
+def orientations(ctx: Sbol2Context, annotation: Sbol2Object) -> list[str]:
     """The orientation of each Location of a SequenceAnnotation; a Location without one is inline."""
     return [location.first_iri(S.ORIENTATION) or S.INLINE for location in ctx.referenced(annotation, S.LOCATION_P)]
 
@@ -120,7 +120,7 @@ def sequence_constraint_components(ctx: Sbol2Context) -> None:
             )
 
 
-def _contained_constraints(ctx: Sbol2Context) -> Iterator[tuple[Sbol2Object, Sbol2Object, str, str]]:
+def contained_constraints(ctx: Sbol2Context) -> Iterator[tuple[Sbol2Object, Sbol2Object, str, str]]:
     """Each SequenceConstraint held by a ComponentDefinition that names a subject and an object, with that
     definition and those two Components."""
     for obj in ctx.instances(S.SEQUENCE_CONSTRAINT):
@@ -130,7 +130,7 @@ def _contained_constraints(ctx: Sbol2Context) -> Iterator[tuple[Sbol2Object, Sbo
             yield obj, definition, subject, constrained
 
 
-def _definition_of(ctx: Sbol2Context, instance: str) -> str | None:
+def definition_of(ctx: Sbol2Context, instance: str) -> str | None:
     """The definition a Component held in the document names."""
     obj = ctx.get(instance)
     return None if obj is None else obj.first_iri(S.DEFINITION)
@@ -139,10 +139,10 @@ def _definition_of(ctx: Sbol2Context, instance: str) -> str | None:
 @REGISTRY.rule("sbol2-11413", "sbol2-11414")
 def different_from_constraints(ctx: Sbol2Context) -> None:
     """A differentFrom SequenceConstraint relates Components with different definitions."""
-    for obj, _, subject, constrained in _contained_constraints(ctx):
+    for obj, _, subject, constrained in contained_constraints(ctx):
         if obj.first_iri(S.RESTRICTION) != S.DIFFERENT_FROM:
             continue
-        subject_definition, object_definition = _definition_of(ctx, subject), _definition_of(ctx, constrained)
+        subject_definition, object_definition = definition_of(ctx, subject), definition_of(ctx, constrained)
         if subject_definition is None or object_definition is None:
             continue
         if subject_definition == object_definition:
@@ -161,7 +161,7 @@ def different_from_constraints(ctx: Sbol2Context) -> None:
 
 
 #: (restriction, rule, whether a subject and an object orientation violate it, message)
-_ORIENTATION_RESTRICTIONS: tuple[tuple[str, str, Callable[[str, str], bool], str], ...] = (
+ORIENTATION_RESTRICTIONS: tuple[tuple[str, str, Callable[[str, str], bool], str], ...] = (
     (
         S.SAME_ORIENTATION_AS,
         "sbol2-11410",
@@ -177,21 +177,23 @@ _ORIENTATION_RESTRICTIONS: tuple[tuple[str, str, Callable[[str, str], bool], str
 )
 
 
-@REGISTRY.rule("sbol2-11409", *(rule for _, rule, _, _ in _ORIENTATION_RESTRICTIONS))
+@REGISTRY.rule("sbol2-11409", *(rule for _, rule, _, _ in ORIENTATION_RESTRICTIONS))
 def constraint_positions(ctx: Sbol2Context) -> None:
     """A precedes or orientation SequenceConstraint agrees with the SequenceAnnotations of its Components."""
-    for obj, definition, subject, constrained in _contained_constraints(ctx):
+    for obj, definition, subject, constrained in contained_constraints(ctx):
         # the annotations are read from the object the definition's IRI resolves to, by identity or persistentIdentity
         annotated = ctx.resolve(definition.iri)
         if annotated is None:
             continue
-        subject_annotation = _annotation_for(ctx, annotated, subject)
-        object_annotation = _annotation_for(ctx, annotated, constrained)
+        subject_annotation = annotation_for(ctx, annotated, subject)
+        object_annotation = annotation_for(ctx, annotated, constrained)
         if subject_annotation is None or object_annotation is None:
             continue
         restriction = obj.first_iri(S.RESTRICTION)
         if restriction == S.PRECEDES:
-            subject_position, object_position = _position(ctx, subject_annotation), _position(ctx, object_annotation)
+            subject_position, object_position = annotation_bounds(ctx, subject_annotation), annotation_bounds(
+                ctx, object_annotation
+            )
             if subject_position is not None and object_position is not None and object_position < subject_position:
                 ctx.report(
                     "sbol2-11409",
@@ -199,11 +201,11 @@ def constraint_positions(ctx: Sbol2Context) -> None:
                     "a precedes SequenceConstraint requires the subject to be positioned before the object",
                     property=S.RESTRICTION,
                 )
-        for required, rule, violates, message in _ORIENTATION_RESTRICTIONS:
+        for required, rule, violates, message in ORIENTATION_RESTRICTIONS:
             if restriction == required and any(
                 violates(s, o)
-                for s in _orientations(ctx, subject_annotation)
-                for o in _orientations(ctx, object_annotation)
+                for s in orientations(ctx, subject_annotation)
+                for o in orientations(ctx, object_annotation)
             ):
                 ctx.report(rule, obj, message, property=S.RESTRICTION)
 

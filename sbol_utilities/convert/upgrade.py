@@ -77,15 +77,16 @@ def upgrade(source: GraphSource, options: UpgradeOptions | None = None, fmt: str
     :return: the SBOL 3 graph and a report of non-fatal issues
     :raises ValueError: when the input carries triples but nothing that marks it as SBOL 2
     """
-    triples = [(s, p, _canonical_literal(p, o)) for s, p, o in graph_triples(load_graph(source, fmt))]
+    triples = [(s, p, canonical_literal(p, o)) for s, p, o in graph_triples(load_graph(source, fmt))]
     report = ConversionReport("upgrade", input_triples=len(triples))
-    output = _Upgrader(triples, options or UpgradeOptions(), report).run()
+    output = Upgrader(triples, options or UpgradeOptions(), report).run()
     graph = build_graph(output)
     report.output_triples = len(graph)
     return ConversionResult(graph, report)
 
 
-def _canonical_literal(predicate: str, term: Term) -> Term:
+def canonical_literal(predicate: str, term: Term) -> Term:
+    """A literal in the lexical form SBOL 2 gives its property; any other term unchanged."""
     return canonical_sbol2_literal(predicate, term) if isinstance(term, Literal) else term
 
 
@@ -118,21 +119,24 @@ OWNING_PREDICATES = frozenset(
 DIRECTIONS = {S2.base + "in": "input", S2.out: "output", S2.inout: "nondirectional"}
 
 
-def _type_precedence(type_iri: str) -> int:
+def type_precedence(type_iri: str) -> int:
+    """How strongly an rdf:type decides a subject's class: data-model classes, then SBOL 2 terms, then others."""
     if type_iri in KNOWN_CLASSES or type_iri in EXTENSION_TOP_LEVELS:
         return 2
     return 1 if type_iri.startswith(S2.base) else 0
 
 
 @dataclass
-class _MapsTo:
+class MapsToParts:
+    """The properties of one SBOL 2 MapsTo."""
+
     local: str | None = None
     remote: str | None = None
     refinement: str | None = None
     display_id: str | None = None
 
 
-class _Upgrader:
+class Upgrader:
     """One SBOL 2 -> SBOL 3 conversion run."""
 
     def __init__(self, triples: list[Triple], options: UpgradeOptions, report: ConversionReport):
@@ -151,7 +155,7 @@ class _Upgrader:
         self.sa_to_subcomponent: dict[str, str] = {}
         self.display_ids: dict[str, str] = {}
         self.owned_by: dict[str, str] = {}
-        self.mapstos: dict[str, _MapsTo] = {}
+        self.mapstos: dict[str, MapsToParts] = {}
         #: FunctionalComponent (or public Component) -> SBOL 3 Interface slot
         self.fc_directions: dict[str, str] = {}
         #: every SBOL 3 IRI in use, so synthesized IRIs never land on an existing subject
@@ -169,28 +173,28 @@ class _Upgrader:
 
     def run(self) -> list[Triple]:
         """Convert the input, returning the SBOL 3 triples."""
-        self._preflight()
+        self.preflight()
         for triple in self.triples:
-            self._handle(triple)
-        self._emit_namespaces()
-        self._emit_extension_markers()
-        self._infer_location_sequences()
-        self._decompose_mapstos()
-        self._synthesize_interfaces()
+            self.handle(triple)
+        self.emit_namespaces()
+        self.emit_extension_markers()
+        self.infer_location_sequences()
+        self.decompose_mapstos()
+        self.synthesize_interfaces()
         return self.out
 
     # Preflight
 
-    def _preflight(self) -> None:
+    def preflight(self) -> None:
         """Read the whole input once, so each triple can then be converted knowing its subject's class and place."""
-        self._claim_identities()
-        self._index_document()
-        self._find_extension_objects()
-        self._collapse_annotations()
-        self._index_interfaces()
-        self._index_mapstos()
+        self.claim_identities()
+        self.index_document()
+        self.find_extension_objects()
+        self.collapse_annotations()
+        self.index_interfaces()
+        self.index_mapstos()
 
-    def _claim_identities(self) -> None:
+    def claim_identities(self) -> None:
         """Reserve the SBOL 3 identity of every subject, warning where several subjects share one."""
         sources: dict[str, list[str]] = defaultdict(list)
         for subject in sorted({s for s, _, _ in self.triples if is_iri(s)}):
@@ -205,7 +209,7 @@ class _Upgrader:
                     f"{len(merged)} SBOL 2 subjects merge into one: {', '.join(merged)}",
                 )
 
-    def _index_document(self) -> None:
+    def index_document(self) -> None:
         """Record each subject's class, displayId, Sequences, and owner.
 
         :raises ValueError: when the input has triples but neither an SBOL 2 predicate nor a recognized type
@@ -218,7 +222,7 @@ class _Upgrader:
                     self.sbol2_identified.add(s)
             if p == RDF_TYPE:
                 if is_iri(o) and is_iri(s):
-                    self._record_type(s, o)
+                    self.record_type(s, o)
                 continue
             if not is_iri(s):
                 continue
@@ -237,7 +241,7 @@ class _Upgrader:
         if self.triples and not saw_sbol2_predicate and not self.recognized_typed:
             raise ValueError("input contains no SBOL 2 typed subjects or properties; nothing to upgrade")
 
-    def _record_type(self, subject: str, type_iri: str) -> None:
+    def record_type(self, subject: str, type_iri: str) -> None:
         """Note one rdf:type of a subject, keeping as its class the type of highest precedence."""
         if type_iri.startswith((S2.base, PROV_NS, OM_NS)):
             self.recognized_typed.add(subject)
@@ -245,10 +249,10 @@ class _Upgrader:
             self.custom_typed.add(subject)
         if type_iri.startswith(S2.base) or type_iri in EXTENSION_TOP_LEVELS:
             existing = self.typed.get(subject)
-            if existing is None or _type_precedence(type_iri) > _type_precedence(existing):
+            if existing is None or type_precedence(type_iri) > type_precedence(existing):
                 self.typed[subject] = type_iri
 
-    def _find_extension_objects(self) -> None:
+    def find_extension_objects(self) -> None:
         """Find the objects of other vocabularies' classes that the SBOL 3 data model must place.
 
         A custom-typed subject with SBOL 2 identity properties and no recognized type is a GenericTopLevel. SBOL 3
@@ -264,10 +268,10 @@ class _Upgrader:
         self.extension_objects = {
             s
             for s in self.sbol2_identified & (self.custom_typed | self.recognized_typed)
-            if not self._has_sbol2_class(s)
+            if not self.has_sbol2_class(s)
         }
 
-    def _collapse_annotations(self) -> None:
+    def collapse_annotations(self) -> None:
         """Fold each SequenceAnnotation that refers to a Component onto that Component's SubComponent.
 
         The annotation's Locations move under the SubComponent. A Location's own SBOL 3 identity is released first:
@@ -292,7 +296,7 @@ class _Upgrader:
                 self.location_display_id_overrides[loc] = display_id
             self.identity.rehome(loc, new_iri)
 
-    def _index_interfaces(self) -> None:
+    def index_interfaces(self) -> None:
         """Decide which features join their Component's Interface, and in which slot (SBOL 3.1.0 §10.2).
 
         A FunctionalComponent with direction in, out, or inout takes the matching slot; a public one with direction
@@ -315,12 +319,12 @@ class _Upgrader:
         for fc in direction_none & public_fcs:
             self.fc_directions.setdefault(fc, "nondirectional")
 
-    def _index_mapstos(self) -> None:
+    def index_mapstos(self) -> None:
         """Collect the local, remote, refinement, and displayId of every MapsTo."""
         for s, p, o in self.triples:
             if not is_iri(s) or self.typed.get(s) != S2.MapsTo:
                 continue
-            info = self.mapstos.setdefault(s, _MapsTo())
+            info = self.mapstos.setdefault(s, MapsToParts())
             if p == S2.local and is_iri(o):
                 info.local = o
             elif p == S2.remote and is_iri(o):
@@ -330,11 +334,13 @@ class _Upgrader:
             elif p == S2.displayId and isinstance(o, Literal):
                 info.display_id = str(o)
 
-    def _has_sbol2_class(self, subject: str) -> bool:
+    def has_sbol2_class(self, subject: str) -> bool:
+        """Whether the subject's deciding class is in the SBOL 2 namespace."""
         cls = self.typed.get(subject)
         return cls is not None and cls.startswith(S2.base)
 
-    def _owning_top_level(self, subject: str) -> str:
+    def owning_top_level(self, subject: str) -> str:
+        """The top-level object that owns ``subject``, following ownership to its root."""
         current, seen = subject, {subject}
         while current in self.owned_by and self.owned_by[current] not in seen:
             current = self.owned_by[current]
@@ -343,28 +349,28 @@ class _Upgrader:
 
     # Per-triple conversion
 
-    def _handle(self, triple: Triple) -> None:
+    def handle(self, triple: Triple) -> None:
         """Convert one input triple."""
         s, p, o = triple
         if not p.startswith(S2.base) and is_iri(s) and s in self.sa_to_subcomponent:
             if not (p == RDF_TYPE and o == S2.SequenceAnnotation):
-                self._move_collapsed_sa_triple(triple, self.sa_to_subcomponent[s])
+                self.move_collapsed_sa_triple(triple, self.sa_to_subcomponent[s])
                 return
         if p == RDF_TYPE:
-            self._handle_type(triple)
+            self.handle_type(triple)
         elif p.startswith(S2.base):
-            self._handle_sbol2_predicate(triple)
+            self.handle_sbol2_predicate(triple)
         else:
             self.out.append((self.identity.term(s), DCTERMS_TO_SBOL3.get(p, p), self.identity.term(o)))
 
-    def _move_collapsed_sa_triple(self, triple: Triple, subcomponent: str) -> None:
+    def move_collapsed_sa_triple(self, triple: Triple, subcomponent: str) -> None:
         """Carry a non-SBOL annotation of a collapsed SequenceAnnotation over to its SubComponent."""
         _, p, o = triple
         if p.startswith(S2.base) or p == RDF_TYPE:
             return
         self.out.append((self.identity.rewrite(subcomponent), DCTERMS_TO_SBOL3.get(p, p), self.identity.term(o)))
 
-    def _handle_type(self, triple: Triple) -> None:
+    def handle_type(self, triple: Triple) -> None:
         """Convert an rdf:type statement, recording what a downgrade needs to restore the SBOL 2 class."""
         s, p, o = triple
         if not is_iri(o):
@@ -400,10 +406,10 @@ class _Upgrader:
             elif is_iri(s):
                 self.out.append((subject, BP.sbol2OriginalURI, s))
 
-    def _handle_sbol2_predicate(self, triple: Triple) -> None:
+    def handle_sbol2_predicate(self, triple: Triple) -> None:
         """Convert a statement with an SBOL 2 predicate; one with no SBOL 3 counterpart is dropped."""
         s, p, o = triple
-        if self._collapse_sa_triple(triple):
+        if self.collapse_sa_triple(triple):
             return
         if p == S2.mapsTo and is_iri(o) and o in self.mapstos:
             return
@@ -414,14 +420,14 @@ class _Upgrader:
             # persistentIdentity and version feed identity derivation; access, direction, and any other SBOL 2-only
             # property has no SBOL 3 home
             return
-        value = self._rewrite_value(s if is_iri(s) else "", p, self.identity.term(o))
+        value = self.rewrite_value(s if is_iri(s) else "", p, self.identity.term(o))
         if p == S2.displayId and is_iri(s) and s in self.location_display_id_overrides:
             value = plain(self.location_display_id_overrides[s])
         if p in (S2.start, S2.end, S2.at) and isinstance(value, Literal):
             value = plain(str(value))
         self.out.append((self.identity.term(s), target, value))
 
-    def _collapse_sa_triple(self, triple: Triple) -> bool:
+    def collapse_sa_triple(self, triple: Triple) -> bool:
         """Handle the SBOL 2 properties of a collapsed SequenceAnnotation; True when the triple was consumed."""
         s, p, o = triple
         if not is_iri(s):
@@ -439,10 +445,10 @@ class _Upgrader:
                 self.out.append((target, BP.sbol2OriginalSequenceAnnotationURI, s))
                 self.out.append((target, BP.sbol2OriginalURI, s))
         elif p != S2.component:
-            self._move_collapsed_sa_triple(triple, subcomponent)
+            self.move_collapsed_sa_triple(triple, subcomponent)
         return True
 
-    def _rewrite_value(self, subject: str, predicate: str, value: Term) -> Term:
+    def rewrite_value(self, subject: str, predicate: str, value: Term) -> Term:
         """The SBOL 3 spelling of an enumerated value or ontology term."""
         if not is_iri(value):
             return value
@@ -466,13 +472,14 @@ class _Upgrader:
 
     # Synthesis
 
-    def _namespace(self, sbol2_iri: str, canonical: str) -> str | None:
+    def object_namespace(self, sbol2_iri: str, canonical: str) -> str | None:
+        """The namespace of an object: the configured prefix its SBOL 2 IRI starts with, else the derived one."""
         for prefix in self.options.namespaces or ():
             if sbol2_iri.startswith(prefix):
                 return prefix[:-1] if prefix.endswith("/") else prefix
         return self.identity.namespace_for(canonical)
 
-    def _emit_namespaces(self) -> None:
+    def emit_namespaces(self) -> None:
         """Give every top-level its hasNamespace."""
         # (SBOL 2 identity, SBOL 3 identity, IRI the URL-origin fallback reads) of every top-level
         top_levels = [
@@ -486,13 +493,13 @@ class _Upgrader:
             if canonical in done:
                 continue
             done.add(canonical)
-            namespace = self._namespace(sbol2_iri, canonical)
+            namespace = self.object_namespace(sbol2_iri, canonical)
             if namespace is None:
-                namespace = self._fallback_namespace(fallback_source)
+                namespace = self.fallback_namespace(fallback_source)
             if namespace is not None:
                 self.out.append((canonical, S3.hasNamespace, namespace))
 
-    def _emit_extension_markers(self) -> None:
+    def emit_extension_markers(self) -> None:
         """Type each PROV, OM, or custom-class object as an SBOL TopLevel or Identified (SBOL 3.1.0 §6.11).
 
         Objects without SBOL 2 identity properties (plain nested annotations) stay outside the SBOL data model.
@@ -505,7 +512,7 @@ class _Upgrader:
         for canonical in sorted(markers):
             self.out.append((canonical, RDF_TYPE, markers[canonical]))
 
-    def _fallback_namespace(self, iri: str) -> str | None:
+    def fallback_namespace(self, iri: str) -> str | None:
         """A namespace for a top-level whose identity yields none: its URL origin, else the default namespace."""
         origin = uri.url_origin(iri)
         if origin is not None:
@@ -516,7 +523,7 @@ class _Upgrader:
         self.report.warn(WarningKind.NAMESPACE_FALLBACK, iri, "no derivable namespace; hasNamespace omitted")
         return None
 
-    def _infer_location_sequences(self) -> None:
+    def infer_location_sequences(self) -> None:
         """Give every Location the ``hasSequence`` SBOL 3 requires, inferring it from the owning Component.
 
         A Component with exactly one Sequence lends it to its Locations; one with none gets a synthesized empty
@@ -539,7 +546,7 @@ class _Upgrader:
             elif not sequences:
                 cd_v3 = rewrite(cd)
                 if cd_v3 not in temp_sequences:
-                    temp_sequences[cd_v3] = (f"{cd_v3}_seq", self._namespace(cd, cd_v3))
+                    temp_sequences[cd_v3] = (f"{cd_v3}_seq", self.object_namespace(cd, cd_v3))
                 sequence = temp_sequences[cd_v3][0]
             else:
                 self.report.warn(
@@ -562,7 +569,7 @@ class _Upgrader:
             if self.options.preserve_backport:
                 self.out.append((cd_v3, BP.sbol3TempSequenceURI, temp))
 
-    def _decompose_mapstos(self) -> None:
+    def decompose_mapstos(self) -> None:
         """Replace each MapsTo with a ComponentReference and a Constraint on the enclosing top-level Component.
 
         Per SBOL 3.1.0 §10.2 the Constraint's shape follows the refinement: ``useLocal`` puts the local SubComponent
@@ -579,7 +586,7 @@ class _Upgrader:
                 side = "local" if info.local is None else "remote"
                 self.report.warn(WarningKind.UNRESOLVED_MAPS_TO, mapsto, f"the {side} side is missing")
                 continue
-            top_level = rewrite(self._owning_top_level(carrier))
+            top_level = rewrite(self.owning_top_level(carrier))
             local, remote = rewrite(info.local), rewrite(info.remote)
             base = info.display_id if info.display_id is not None else uri.last_segment(mapsto)
             cref_id, cref = uri.claim_child(top_level, uri.numbered(base), self.used_iris, join=uri.slash_join)
@@ -619,11 +626,11 @@ class _Upgrader:
                 (top_level, S3.hasConstraint, constraint),
             ]
 
-    def _synthesize_interfaces(self) -> None:
+    def synthesize_interfaces(self) -> None:
         """Give each Component with directional or public features an Interface listing them."""
         by_top_level: dict[str, list[tuple[str, str]]] = defaultdict(list)
         for fc, slot in sorted(self.fc_directions.items()):
-            by_top_level[self._owning_top_level(fc)].append((fc, slot))
+            by_top_level[self.owning_top_level(fc)].append((fc, slot))
         for top in sorted(by_top_level):
             top_v3 = self.identity.rewrite(top)
             display_id, interface = uri.claim_child(

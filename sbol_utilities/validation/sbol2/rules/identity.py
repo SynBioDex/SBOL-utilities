@@ -16,12 +16,12 @@ from sbol_utilities.vocab import PROV_NS, SBOL2_NS
 DELIMITERS = ("/", "#", ":")
 
 
-_VERSION = re.compile(r"[0-9][A-Za-z0-9_.-]*")
+VERSION_PATTERN = re.compile(r"[0-9][A-Za-z0-9_.-]*")
 
 
 def is_valid_version(version: str) -> bool:
     """SBOL 2 version lexical form: ASCII letters, digits, underscores, hyphens, or periods, beginning with a digit."""
-    return _VERSION.fullmatch(version) is not None
+    return VERSION_PATTERN.fullmatch(version) is not None
 
 
 @REGISTRY.rule("sbol2-10201", "sbol2-10204", "sbol2-10206", "sbol2-10228")
@@ -79,7 +79,7 @@ def document_namespace(ctx: Sbol2Context) -> None:
         ctx.report("sbol2-10101", SBOL2_NS, f"an SBOL document must declare and use the SBOL 2 namespace `{SBOL2_NS}`")
 
 
-def _top_level_sources(ctx: Sbol2Context, obj: Sbol2Object) -> list[str]:
+def top_level_sources(ctx: Sbol2Context, obj: Sbol2Object) -> list[str]:
     """The TopLevels held in the document that ``obj`` records deriving from."""
     return [iri for iri in obj.iris(S.WAS_DERIVED_FROM) if (source := ctx.get(iri)) is not None and source.is_top_level]
 
@@ -88,7 +88,7 @@ def _top_level_sources(ctx: Sbol2Context, obj: Sbol2Object) -> list[str]:
 def derivation_cycles(ctx: Sbol2Context) -> None:
     """A TopLevel does not derive from itself, directly or through a wasDerivedFrom chain of TopLevels."""
     top_levels = [obj for obj in ctx.objects if obj.is_top_level and obj.iri is not None]
-    graph = {obj.iri: _top_level_sources(ctx, obj) for obj in top_levels}
+    graph = {obj.iri: top_level_sources(ctx, obj) for obj in top_levels}
     cyclic = nodes_on_cycles(graph, lambda node: graph.get(node, ()))
     for obj in top_levels:
         if obj.iri in obj.iris(S.WAS_DERIVED_FROM):
@@ -102,7 +102,7 @@ def derivation_cycles(ctx: Sbol2Context) -> None:
             )
 
 
-def _version_number(part: str) -> int | None:
+def version_number(part: str) -> int | None:
     """A version part as a number: at most 20 ASCII digits spelling a value below 2**64, else None."""
     if part.isascii() and part.isdigit() and len(part) <= 20 and int(part) < 2**64:
         return int(part)
@@ -117,7 +117,7 @@ def version_precedes(earlier: str, later: str) -> bool:
     """
     left, right = earlier.split("."), later.split(".")
     for a, b in zip(left, right):
-        x, y = _version_number(a), _version_number(b)
+        x, y = version_number(a), version_number(b)
         if x is not None and y is not None:
             if x != y:
                 return x < y

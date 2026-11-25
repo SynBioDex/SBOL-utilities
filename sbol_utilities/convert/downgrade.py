@@ -75,7 +75,7 @@ def downgrade(source: GraphSource, options: DowngradeOptions | None = None, fmt:
         raise ValueError("default_version must be non-empty when set; use None to leave objects unversioned")
     triples = graph_triples(load_graph(source, fmt))
     report = ConversionReport("downgrade", input_triples=len(triples))
-    output = _Downgrader(triples, options, report).run()
+    output = Downgrader(triples, options, report).run()
     graph = build_graph(output)
     report.output_triples = len(graph)
     return ConversionResult(graph, report)
@@ -109,7 +109,9 @@ DIRECTION_SLOTS = {S3.input: "in", S3.output: "out", S3.nondirectional: "inout"}
 
 
 @dataclass
-class _MapsTo:
+class MapsToParts:
+    """The SBOL 2 MapsTo a ComponentReference and its Constraint fold back into."""
+
     carrier: str
     display_id: str
     local: str
@@ -118,7 +120,7 @@ class _MapsTo:
 
 
 @dataclass
-class _SaWrapper:
+class SaWrapper:
     """A SequenceAnnotation to emit around a located SubComponent."""
 
     display_id: str
@@ -127,7 +129,7 @@ class _SaWrapper:
     locations: list[str] = field(default_factory=list)
 
 
-class _Downgrader:
+class Downgrader:
     """One SBOL 3 -> SBOL 2 conversion run."""
 
     def __init__(self, triples: list[Triple], options: DowngradeOptions, report: ConversionReport):
@@ -154,42 +156,42 @@ class _Downgrader:
         self.null_sequence_locations: set[str] = set()
         self.namespaces: dict[str, str] = {}
         self.dcterms: set[tuple[str, str, Term]] = set()
-        self.mapstos: dict[str, _MapsTo] = {}
+        self.mapstos: dict[str, MapsToParts] = {}
         self.mapsto_constraints: set[str] = set()
         self.interfaces: set[str] = set()
         self.discarded: set[str] = set()
         self.fc_directions: dict[str, str] = {}
-        self.sa_wrappers: dict[str, _SaWrapper] = {}
+        self.sa_wrappers: dict[str, SaWrapper] = {}
         self.resolved_types: dict[str, str] = {}
         self.resolved_type_sets: dict[str, set[str]] = defaultdict(set)
 
     def run(self) -> list[Triple]:
         """Convert the input, returning the SBOL 2 triples."""
-        self._preflight()
+        self.preflight()
         for triple in self.triples:
-            self._handle(triple)
-        self._emit_sa_wrappers()
-        self._emit_mapstos()
-        self._emit_directions()
-        self._emit_identity_metadata()
-        self._emit_instance_defaults()
+            self.handle(triple)
+        self.emit_sa_wrappers()
+        self.emit_mapstos()
+        self.emit_directions()
+        self.emit_identity_metadata()
+        self.emit_instance_defaults()
         return self.out
 
     # Preflight
 
-    def _preflight(self) -> None:
+    def preflight(self) -> None:
         """Read the whole input once, so each triple can then be converted knowing its subject's SBOL 2 shape."""
-        self._index_hints()
-        self._find_top_levels()
-        self._discover_mapstos_and_interfaces()
-        self._classify_components()
-        self._discover_sa_wrappers()
-        self._discover_unsupported()
-        self._build_rewrites()
-        self._warn_of_collisions()
-        self._resolve_types()
+        self.index_hints()
+        self.find_top_levels()
+        self.discover_mapstos_and_interfaces()
+        self.classify_components()
+        self.discover_sa_wrappers()
+        self.discover_unsupported()
+        self.build_rewrites()
+        self.warn_of_collisions()
+        self.resolve_types()
 
-    def _index_hints(self) -> None:
+    def index_hints(self) -> None:
         """Record the backport annotations an upgrade left, each object's namespace, and Dublin Core statements."""
         for s, p, o in self.triples:
             if not is_iri(s):
@@ -208,7 +210,7 @@ class _Downgrader:
             elif p in (DCTERMS_TITLE, DCTERMS_DESCRIPTION):
                 self.dcterms.add((s, p, o))
 
-    def _find_top_levels(self) -> None:
+    def find_top_levels(self) -> None:
         """A top-level is a subject whose deciding class is a top-level class, or that has a namespace (which
         marks every SBOL 3 top-level, including custom-typed ones)."""
         for subject, types in self.types.items():
@@ -216,7 +218,7 @@ class _Downgrader:
                 self.top_levels.add(subject)
         self.top_levels.update(self.namespaces)
 
-    def _warn_of_collisions(self) -> None:
+    def warn_of_collisions(self) -> None:
         """Warn where several SBOL 3 subjects take one SBOL 2 identity."""
         sources: dict[str, list[str]] = defaultdict(list)
         for sbol3, sbol2 in self.rewrites.items():
@@ -226,19 +228,19 @@ class _Downgrader:
                 names = ", ".join(sorted(merged))
                 self.report.warn(WarningKind.IDENTITY_COLLISION, sbol2, f"{len(merged)} SBOL 3 subjects merge: {names}")
 
-    def _resolve_types(self) -> None:
+    def resolve_types(self) -> None:
         """Record the SBOL 2 class each SBOL 3 type of each subject becomes."""
         for s, p, o in self.triples:
             if p == S3.instanceOf and is_iri(s) and is_iri(o):
                 self.subcomponent_targets[s] = o
         for s, p, o in self.triples:
             if p == RDF_TYPE and is_iri(s) and is_iri(o):
-                resolved = self._sbol2_type(s, o)
+                resolved = self.sbol2_type(s, o)
                 if resolved is not None:
                     self.resolved_type_sets[s].add(resolved)
                     self.resolved_types.setdefault(s, resolved)
 
-    def _is_consumed(self, subject: object) -> bool:
+    def is_consumed(self, subject: object) -> bool:
         """Whether a subject is not converted triple by triple: it folds into a MapsTo, a direction, or nothing."""
         return (
             subject in self.mapstos
@@ -247,10 +249,11 @@ class _Downgrader:
             or subject in self.discarded
         )
 
-    def _has_type(self, subject: str, cls: str) -> bool:
+    def has_type(self, subject: str, cls: str) -> bool:
+        """Whether the input gives ``subject`` the rdf:type ``cls``."""
         return cls in self.types.get(subject, ())
 
-    def _discover_mapstos_and_interfaces(self) -> None:
+    def discover_mapstos_and_interfaces(self) -> None:
         """Pair each ComponentReference with the Constraint naming it, and index Interface membership.
 
         Only a Constraint whose restriction is ``verifyIdentical`` or ``replaces`` (the two the upgrade writes) is a
@@ -281,12 +284,12 @@ class _Downgrader:
         cref_to_constraint: dict[str, tuple[str, bool]] = {}
         for constraint in sorted(constraints):
             attrs = constraints[constraint]
-            if not self._has_type(constraint, S3.Constraint):
+            if not self.has_type(constraint, S3.Constraint):
                 continue
             subject, obj = attrs.get(S3.subject), attrs.get(S3.object)
-            if subject is not None and self._has_type(subject, S3.ComponentReference):
+            if subject is not None and self.has_type(subject, S3.ComponentReference):
                 cref, cref_is_subject = subject, True
-            elif obj is not None and self._has_type(obj, S3.ComponentReference):
+            elif obj is not None and self.has_type(obj, S3.ComponentReference):
                 cref, cref_is_subject = obj, False
             else:
                 continue
@@ -296,7 +299,7 @@ class _Downgrader:
 
         for cref in sorted(crefs):
             attrs = crefs[cref]
-            if not self._has_type(cref, S3.ComponentReference):
+            if not self.has_type(cref, S3.ComponentReference):
                 continue
             if cref not in cref_to_constraint:
                 self.report.warn(WarningKind.ORPHAN_COMPONENT_REFERENCE, cref, "no matching Constraint; dropped")
@@ -316,7 +319,7 @@ class _Downgrader:
                 self.discarded.update((cref, constraint))
                 continue
             refinement = refinement_for(restriction, cref_is_subject) if restriction else None
-            self.mapstos[cref] = _MapsTo(carrier, display_id, local, remote, refinement)
+            self.mapstos[cref] = MapsToParts(carrier, display_id, local, remote, refinement)
             self.mapsto_constraints.add(constraint)
 
         for interface, members in interface_members.items():
@@ -329,7 +332,7 @@ class _Downgrader:
                 elif existing == "inout" or direction == "inout" or {existing, direction} == {"in", "out"}:
                     self.fc_directions[feature] = "inout"
 
-    def _classify_components(self) -> None:
+    def classify_components(self) -> None:
         """Decide whether each Component downgrades to a ModuleDefinition or a ComponentDefinition.
 
         A Component is a ModuleDefinition when it has interactions or the SBO functional entity type, or contains a
@@ -349,7 +352,7 @@ class _Downgrader:
                 functional.add(s)
         child_targets: dict[str, list[str]] = defaultdict(list)
         for child, parent in self.feature_parent.items():
-            if self._has_type(child, S3.SubComponent) and child in instance_of:
+            if self.has_type(child, S3.SubComponent) and child in instance_of:
                 child_targets[parent].append(instance_of[child])
         module_definitions = set(functional)
         changed = True
@@ -361,7 +364,7 @@ class _Downgrader:
                     changed = True
         self.is_md = {component: component in module_definitions for component in components}
 
-    def _discover_sa_wrappers(self) -> None:
+    def discover_sa_wrappers(self) -> None:
         """Find every SubComponent that needs an SBOL 2 SequenceAnnotation wrapper.
 
         A SubComponent the upgrade collapsed an SBOL 2 SequenceAnnotation onto carries that annotation's identity;
@@ -385,7 +388,7 @@ class _Downgrader:
                 if sa_display_id is not None and is_valid_display_id(sa_display_id):
                     recorded.setdefault(s, sa_display_id)
 
-        candidates = set(recorded) | {s for s in locations_of if self._has_type(s, S3.SubComponent)}
+        candidates = set(recorded) | {s for s in locations_of if self.has_type(s, S3.SubComponent)}
         for subcomponent in sorted(candidates):
             parent = self.feature_parent.get(subcomponent)
             if parent is None:
@@ -401,9 +404,9 @@ class _Downgrader:
                 first = display_ids.get(locations[0]) if locations else None
                 base = f"{sub_display_id}_{first}" if first is not None else f"{sub_display_id}_annotation"
             display_id, iri = uri.claim_child(parent, uri.numbered(base), self.used_iris)
-            self.sa_wrappers[subcomponent] = _SaWrapper(display_id, iri, parent, locations)
+            self.sa_wrappers[subcomponent] = SaWrapper(display_id, iri, parent, locations)
 
-    def _discover_unsupported(self) -> None:
+    def discover_unsupported(self) -> None:
         """Drop subjects whose only SBOL 3 classes have no SBOL 2 equivalent.
 
         An object of another vocabulary's class (PROV, OM, custom) typed TopLevel or Identified keeps that class.
@@ -413,16 +416,16 @@ class _Downgrader:
             sbol_types = sorted(t for t in types if t.startswith(S3.base))
             if any(not t.startswith(S3.base) for t in types) and all(t in EXTENSION_MARKERS for t in sbol_types):
                 continue
-            if not sbol_types or any(self._sbol2_type(subject, t) is not None for t in sbol_types):
+            if not sbol_types or any(self.sbol2_type(subject, t) is not None for t in sbol_types):
                 continue
-            if self._is_consumed(subject):
+            if self.is_consumed(subject):
                 continue
             self.discarded.add(subject)
             self.report.warn(
                 WarningKind.UNSUPPORTED_SBOL3_TYPE, subject, f"{sbol_types[0]} has no SBOL 2 equivalent; dropped"
             )
 
-    def _build_rewrites(self) -> None:
+    def build_rewrites(self) -> None:
         """Compute the SBOL 2 identity of every subject.
 
         A top-level ``<ns>/<version>/<id>`` becomes ``<ns>/<id>/<version>``; a child ``<topSbol3>/<relative>``
@@ -469,68 +472,75 @@ class _Downgrader:
             parent = wrapper.parent_component
             parent_pid = self.persistent_identities.get(parent) or self.rewrites.get(parent, parent)
             wrapper.iri_unversioned = f"{parent_pid}/{wrapper.display_id}"
-            version = self._top_level_version(parent)
+            version = self.top_level_version(parent)
             for loc in wrapper.locations:
                 loc_pid = f"{wrapper.iri_unversioned}/{uri.last_segment(loc)}"
                 self.persistent_identities[loc] = loc_pid
                 self.rewrites[loc] = uri.versioned(loc_pid, version)
 
-    def _top_level_version(self, iri: str) -> str | None:
+    def top_level_version(self, iri: str) -> str | None:
+        """The version of a top-level: the one in its IRI, else the configured default."""
         if iri in self.preserved_versions:
             return self.versions.get(iri)
         return self.options.default_version
 
-    def _owning_top_level(self, iri: str) -> str | None:
+    def owning_top_level(self, iri: str) -> str | None:
+        """The top-level whose IRI is ``iri`` or its longest prefix, or None."""
         if iri in self.top_levels:
             return iri
         owners = [top for top in self.top_levels if iri.startswith(top + "/")]
         return min(owners, key=lambda top: (-len(top), top)) if owners else None
 
-    def _version_for(self, iri: str) -> str | None:
-        top = self._owning_top_level(iri)
-        version = self._top_level_version(top) if top is not None else None
+    def version_for(self, iri: str) -> str | None:
+        """The version an object takes from the top-level that owns it."""
+        top = self.owning_top_level(iri)
+        version = self.top_level_version(top) if top is not None else None
         return version if version is not None else self.options.default_version
 
     # Type resolution
 
-    def _component_type(self, component: str) -> str | None:
+    def component_type(self, component: str) -> str | None:
+        """The SBOL 2 class a Component becomes; None for a subject that is not a Component."""
         if component not in self.is_md:
             return None
         return S2.ModuleDefinition if self.is_md[component] else S2.ComponentDefinition
 
-    def _sbol2_type(self, subject: str, sbol3_type: str) -> str | None:
+    def sbol2_type(self, subject: str, sbol3_type: str) -> str | None:
+        """The SBOL 2 class one SBOL 3 type of ``subject`` becomes, or None when it has no equivalent."""
         if sbol3_type == S3.SubComponent:
-            return self._subcomponent_type(subject)
+            return self.subcomponent_type(subject)
         if sbol3_type == S3.Component:
             return S2.ModuleDefinition if self.is_md.get(subject) else S2.ComponentDefinition
         return DOWNGRADE_CLASSES.get(sbol3_type)
 
-    def _subcomponent_type(self, subject: str) -> str:
+    def subcomponent_type(self, subject: str) -> str:
         """The SBOL 2 class of a SubComponent: a Component in a ComponentDefinition, and in a ModuleDefinition a
         Module when it instantiates one (or came from one), otherwise a FunctionalComponent."""
         parent = self.feature_parent.get(subject)
-        if parent is None or self._component_type(parent) != S2.ModuleDefinition:
+        if parent is None or self.component_type(parent) != S2.ModuleDefinition:
             return S2.Component
         if subject in self.module_origin:
             return S2.Module
         target = self.subcomponent_targets.get(subject)
-        if target is not None and self._component_type(target) == S2.ModuleDefinition:
+        if target is not None and self.component_type(target) == S2.ModuleDefinition:
             return S2.Module
         return S2.FunctionalComponent
 
     # Per-triple conversion
 
-    def _rewrite(self, term):
+    def rewrite(self, term):
+        """The SBOL 2 identity of an IRI the conversion renames; any other term unchanged."""
         return self.rewrites.get(term, term) if is_iri(term) else term
 
-    def _passthrough(self, triple: Triple) -> None:
+    def passthrough(self, triple: Triple) -> None:
+        """Emit a triple with only its subject and object identities rewritten."""
         s, p, o = triple
-        self.out.append((self._rewrite(s), p, self._rewrite(o)))
+        self.out.append((self.rewrite(s), p, self.rewrite(o)))
 
-    def _handle(self, triple: Triple) -> None:
+    def handle(self, triple: Triple) -> None:
         """Convert one input triple, or drop it when its subject or object is rebuilt elsewhere."""
         s, p, o = triple
-        if is_iri(s) and self._is_consumed(s):
+        if is_iri(s) and self.is_consumed(s):
             return
         if is_iri(o) and (
             (p.startswith(S3.base) and o in self.discarded)
@@ -542,27 +552,27 @@ class _Downgrader:
         if p.startswith(BP.base):
             return
         if p in (DCTERMS_TITLE, DCTERMS_DESCRIPTION):
-            self._passthrough(triple)
+            self.passthrough(triple)
         elif p == RDF_TYPE:
-            self._handle_type(triple)
+            self.handle_type(triple)
         elif p.startswith(S3.base):
-            self._handle_sbol3_predicate(triple)
+            self.handle_sbol3_predicate(triple)
         else:
-            self._passthrough(triple)
+            self.passthrough(triple)
 
-    def _handle_type(self, triple: Triple) -> None:
+    def handle_type(self, triple: Triple) -> None:
         """Convert an rdf:type statement, adding the access an SBOL 2 Component or FunctionalComponent requires."""
         s, p, o = triple
         if o in EXTENSION_MARKERS and any(not t.startswith(S3.base) for t in self.types.get(s, ())):
             return  # SBOL 2 places objects of other vocabularies' classes in its data model without a marker type
         if not is_iri(s) or not is_iri(o) or not o.startswith(S3.base):
-            self._passthrough(triple)
+            self.passthrough(triple)
             return
-        target = self._sbol2_type(s, o)
+        target = self.sbol2_type(s, o)
         if target is None:
             self.report.warn(WarningKind.UNSUPPORTED_SBOL3_TYPE, s, f"{o} has no SBOL 2 equivalent; dropped")
             return
-        subject = self._rewrite(s)
+        subject = self.rewrite(s)
         self.out.append((subject, RDF_TYPE, target))
         if target == S2.Component:
             self.out.append((subject, S2.access, S2.public))
@@ -570,13 +580,13 @@ class _Downgrader:
             # public when the FunctionalComponent belongs to its Component's Interface
             self.out.append((subject, S2.access, S2.public if s in self.fc_directions else S2.private))
 
-    def _handle_sbol3_predicate(self, triple: Triple) -> None:
+    def handle_sbol3_predicate(self, triple: Triple) -> None:
         """Convert a statement with an SBOL 3 predicate, dropping those SBOL 2 states elsewhere or not at all."""
         s, p, o = triple
         if p == S3.hasNamespace:
             return  # implicit in the SBOL 2 persistentIdentity
         if p == S3.hasFeature:
-            self._handle_has_feature(triple)
+            self.handle_has_feature(triple)
             return
         if is_iri(s):
             if p == S3.hasLocation and s in self.sa_wrappers:
@@ -595,9 +605,9 @@ class _Downgrader:
             target = S2.experimentalData
         if target is None:
             return  # SBOL 3-only data has no SBOL 2 home
-        self.out.append((self._rewrite(s), target, self._reverse_value(s, p, self._rewrite(o))))
+        self.out.append((self.rewrite(s), target, self.reverse_value(s, p, self.rewrite(o))))
 
-    def _handle_has_feature(self, triple: Triple) -> None:
+    def handle_has_feature(self, triple: Triple) -> None:
         """Convert hasFeature to the SBOL 2 predicate the parent and feature classes call for."""
         s, _, o = triple
         parent_type = self.resolved_types.get(s) if is_iri(s) else None
@@ -610,9 +620,9 @@ class _Downgrader:
             predicate = S2.sequenceAnnotation
         else:
             predicate = S2.component
-        self.out.append((self._rewrite(s), predicate, self._rewrite(o)))
+        self.out.append((self.rewrite(s), predicate, self.rewrite(o)))
 
-    def _reverse_value(self, subject, predicate: str, value: Term) -> Term:
+    def reverse_value(self, subject, predicate: str, value: Term) -> Term:
         """The SBOL 2 spelling of an enumerated value or ontology term."""
         if not is_iri(value):
             return value
@@ -634,32 +644,32 @@ class _Downgrader:
 
     # Synthesis
 
-    def _emit_sa_wrappers(self) -> None:
+    def emit_sa_wrappers(self) -> None:
         """Write the SequenceAnnotation that carries each located SubComponent's Locations."""
         for subcomponent in sorted(self.sa_wrappers):
             wrapper = self.sa_wrappers[subcomponent]
-            version = self._top_level_version(wrapper.parent_component)
+            version = self.top_level_version(wrapper.parent_component)
             sa = (
                 uri.append_segment(wrapper.iri_unversioned, version) if version is not None else wrapper.iri_unversioned
             )
             self.out += [
-                (self._rewrite(wrapper.parent_component), S2.sequenceAnnotation, sa),
+                (self.rewrite(wrapper.parent_component), S2.sequenceAnnotation, sa),
                 (sa, RDF_TYPE, S2.SequenceAnnotation),
                 (sa, S2.displayId, plain(wrapper.display_id)),
-                (sa, S2.component, self._rewrite(subcomponent)),
+                (sa, S2.component, self.rewrite(subcomponent)),
             ]
-            self.out += [(sa, S2.location, self._rewrite(loc)) for loc in wrapper.locations]
+            self.out += [(sa, S2.location, self.rewrite(loc)) for loc in wrapper.locations]
             self.out.append((sa, S2.persistentIdentity, wrapper.iri_unversioned))
             if version is not None:
                 self.out.append((sa, S2.version, plain(version)))
 
-    def _emit_mapstos(self) -> None:
+    def emit_mapstos(self) -> None:
         """Rebuild each SBOL 2 MapsTo under its carrier's SBOL 2 identity."""
         for cref in sorted(self.mapstos):
             info = self.mapstos[cref]
-            top = self._owning_top_level(info.carrier)
-            version = self._top_level_version(top) if top is not None else self.options.default_version
-            carrier = self._rewrite(info.carrier)
+            top = self.owning_top_level(info.carrier)
+            version = self.top_level_version(top) if top is not None else self.options.default_version
+            carrier = self.rewrite(info.carrier)
             carrier_base = uri.without_version(carrier, uri.version_sbol2(carrier))
             display_id, unversioned = uri.claim_child(carrier_base, uri.numbered(info.display_id), self.used_iris)
             mapsto = uri.append_segment(unversioned, version) if version is not None else unversioned
@@ -667,19 +677,19 @@ class _Downgrader:
                 (carrier, S2.mapsTo, mapsto),
                 (mapsto, RDF_TYPE, S2.MapsTo),
                 (mapsto, S2.displayId, plain(display_id)),
-                (mapsto, S2.local, self._rewrite(info.local)),
-                (mapsto, S2.remote, self._rewrite(info.remote)),
+                (mapsto, S2.local, self.rewrite(info.local)),
+                (mapsto, S2.remote, self.rewrite(info.remote)),
                 (mapsto, S2.refinement, info.refinement or S2.useLocal),
                 (mapsto, S2.persistentIdentity, unversioned),
             ]
             if version is not None:
                 self.out.append((mapsto, S2.version, plain(version)))
 
-    def _emit_directions(self) -> None:
+    def emit_directions(self) -> None:
         """Flatten Interface membership into ``access`` (and, for FunctionalComponents, ``direction``)."""
         existing = {(s, p) for s, p, _ in self.out if is_iri(s)}
         for feature in sorted(self.fc_directions):
-            subject = self._rewrite(feature)
+            subject = self.rewrite(feature)
             parent_type = self.resolved_types.get(self.feature_parent.get(feature, ""))
             target = self.subcomponent_targets.get(feature)
             target_type = self.resolved_types.get(target) if target is not None else None
@@ -692,16 +702,17 @@ class _Downgrader:
                 kind = own if own in (S2.Component, S2.Module) else S2.FunctionalComponent
             if kind == S2.Module:
                 continue
-            self._emit_default(existing, subject, S2.access, S2.public)
+            self.emit_default(existing, subject, S2.access, S2.public)
             if kind == S2.FunctionalComponent:
-                self._emit_default(existing, subject, S2.direction, S2.base + self.fc_directions[feature])
+                self.emit_default(existing, subject, S2.direction, S2.base + self.fc_directions[feature])
 
-    def _emit_default(self, existing: set[tuple[str, str]], subject: str, predicate: str, value: str) -> None:
+    def emit_default(self, existing: set[tuple[str, str]], subject: str, predicate: str, value: str) -> None:
+        """Emit a property value unless the subject already has a value for that property."""
         if (subject, predicate) not in existing:
             self.out.append((subject, predicate, value))
             existing.add((subject, predicate))
 
-    def _emit_identity_metadata(self) -> None:
+    def emit_identity_metadata(self) -> None:
         """Give every rewritten object its ``persistentIdentity`` and (when it has one) ``version``.
 
         Subjects outside the SBOL data model (plain RDF annotations, with no SBOL 3 type or property) take no SBOL 2
@@ -715,15 +726,15 @@ class _Downgrader:
         for sbol3 in sorted(self.rewrites):
             if sbol3 not in sbol_subjects:
                 continue
-            if self._is_consumed(sbol3):
+            if self.is_consumed(sbol3):
                 continue
             sbol2 = self.rewrites[sbol3]
             self.out.append((sbol2, S2.persistentIdentity, self.persistent_identities.get(sbol3, sbol3)))
-            version = self._version_for(sbol3)
+            version = self.version_for(sbol3)
             if version is not None:
                 self.out.append((sbol2, S2.version, plain(version)))
 
-    def _emit_instance_defaults(self) -> None:
+    def emit_instance_defaults(self) -> None:
         """Every SBOL 2 Component needs an ``access``, every FunctionalComponent an ``access`` and a ``direction``."""
         components, functional_components = set(), set()
         for s, p, o in self.out:
@@ -734,7 +745,7 @@ class _Downgrader:
                     functional_components.add(s)
         existing = {(s, p) for s, p, _ in self.out if is_iri(s)}
         for subject in sorted(components):
-            self._emit_default(existing, subject, S2.access, S2.private)
+            self.emit_default(existing, subject, S2.access, S2.private)
         for subject in sorted(functional_components):
-            self._emit_default(existing, subject, S2.access, S2.private)
-            self._emit_default(existing, subject, S2.direction, S2.none)
+            self.emit_default(existing, subject, S2.access, S2.private)
+            self.emit_default(existing, subject, S2.direction, S2.none)

@@ -21,188 +21,191 @@ from sbol_utilities.vocab import (
 )
 
 
-def _sbol(local: str) -> str:
+def sbol_iri(local: str) -> str:
+    """The IRI of a term in the SBOL 2 namespace."""
     return SBOL2_NS + local
 
 
-def _prov(local: str) -> str:
+def prov_iri(local: str) -> str:
+    """The IRI of a term in the PROV namespace."""
     return PROV_NS + local
 
 
-def _om(local: str) -> str:
+def om_iri(local: str) -> str:
+    """The IRI of a term in the OM namespace."""
     return OM_NS + local
 
 
 # --- classes -----------------------------------------------------------------------------------------------------
 
-IDENTIFIED = _sbol("Identified")
-TOP_LEVEL = _sbol("TopLevel")
-MEASURED = _sbol("Measured")
-COMPONENT_INSTANCE = _sbol("ComponentInstance")
-LOCATION = _sbol("Location")
-SEQUENCE = _sbol("Sequence")
-COMPONENT_DEFINITION = _sbol("ComponentDefinition")
-MODULE_DEFINITION = _sbol("ModuleDefinition")
-MODEL = _sbol("Model")
-COLLECTION = _sbol("Collection")
-COMBINATORIAL_DERIVATION = _sbol("CombinatorialDerivation")
-IMPLEMENTATION = _sbol("Implementation")
-ATTACHMENT = _sbol("Attachment")
-EXPERIMENTAL_DATA = _sbol("ExperimentalData")
-EXPERIMENT = _sbol("Experiment")
-GENERIC_TOP_LEVEL = _sbol("GenericTopLevel")
-COMPONENT = _sbol("Component")
-FUNCTIONAL_COMPONENT = _sbol("FunctionalComponent")
-MODULE = _sbol("Module")
-MAPS_TO = _sbol("MapsTo")
-SEQUENCE_ANNOTATION = _sbol("SequenceAnnotation")
-SEQUENCE_CONSTRAINT = _sbol("SequenceConstraint")
-VARIABLE_COMPONENT = _sbol("VariableComponent")
-INTERACTION = _sbol("Interaction")
-PARTICIPATION = _sbol("Participation")
-RANGE = _sbol("Range")
-CUT = _sbol("Cut")
-GENERIC_LOCATION = _sbol("GenericLocation")
-ACTIVITY = _prov("Activity")
-AGENT = _prov("Agent")
-PLAN = _prov("Plan")
-ASSOCIATION = _prov("Association")
-USAGE = _prov("Usage")
-OM_MEASURE = _om("Measure")
-OM_UNIT = _om("Unit")
-OM_SINGULAR_UNIT = _om("SingularUnit")
-OM_COMPOUND_UNIT = _om("CompoundUnit")
-OM_UNIT_MULTIPLICATION = _om("UnitMultiplication")
-OM_UNIT_DIVISION = _om("UnitDivision")
-OM_UNIT_EXPONENTIATION = _om("UnitExponentiation")
-OM_PREFIXED_UNIT = _om("PrefixedUnit")
-OM_PREFIX = _om("Prefix")
-OM_SI_PREFIX = _om("SIPrefix")
-OM_BINARY_PREFIX = _om("BinaryPrefix")
+IDENTIFIED = sbol_iri("Identified")
+TOP_LEVEL = sbol_iri("TopLevel")
+MEASURED = sbol_iri("Measured")
+COMPONENT_INSTANCE = sbol_iri("ComponentInstance")
+LOCATION = sbol_iri("Location")
+SEQUENCE = sbol_iri("Sequence")
+COMPONENT_DEFINITION = sbol_iri("ComponentDefinition")
+MODULE_DEFINITION = sbol_iri("ModuleDefinition")
+MODEL = sbol_iri("Model")
+COLLECTION = sbol_iri("Collection")
+COMBINATORIAL_DERIVATION = sbol_iri("CombinatorialDerivation")
+IMPLEMENTATION = sbol_iri("Implementation")
+ATTACHMENT = sbol_iri("Attachment")
+EXPERIMENTAL_DATA = sbol_iri("ExperimentalData")
+EXPERIMENT = sbol_iri("Experiment")
+GENERIC_TOP_LEVEL = sbol_iri("GenericTopLevel")
+COMPONENT = sbol_iri("Component")
+FUNCTIONAL_COMPONENT = sbol_iri("FunctionalComponent")
+MODULE = sbol_iri("Module")
+MAPS_TO = sbol_iri("MapsTo")
+SEQUENCE_ANNOTATION = sbol_iri("SequenceAnnotation")
+SEQUENCE_CONSTRAINT = sbol_iri("SequenceConstraint")
+VARIABLE_COMPONENT = sbol_iri("VariableComponent")
+INTERACTION = sbol_iri("Interaction")
+PARTICIPATION = sbol_iri("Participation")
+RANGE = sbol_iri("Range")
+CUT = sbol_iri("Cut")
+GENERIC_LOCATION = sbol_iri("GenericLocation")
+ACTIVITY = prov_iri("Activity")
+AGENT = prov_iri("Agent")
+PLAN = prov_iri("Plan")
+ASSOCIATION = prov_iri("Association")
+USAGE = prov_iri("Usage")
+OM_MEASURE = om_iri("Measure")
+OM_UNIT = om_iri("Unit")
+OM_SINGULAR_UNIT = om_iri("SingularUnit")
+OM_COMPOUND_UNIT = om_iri("CompoundUnit")
+OM_UNIT_MULTIPLICATION = om_iri("UnitMultiplication")
+OM_UNIT_DIVISION = om_iri("UnitDivision")
+OM_UNIT_EXPONENTIATION = om_iri("UnitExponentiation")
+OM_PREFIXED_UNIT = om_iri("PrefixedUnit")
+OM_PREFIX = om_iri("Prefix")
+OM_SI_PREFIX = om_iri("SIPrefix")
+OM_BINARY_PREFIX = om_iri("BinaryPrefix")
 
 # --- predicates --------------------------------------------------------------------------------------------------
 
-PERSISTENT_IDENTITY = _sbol("persistentIdentity")
-DISPLAY_ID = _sbol("displayId")
-VERSION = _sbol("version")
+PERSISTENT_IDENTITY = sbol_iri("persistentIdentity")
+DISPLAY_ID = sbol_iri("displayId")
+VERSION = sbol_iri("version")
 TITLE = DCTERMS_TITLE
 DESCRIPTION = DCTERMS_DESCRIPTION
-WAS_DERIVED_FROM = _prov("wasDerivedFrom")
-WAS_GENERATED_BY = _prov("wasGeneratedBy")
-ATTACHMENT_P = _sbol("attachment")
-MEASURE = _sbol("measure")
-DEFINITION = _sbol("definition")
-ACCESS = _sbol("access")
-MAPS_TO_P = _sbol("mapsTo")
-ORIENTATION = _sbol("orientation")
-SEQUENCE_P = _sbol("sequence")
-ELEMENTS = _sbol("elements")
-ENCODING = _sbol("encoding")
-TYPE = _sbol("type")
-ROLE = _sbol("role")
-COMPONENT_P = _sbol("component")
-SEQUENCE_ANNOTATION_P = _sbol("sequenceAnnotation")
-SEQUENCE_CONSTRAINT_P = _sbol("sequenceConstraint")
-MODULE_P = _sbol("module")
-FUNCTIONAL_COMPONENT_P = _sbol("functionalComponent")
-INTERACTION_P = _sbol("interaction")
-MODEL_P = _sbol("model")
-SOURCE = _sbol("source")
-LANGUAGE = _sbol("language")
-FRAMEWORK = _sbol("framework")
-FORMAT = _sbol("format")
-SIZE = _sbol("size")
-HASH = _sbol("hash")
-MEMBER = _sbol("member")
-TEMPLATE = _sbol("template")
-VARIABLE_COMPONENT_P = _sbol("variableComponent")
-STRATEGY = _sbol("strategy")
-BUILT = _sbol("built")
-EXPERIMENTAL_DATA_P = _sbol("experimentalData")
-RDF_TYPE_P = _sbol("rdfType")
-ROLE_INTEGRATION = _sbol("roleIntegration")
-SOURCE_LOCATION = _sbol("sourceLocation")
-DIRECTION = _sbol("direction")
-LOCAL = _sbol("local")
-REMOTE = _sbol("remote")
-REFINEMENT = _sbol("refinement")
-LOCATION_P = _sbol("location")
-SUBJECT = _sbol("subject")
-OBJECT = _sbol("object")
-RESTRICTION = _sbol("restriction")
-START = _sbol("start")
-END = _sbol("end")
-AT = _sbol("at")
-PARTICIPATION_P = _sbol("participation")
-PARTICIPANT = _sbol("participant")
-VARIABLE = _sbol("variable")
-VARIANT = _sbol("variant")
-VARIANT_COLLECTION = _sbol("variantCollection")
-VARIANT_DERIVATION = _sbol("variantDerivation")
-OPERATOR = _sbol("operator")
-STARTED_AT_TIME = _prov("startedAtTime")
-ENDED_AT_TIME = _prov("endedAtTime")
-QUALIFIED_ASSOCIATION = _prov("qualifiedAssociation")
-QUALIFIED_USAGE = _prov("qualifiedUsage")
-WAS_INFORMED_BY = _prov("wasInformedBy")
-AGENT_P = _prov("agent")
-HAD_ROLE = _prov("hadRole")
-HAD_PLAN = _prov("hadPlan")
-ENTITY = _prov("entity")
-OM_SYMBOL = _om("symbol")
-OM_ALTERNATIVE_SYMBOL = _om("alternativeSymbol")
-OM_ALTERNATIVE_LABEL = _om("alternativeLabel")
-OM_LONG_COMMENT = _om("longcomment")
-OM_HAS_NUMERICAL_VALUE = _om("hasNumericalValue")
-OM_HAS_UNIT = _om("hasUnit")
-OM_HAS_FACTOR = _om("hasFactor")
-OM_HAS_TERM1 = _om("hasTerm1")
-OM_HAS_TERM2 = _om("hasTerm2")
-OM_HAS_NUMERATOR = _om("hasNumerator")
-OM_HAS_DENOMINATOR = _om("hasDenominator")
-OM_HAS_BASE = _om("hasBase")
-OM_HAS_EXPONENT = _om("hasExponent")
-OM_HAS_PREFIX = _om("hasPrefix")
+WAS_DERIVED_FROM = prov_iri("wasDerivedFrom")
+WAS_GENERATED_BY = prov_iri("wasGeneratedBy")
+ATTACHMENT_P = sbol_iri("attachment")
+MEASURE = sbol_iri("measure")
+DEFINITION = sbol_iri("definition")
+ACCESS = sbol_iri("access")
+MAPS_TO_P = sbol_iri("mapsTo")
+ORIENTATION = sbol_iri("orientation")
+SEQUENCE_P = sbol_iri("sequence")
+ELEMENTS = sbol_iri("elements")
+ENCODING = sbol_iri("encoding")
+TYPE = sbol_iri("type")
+ROLE = sbol_iri("role")
+COMPONENT_P = sbol_iri("component")
+SEQUENCE_ANNOTATION_P = sbol_iri("sequenceAnnotation")
+SEQUENCE_CONSTRAINT_P = sbol_iri("sequenceConstraint")
+MODULE_P = sbol_iri("module")
+FUNCTIONAL_COMPONENT_P = sbol_iri("functionalComponent")
+INTERACTION_P = sbol_iri("interaction")
+MODEL_P = sbol_iri("model")
+SOURCE = sbol_iri("source")
+LANGUAGE = sbol_iri("language")
+FRAMEWORK = sbol_iri("framework")
+FORMAT = sbol_iri("format")
+SIZE = sbol_iri("size")
+HASH = sbol_iri("hash")
+MEMBER = sbol_iri("member")
+TEMPLATE = sbol_iri("template")
+VARIABLE_COMPONENT_P = sbol_iri("variableComponent")
+STRATEGY = sbol_iri("strategy")
+BUILT = sbol_iri("built")
+EXPERIMENTAL_DATA_P = sbol_iri("experimentalData")
+RDF_TYPE_P = sbol_iri("rdfType")
+ROLE_INTEGRATION = sbol_iri("roleIntegration")
+SOURCE_LOCATION = sbol_iri("sourceLocation")
+DIRECTION = sbol_iri("direction")
+LOCAL = sbol_iri("local")
+REMOTE = sbol_iri("remote")
+REFINEMENT = sbol_iri("refinement")
+LOCATION_P = sbol_iri("location")
+SUBJECT = sbol_iri("subject")
+OBJECT = sbol_iri("object")
+RESTRICTION = sbol_iri("restriction")
+START = sbol_iri("start")
+END = sbol_iri("end")
+AT = sbol_iri("at")
+PARTICIPATION_P = sbol_iri("participation")
+PARTICIPANT = sbol_iri("participant")
+VARIABLE = sbol_iri("variable")
+VARIANT = sbol_iri("variant")
+VARIANT_COLLECTION = sbol_iri("variantCollection")
+VARIANT_DERIVATION = sbol_iri("variantDerivation")
+OPERATOR = sbol_iri("operator")
+STARTED_AT_TIME = prov_iri("startedAtTime")
+ENDED_AT_TIME = prov_iri("endedAtTime")
+QUALIFIED_ASSOCIATION = prov_iri("qualifiedAssociation")
+QUALIFIED_USAGE = prov_iri("qualifiedUsage")
+WAS_INFORMED_BY = prov_iri("wasInformedBy")
+AGENT_P = prov_iri("agent")
+HAD_ROLE = prov_iri("hadRole")
+HAD_PLAN = prov_iri("hadPlan")
+ENTITY = prov_iri("entity")
+OM_SYMBOL = om_iri("symbol")
+OM_ALTERNATIVE_SYMBOL = om_iri("alternativeSymbol")
+OM_ALTERNATIVE_LABEL = om_iri("alternativeLabel")
+OM_LONG_COMMENT = om_iri("longcomment")
+OM_HAS_NUMERICAL_VALUE = om_iri("hasNumericalValue")
+OM_HAS_UNIT = om_iri("hasUnit")
+OM_HAS_FACTOR = om_iri("hasFactor")
+OM_HAS_TERM1 = om_iri("hasTerm1")
+OM_HAS_TERM2 = om_iri("hasTerm2")
+OM_HAS_NUMERATOR = om_iri("hasNumerator")
+OM_HAS_DENOMINATOR = om_iri("hasDenominator")
+OM_HAS_BASE = om_iri("hasBase")
+OM_HAS_EXPONENT = om_iri("hasExponent")
+OM_HAS_PREFIX = om_iri("hasPrefix")
 
 # --- enumerated values -------------------------------------------------------------------------------------------
 
-PUBLIC = _sbol("public")
-PRIVATE = _sbol("private")
-INLINE = _sbol("inline")
-MERGE_ROLES = _sbol("mergeRoles")
-OVERRIDE_ROLES = _sbol("overrideRoles")
-VERIFY_IDENTICAL = _sbol("verifyIdentical")
-USE_LOCAL = _sbol("useLocal")
-USE_REMOTE = _sbol("useRemote")
-MERGE = _sbol("merge")
-ENUMERATE = _sbol("enumerate")
-SAMPLE = _sbol("sample")
-OP_ZERO_OR_ONE = _sbol("zeroOrOne")
-OP_ONE = _sbol("one")
-OP_ZERO_OR_MORE = _sbol("zeroOrMore")
-OP_ONE_OR_MORE = _sbol("oneOrMore")
-PRECEDES = _sbol("precedes")
-SAME_ORIENTATION_AS = _sbol("sameOrientationAs")
-OPPOSITE_ORIENTATION_AS = _sbol("oppositeOrientationAs")
-DIFFERENT_FROM = _sbol("differentFrom")
-ROLE_DESIGN = _sbol("design")
-ROLE_BUILD = _sbol("build")
-ROLE_TEST = _sbol("test")
-ROLE_LEARN = _sbol("learn")
+PUBLIC = sbol_iri("public")
+PRIVATE = sbol_iri("private")
+INLINE = sbol_iri("inline")
+MERGE_ROLES = sbol_iri("mergeRoles")
+OVERRIDE_ROLES = sbol_iri("overrideRoles")
+VERIFY_IDENTICAL = sbol_iri("verifyIdentical")
+USE_LOCAL = sbol_iri("useLocal")
+USE_REMOTE = sbol_iri("useRemote")
+MERGE = sbol_iri("merge")
+ENUMERATE = sbol_iri("enumerate")
+SAMPLE = sbol_iri("sample")
+OP_ZERO_OR_ONE = sbol_iri("zeroOrOne")
+OP_ONE = sbol_iri("one")
+OP_ZERO_OR_MORE = sbol_iri("zeroOrMore")
+OP_ONE_OR_MORE = sbol_iri("oneOrMore")
+PRECEDES = sbol_iri("precedes")
+SAME_ORIENTATION_AS = sbol_iri("sameOrientationAs")
+OPPOSITE_ORIENTATION_AS = sbol_iri("oppositeOrientationAs")
+DIFFERENT_FROM = sbol_iri("differentFrom")
+ROLE_DESIGN = sbol_iri("design")
+ROLE_BUILD = sbol_iri("build")
+ROLE_TEST = sbol_iri("test")
+ROLE_LEARN = sbol_iri("learn")
 
 IUPAC_NUCLEIC_ENCODING = "http://www.chem.qmul.ac.uk/iubmb/misc/naseq.html"
 IUPAC_PROTEIN_ENCODING = "http://www.chem.qmul.ac.uk/iupac/AminoAcid/"
 SMILES_ENCODING = "http://www.opensmiles.org/opensmiles.html"
 IUPAC_NUCLEIC_ALPHABET = frozenset("ACGTURYSWKMBDHVN-.")
 
-_BIOPAX = "http://www.biopax.org/release/biopax-level3.owl#"
-BIOPAX_DNA_REGION = _BIOPAX + "DnaRegion"
-BIOPAX_RNA_REGION = _BIOPAX + "RnaRegion"
-BIOPAX_DNA_MOLECULE = _BIOPAX + "Dna"
-BIOPAX_RNA_MOLECULE = _BIOPAX + "Rna"
-BIOPAX_PROTEIN = _BIOPAX + "Protein"
-BIOPAX_COMPLEX = _BIOPAX + "Complex"
-BIOPAX_SMALL_MOLECULE = _BIOPAX + "SmallMolecule"
+BIOPAX = "http://www.biopax.org/release/biopax-level3.owl#"
+BIOPAX_DNA_REGION = BIOPAX + "DnaRegion"
+BIOPAX_RNA_REGION = BIOPAX + "RnaRegion"
+BIOPAX_DNA_MOLECULE = BIOPAX + "Dna"
+BIOPAX_RNA_MOLECULE = BIOPAX + "Rna"
+BIOPAX_PROTEIN = BIOPAX + "Protein"
+BIOPAX_COMPLEX = BIOPAX + "Complex"
+BIOPAX_SMALL_MOLECULE = BIOPAX + "SmallMolecule"
 #: Table 2 ComponentDefinition types, matched by exact IRI
 BIOPAX_TYPES = frozenset(
     [
@@ -244,179 +247,181 @@ FLOAT = ValueKind.FLOAT
 DATE_TIME = ValueKind.DATE_TIME
 
 
-def _prop(
+def property_spec(
     rule: str | None, predicate: str, cardinality: Cardinality, kind: ValueKind, reference: Reference | None = None
 ) -> PropertySpec:
     """A property row; ``rule`` is None for a property no catalog rule governs."""
     return PropertySpec(predicate, cardinality, kind, reference, rule)
 
 
-def _local(target: str) -> Reference:
+def local_reference(target: str) -> Reference:
     """A reference to a child held in the same document."""
     return Reference(target, local=True)
 
 
-def _external(target: str) -> Reference:
+def external_reference(target: str) -> Reference:
     """A reference to an object that may live in another document."""
     return Reference(target, local=False)
 
 
 IDENTIFIED_FIELDS = (
-    _prop("sbol2-10203", PERSISTENT_IDENTITY, ZERO_OR_ONE, URI),
-    _prop("sbol2-10204", DISPLAY_ID, ZERO_OR_ONE, STRING),
-    _prop("sbol2-10206", VERSION, ZERO_OR_ONE, STRING),
-    _prop("sbol2-10212", TITLE, ZERO_OR_ONE, STRING),
-    _prop("sbol2-10213", DESCRIPTION, ZERO_OR_ONE, STRING),
-    _prop("sbol2-10208", WAS_DERIVED_FROM, ZERO_OR_MORE, URI),
-    _prop("sbol2-10221", WAS_GENERATED_BY, ZERO_OR_MORE, URI, _external(ACTIVITY)),
+    property_spec("sbol2-10203", PERSISTENT_IDENTITY, ZERO_OR_ONE, URI),
+    property_spec("sbol2-10204", DISPLAY_ID, ZERO_OR_ONE, STRING),
+    property_spec("sbol2-10206", VERSION, ZERO_OR_ONE, STRING),
+    property_spec("sbol2-10212", TITLE, ZERO_OR_ONE, STRING),
+    property_spec("sbol2-10213", DESCRIPTION, ZERO_OR_ONE, STRING),
+    property_spec("sbol2-10208", WAS_DERIVED_FROM, ZERO_OR_MORE, URI),
+    property_spec("sbol2-10221", WAS_GENERATED_BY, ZERO_OR_MORE, URI, external_reference(ACTIVITY)),
 )
-TOP_LEVEL_FIELDS = (_prop("sbol2-10306", ATTACHMENT_P, ZERO_OR_MORE, URI, _external(ATTACHMENT)),)
-MEASURED_FIELDS = (_prop(None, MEASURE, ZERO_OR_MORE, URI, _local(OM_MEASURE)),)
+TOP_LEVEL_FIELDS = (property_spec("sbol2-10306", ATTACHMENT_P, ZERO_OR_MORE, URI, external_reference(ATTACHMENT)),)
+MEASURED_FIELDS = (property_spec(None, MEASURE, ZERO_OR_MORE, URI, local_reference(OM_MEASURE)),)
 COMPONENT_INSTANCE_FIELDS = (
-    _prop("sbol2-10602", DEFINITION, EXACTLY_ONE, URI, _external(COMPONENT_DEFINITION)),
-    _prop("sbol2-10607", ACCESS, EXACTLY_ONE, URI),
-    _prop("sbol2-10606", MAPS_TO_P, ZERO_OR_MORE, URI, _local(MAPS_TO)),
+    property_spec("sbol2-10602", DEFINITION, EXACTLY_ONE, URI, external_reference(COMPONENT_DEFINITION)),
+    property_spec("sbol2-10607", ACCESS, EXACTLY_ONE, URI),
+    property_spec("sbol2-10606", MAPS_TO_P, ZERO_OR_MORE, URI, local_reference(MAPS_TO)),
 )
 LOCATION_FIELDS = (
-    _prop("sbol2-11002", ORIENTATION, ZERO_OR_ONE, URI),
-    _prop("sbol2-11003", SEQUENCE_P, ZERO_OR_ONE, URI, _external(SEQUENCE)),
+    property_spec("sbol2-11002", ORIENTATION, ZERO_OR_ONE, URI),
+    property_spec("sbol2-11003", SEQUENCE_P, ZERO_OR_ONE, URI, external_reference(SEQUENCE)),
 )
 SEQUENCE_FIELDS = (
-    _prop("sbol2-10402", ELEMENTS, EXACTLY_ONE, STRING),
-    _prop("sbol2-10403", ENCODING, EXACTLY_ONE, URI),
+    property_spec("sbol2-10402", ELEMENTS, EXACTLY_ONE, STRING),
+    property_spec("sbol2-10403", ENCODING, EXACTLY_ONE, URI),
 )
 COMPONENT_DEFINITION_FIELDS = (
-    _prop("sbol2-10502", TYPE, ONE_OR_MORE, URI),
-    _prop("sbol2-10507", ROLE, ZERO_OR_MORE, URI),
-    _prop("sbol2-10512", SEQUENCE_P, ZERO_OR_MORE, URI, _external(SEQUENCE)),
-    _prop("sbol2-10519", COMPONENT_P, ZERO_OR_MORE, URI, _local(COMPONENT)),
-    _prop("sbol2-10521", SEQUENCE_ANNOTATION_P, ZERO_OR_MORE, URI, _local(SEQUENCE_ANNOTATION)),
-    _prop("sbol2-10524", SEQUENCE_CONSTRAINT_P, ZERO_OR_MORE, URI, _local(SEQUENCE_CONSTRAINT)),
+    property_spec("sbol2-10502", TYPE, ONE_OR_MORE, URI),
+    property_spec("sbol2-10507", ROLE, ZERO_OR_MORE, URI),
+    property_spec("sbol2-10512", SEQUENCE_P, ZERO_OR_MORE, URI, external_reference(SEQUENCE)),
+    property_spec("sbol2-10519", COMPONENT_P, ZERO_OR_MORE, URI, local_reference(COMPONENT)),
+    property_spec("sbol2-10521", SEQUENCE_ANNOTATION_P, ZERO_OR_MORE, URI, local_reference(SEQUENCE_ANNOTATION)),
+    property_spec("sbol2-10524", SEQUENCE_CONSTRAINT_P, ZERO_OR_MORE, URI, local_reference(SEQUENCE_CONSTRAINT)),
 )
 MODULE_DEFINITION_FIELDS = (
-    _prop("sbol2-11602", ROLE, ZERO_OR_MORE, URI),
-    _prop("sbol2-11604", MODULE_P, ZERO_OR_MORE, URI, _local(MODULE)),
-    _prop("sbol2-11606", FUNCTIONAL_COMPONENT_P, ZERO_OR_MORE, URI, _local(FUNCTIONAL_COMPONENT)),
-    _prop("sbol2-11605", INTERACTION_P, ZERO_OR_MORE, URI, _local(INTERACTION)),
-    _prop("sbol2-11607", MODEL_P, ZERO_OR_MORE, URI, _external(MODEL)),
+    property_spec("sbol2-11602", ROLE, ZERO_OR_MORE, URI),
+    property_spec("sbol2-11604", MODULE_P, ZERO_OR_MORE, URI, local_reference(MODULE)),
+    property_spec("sbol2-11606", FUNCTIONAL_COMPONENT_P, ZERO_OR_MORE, URI, local_reference(FUNCTIONAL_COMPONENT)),
+    property_spec("sbol2-11605", INTERACTION_P, ZERO_OR_MORE, URI, local_reference(INTERACTION)),
+    property_spec("sbol2-11607", MODEL_P, ZERO_OR_MORE, URI, external_reference(MODEL)),
 )
 MODEL_FIELDS = (
-    _prop("sbol2-11502", SOURCE, EXACTLY_ONE, URL),
-    _prop("sbol2-11504", LANGUAGE, EXACTLY_ONE, URI),
-    _prop("sbol2-11508", FRAMEWORK, EXACTLY_ONE, URI),
+    property_spec("sbol2-11502", SOURCE, EXACTLY_ONE, URL),
+    property_spec("sbol2-11504", LANGUAGE, EXACTLY_ONE, URI),
+    property_spec("sbol2-11508", FRAMEWORK, EXACTLY_ONE, URI),
 )
-COLLECTION_FIELDS = (_prop("sbol2-12102", MEMBER, ZERO_OR_MORE, URI, _external(TOP_LEVEL)),)
+COLLECTION_FIELDS = (property_spec("sbol2-12102", MEMBER, ZERO_OR_MORE, URI, external_reference(TOP_LEVEL)),)
 COMBINATORIAL_DERIVATION_FIELDS = (
-    _prop("sbol2-12904", TEMPLATE, EXACTLY_ONE, URI, _external(COMPONENT_DEFINITION)),
-    _prop("sbol2-12906", VARIABLE_COMPONENT_P, ZERO_OR_MORE, URI, _local(VARIABLE_COMPONENT)),
-    _prop("sbol2-12914", STRATEGY, ZERO_OR_ONE, URI),
+    property_spec("sbol2-12904", TEMPLATE, EXACTLY_ONE, URI, external_reference(COMPONENT_DEFINITION)),
+    property_spec("sbol2-12906", VARIABLE_COMPONENT_P, ZERO_OR_MORE, URI, local_reference(VARIABLE_COMPONENT)),
+    property_spec("sbol2-12914", STRATEGY, ZERO_OR_ONE, URI),
 )
-IMPLEMENTATION_FIELDS = (_prop("sbol2-13102", BUILT, ZERO_OR_ONE, URI),)
+IMPLEMENTATION_FIELDS = (property_spec("sbol2-13102", BUILT, ZERO_OR_ONE, URI),)
 ATTACHMENT_FIELDS = (
-    _prop("sbol2-13202", SOURCE, EXACTLY_ONE, URL),
-    _prop("sbol2-13204", FORMAT, ZERO_OR_ONE, URI),
-    _prop("sbol2-13207", SIZE, ZERO_OR_ONE, LONG),
-    _prop("sbol2-13208", HASH, ZERO_OR_ONE, STRING),
+    property_spec("sbol2-13202", SOURCE, EXACTLY_ONE, URL),
+    property_spec("sbol2-13204", FORMAT, ZERO_OR_ONE, URI),
+    property_spec("sbol2-13207", SIZE, ZERO_OR_ONE, LONG),
+    property_spec("sbol2-13208", HASH, ZERO_OR_ONE, STRING),
 )
-EXPERIMENT_FIELDS = (_prop("sbol2-13402", EXPERIMENTAL_DATA_P, ZERO_OR_MORE, URI, _external(EXPERIMENTAL_DATA)),)
-GENERIC_TOP_LEVEL_FIELDS = (_prop("sbol2-12302", RDF_TYPE_P, EXACTLY_ONE, URI),)
+EXPERIMENT_FIELDS = (
+    property_spec("sbol2-13402", EXPERIMENTAL_DATA_P, ZERO_OR_MORE, URI, external_reference(EXPERIMENTAL_DATA)),
+)
+GENERIC_TOP_LEVEL_FIELDS = (property_spec("sbol2-12302", RDF_TYPE_P, EXACTLY_ONE, URI),)
 COMPONENT_FIELDS = (
-    _prop("sbol2-10702", ROLE, ZERO_OR_MORE, URI),
-    _prop("sbol2-10708", ROLE_INTEGRATION, ZERO_OR_ONE, URI),
-    _prop("sbol2-10710", SOURCE_LOCATION, ZERO_OR_MORE, URI, _local(LOCATION)),
+    property_spec("sbol2-10702", ROLE, ZERO_OR_MORE, URI),
+    property_spec("sbol2-10708", ROLE_INTEGRATION, ZERO_OR_ONE, URI),
+    property_spec("sbol2-10710", SOURCE_LOCATION, ZERO_OR_MORE, URI, local_reference(LOCATION)),
 )
-FUNCTIONAL_COMPONENT_FIELDS = (_prop("sbol2-11802", DIRECTION, EXACTLY_ONE, URI),)
+FUNCTIONAL_COMPONENT_FIELDS = (property_spec("sbol2-11802", DIRECTION, EXACTLY_ONE, URI),)
 MODULE_FIELDS = (
-    _prop("sbol2-11702", DEFINITION, EXACTLY_ONE, URI, _external(MODULE_DEFINITION)),
-    _prop("sbol2-11706", MAPS_TO_P, ZERO_OR_MORE, URI, _local(MAPS_TO)),
+    property_spec("sbol2-11702", DEFINITION, EXACTLY_ONE, URI, external_reference(MODULE_DEFINITION)),
+    property_spec("sbol2-11706", MAPS_TO_P, ZERO_OR_MORE, URI, local_reference(MAPS_TO)),
 )
 MAPS_TO_FIELDS = (
-    _prop("sbol2-10802", LOCAL, EXACTLY_ONE, URI, _external(COMPONENT_INSTANCE)),
-    _prop("sbol2-10805", REMOTE, EXACTLY_ONE, URI, _external(COMPONENT_INSTANCE)),
-    _prop("sbol2-10810", REFINEMENT, EXACTLY_ONE, URI),
+    property_spec("sbol2-10802", LOCAL, EXACTLY_ONE, URI, external_reference(COMPONENT_INSTANCE)),
+    property_spec("sbol2-10805", REMOTE, EXACTLY_ONE, URI, external_reference(COMPONENT_INSTANCE)),
+    property_spec("sbol2-10810", REFINEMENT, EXACTLY_ONE, URI),
 )
 SEQUENCE_ANNOTATION_FIELDS = (
-    _prop("sbol2-10902", LOCATION_P, ONE_OR_MORE, URI, _local(LOCATION)),
-    _prop("sbol2-10904", COMPONENT_P, ZERO_OR_ONE, URI, _external(COMPONENT)),
-    _prop("sbol2-10906", ROLE, ZERO_OR_MORE, URI),
+    property_spec("sbol2-10902", LOCATION_P, ONE_OR_MORE, URI, local_reference(LOCATION)),
+    property_spec("sbol2-10904", COMPONENT_P, ZERO_OR_ONE, URI, external_reference(COMPONENT)),
+    property_spec("sbol2-10906", ROLE, ZERO_OR_MORE, URI),
 )
 SEQUENCE_CONSTRAINT_FIELDS = (
-    _prop("sbol2-11402", SUBJECT, EXACTLY_ONE, URI, _external(COMPONENT)),
-    _prop("sbol2-11404", OBJECT, EXACTLY_ONE, URI, _external(COMPONENT)),
-    _prop("sbol2-11407", RESTRICTION, EXACTLY_ONE, URI),
+    property_spec("sbol2-11402", SUBJECT, EXACTLY_ONE, URI, external_reference(COMPONENT)),
+    property_spec("sbol2-11404", OBJECT, EXACTLY_ONE, URI, external_reference(COMPONENT)),
+    property_spec("sbol2-11407", RESTRICTION, EXACTLY_ONE, URI),
 )
 RANGE_FIELDS = (
-    _prop("sbol2-11102", START, EXACTLY_ONE, INTEGER),
-    _prop("sbol2-11103", END, EXACTLY_ONE, INTEGER),
+    property_spec("sbol2-11102", START, EXACTLY_ONE, INTEGER),
+    property_spec("sbol2-11103", END, EXACTLY_ONE, INTEGER),
 )
-CUT_FIELDS = (_prop("sbol2-11202", AT, EXACTLY_ONE, INTEGER),)
+CUT_FIELDS = (property_spec("sbol2-11202", AT, EXACTLY_ONE, INTEGER),)
 INTERACTION_FIELDS = (
-    _prop("sbol2-11902", TYPE, ONE_OR_MORE, URI),
-    _prop("sbol2-11906", PARTICIPATION_P, ZERO_OR_MORE, URI, _local(PARTICIPATION)),
+    property_spec("sbol2-11902", TYPE, ONE_OR_MORE, URI),
+    property_spec("sbol2-11906", PARTICIPATION_P, ZERO_OR_MORE, URI, local_reference(PARTICIPATION)),
 )
 PARTICIPATION_FIELDS = (
-    _prop("sbol2-12004", ROLE, ONE_OR_MORE, URI),
-    _prop("sbol2-12002", PARTICIPANT, EXACTLY_ONE, URI, _external(FUNCTIONAL_COMPONENT)),
+    property_spec("sbol2-12004", ROLE, ONE_OR_MORE, URI),
+    property_spec("sbol2-12002", PARTICIPANT, EXACTLY_ONE, URI, external_reference(FUNCTIONAL_COMPONENT)),
 )
 VARIABLE_COMPONENT_FIELDS = (
-    _prop("sbol2-13004", VARIABLE, EXACTLY_ONE, URI, _external(COMPONENT)),
-    _prop("sbol2-13007", VARIANT, ZERO_OR_MORE, URI, _external(COMPONENT_DEFINITION)),
-    _prop("sbol2-13009", VARIANT_COLLECTION, ZERO_OR_MORE, URI, _external(COLLECTION)),
-    _prop("sbol2-13013", VARIANT_DERIVATION, ZERO_OR_MORE, URI, _external(COMBINATORIAL_DERIVATION)),
-    _prop("sbol2-13002", OPERATOR, EXACTLY_ONE, URI),
+    property_spec("sbol2-13004", VARIABLE, EXACTLY_ONE, URI, external_reference(COMPONENT)),
+    property_spec("sbol2-13007", VARIANT, ZERO_OR_MORE, URI, external_reference(COMPONENT_DEFINITION)),
+    property_spec("sbol2-13009", VARIANT_COLLECTION, ZERO_OR_MORE, URI, external_reference(COLLECTION)),
+    property_spec("sbol2-13013", VARIANT_DERIVATION, ZERO_OR_MORE, URI, external_reference(COMBINATORIAL_DERIVATION)),
+    property_spec("sbol2-13002", OPERATOR, EXACTLY_ONE, URI),
 )
 ACTIVITY_FIELDS = (
-    _prop("sbol2-12412", TYPE, ZERO_OR_MORE, URI),
-    _prop("sbol2-12402", STARTED_AT_TIME, ZERO_OR_ONE, DATE_TIME),
-    _prop("sbol2-12403", ENDED_AT_TIME, ZERO_OR_ONE, DATE_TIME),
-    _prop("sbol2-12404", QUALIFIED_ASSOCIATION, ZERO_OR_MORE, URI, _local(ASSOCIATION)),
-    _prop("sbol2-12405", QUALIFIED_USAGE, ZERO_OR_MORE, URI, _local(USAGE)),
-    _prop("sbol2-12406", WAS_INFORMED_BY, ZERO_OR_MORE, URI, _external(ACTIVITY)),
+    property_spec("sbol2-12412", TYPE, ZERO_OR_MORE, URI),
+    property_spec("sbol2-12402", STARTED_AT_TIME, ZERO_OR_ONE, DATE_TIME),
+    property_spec("sbol2-12403", ENDED_AT_TIME, ZERO_OR_ONE, DATE_TIME),
+    property_spec("sbol2-12404", QUALIFIED_ASSOCIATION, ZERO_OR_MORE, URI, local_reference(ASSOCIATION)),
+    property_spec("sbol2-12405", QUALIFIED_USAGE, ZERO_OR_MORE, URI, local_reference(USAGE)),
+    property_spec("sbol2-12406", WAS_INFORMED_BY, ZERO_OR_MORE, URI, external_reference(ACTIVITY)),
 )
 ASSOCIATION_FIELDS = (
-    _prop("sbol2-12605", AGENT_P, EXACTLY_ONE, URI, _external(AGENT)),
-    _prop("sbol2-12602", HAD_ROLE, ZERO_OR_MORE, URI),
-    _prop("sbol2-12603", HAD_PLAN, ZERO_OR_ONE, URI, _external(PLAN)),
+    property_spec("sbol2-12605", AGENT_P, EXACTLY_ONE, URI, external_reference(AGENT)),
+    property_spec("sbol2-12602", HAD_ROLE, ZERO_OR_MORE, URI),
+    property_spec("sbol2-12603", HAD_PLAN, ZERO_OR_ONE, URI, external_reference(PLAN)),
 )
 USAGE_FIELDS = (
-    _prop("sbol2-12502", ENTITY, EXACTLY_ONE, URI),
-    _prop("sbol2-12503", HAD_ROLE, ZERO_OR_MORE, URI),
+    property_spec("sbol2-12502", ENTITY, EXACTLY_ONE, URI),
+    property_spec("sbol2-12503", HAD_ROLE, ZERO_OR_MORE, URI),
 )
 OM_MEASURE_FIELDS = (
-    _prop("sbol2-13502", OM_HAS_NUMERICAL_VALUE, EXACTLY_ONE, FLOAT),
-    _prop("sbol2-13503", OM_HAS_UNIT, EXACTLY_ONE, URI, _external(OM_UNIT)),
-    _prop("sbol2-13504", TYPE, ZERO_OR_MORE, URI),
+    property_spec("sbol2-13502", OM_HAS_NUMERICAL_VALUE, EXACTLY_ONE, FLOAT),
+    property_spec("sbol2-13503", OM_HAS_UNIT, EXACTLY_ONE, URI, external_reference(OM_UNIT)),
+    property_spec("sbol2-13504", TYPE, ZERO_OR_MORE, URI),
 )
-_OM_LABELS = (
-    _prop(None, OM_SYMBOL, EXACTLY_ONE, STRING),
-    _prop(None, OM_ALTERNATIVE_SYMBOL, ZERO_OR_MORE, STRING),
-    _prop(None, RDFS_LABEL, EXACTLY_ONE, STRING),
-    _prop(None, OM_ALTERNATIVE_LABEL, ZERO_OR_MORE, STRING),
-    _prop(None, RDFS_COMMENT, ZERO_OR_ONE, STRING),
-    _prop(None, OM_LONG_COMMENT, ZERO_OR_ONE, STRING),
+OM_LABELS = (
+    property_spec(None, OM_SYMBOL, EXACTLY_ONE, STRING),
+    property_spec(None, OM_ALTERNATIVE_SYMBOL, ZERO_OR_MORE, STRING),
+    property_spec(None, RDFS_LABEL, EXACTLY_ONE, STRING),
+    property_spec(None, OM_ALTERNATIVE_LABEL, ZERO_OR_MORE, STRING),
+    property_spec(None, RDFS_COMMENT, ZERO_OR_ONE, STRING),
+    property_spec(None, OM_LONG_COMMENT, ZERO_OR_ONE, STRING),
 )
-OM_UNIT_FIELDS = _OM_LABELS
+OM_UNIT_FIELDS = OM_LABELS
 OM_SINGULAR_UNIT_FIELDS = (
-    _prop(None, OM_HAS_UNIT, ZERO_OR_ONE, URI, _external(OM_UNIT)),
-    _prop(None, OM_HAS_FACTOR, ZERO_OR_ONE, FLOAT),
+    property_spec(None, OM_HAS_UNIT, ZERO_OR_ONE, URI, external_reference(OM_UNIT)),
+    property_spec(None, OM_HAS_FACTOR, ZERO_OR_ONE, FLOAT),
 )
 OM_UNIT_MULTIPLICATION_FIELDS = (
-    _prop(None, OM_HAS_TERM1, EXACTLY_ONE, URI, _external(OM_UNIT)),
-    _prop(None, OM_HAS_TERM2, EXACTLY_ONE, URI, _external(OM_UNIT)),
+    property_spec(None, OM_HAS_TERM1, EXACTLY_ONE, URI, external_reference(OM_UNIT)),
+    property_spec(None, OM_HAS_TERM2, EXACTLY_ONE, URI, external_reference(OM_UNIT)),
 )
 OM_UNIT_DIVISION_FIELDS = (
-    _prop(None, OM_HAS_NUMERATOR, EXACTLY_ONE, URI, _external(OM_UNIT)),
-    _prop(None, OM_HAS_DENOMINATOR, EXACTLY_ONE, URI, _external(OM_UNIT)),
+    property_spec(None, OM_HAS_NUMERATOR, EXACTLY_ONE, URI, external_reference(OM_UNIT)),
+    property_spec(None, OM_HAS_DENOMINATOR, EXACTLY_ONE, URI, external_reference(OM_UNIT)),
 )
 OM_UNIT_EXPONENTIATION_FIELDS = (
-    _prop(None, OM_HAS_BASE, EXACTLY_ONE, URI, _external(OM_UNIT)),
-    _prop(None, OM_HAS_EXPONENT, EXACTLY_ONE, INTEGER),
+    property_spec(None, OM_HAS_BASE, EXACTLY_ONE, URI, external_reference(OM_UNIT)),
+    property_spec(None, OM_HAS_EXPONENT, EXACTLY_ONE, INTEGER),
 )
 OM_PREFIXED_UNIT_FIELDS = (
-    _prop(None, OM_HAS_UNIT, EXACTLY_ONE, URI, _external(OM_UNIT)),
-    _prop(None, OM_HAS_PREFIX, EXACTLY_ONE, URI, _external(OM_PREFIX)),
+    property_spec(None, OM_HAS_UNIT, EXACTLY_ONE, URI, external_reference(OM_UNIT)),
+    property_spec(None, OM_HAS_PREFIX, EXACTLY_ONE, URI, external_reference(OM_PREFIX)),
 )
-OM_PREFIX_FIELDS = _OM_LABELS + (_prop(None, OM_HAS_FACTOR, EXACTLY_ONE, FLOAT),)
+OM_PREFIX_FIELDS = OM_LABELS + (property_spec(None, OM_HAS_FACTOR, EXACTLY_ONE, FLOAT),)
 
 #: class IRI -> (parents, directly declared fields), in the order the schema lists them
 CLASSES: dict[str, ClassSpec] = {

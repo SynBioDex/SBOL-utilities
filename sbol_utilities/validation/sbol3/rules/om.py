@@ -24,7 +24,7 @@ def measures(ctx: Sbol3Context) -> None:
 
 
 #: (class, SBOL property, OM property holding the same text, rule, message)
-_MATCHING_STRINGS = (
+MATCHING_STRINGS = (
     (spec.OM_UNIT, spec.NAME, spec.OM_LABEL, "sbol3-13501", "om:Unit sbol:name and om:label should match"),
     (
         spec.OM_UNIT,
@@ -44,10 +44,10 @@ _MATCHING_STRINGS = (
 )
 
 
-@REGISTRY.rule(*(rule for _, _, _, rule, _ in _MATCHING_STRINGS))
+@REGISTRY.rule(*(rule for _, _, _, rule, _ in MATCHING_STRINGS))
 def unit_and_prefix_strings(ctx: Sbol3Context) -> None:
     """sbol:name / om:label and sbol:description / om:comment agree on Units and Prefixes."""
-    for class_iri, sbol_property, om_property, rule, message in _MATCHING_STRINGS:
+    for class_iri, sbol_property, om_property, rule, message in MATCHING_STRINGS:
         for obj in ctx.instances(class_iri):
             sbol_text, om_text = obj.first_literal(sbol_property), obj.first_literal(om_property)
             if sbol_text is not None and om_text is not None and sbol_text != om_text:

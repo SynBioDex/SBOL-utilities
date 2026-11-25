@@ -22,7 +22,7 @@ class Stage(Enum):
     @classmethod
     def of(cls, iri: Node) -> Stage | None:
         """The stage a role or type IRI names, if any."""
-        return _STAGES.get(str(iri))
+        return STAGES.get(str(iri))
 
     @property
     def label(self) -> str:
@@ -32,12 +32,12 @@ class Stage(Enum):
     @property
     def preceding(self) -> Stage:
         """The stage whose results this stage uses."""
-        return _PRECEDING[self]
+        return PRECEDING[self]
 
     @property
     def product(self) -> str:
         """What an object of this stage is, in words."""
-        return _PRODUCTS[self]
+        return PRODUCTS[self]
 
     def suits(self, obj: Sbol3Object) -> bool:
         """Whether an object has the type this stage produces and uses."""
@@ -48,9 +48,9 @@ class Stage(Enum):
         return not obj.has_rdf_type(spec.IMPLEMENTATION)
 
 
-_STAGES = {stage.value: stage for stage in Stage}
-_PRECEDING = {Stage.DESIGN: Stage.LEARN, Stage.BUILD: Stage.DESIGN, Stage.TEST: Stage.BUILD, Stage.LEARN: Stage.TEST}
-_PRODUCTS = {
+STAGES = {stage.value: stage for stage in Stage}
+PRECEDING = {Stage.DESIGN: Stage.LEARN, Stage.BUILD: Stage.DESIGN, Stage.TEST: Stage.BUILD, Stage.LEARN: Stage.TEST}
+PRODUCTS = {
     Stage.DESIGN: "a TopLevel other than Implementation",
     Stage.BUILD: "an Implementation",
     Stage.TEST: "an ExperimentalData",
@@ -58,7 +58,7 @@ _PRODUCTS = {
 }
 
 
-def _stages(obj: Sbol3Object, predicate: str) -> list[Stage]:
+def stages_of(obj: Sbol3Object, predicate: str) -> list[Stage]:
     """The workflow stages among an object's values of ``predicate``, in value order."""
     return [stage for stage in map(Stage.of, obj.iris(predicate)) if stage is not None]
 
@@ -67,12 +67,12 @@ def _stages(obj: Sbol3Object, predicate: str) -> list[Stage]:
 def activities(ctx: Sbol3Context) -> None:
     """Usage and Association roles agree with their Activity's workflow stage."""
     for activity in ctx.instances(spec.PROV_ACTIVITY):
-        stages = _stages(activity, spec.TYPE)
+        stages = stages_of(activity, spec.TYPE)
         if not stages:
             continue
         usable = {*stages, *(stage.preceding for stage in stages)}
         for usage in ctx.referenced(activity, spec.PROV_QUALIFIED_USAGE):
-            for role in _stages(usage, spec.PROV_HAD_ROLE):
+            for role in stages_of(usage, spec.PROV_HAD_ROLE):
                 if role not in usable:
                     ctx.report(
                         "sbol3-12901",
@@ -82,7 +82,7 @@ def activities(ctx: Sbol3Context) -> None:
                         property=spec.PROV_HAD_ROLE,
                     )
         for association in ctx.referenced(activity, spec.PROV_QUALIFIED_ASSOCIATION):
-            for role in _stages(association, spec.PROV_HAD_ROLE):
+            for role in stages_of(association, spec.PROV_HAD_ROLE):
                 if role not in stages:
                     ctx.report(
                         "sbol3-12902",
@@ -97,7 +97,7 @@ def usages(ctx: Sbol3Context) -> None:
     """Usage entities suit the Usage's workflow-stage role."""
     for usage in ctx.instances(spec.PROV_USAGE):
         entities = list(ctx.referenced(usage, spec.PROV_ENTITY))
-        for role in _stages(usage, spec.PROV_HAD_ROLE):
+        for role in stages_of(usage, spec.PROV_HAD_ROLE):
             if not all(role.suits(entity) for entity in entities):
                 ctx.report(
                     "sbol3-13001",
@@ -115,7 +115,7 @@ def generated_objects(ctx: Sbol3Context) -> None:
             role
             for activity in ctx.referenced(obj, spec.PROV_WAS_GENERATED_BY)
             for association in ctx.referenced(activity, spec.PROV_QUALIFIED_ASSOCIATION)
-            for role in _stages(association, spec.PROV_HAD_ROLE)
+            for role in stages_of(association, spec.PROV_HAD_ROLE)
         )
         for role in roles:
             if not role.suits(obj):

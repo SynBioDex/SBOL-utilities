@@ -50,6 +50,7 @@ RESPELLERS = [
 
 @pytest.mark.parametrize("to_sbol3, to_sbol2, sbol2, sbol3", ONTOLOGY_TERMS)
 def test_ontology_terms_change_spelling_and_scheme(to_sbol3, to_sbol2, sbol2, sbol3):
+    """Each ontology term converts to its other spelling in both directions."""
     assert to_sbol3(sbol2) == sbol3
     assert to_sbol2(sbol3) == sbol2
 
@@ -147,6 +148,7 @@ def test_identities_round_trip(sbol2, sbol3):
     ],
 )
 def test_versioned_and_without_version(persistent_identity, version, identity):
+    """Appending a version and removing it are inverses."""
     assert uri.versioned(persistent_identity, version) == identity
     assert uri.without_version(identity, version) == persistent_identity
 
@@ -160,6 +162,7 @@ def test_versioned_and_without_version(persistent_identity, version, identity):
     ],
 )
 def test_last_segment(iri, segment):
+    """The last segment follows the final delimiter; an IRI ending in one is returned whole."""
     assert uri.last_segment(iri) == segment
 
 
@@ -168,10 +171,12 @@ def test_last_segment(iri, segment):
     [("https://example.org/lab/x", "https://example.org"), ("urn:uuid:1234", "urn:uuid"), ("relative/path", None)],
 )
 def test_url_origin(iri, origin):
+    """The origin is ``scheme://host`` for a URL and ``urn:<nid>`` for a URN."""
     assert uri.url_origin(iri) == origin
 
 
 def test_claim_child_skips_used_iris():
+    """A claimed child takes the first unused name and marks its IRI used."""
     used = {"https://example.org/c/a"}
     assert uri.claim_child("https://example.org/c", uri.numbered("a"), used) == ("a_2", "https://example.org/c/a_2")
     assert uri.claim_child("https://example.org/c/", uri.numbered("b"), used) == ("b", "https://example.org/c/b")

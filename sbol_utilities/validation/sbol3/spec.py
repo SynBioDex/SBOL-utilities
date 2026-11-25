@@ -10,15 +10,18 @@ from sbol_utilities.validation.schema import Cardinality, ClassSpec, PropertySpe
 from sbol_utilities.vocab import OM_NS, PROV_NS, SBOL3_NS
 
 
-def _sbol(local: str) -> str:
+def sbol_iri(local: str) -> str:
+    """The IRI of a term in the SBOL 3 namespace."""
     return SBOL3_NS + local
 
 
-def _prov(local: str) -> str:
+def prov_iri(local: str) -> str:
+    """The IRI of a term in the PROV namespace."""
     return PROV_NS + local
 
 
-def _om(local: str) -> str:
+def om_iri(local: str) -> str:
+    """The IRI of a term in the OM namespace."""
     return OM_NS + local
 
 
@@ -36,181 +39,181 @@ FLOAT = ValueKind.FLOAT
 DATE_TIME = ValueKind.DATE_TIME
 
 
-def _value(predicate: str, cardinality: Cardinality, kind: ValueKind) -> PropertySpec:
+def value_property(predicate: str, cardinality: Cardinality, kind: ValueKind) -> PropertySpec:
     """A property holding literals or IRIs that are not references to objects of the model."""
     return PropertySpec(predicate, cardinality, kind)
 
 
-def _child(predicate: str, cardinality: Cardinality, target: str) -> PropertySpec:
+def child_property(predicate: str, cardinality: Cardinality, target: str) -> PropertySpec:
     """A property referring to children held in the same document."""
     return PropertySpec(predicate, cardinality, URI, Reference(target, local=True))
 
 
-def _reference(predicate: str, cardinality: Cardinality, target: str) -> PropertySpec:
+def reference_property(predicate: str, cardinality: Cardinality, target: str) -> PropertySpec:
     """A property referring to objects that may live in another document."""
     return PropertySpec(predicate, cardinality, URI, Reference(target, local=False))
 
 
-IDENTIFIED = _sbol("Identified")
-TOP_LEVEL = _sbol("TopLevel")
-ATTACHMENT = _sbol("Attachment")
-COLLECTION = _sbol("Collection")
-COMBINATORIAL_DERIVATION = _sbol("CombinatorialDerivation")
-COMPONENT = _sbol("Component")
-COMPONENT_REFERENCE = _sbol("ComponentReference")
-CONSTRAINT = _sbol("Constraint")
-CUT = _sbol("Cut")
-ENTIRE_SEQUENCE = _sbol("EntireSequence")
-EXPERIMENT = _sbol("Experiment")
-EXPERIMENTAL_DATA = _sbol("ExperimentalData")
-EXTERNALLY_DEFINED = _sbol("ExternallyDefined")
-FEATURE = _sbol("Feature")
-IMPLEMENTATION = _sbol("Implementation")
-INTERACTION = _sbol("Interaction")
-INTERFACE = _sbol("Interface")
-LOCATION = _sbol("Location")
-LOCAL_SUB_COMPONENT = _sbol("LocalSubComponent")
-MODEL = _sbol("Model")
-PARTICIPATION = _sbol("Participation")
-RANGE = _sbol("Range")
-SEQUENCE = _sbol("Sequence")
-SEQUENCE_FEATURE = _sbol("SequenceFeature")
-SUB_COMPONENT = _sbol("SubComponent")
-VARIABLE_FEATURE = _sbol("VariableFeature")
-PROV_ACTIVITY = _prov("Activity")
-PROV_AGENT = _prov("Agent")
-PROV_ASSOCIATION = _prov("Association")
-PROV_PLAN = _prov("Plan")
-PROV_USAGE = _prov("Usage")
-OM_MEASURE = _om("Measure")
-OM_UNIT = _om("Unit")
-OM_SINGULAR_UNIT = _om("SingularUnit")
-OM_COMPOUND_UNIT = _om("CompoundUnit")
-OM_UNIT_DIVISION = _om("UnitDivision")
-OM_UNIT_EXPONENTIATION = _om("UnitExponentiation")
-OM_UNIT_MULTIPLICATION = _om("UnitMultiplication")
-OM_PREFIXED_UNIT = _om("PrefixedUnit")
-OM_PREFIX = _om("Prefix")
-OM_SI_PREFIX = _om("SIPrefix")
-OM_BINARY_PREFIX = _om("BinaryPrefix")
+IDENTIFIED = sbol_iri("Identified")
+TOP_LEVEL = sbol_iri("TopLevel")
+ATTACHMENT = sbol_iri("Attachment")
+COLLECTION = sbol_iri("Collection")
+COMBINATORIAL_DERIVATION = sbol_iri("CombinatorialDerivation")
+COMPONENT = sbol_iri("Component")
+COMPONENT_REFERENCE = sbol_iri("ComponentReference")
+CONSTRAINT = sbol_iri("Constraint")
+CUT = sbol_iri("Cut")
+ENTIRE_SEQUENCE = sbol_iri("EntireSequence")
+EXPERIMENT = sbol_iri("Experiment")
+EXPERIMENTAL_DATA = sbol_iri("ExperimentalData")
+EXTERNALLY_DEFINED = sbol_iri("ExternallyDefined")
+FEATURE = sbol_iri("Feature")
+IMPLEMENTATION = sbol_iri("Implementation")
+INTERACTION = sbol_iri("Interaction")
+INTERFACE = sbol_iri("Interface")
+LOCATION = sbol_iri("Location")
+LOCAL_SUB_COMPONENT = sbol_iri("LocalSubComponent")
+MODEL = sbol_iri("Model")
+PARTICIPATION = sbol_iri("Participation")
+RANGE = sbol_iri("Range")
+SEQUENCE = sbol_iri("Sequence")
+SEQUENCE_FEATURE = sbol_iri("SequenceFeature")
+SUB_COMPONENT = sbol_iri("SubComponent")
+VARIABLE_FEATURE = sbol_iri("VariableFeature")
+PROV_ACTIVITY = prov_iri("Activity")
+PROV_AGENT = prov_iri("Agent")
+PROV_ASSOCIATION = prov_iri("Association")
+PROV_PLAN = prov_iri("Plan")
+PROV_USAGE = prov_iri("Usage")
+OM_MEASURE = om_iri("Measure")
+OM_UNIT = om_iri("Unit")
+OM_SINGULAR_UNIT = om_iri("SingularUnit")
+OM_COMPOUND_UNIT = om_iri("CompoundUnit")
+OM_UNIT_DIVISION = om_iri("UnitDivision")
+OM_UNIT_EXPONENTIATION = om_iri("UnitExponentiation")
+OM_UNIT_MULTIPLICATION = om_iri("UnitMultiplication")
+OM_PREFIXED_UNIT = om_iri("PrefixedUnit")
+OM_PREFIX = om_iri("Prefix")
+OM_SI_PREFIX = om_iri("SIPrefix")
+OM_BINARY_PREFIX = om_iri("BinaryPrefix")
 
 # Predicates
-DISPLAY_ID = _sbol("displayId")
-NAME = _sbol("name")
-DESCRIPTION = _sbol("description")
-HAS_NAMESPACE = _sbol("hasNamespace")
-HAS_ATTACHMENT = _sbol("hasAttachment")
-HAS_MEASURE = _sbol("hasMeasure")
-TYPE = _sbol("type")
-ROLE = _sbol("role")
-ELEMENTS = _sbol("elements")
-ENCODING = _sbol("encoding")
-SOURCE = _sbol("source")
-FORMAT = _sbol("format")
-SIZE = _sbol("size")
-HASH = _sbol("hash")
-HASH_ALGORITHM = _sbol("hashAlgorithm")
-MEMBER = _sbol("member")
-TEMPLATE = _sbol("template")
-STRATEGY = _sbol("strategy")
-HAS_VARIABLE_FEATURE = _sbol("hasVariableFeature")
-IN_CHILD_OF = _sbol("inChildOf")
-REFERS_TO = _sbol("refersTo")
-HAS_SEQUENCE = _sbol("hasSequence")
-HAS_FEATURE = _sbol("hasFeature")
-HAS_CONSTRAINT = _sbol("hasConstraint")
-HAS_INTERACTION = _sbol("hasInteraction")
-HAS_INTERFACE = _sbol("hasInterface")
-HAS_MODEL = _sbol("hasModel")
-SUBJECT = _sbol("subject")
-OBJECT = _sbol("object")
-RESTRICTION = _sbol("restriction")
-AT = _sbol("at")
-DEFINITION = _sbol("definition")
-ORIENTATION = _sbol("orientation")
-ORDER = _sbol("order")
-HAS_LOCATION = _sbol("hasLocation")
-INSTANCE_OF = _sbol("instanceOf")
-ROLE_INTEGRATION = _sbol("roleIntegration")
-SOURCE_LOCATION = _sbol("sourceLocation")
-LANGUAGE = _sbol("language")
-FRAMEWORK = _sbol("framework")
-HAS_PARTICIPATION = _sbol("hasParticipation")
-PARTICIPANT = _sbol("participant")
-HIGHER_ORDER_PARTICIPANT = _sbol("higherOrderParticipant")
-INPUT = _sbol("input")
-OUTPUT = _sbol("output")
-NONDIRECTIONAL = _sbol("nondirectional")
-START = _sbol("start")
-END = _sbol("end")
-BUILT = _sbol("built")
-CARDINALITY = _sbol("cardinality")
-VARIABLE = _sbol("variable")
-VARIANT = _sbol("variant")
-VARIANT_COLLECTION = _sbol("variantCollection")
-VARIANT_DERIVATION = _sbol("variantDerivation")
-VARIANT_MEASURE = _sbol("variantMeasure")
-PROV_WAS_DERIVED_FROM = _prov("wasDerivedFrom")
-PROV_WAS_GENERATED_BY = _prov("wasGeneratedBy")
-PROV_ENDED_AT_TIME = _prov("endedAtTime")
-PROV_STARTED_AT_TIME = _prov("startedAtTime")
-PROV_ENTITY = _prov("entity")
-PROV_HAD_PLAN = _prov("hadPlan")
-PROV_HAD_ROLE = _prov("hadRole")
-PROV_QUALIFIED_ASSOCIATION = _prov("qualifiedAssociation")
-PROV_QUALIFIED_USAGE = _prov("qualifiedUsage")
-PROV_WAS_INFORMED_BY = _prov("wasInformedBy")
-PROV_AGENT_PREDICATE = _prov("agent")
-OM_HAS_UNIT = _om("hasUnit")
-OM_HAS_NUMERICAL_VALUE = _om("hasNumericalValue")
-OM_HAS_PREFIX = _om("hasPrefix")
-OM_ALTERNATIVE_LABEL = _om("alternativeLabel")
-OM_ALTERNATIVE_SYMBOL = _om("alternativeSymbol")
-OM_COMMENT = _om("comment")
-OM_HAS_FACTOR = _om("hasFactor")
-OM_LABEL = _om("label")
-OM_LONG_COMMENT = _om("longcomment")
-OM_SYMBOL = _om("symbol")
-OM_HAS_DENOMINATOR = _om("hasDenominator")
-OM_HAS_NUMERATOR = _om("hasNumerator")
-OM_HAS_BASE = _om("hasBase")
-OM_HAS_EXPONENT = _om("hasExponent")
-OM_HAS_TERM1 = _om("hasTerm1")
-OM_HAS_TERM2 = _om("hasTerm2")
+DISPLAY_ID = sbol_iri("displayId")
+NAME = sbol_iri("name")
+DESCRIPTION = sbol_iri("description")
+HAS_NAMESPACE = sbol_iri("hasNamespace")
+HAS_ATTACHMENT = sbol_iri("hasAttachment")
+HAS_MEASURE = sbol_iri("hasMeasure")
+TYPE = sbol_iri("type")
+ROLE = sbol_iri("role")
+ELEMENTS = sbol_iri("elements")
+ENCODING = sbol_iri("encoding")
+SOURCE = sbol_iri("source")
+FORMAT = sbol_iri("format")
+SIZE = sbol_iri("size")
+HASH = sbol_iri("hash")
+HASH_ALGORITHM = sbol_iri("hashAlgorithm")
+MEMBER = sbol_iri("member")
+TEMPLATE = sbol_iri("template")
+STRATEGY = sbol_iri("strategy")
+HAS_VARIABLE_FEATURE = sbol_iri("hasVariableFeature")
+IN_CHILD_OF = sbol_iri("inChildOf")
+REFERS_TO = sbol_iri("refersTo")
+HAS_SEQUENCE = sbol_iri("hasSequence")
+HAS_FEATURE = sbol_iri("hasFeature")
+HAS_CONSTRAINT = sbol_iri("hasConstraint")
+HAS_INTERACTION = sbol_iri("hasInteraction")
+HAS_INTERFACE = sbol_iri("hasInterface")
+HAS_MODEL = sbol_iri("hasModel")
+SUBJECT = sbol_iri("subject")
+OBJECT = sbol_iri("object")
+RESTRICTION = sbol_iri("restriction")
+AT = sbol_iri("at")
+DEFINITION = sbol_iri("definition")
+ORIENTATION = sbol_iri("orientation")
+ORDER = sbol_iri("order")
+HAS_LOCATION = sbol_iri("hasLocation")
+INSTANCE_OF = sbol_iri("instanceOf")
+ROLE_INTEGRATION = sbol_iri("roleIntegration")
+SOURCE_LOCATION = sbol_iri("sourceLocation")
+LANGUAGE = sbol_iri("language")
+FRAMEWORK = sbol_iri("framework")
+HAS_PARTICIPATION = sbol_iri("hasParticipation")
+PARTICIPANT = sbol_iri("participant")
+HIGHER_ORDER_PARTICIPANT = sbol_iri("higherOrderParticipant")
+INPUT = sbol_iri("input")
+OUTPUT = sbol_iri("output")
+NONDIRECTIONAL = sbol_iri("nondirectional")
+START = sbol_iri("start")
+END = sbol_iri("end")
+BUILT = sbol_iri("built")
+CARDINALITY = sbol_iri("cardinality")
+VARIABLE = sbol_iri("variable")
+VARIANT = sbol_iri("variant")
+VARIANT_COLLECTION = sbol_iri("variantCollection")
+VARIANT_DERIVATION = sbol_iri("variantDerivation")
+VARIANT_MEASURE = sbol_iri("variantMeasure")
+PROV_WAS_DERIVED_FROM = prov_iri("wasDerivedFrom")
+PROV_WAS_GENERATED_BY = prov_iri("wasGeneratedBy")
+PROV_ENDED_AT_TIME = prov_iri("endedAtTime")
+PROV_STARTED_AT_TIME = prov_iri("startedAtTime")
+PROV_ENTITY = prov_iri("entity")
+PROV_HAD_PLAN = prov_iri("hadPlan")
+PROV_HAD_ROLE = prov_iri("hadRole")
+PROV_QUALIFIED_ASSOCIATION = prov_iri("qualifiedAssociation")
+PROV_QUALIFIED_USAGE = prov_iri("qualifiedUsage")
+PROV_WAS_INFORMED_BY = prov_iri("wasInformedBy")
+PROV_AGENT_PREDICATE = prov_iri("agent")
+OM_HAS_UNIT = om_iri("hasUnit")
+OM_HAS_NUMERICAL_VALUE = om_iri("hasNumericalValue")
+OM_HAS_PREFIX = om_iri("hasPrefix")
+OM_ALTERNATIVE_LABEL = om_iri("alternativeLabel")
+OM_ALTERNATIVE_SYMBOL = om_iri("alternativeSymbol")
+OM_COMMENT = om_iri("comment")
+OM_HAS_FACTOR = om_iri("hasFactor")
+OM_LABEL = om_iri("label")
+OM_LONG_COMMENT = om_iri("longcomment")
+OM_SYMBOL = om_iri("symbol")
+OM_HAS_DENOMINATOR = om_iri("hasDenominator")
+OM_HAS_NUMERATOR = om_iri("hasNumerator")
+OM_HAS_BASE = om_iri("hasBase")
+OM_HAS_EXPONENT = om_iri("hasExponent")
+OM_HAS_TERM1 = om_iri("hasTerm1")
+OM_HAS_TERM2 = om_iri("hasTerm2")
 
 # Vocabulary values
-INLINE = _sbol("inline")
-REVERSE_COMPLEMENT = _sbol("reverseComplement")
+INLINE = sbol_iri("inline")
+REVERSE_COMPLEMENT = sbol_iri("reverseComplement")
 SO_INLINE = "https://identifiers.org/SO:0001030"
 SO_REVERSE_COMPLEMENT = "https://identifiers.org/SO:0001031"
-MERGE_ROLES = _sbol("mergeRoles")
-OVERRIDE_ROLES = _sbol("overrideRoles")
-ENUMERATE = _sbol("enumerate")
-SAMPLE = _sbol("sample")
-ONE = _sbol("one")
-ZERO_OR_ONE_VALUE = _sbol("zeroOrOne")
-ONE_OR_MORE_VALUE = _sbol("oneOrMore")
-ZERO_OR_MORE_VALUE = _sbol("zeroOrMore")
-PRECEDES = _sbol("precedes")
-STRICTLY_PRECEDES = _sbol("strictlyPrecedes")
-MEETS = _sbol("meets")
-IS_DISJOINT_FROM = _sbol("isDisjointFrom")
-CONTAINS = _sbol("contains")
-STRICTLY_CONTAINS = _sbol("strictlyContains")
-EQUALS = _sbol("equals")
-COVERS = _sbol("covers")
-OVERLAPS = _sbol("overlaps")
-FINISHES = _sbol("finishes")
-STARTS = _sbol("starts")
-SAME_ORIENTATION_AS = _sbol("sameOrientationAs")
-OPPOSITE_ORIENTATION_AS = _sbol("oppositeOrientationAs")
-DIFFERENT_FROM = _sbol("differentFrom")
-VERIFY_IDENTICAL = _sbol("verifyIdentical")
-REPLACES = _sbol("replaces")
-DESIGN = _sbol("design")
-BUILD = _sbol("build")
-TEST = _sbol("test")
-LEARN = _sbol("learn")
+MERGE_ROLES = sbol_iri("mergeRoles")
+OVERRIDE_ROLES = sbol_iri("overrideRoles")
+ENUMERATE = sbol_iri("enumerate")
+SAMPLE = sbol_iri("sample")
+ONE = sbol_iri("one")
+ZERO_OR_ONE_VALUE = sbol_iri("zeroOrOne")
+ONE_OR_MORE_VALUE = sbol_iri("oneOrMore")
+ZERO_OR_MORE_VALUE = sbol_iri("zeroOrMore")
+PRECEDES = sbol_iri("precedes")
+STRICTLY_PRECEDES = sbol_iri("strictlyPrecedes")
+MEETS = sbol_iri("meets")
+IS_DISJOINT_FROM = sbol_iri("isDisjointFrom")
+CONTAINS = sbol_iri("contains")
+STRICTLY_CONTAINS = sbol_iri("strictlyContains")
+EQUALS = sbol_iri("equals")
+COVERS = sbol_iri("covers")
+OVERLAPS = sbol_iri("overlaps")
+FINISHES = sbol_iri("finishes")
+STARTS = sbol_iri("starts")
+SAME_ORIENTATION_AS = sbol_iri("sameOrientationAs")
+OPPOSITE_ORIENTATION_AS = sbol_iri("oppositeOrientationAs")
+DIFFERENT_FROM = sbol_iri("differentFrom")
+VERIFY_IDENTICAL = sbol_iri("verifyIdentical")
+REPLACES = sbol_iri("replaces")
+DESIGN = sbol_iri("design")
+BUILD = sbol_iri("build")
+TEST = sbol_iri("test")
+LEARN = sbol_iri("learn")
 
 ORIENTATION_IRIS = frozenset({INLINE, REVERSE_COMPLEMENT, SO_INLINE, SO_REVERSE_COMPLEMENT})
 ROLE_INTEGRATION_IRIS = frozenset({MERGE_ROLES, OVERRIDE_ROLES})
@@ -266,220 +269,230 @@ CLASS_SPECS: dict[str, ClassSpec] = {
     IDENTIFIED: ClassSpec(
         (),
         (
-            _value(DISPLAY_ID, ZERO_OR_ONE, STRING),
-            _value(NAME, ZERO_OR_ONE, STRING),
-            _value(DESCRIPTION, ZERO_OR_ONE, STRING),
-            _child(HAS_MEASURE, ZERO_OR_MORE, OM_MEASURE),
-            _value(PROV_WAS_DERIVED_FROM, ZERO_OR_MORE, URI),
-            _reference(PROV_WAS_GENERATED_BY, ZERO_OR_MORE, PROV_ACTIVITY),
+            value_property(DISPLAY_ID, ZERO_OR_ONE, STRING),
+            value_property(NAME, ZERO_OR_ONE, STRING),
+            value_property(DESCRIPTION, ZERO_OR_ONE, STRING),
+            child_property(HAS_MEASURE, ZERO_OR_MORE, OM_MEASURE),
+            value_property(PROV_WAS_DERIVED_FROM, ZERO_OR_MORE, URI),
+            reference_property(PROV_WAS_GENERATED_BY, ZERO_OR_MORE, PROV_ACTIVITY),
         ),
     ),
     TOP_LEVEL: ClassSpec(
         (IDENTIFIED,),
         (
-            _value(HAS_NAMESPACE, EXACTLY_ONE, URL),
-            _reference(HAS_ATTACHMENT, ZERO_OR_MORE, ATTACHMENT),
+            value_property(HAS_NAMESPACE, EXACTLY_ONE, URL),
+            reference_property(HAS_ATTACHMENT, ZERO_OR_MORE, ATTACHMENT),
         ),
     ),
     ATTACHMENT: ClassSpec(
         (TOP_LEVEL,),
         (
-            _value(SOURCE, EXACTLY_ONE, URI),
-            _value(FORMAT, ZERO_OR_ONE, URI),
-            _value(HASH_ALGORITHM, ZERO_OR_ONE, STRING),
-            _value(HASH, ZERO_OR_ONE, STRING),
-            _value(SIZE, ZERO_OR_ONE, LONG),
+            value_property(SOURCE, EXACTLY_ONE, URI),
+            value_property(FORMAT, ZERO_OR_ONE, URI),
+            value_property(HASH_ALGORITHM, ZERO_OR_ONE, STRING),
+            value_property(HASH, ZERO_OR_ONE, STRING),
+            value_property(SIZE, ZERO_OR_ONE, LONG),
         ),
     ),
-    COLLECTION: ClassSpec((TOP_LEVEL,), (_reference(MEMBER, ZERO_OR_MORE, TOP_LEVEL),)),
+    COLLECTION: ClassSpec((TOP_LEVEL,), (reference_property(MEMBER, ZERO_OR_MORE, TOP_LEVEL),)),
     COMBINATORIAL_DERIVATION: ClassSpec(
         (TOP_LEVEL,),
         (
-            _reference(TEMPLATE, EXACTLY_ONE, COMPONENT),
-            _value(STRATEGY, ZERO_OR_ONE, URI),
-            _child(HAS_VARIABLE_FEATURE, ZERO_OR_MORE, VARIABLE_FEATURE),
+            reference_property(TEMPLATE, EXACTLY_ONE, COMPONENT),
+            value_property(STRATEGY, ZERO_OR_ONE, URI),
+            child_property(HAS_VARIABLE_FEATURE, ZERO_OR_MORE, VARIABLE_FEATURE),
         ),
     ),
     COMPONENT: ClassSpec(
         (TOP_LEVEL,),
         (
-            _reference(HAS_SEQUENCE, ZERO_OR_MORE, SEQUENCE),
-            _value(ROLE, ZERO_OR_MORE, URI),
-            _value(TYPE, ONE_OR_MORE, URI),
-            _child(HAS_CONSTRAINT, ZERO_OR_MORE, CONSTRAINT),
-            _child(HAS_FEATURE, ZERO_OR_MORE, FEATURE),
-            _child(HAS_INTERACTION, ZERO_OR_MORE, INTERACTION),
-            _child(HAS_INTERFACE, ZERO_OR_MORE, INTERFACE),
-            _reference(HAS_MODEL, ZERO_OR_MORE, MODEL),
+            reference_property(HAS_SEQUENCE, ZERO_OR_MORE, SEQUENCE),
+            value_property(ROLE, ZERO_OR_MORE, URI),
+            value_property(TYPE, ONE_OR_MORE, URI),
+            child_property(HAS_CONSTRAINT, ZERO_OR_MORE, CONSTRAINT),
+            child_property(HAS_FEATURE, ZERO_OR_MORE, FEATURE),
+            child_property(HAS_INTERACTION, ZERO_OR_MORE, INTERACTION),
+            child_property(HAS_INTERFACE, ZERO_OR_MORE, INTERFACE),
+            reference_property(HAS_MODEL, ZERO_OR_MORE, MODEL),
         ),
     ),
     COMPONENT_REFERENCE: ClassSpec(
         (FEATURE,),
         (
-            _reference(REFERS_TO, EXACTLY_ONE, FEATURE),
-            _reference(IN_CHILD_OF, EXACTLY_ONE, SUB_COMPONENT),
+            reference_property(REFERS_TO, EXACTLY_ONE, FEATURE),
+            reference_property(IN_CHILD_OF, EXACTLY_ONE, SUB_COMPONENT),
         ),
     ),
     CONSTRAINT: ClassSpec(
         (IDENTIFIED,),
         (
-            _reference(OBJECT, EXACTLY_ONE, FEATURE),
-            _value(RESTRICTION, EXACTLY_ONE, URI),
-            _reference(SUBJECT, EXACTLY_ONE, FEATURE),
+            reference_property(OBJECT, EXACTLY_ONE, FEATURE),
+            value_property(RESTRICTION, EXACTLY_ONE, URI),
+            reference_property(SUBJECT, EXACTLY_ONE, FEATURE),
         ),
     ),
-    CUT: ClassSpec((LOCATION,), (_value(AT, EXACTLY_ONE, INTEGER),)),
+    CUT: ClassSpec((LOCATION,), (value_property(AT, EXACTLY_ONE, INTEGER),)),
     ENTIRE_SEQUENCE: ClassSpec((LOCATION,), ()),
     EXPERIMENT: ClassSpec((COLLECTION,), ()),
     EXPERIMENTAL_DATA: ClassSpec((TOP_LEVEL,), ()),
     EXTERNALLY_DEFINED: ClassSpec(
         (FEATURE,),
-        (_value(DEFINITION, EXACTLY_ONE, URI), _value(TYPE, ONE_OR_MORE, URI)),
+        (value_property(DEFINITION, EXACTLY_ONE, URI), value_property(TYPE, ONE_OR_MORE, URI)),
     ),
-    FEATURE: ClassSpec((IDENTIFIED,), (_value(ROLE, ZERO_OR_MORE, URI), _value(ORIENTATION, ZERO_OR_ONE, URI))),
-    IMPLEMENTATION: ClassSpec((TOP_LEVEL,), (_reference(BUILT, ZERO_OR_ONE, COMPONENT),)),
+    FEATURE: ClassSpec(
+        (IDENTIFIED,), (value_property(ROLE, ZERO_OR_MORE, URI), value_property(ORIENTATION, ZERO_OR_ONE, URI))
+    ),
+    IMPLEMENTATION: ClassSpec((TOP_LEVEL,), (reference_property(BUILT, ZERO_OR_ONE, COMPONENT),)),
     INTERACTION: ClassSpec(
         (IDENTIFIED,),
-        (_value(TYPE, ONE_OR_MORE, URI), _child(HAS_PARTICIPATION, ZERO_OR_MORE, PARTICIPATION)),
+        (value_property(TYPE, ONE_OR_MORE, URI), child_property(HAS_PARTICIPATION, ZERO_OR_MORE, PARTICIPATION)),
     ),
     INTERFACE: ClassSpec(
         (IDENTIFIED,),
         (
-            _reference(INPUT, ZERO_OR_MORE, FEATURE),
-            _reference(OUTPUT, ZERO_OR_MORE, FEATURE),
-            _reference(NONDIRECTIONAL, ZERO_OR_MORE, FEATURE),
+            reference_property(INPUT, ZERO_OR_MORE, FEATURE),
+            reference_property(OUTPUT, ZERO_OR_MORE, FEATURE),
+            reference_property(NONDIRECTIONAL, ZERO_OR_MORE, FEATURE),
         ),
     ),
     LOCATION: ClassSpec(
         (IDENTIFIED,),
         (
-            _value(ORIENTATION, ZERO_OR_ONE, URI),
-            _value(ORDER, ZERO_OR_ONE, INTEGER),
-            _reference(HAS_SEQUENCE, EXACTLY_ONE, SEQUENCE),
+            value_property(ORIENTATION, ZERO_OR_ONE, URI),
+            value_property(ORDER, ZERO_OR_ONE, INTEGER),
+            reference_property(HAS_SEQUENCE, EXACTLY_ONE, SEQUENCE),
         ),
     ),
     LOCAL_SUB_COMPONENT: ClassSpec(
         (FEATURE,),
-        (_child(HAS_LOCATION, ZERO_OR_MORE, LOCATION), _value(TYPE, ONE_OR_MORE, URI)),
+        (child_property(HAS_LOCATION, ZERO_OR_MORE, LOCATION), value_property(TYPE, ONE_OR_MORE, URI)),
     ),
     MODEL: ClassSpec(
         (TOP_LEVEL,),
-        (_value(SOURCE, EXACTLY_ONE, URI), _value(FRAMEWORK, EXACTLY_ONE, URI), _value(LANGUAGE, EXACTLY_ONE, URI)),
+        (
+            value_property(SOURCE, EXACTLY_ONE, URI),
+            value_property(FRAMEWORK, EXACTLY_ONE, URI),
+            value_property(LANGUAGE, EXACTLY_ONE, URI),
+        ),
     ),
     PARTICIPATION: ClassSpec(
         (IDENTIFIED,),
         (
-            _reference(PARTICIPANT, ZERO_OR_ONE, FEATURE),
-            _reference(HIGHER_ORDER_PARTICIPANT, ZERO_OR_ONE, INTERACTION),
-            _value(ROLE, ONE_OR_MORE, URI),
+            reference_property(PARTICIPANT, ZERO_OR_ONE, FEATURE),
+            reference_property(HIGHER_ORDER_PARTICIPANT, ZERO_OR_ONE, INTERACTION),
+            value_property(ROLE, ONE_OR_MORE, URI),
         ),
     ),
-    RANGE: ClassSpec((LOCATION,), (_value(END, EXACTLY_ONE, INTEGER), _value(START, EXACTLY_ONE, INTEGER))),
-    SEQUENCE: ClassSpec((TOP_LEVEL,), (_value(ELEMENTS, ZERO_OR_ONE, STRING), _value(ENCODING, ZERO_OR_ONE, URI))),
-    SEQUENCE_FEATURE: ClassSpec((FEATURE,), (_child(HAS_LOCATION, ONE_OR_MORE, LOCATION),)),
+    RANGE: ClassSpec(
+        (LOCATION,), (value_property(END, EXACTLY_ONE, INTEGER), value_property(START, EXACTLY_ONE, INTEGER))
+    ),
+    SEQUENCE: ClassSpec(
+        (TOP_LEVEL,), (value_property(ELEMENTS, ZERO_OR_ONE, STRING), value_property(ENCODING, ZERO_OR_ONE, URI))
+    ),
+    SEQUENCE_FEATURE: ClassSpec((FEATURE,), (child_property(HAS_LOCATION, ONE_OR_MORE, LOCATION),)),
     SUB_COMPONENT: ClassSpec(
         (FEATURE,),
         (
-            _reference(INSTANCE_OF, EXACTLY_ONE, COMPONENT),
-            _value(ROLE_INTEGRATION, ZERO_OR_ONE, URI),
-            _child(SOURCE_LOCATION, ZERO_OR_MORE, LOCATION),
-            _child(HAS_LOCATION, ZERO_OR_MORE, LOCATION),
+            reference_property(INSTANCE_OF, EXACTLY_ONE, COMPONENT),
+            value_property(ROLE_INTEGRATION, ZERO_OR_ONE, URI),
+            child_property(SOURCE_LOCATION, ZERO_OR_MORE, LOCATION),
+            child_property(HAS_LOCATION, ZERO_OR_MORE, LOCATION),
         ),
     ),
     VARIABLE_FEATURE: ClassSpec(
         (IDENTIFIED,),
         (
-            _value(CARDINALITY, EXACTLY_ONE, URI),
-            _reference(VARIABLE, EXACTLY_ONE, FEATURE),
-            _reference(VARIANT_COLLECTION, ZERO_OR_MORE, COLLECTION),
-            _reference(VARIANT_DERIVATION, ZERO_OR_MORE, COMBINATORIAL_DERIVATION),
-            _child(VARIANT_MEASURE, ZERO_OR_MORE, OM_MEASURE),
-            _reference(VARIANT, ZERO_OR_MORE, COMPONENT),
+            value_property(CARDINALITY, EXACTLY_ONE, URI),
+            reference_property(VARIABLE, EXACTLY_ONE, FEATURE),
+            reference_property(VARIANT_COLLECTION, ZERO_OR_MORE, COLLECTION),
+            reference_property(VARIANT_DERIVATION, ZERO_OR_MORE, COMBINATORIAL_DERIVATION),
+            child_property(VARIANT_MEASURE, ZERO_OR_MORE, OM_MEASURE),
+            reference_property(VARIANT, ZERO_OR_MORE, COMPONENT),
         ),
     ),
     PROV_ACTIVITY: ClassSpec(
         (TOP_LEVEL,),
         (
-            _value(PROV_ENDED_AT_TIME, ZERO_OR_ONE, DATE_TIME),
-            _child(PROV_QUALIFIED_USAGE, ZERO_OR_MORE, PROV_USAGE),
-            _value(PROV_STARTED_AT_TIME, ZERO_OR_ONE, DATE_TIME),
-            _reference(PROV_WAS_INFORMED_BY, ZERO_OR_MORE, PROV_ACTIVITY),
-            _value(TYPE, ZERO_OR_MORE, URI),
-            _child(PROV_QUALIFIED_ASSOCIATION, ZERO_OR_MORE, PROV_ASSOCIATION),
+            value_property(PROV_ENDED_AT_TIME, ZERO_OR_ONE, DATE_TIME),
+            child_property(PROV_QUALIFIED_USAGE, ZERO_OR_MORE, PROV_USAGE),
+            value_property(PROV_STARTED_AT_TIME, ZERO_OR_ONE, DATE_TIME),
+            reference_property(PROV_WAS_INFORMED_BY, ZERO_OR_MORE, PROV_ACTIVITY),
+            value_property(TYPE, ZERO_OR_MORE, URI),
+            child_property(PROV_QUALIFIED_ASSOCIATION, ZERO_OR_MORE, PROV_ASSOCIATION),
         ),
     ),
     PROV_AGENT: ClassSpec((TOP_LEVEL,), ()),
     PROV_ASSOCIATION: ClassSpec(
         (IDENTIFIED,),
         (
-            _reference(PROV_AGENT_PREDICATE, EXACTLY_ONE, PROV_AGENT),
-            _value(PROV_HAD_ROLE, ZERO_OR_MORE, URI),
-            _reference(PROV_HAD_PLAN, ZERO_OR_ONE, PROV_PLAN),
+            reference_property(PROV_AGENT_PREDICATE, EXACTLY_ONE, PROV_AGENT),
+            value_property(PROV_HAD_ROLE, ZERO_OR_MORE, URI),
+            reference_property(PROV_HAD_PLAN, ZERO_OR_ONE, PROV_PLAN),
         ),
     ),
     PROV_PLAN: ClassSpec((TOP_LEVEL,), ()),
     PROV_USAGE: ClassSpec(
-        (IDENTIFIED,), (_value(PROV_ENTITY, EXACTLY_ONE, URI), _value(PROV_HAD_ROLE, ZERO_OR_MORE, URI))
+        (IDENTIFIED,), (value_property(PROV_ENTITY, EXACTLY_ONE, URI), value_property(PROV_HAD_ROLE, ZERO_OR_MORE, URI))
     ),
     OM_MEASURE: ClassSpec(
         (IDENTIFIED,),
         (
-            _value(TYPE, ZERO_OR_MORE, URI),
-            _reference(OM_HAS_UNIT, EXACTLY_ONE, OM_UNIT),
-            _value(OM_HAS_NUMERICAL_VALUE, EXACTLY_ONE, FLOAT),
+            value_property(TYPE, ZERO_OR_MORE, URI),
+            reference_property(OM_HAS_UNIT, EXACTLY_ONE, OM_UNIT),
+            value_property(OM_HAS_NUMERICAL_VALUE, EXACTLY_ONE, FLOAT),
         ),
     ),
     OM_UNIT: ClassSpec(
         (TOP_LEVEL,),
         (
-            _value(OM_ALTERNATIVE_LABEL, ZERO_OR_MORE, STRING),
-            _value(OM_LABEL, EXACTLY_ONE, STRING),
-            _value(OM_LONG_COMMENT, ZERO_OR_ONE, STRING),
-            _value(OM_SYMBOL, EXACTLY_ONE, STRING),
-            _value(OM_ALTERNATIVE_SYMBOL, ZERO_OR_MORE, STRING),
-            _value(OM_COMMENT, ZERO_OR_ONE, STRING),
+            value_property(OM_ALTERNATIVE_LABEL, ZERO_OR_MORE, STRING),
+            value_property(OM_LABEL, EXACTLY_ONE, STRING),
+            value_property(OM_LONG_COMMENT, ZERO_OR_ONE, STRING),
+            value_property(OM_SYMBOL, EXACTLY_ONE, STRING),
+            value_property(OM_ALTERNATIVE_SYMBOL, ZERO_OR_MORE, STRING),
+            value_property(OM_COMMENT, ZERO_OR_ONE, STRING),
         ),
     ),
     OM_SINGULAR_UNIT: ClassSpec(
         (OM_UNIT,),
-        (_reference(OM_HAS_UNIT, ZERO_OR_ONE, OM_UNIT), _value(OM_HAS_FACTOR, ZERO_OR_ONE, FLOAT)),
+        (reference_property(OM_HAS_UNIT, ZERO_OR_ONE, OM_UNIT), value_property(OM_HAS_FACTOR, ZERO_OR_ONE, FLOAT)),
     ),
     OM_COMPOUND_UNIT: ClassSpec((OM_UNIT,), ()),
     OM_UNIT_DIVISION: ClassSpec(
         (OM_COMPOUND_UNIT,),
         (
-            _reference(OM_HAS_DENOMINATOR, EXACTLY_ONE, OM_UNIT),
-            _reference(OM_HAS_NUMERATOR, EXACTLY_ONE, OM_UNIT),
+            reference_property(OM_HAS_DENOMINATOR, EXACTLY_ONE, OM_UNIT),
+            reference_property(OM_HAS_NUMERATOR, EXACTLY_ONE, OM_UNIT),
         ),
     ),
     OM_UNIT_EXPONENTIATION: ClassSpec(
         (OM_COMPOUND_UNIT,),
-        (_reference(OM_HAS_BASE, EXACTLY_ONE, OM_UNIT), _value(OM_HAS_EXPONENT, EXACTLY_ONE, INTEGER)),
+        (reference_property(OM_HAS_BASE, EXACTLY_ONE, OM_UNIT), value_property(OM_HAS_EXPONENT, EXACTLY_ONE, INTEGER)),
     ),
     OM_UNIT_MULTIPLICATION: ClassSpec(
         (OM_COMPOUND_UNIT,),
         (
-            _reference(OM_HAS_TERM1, EXACTLY_ONE, OM_UNIT),
-            _reference(OM_HAS_TERM2, EXACTLY_ONE, OM_UNIT),
+            reference_property(OM_HAS_TERM1, EXACTLY_ONE, OM_UNIT),
+            reference_property(OM_HAS_TERM2, EXACTLY_ONE, OM_UNIT),
         ),
     ),
     OM_PREFIXED_UNIT: ClassSpec(
         (OM_UNIT,),
         (
-            _reference(OM_HAS_UNIT, EXACTLY_ONE, OM_UNIT),
-            _reference(OM_HAS_PREFIX, EXACTLY_ONE, OM_PREFIX),
+            reference_property(OM_HAS_UNIT, EXACTLY_ONE, OM_UNIT),
+            reference_property(OM_HAS_PREFIX, EXACTLY_ONE, OM_PREFIX),
         ),
     ),
     OM_PREFIX: ClassSpec(
         (TOP_LEVEL,),
         (
-            _value(OM_ALTERNATIVE_LABEL, ZERO_OR_MORE, STRING),
-            _value(OM_COMMENT, ZERO_OR_ONE, STRING),
-            _value(OM_HAS_FACTOR, EXACTLY_ONE, FLOAT),
-            _value(OM_LABEL, EXACTLY_ONE, STRING),
-            _value(OM_LONG_COMMENT, ZERO_OR_ONE, STRING),
-            _value(OM_ALTERNATIVE_SYMBOL, ZERO_OR_MORE, STRING),
-            _value(OM_SYMBOL, EXACTLY_ONE, STRING),
+            value_property(OM_ALTERNATIVE_LABEL, ZERO_OR_MORE, STRING),
+            value_property(OM_COMMENT, ZERO_OR_ONE, STRING),
+            value_property(OM_HAS_FACTOR, EXACTLY_ONE, FLOAT),
+            value_property(OM_LABEL, EXACTLY_ONE, STRING),
+            value_property(OM_LONG_COMMENT, ZERO_OR_ONE, STRING),
+            value_property(OM_ALTERNATIVE_SYMBOL, ZERO_OR_MORE, STRING),
+            value_property(OM_SYMBOL, EXACTLY_ONE, STRING),
         ),
     ),
     OM_SI_PREFIX: ClassSpec((OM_PREFIX,), ()),

@@ -106,7 +106,7 @@ def top_level_namespace(ctx: Sbol3Context) -> None:
             )
 
 
-def _top_level_urls(ctx: Sbol3Context) -> list[tuple[str, Sbol3Object]]:
+def top_level_urls(ctx: Sbol3Context) -> list[tuple[str, Sbol3Object]]:
     """Each TopLevel whose identity is a URL, with that URL."""
     return [
         (str(obj.identity), obj)
@@ -118,7 +118,7 @@ def _top_level_urls(ctx: Sbol3Context) -> list[tuple[str, Sbol3Object]]:
 @REGISTRY.rule("sbol3-10102")
 def top_level_url_pattern(ctx: Sbol3Context) -> None:
     """A TopLevel URL is ``[namespace]/[local]/[displayId]``."""
-    for identity, obj in _top_level_urls(ctx):
+    for identity, obj in top_level_urls(ctx):
         namespace = obj.first_iri(spec.HAS_NAMESPACE)
         if namespace is None:
             continue
@@ -136,7 +136,7 @@ def top_level_url_pattern(ctx: Sbol3Context) -> None:
 @REGISTRY.rule("sbol3-10103")
 def top_level_url_prefixes(ctx: Sbol3Context) -> None:
     """No TopLevel URL lies under another TopLevel's URL."""
-    top_levels = _top_level_urls(ctx)
+    top_levels = top_level_urls(ctx)
     by_base: dict[str, list[str]] = defaultdict(list)
     for identity, _ in top_levels:
         by_base[identity.rstrip("/")].append(identity)

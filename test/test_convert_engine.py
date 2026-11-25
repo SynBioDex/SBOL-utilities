@@ -156,6 +156,7 @@ def test_upgrade_moves_version_and_derives_namespace(upgraded_promoter):
 
 
 def test_upgrade_report(upgraded_promoter):
+    """An upgrade reports its direction and output size, and no warnings for a clean input."""
     graph, report = upgraded_promoter
     assert report.direction == "upgrade"
     assert report.output_triples == len(graph)
@@ -191,6 +192,7 @@ def test_upgrade_rejects_non_sbol2():
 
 
 def test_upgrade_of_an_empty_graph_is_empty():
+    """An empty input upgrades to an empty graph."""
     assert len(upgrade(Graph()).graph) == 0
 
 
@@ -213,6 +215,7 @@ def test_downgrade_default_version():
 
 
 def test_downgrade_rejects_an_empty_default_version():
+    """An empty ``default_version`` is an error, not a request for no version."""
     with pytest.raises(ValueError, match="default_version"):
         downgrade(UNVERSIONED_SBOL3, DowngradeOptions(default_version=""), fmt="turtle")
 
@@ -263,11 +266,13 @@ def test_extension_objects_gain_sbol_marker_types(upgraded_extension_objects, ir
 
 
 def test_plain_annotations_gain_no_marker_type(upgraded_extension_objects):
+    """An annotation object of another vocabulary keeps only its own rdf:type."""
     note_types = set(upgraded_extension_objects.objects(URIRef("https://example.org/lab/cd/info"), RDF.type))
     assert note_types == {URIRef("http://myapp.org/Information")}
 
 
 def test_upgraded_extension_objects_are_valid(upgraded_extension_objects):
+    """Upgraded extension objects pass SBOL 3 validation."""
     assert not validate_sbol3(upgraded_extension_objects, ValidationConfig(complete=False)).errors
 
 

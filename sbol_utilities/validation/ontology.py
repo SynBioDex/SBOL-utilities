@@ -41,14 +41,15 @@ MOLECULAR_FUNCTION_ROOT = "GO:0003674"
 CHEBI_ROLE_ROOT = "CHEBI:50906"
 CELL_ROOT = "CL:0000000"
 
-_PREFIXES = {"EDAM": "EDAM", "SBO": "SBO", "SO": "SO", "GO": "GO", "CHEBI": "CHEBI", "CL": "CL", "NCIT": "NCIT"}
+PREFIXES = {"EDAM": "EDAM", "SBO": "SBO", "SO": "SO", "GO": "GO", "CHEBI": "CHEBI", "CL": "CL", "NCIT": "NCIT"}
 
 
 def normalize_term_id(value: str) -> str | None:
     """Return the compact ontology id for a supported IRI, PURL, or compact id, or None."""
 
     def prefixed(prefix: str, local: str) -> str | None:
-        canonical = _PREFIXES.get(prefix.upper())
+        """The compact id under the canonical spelling of a supported prefix, or None."""
+        canonical = PREFIXES.get(prefix.upper())
         return f"{canonical}:{local}" if canonical else None
 
     if ":" in value and not value.startswith(("http://", "https://")):
@@ -89,11 +90,13 @@ class TermFact:
     table_2_component_type: bool
 
 
-def _optional(value: str) -> str | None:
+def non_blank(value: str) -> str | None:
+    """A table cell's value, or None for an empty cell."""
     return None if value in ("", "-") else value
 
 
-def _ordered(left: str, right: str) -> tuple[str, str]:
+def ordered_pair(left: str, right: str) -> tuple[str, str]:
+    """The two strings in sorted order."""
     return (left, right) if left <= right else (right, left)
 
 
@@ -109,7 +112,7 @@ class Ontology:
         self.component_role_terms: set[str] = set()
         self.component_role_compatibilities: set[tuple[str, str]] = set()
         self.participation_compatibilities: set[tuple[str, str]] = set()
-        self._ancestors: dict[str, frozenset[str]] = {}
+        self.ancestors_by_term: dict[str, frozenset[str]] = {}
 
     @classmethod
     def from_tsv(cls, text: str) -> Ontology:
@@ -129,14 +132,14 @@ class Ontology:
             columns = line.split("\t")
             kind = columns[0]
             if kind == "term":
-                term_id, iri, _label, aliases, parents = columns[1:6]
+                term_id, iri, label, aliases, parents = columns[1:6]
                 ontology.terms[term_id] = TermFact(
                     iri=iri,
                     parents=tuple(p for p in parents.split("|") if p and p != "-"),
                     namespace=columns[6],
                     role=columns[7],
-                    component_family=_optional(columns[8]),
-                    sequence_family=_optional(columns[9]),
+                    component_family=non_blank(columns[8]),
+                    sequence_family=non_blank(columns[9]),
                     table_1_sequence_encoding=columns[10] == "true",
                     table_2_component_type=columns[11] == "true",
                 )
@@ -149,7 +152,7 @@ class Ontology:
             elif kind == "compat":
                 ontology.compatibilities.add((columns[1], columns[2]))
             elif kind == "conflict":
-                ontology.conflicts.add(_ordered(columns[1], columns[2]))
+                ontology.conflicts.add(ordered_pair(columns[1], columns[2]))
             elif kind == "component_role":
                 ontology.component_role_terms.add(columns[1])
             elif kind == "component_role_compat":
@@ -202,21 +205,22 @@ class Ontology:
 
     # --- role predicates ---
 
-    def _role_is(self, term: str, *roles: str) -> bool | None:
+    def role_is(self, term: str, *roles: str) -> bool | None:
+        """Whether a term has one of the given roles; None for an unknown term."""
         role = self.term_role(term)
         return None if role is None else role in roles
 
     def is_sequence_encoding_term(self, term: str) -> bool | None:
         """Whether a known term is a Sequence encoding."""
-        return self._role_is(term, SEQUENCE_ENCODING)
+        return self.role_is(term, SEQUENCE_ENCODING)
 
     def is_component_type_term(self, term: str) -> bool | None:
         """Whether a known term may be a Component type (including topology/strand modifiers)."""
-        return self._role_is(term, COMPONENT_TYPE, COMPONENT_TYPE_MODIFIER)
+        return self.role_is(term, COMPONENT_TYPE, COMPONENT_TYPE_MODIFIER)
 
     def is_feature_role_term(self, term: str) -> bool | None:
         """Whether a known term may be a Feature role."""
-        return self._role_is(term, FEATURE_ROLE)
+        return self.role_is(term, FEATURE_ROLE)
 
     def is_component_role_term(self, term: str) -> bool | None:
         """Whether a known term may be a Component role."""
@@ -237,11 +241,11 @@ class Ontology:
 
     def is_interaction_type_term(self, term: str) -> bool | None:
         """Whether a known term may be an Interaction type."""
-        return self._role_is(term, INTERACTION_TYPE)
+        return self.role_is(term, INTERACTION_TYPE)
 
     def is_participation_role_term(self, term: str) -> bool | None:
         """Whether a known term may be a Participation role."""
-        return self._role_is(term, PARTICIPATION_ROLE)
+        return self.role_is(term, PARTICIPATION_ROLE)
 
     def is_table_1_sequence_encoding(self, term: str) -> bool:
         """Whether the term is one of the encodings listed in SBOL 3 Table 1."""
@@ -255,9 +259,9 @@ class Ontology:
 
     # --- hierarchy ---
 
-    def _ancestor_set(self, term_id: str) -> frozenset[str]:
+    def ancestor_set(self, term_id: str) -> frozenset[str]:
         """Every term a term descends from, computed once per term."""
-        cached = self._ancestors.get(term_id)
+        cached = self.ancestors_by_term.get(term_id)
         if cached is not None:
             return cached
         result: set[str] = set()
@@ -270,25 +274,25 @@ class Ontology:
             if parent in self.terms:
                 stack.extend(self.terms[parent].parents)
         frozen = frozenset(result)
-        self._ancestors[term_id] = frozen
+        self.ancestors_by_term[term_id] = frozen
         return frozen
 
     def is_descendant(self, term: str, ancestor: str) -> bool:
         """Whether ``term`` strictly descends from ``ancestor``."""
         t, a = self.canonical_id(term), self.canonical_id(ancestor)
-        return bool(t and a and t != a and a in self._ancestor_set(t))
+        return bool(t and a and t != a and a in self.ancestor_set(t))
 
     def is_equivalent_or_descendant(self, term: str, ancestor: str) -> bool:
         """Whether ``term`` equals or descends from ``ancestor``."""
         t, a = self.canonical_id(term), self.canonical_id(ancestor)
-        return bool(t and a and (t == a or a in self._ancestor_set(t)))
+        return bool(t and a and (t == a or a in self.ancestor_set(t)))
 
     def is_in_branch(self, term: str, branch_root: str) -> bool:
         """Whether ``term`` lies in the branch rooted at ``branch_root`` (by hierarchy or explicit branch fact)."""
         t, r = self.canonical_id(term), self.canonical_id(branch_root)
         if not t or not r:
             return False
-        return t == r or (t, r) in self.branches or r in self._ancestor_set(t)
+        return t == r or (t, r) in self.branches or r in self.ancestor_set(t)
 
     def in_branch_if_known(self, term: str, branch_root: str) -> bool | None:
         """Whether a known term lies in the branch rooted at ``branch_root``; None for a term not in the snapshot."""
@@ -303,7 +307,7 @@ class Ontology:
             return None
         if lid == rid:
             return False
-        if _ordered(lid, rid) in self.conflicts:
+        if ordered_pair(lid, rid) in self.conflicts:
             return True
         lf, rf = self.terms[lid], self.terms[rid]
         if lf.component_family and rf.component_family:

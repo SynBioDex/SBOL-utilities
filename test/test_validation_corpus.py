@@ -26,7 +26,8 @@ ALL_ON = ValidationConfig.all_on()
 INCOMPLETE = ValidationConfig(complete=False)
 
 
-def _errors(report):
+def error_issues(report):
+    """The report's errors as strings, for readable assertion failures."""
     return [str(i) for i in report.errors]
 
 
@@ -34,19 +35,19 @@ def _errors(report):
 def test_sbol2_corpus_valid(path):
     """The core SBOL 2 corpus has no errors, even with every family on."""
     for config in (ValidationConfig(), ALL_ON):
-        assert not _errors(validate_sbol2(path, config))
+        assert not error_issues(validate_sbol2(path, config))
 
 
 @pytest.mark.corpus("SBOL2_ic")
 def test_sbol2_incomplete_corpus(path):
     """Incomplete documents are error-free once the completeness family is off."""
-    assert not _errors(validate_sbol2(path, INCOMPLETE))
+    assert not error_issues(validate_sbol2(path, INCOMPLETE))
 
 
 @pytest.mark.corpus("SBOL2_bp")
 def test_sbol2_best_practice_corpus(path):
     """Best-practice fixtures are error-free with the default (best practice off) configuration."""
-    assert not _errors(validate_sbol2(path))
+    assert not error_issues(validate_sbol2(path))
 
 
 @pytest.mark.corpus("SBOL3_InvalidFiles")
@@ -58,4 +59,4 @@ def test_sbol3_invalid_files(path):
 @pytest.mark.corpus("SBOL3")
 def test_sbol3_corpus_valid(path):
     """Every SBOL 3 corpus fixture is error-free."""
-    assert not _errors(validate_sbol3(path))
+    assert not error_issues(validate_sbol3(path))

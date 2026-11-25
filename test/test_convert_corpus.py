@@ -17,7 +17,8 @@ from sbol_utilities.rdf_io import load_graph
 pytestmark = pytest.mark.sboltestsuite
 
 
-def _check(actual, relative: str, what: str) -> None:
+def check_against_golden(actual, relative: str, what: str) -> None:
+    """Assert a converted graph equals the expected graph stored at ``relative``."""
     difference = cg.diff(actual, cg.expected_graph(relative))
     assert not difference, f"{what} differs from {relative}\n{difference}"
 
@@ -27,12 +28,12 @@ def test_sbol2_upgrade_matches_expected(path):
     """Upgrade and the 3 -> 2 -> 3 round trip both match the expected graphs."""
     entry = cg.entry(suite.relative_name(path))
     upgraded, _ = upgrade(load_graph(path))
-    _check(upgraded, entry["upgrade"], "upgrade")
+    check_against_golden(upgraded, entry["upgrade"], "upgrade")
     again, _ = upgrade(downgrade(upgraded)[0])
     if entry["roundtrip"] == "fixed-point":
-        _check(again, entry["upgrade"], "round trip (expected to reproduce the upgrade)")
+        check_against_golden(again, entry["upgrade"], "round trip (expected to reproduce the upgrade)")
     else:
-        _check(again, entry["roundtrip"], "round trip")
+        check_against_golden(again, entry["roundtrip"], "round trip")
 
 
 @pytest.mark.corpus("SBOL3")
@@ -40,6 +41,6 @@ def test_sbol3_downgrade_matches_expected(path):
     """Downgrade and the 2 -> 3 re-upgrade both match the expected graphs."""
     entry = cg.entry(suite.relative_name(path))
     downgraded, _ = downgrade(load_graph(path))
-    _check(downgraded, entry["downgrade"], "downgrade")
+    check_against_golden(downgraded, entry["downgrade"], "downgrade")
     again, _ = upgrade(downgraded)
-    _check(again, entry["roundtrip"], "round trip")
+    check_against_golden(again, entry["roundtrip"], "round trip")

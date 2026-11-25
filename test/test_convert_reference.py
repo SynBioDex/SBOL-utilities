@@ -82,11 +82,13 @@ def logical_lines(graph: Graph) -> set[str]:
     return result
 
 
-def _reference(suite_root: Path) -> Path:
+def reference_directory(suite_root: Path) -> Path:
+    """The directory of the reference converter's outputs."""
     return suite_root / suite.EXPECTED / "conversion" / "sbolconverter"
 
 
-def _assert_equivalent(ours: Graph, reference: Graph) -> None:
+def assert_equivalent(ours: Graph, reference: Graph) -> None:
+    """Assert two graphs hold the same statements, comparing generated Constraint identities by content."""
     difference = suite.set_diff(logical_lines(reference), logical_lines(ours))
     assert not difference, difference
 
@@ -95,15 +97,15 @@ def _assert_equivalent(ours: Graph, reference: Graph) -> None:
 def test_upgrade_matches_reference(stem, sbol_test_suite):
     """SBOL 2 -> 3 agrees with the reference converter."""
     source = load_graph(sbol_test_suite / UPGRADE_CASES[stem])
-    reference = load_graph(_reference(sbol_test_suite) / f"{stem}.sbolconverter.to-sbol3.nt")
+    reference = load_graph(reference_directory(sbol_test_suite) / f"{stem}.sbolconverter.to-sbol3.nt")
     ours, _ = upgrade(source)
-    _assert_equivalent(ours, reference)
+    assert_equivalent(ours, reference)
 
 
 @pytest.mark.parametrize("stem", sorted(DOWNGRADE_CASES))
 def test_downgrade_matches_reference(stem, sbol_test_suite):
     """SBOL 3 -> 2 agrees with the reference converter."""
     source = load_graph(sbol_test_suite / DOWNGRADE_CASES[stem])
-    reference = load_graph(_reference(sbol_test_suite) / f"{stem}.sbolconverter.to-sbol2.rdf")
+    reference = load_graph(reference_directory(sbol_test_suite) / f"{stem}.sbolconverter.to-sbol2.rdf")
     ours, _ = downgrade(source)
-    _assert_equivalent(ours, reference)
+    assert_equivalent(ours, reference)

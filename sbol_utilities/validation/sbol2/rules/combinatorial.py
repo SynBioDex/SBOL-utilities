@@ -67,7 +67,7 @@ def derivation_contents(ctx: Sbol2Context) -> None:
                 )
 
 
-def _derivations(ctx: Sbol2Context, definition: Sbol2Object) -> Iterator[tuple[Sbol2Object, Sbol2Object]]:
+def template_derivations(ctx: Sbol2Context, definition: Sbol2Object) -> Iterator[tuple[Sbol2Object, Sbol2Object]]:
     """Each CombinatorialDerivation a ComponentDefinition derives from, with that derivation's template."""
     for _, derivation in ctx.resolved(definition, S.WAS_DERIVED_FROM):
         if derivation.has_class(S.COMBINATORIAL_DERIVATION):
@@ -81,7 +81,7 @@ def derived_types_and_roles(ctx: Sbol2Context) -> None:
     """A derived ComponentDefinition keeps its template's types and roles, and its Components the roles of the
     template Components they derive from."""
     for obj in ctx.instances(S.COMPONENT_DEFINITION):
-        for _, template in _derivations(ctx, obj):
+        for _, template in template_derivations(ctx, obj):
             if set(obj.iris(S.TYPE)) != set(template.iris(S.TYPE)):
                 ctx.report(
                     "sbol2-12910",
@@ -112,7 +112,7 @@ def derived_types_and_roles(ctx: Sbol2Context) -> None:
 
 
 #: (VariableComponent operator, rule, whether a number of realizations satisfies it, message)
-_OPERATOR_COUNTS: tuple[tuple[str, str, Callable[[int], bool], str], ...] = (
+OPERATOR_COUNTS: tuple[tuple[str, str, Callable[[int], bool], str], ...] = (
     (
         S.OP_ZERO_OR_ONE,
         "sbol2-13019",
@@ -129,7 +129,7 @@ _OPERATOR_COUNTS: tuple[tuple[str, str, Callable[[int], bool], str], ...] = (
 )
 
 
-@REGISTRY.rule("sbol2-13022", *(rule for _, rule, _, _ in _OPERATOR_COUNTS))
+@REGISTRY.rule("sbol2-13022", *(rule for _, rule, _, _ in OPERATOR_COUNTS))
 def derived_component_counts(ctx: Sbol2Context) -> None:
     """A derived ComponentDefinition realizes each template Component once, and each variable as often as its
     operator allows."""
@@ -139,7 +139,7 @@ def derived_component_counts(ctx: Sbol2Context) -> None:
             for component in ctx.referenced(obj, S.COMPONENT_P)
             for source in set(component.iris(S.WAS_DERIVED_FROM))
         )
-        for derivation, template in _derivations(ctx, obj):
+        for derivation, template in template_derivations(ctx, obj):
             variable_components = list(ctx.referenced(derivation, S.VARIABLE_COMPONENT_P))
             variables = {v for vc in variable_components if (v := vc.first_iri(S.VARIABLE)) is not None}
             if any(realized[c] != 1 for c in template.iris(S.COMPONENT_P) if c not in variables):
@@ -153,12 +153,12 @@ def derived_component_counts(ctx: Sbol2Context) -> None:
                 variable, operator = vc.first_iri(S.VARIABLE), vc.first_iri(S.OPERATOR)
                 if variable is None:
                     continue
-                for required, rule, satisfied, message in _OPERATOR_COUNTS:
+                for required, rule, satisfied, message in OPERATOR_COUNTS:
                     if operator == required and not satisfied(realized[variable]):
                         ctx.report(rule, obj, message, property=S.COMPONENT_P)
 
 
-def _combinatorial_sources(ctx: Sbol2Context, obj: Sbol2Object) -> set[str]:
+def combinatorial_sources(ctx: Sbol2Context, obj: Sbol2Object) -> set[str]:
     """The CombinatorialDerivations, held in the document, that ``obj`` records deriving from."""
     return {
         iri for iri, source in ctx.resolved(obj, S.WAS_DERIVED_FROM) if source.has_class(S.COMBINATORIAL_DERIVATION)
@@ -171,7 +171,7 @@ def derived_collections(ctx: Sbol2Context) -> None:
     for obj in ctx.instances(S.COLLECTION):
         members = [member for _, member in ctx.resolved(obj, S.MEMBER)]
         own = set(obj.iris(S.WAS_DERIVED_FROM))
-        derivations = _combinatorial_sources(ctx, obj)
+        derivations = combinatorial_sources(ctx, obj)
         if any(not derivations <= set(member.iris(S.WAS_DERIVED_FROM)) for member in members):
             ctx.report(
                 "sbol2-12913",
@@ -179,7 +179,7 @@ def derived_collections(ctx: Sbol2Context) -> None:
                 "a Collection's members should derive from the same CombinatorialDerivation",
                 property=S.MEMBER,
             )
-        if any(not _combinatorial_sources(ctx, member) <= own for member in members):
+        if any(not combinatorial_sources(ctx, member) <= own for member in members):
             ctx.report(
                 "sbol2-12912",
                 obj,

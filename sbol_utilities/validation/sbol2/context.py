@@ -127,7 +127,7 @@ class Sbol2Object:
         return None
 
 
-def _term(node: rdflib.term.Node, predicate: str) -> Term:
+def model_term(node: rdflib.term.Node, predicate: str) -> Term:
     """A graph value as the object model holds it.
 
     A literal of a property the data model declares takes the datatype the model gives that property, whatever
@@ -145,11 +145,12 @@ def _term(node: rdflib.term.Node, predicate: str) -> Term:
     return node  # type: ignore[return-value]
 
 
-def _object_order(node: Resource) -> tuple[int, str]:
+def object_order(node: Resource) -> tuple[int, str]:
+    """Sort key placing IRIs before blank nodes, each group in string order."""
     return (0 if isinstance(node, URIRef) else 1, str(node))
 
 
-def _properties(graph: rdflib.Graph, subject: Resource) -> dict[str, list[Term]]:
+def subject_properties(graph: rdflib.Graph, subject: Resource) -> dict[str, list[Term]]:
     """A subject's distinct values by predicate, each list in the order the graph holds them.
 
     rdflib keeps a subject's values in document order, which "first value" lookups rely on.
@@ -157,7 +158,7 @@ def _properties(graph: rdflib.Graph, subject: Resource) -> dict[str, list[Term]]
     values: dict[str, dict[Term, None]] = {}
     for p, o in graph.predicate_objects(subject):
         predicate = str(p)
-        values.setdefault(predicate, {})[_term(o, predicate)] = None
+        values.setdefault(predicate, {})[model_term(o, predicate)] = None
     return {predicate: list(distinct) for predicate, distinct in values.items()}
 
 
@@ -168,25 +169,25 @@ class Sbol2Context(Context[Sbol2Object]):
         super().__init__(graph, config, catalog, ontology)
         # subjects are visited in a fixed order, as whole-graph iteration order varies with the process hash seed
         subjects = {s for s in graph.subjects() if isinstance(s, (URIRef, BNode))}
-        properties = {s: _properties(graph, s) for s in sorted(subjects, key=_object_order)}
+        properties = {s: subject_properties(graph, s) for s in sorted(subjects, key=object_order)}
         self.triple_count = len(graph)
         #: every object of the document, IRIs before blank nodes, each group sorted
         self.objects: list[Sbol2Object] = []
         self.by_identity: dict[Resource, Sbol2Object] = {}
         for subject, props in properties.items():
-            if not _is_model_relevant(props):
+            if not is_model_relevant(props):
                 continue
             obj = Sbol2Object(subject, props, len(self.objects))
             self.objects.append(obj)
             self.by_identity[subject] = obj
         #: objects whose rdf:types include an SBOL 2, PROV, or OM schema class
         self.sbol_objects: list[Sbol2Object] = [o for o in self.objects if o.is_sbol]
-        self._index_instances(self.objects)
-        self._resolve_index: dict[str, Sbol2Object] | None = None
-        self._parents: dict[str, dict[str, list[Sbol2Object]]] = {}
+        self.index_instances(self.objects)
+        self.resolve_index: dict[str, Sbol2Object] | None = None
+        self.parents_by_predicate: dict[str, dict[str, list[Sbol2Object]]] = {}
         #: whether any triple has an SBOL 2 predicate or an SBOL 2 rdf:type
         self.uses_sbol2_namespace: bool = any(
-            p.startswith(SBOL2_NS) or (p == RDF_TYPE and _sbol2_type(props))
+            p.startswith(SBOL2_NS) or (p == RDF_TYPE and sbol2_type(props))
             for props in properties.values()
             for p in props
         )
@@ -205,14 +206,14 @@ class Sbol2Context(Context[Sbol2Object]):
         """The first object whose identity or persistentIdentity is ``uri``."""
         if uri is None:
             return None
-        if self._resolve_index is None:
+        if self.resolve_index is None:
             index: dict[str, Sbol2Object] = {}
             for obj in self.objects:
                 for key in (obj.iri, obj.first_iri(spec.PERSISTENT_IDENTITY)):
                     if key is not None and key not in index:
                         index[key] = obj
-            self._resolve_index = index
-        return self._resolve_index.get(uri)
+            self.resolve_index = index
+        return self.resolve_index.get(uri)
 
     def resolved(self, obj: Sbol2Object, predicate: str) -> Iterator[tuple[str, Sbol2Object]]:
         """Each IRI value of ``obj``'s ``predicate`` that resolves in the document, with the object it names."""
@@ -226,7 +227,7 @@ class Sbol2Context(Context[Sbol2Object]):
         iri = child.iri if isinstance(child, Sbol2Object) else child
         if iri is None:
             return []
-        index = self._parents.get(predicate)
+        index = self.parents_by_predicate.get(predicate)
         if index is None:
             index = {}
             for obj in self.objects:
@@ -235,7 +236,7 @@ class Sbol2Context(Context[Sbol2Object]):
                         holders = index.setdefault(str(v), [])
                         if not holders or holders[-1] is not obj:
                             holders.append(obj)
-            self._parents[predicate] = index
+            self.parents_by_predicate[predicate] = index
         return index.get(iri, [])
 
     def parent(self, child: Sbol2Object | str | None, predicate: str) -> Sbol2Object | None:
@@ -251,11 +252,13 @@ class Sbol2Context(Context[Sbol2Object]):
                 yield target
 
 
-def _sbol2_type(props: dict[str, list[Term]]) -> bool:
+def sbol2_type(props: dict[str, list[Term]]) -> bool:
+    """Whether any rdf:type among the properties is in the SBOL 2 namespace."""
     return any(isinstance(t, URIRef) and str(t).startswith(SBOL2_NS) for t in props.get(RDF_TYPE, ()))
 
 
-def _is_model_relevant(props: dict[str, list[Term]]) -> bool:
+def is_model_relevant(props: dict[str, list[Term]]) -> bool:
+    """Whether a subject has a data-model predicate or an rdf:type the schema defines."""
     if any(not spec.is_extension_predicate(p) for p in props):
         return True
     return any(isinstance(t, URIRef) and str(t) in spec.SCHEMA for t in props.get(RDF_TYPE, ()))

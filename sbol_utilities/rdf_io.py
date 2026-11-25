@@ -65,7 +65,8 @@ def guess_format(path: str | os.PathLike[str]) -> str:
     return EXTENSION_FORMATS.get(Path(path).suffix.lower(), "xml")
 
 
-def _sniff_text_format(text: str) -> str:
+def sniff_text_format(text: str) -> str:
+    """Guess the rdflib format of RDF text from how it begins."""
     stripped = text.lstrip()
     if stripped.startswith("<?xml") or stripped.startswith("<rdf:RDF") or stripped.startswith("<RDF"):
         return "xml"
@@ -90,15 +91,15 @@ def load_graph(source: GraphSource, fmt: str | None = None) -> rdflib.Graph:
         return source.graph()
     if isinstance(source, sbol2.Document):
         return rdflib.Graph().parse(data=source.writeString(), format="xml")
-    if _names_a_file(source):
+    if names_a_file(source):
         path = Path(source)
         return rdflib.Graph().parse(str(path), format=fmt or guess_format(path), publicID=DEFAULT_BASE)
     if isinstance(source, str):
-        return rdflib.Graph().parse(data=source, format=fmt or _sniff_text_format(source), publicID=DEFAULT_BASE)
+        return rdflib.Graph().parse(data=source, format=fmt or sniff_text_format(source), publicID=DEFAULT_BASE)
     raise TypeError(f"Cannot load an SBOL graph from {type(source).__name__}")
 
 
-def _names_a_file(source: object) -> bool:
+def names_a_file(source: object) -> bool:
     """Whether a source is a path rather than RDF text: a path object, or a one-line string naming an existing file."""
     if isinstance(source, os.PathLike):
         return True

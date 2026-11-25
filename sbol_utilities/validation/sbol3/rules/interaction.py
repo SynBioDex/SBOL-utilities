@@ -8,7 +8,8 @@ from sbol_utilities.validation.sbol3.helpers import conflicting_pairs, exactly_o
 from sbol_utilities.validation.sbol3.registry import REGISTRY
 
 
-def _iris(obj: Sbol3Object, predicate: str) -> list[str]:
+def iri_values(obj: Sbol3Object, predicate: str) -> list[str]:
+    """The IRI values of ``predicate`` as strings."""
     return [str(i) for i in obj.iris(predicate)]
 
 
@@ -17,7 +18,7 @@ def participation_roles(ctx: Sbol3Context) -> None:
     """A Participation has one known SBO participant role, and its roles do not conflict."""
     ontology = ctx.ontology
     for obj in ctx.instances(spec.PARTICIPATION):
-        roles = _iris(obj, spec.ROLE)
+        roles = iri_values(obj, spec.ROLE)
         for role in roles:
             if ontology.is_participation_role_term(role) is False:
                 ctx.report(
@@ -74,7 +75,7 @@ def interaction_types(ctx: Sbol3Context) -> None:
     """An Interaction has one known SBO occurring-entity type, and its types do not conflict."""
     ontology = ctx.ontology
     for obj in ctx.instances(spec.INTERACTION):
-        types = _iris(obj, spec.TYPE)
+        types = iri_values(obj, spec.TYPE)
         for type_iri in types:
             if ontology.is_interaction_type_term(type_iri) is False:
                 ctx.report(
@@ -102,11 +103,11 @@ def participation_roles_suit_interaction(ctx: Sbol3Context) -> None:
     (Tables 11 and 12), unless one of its roles is unknown and so might be."""
     ontology = ctx.ontology
     for obj in ctx.instances(spec.INTERACTION):
-        known_types = [t for t in _iris(obj, spec.TYPE) if ontology.is_interaction_type_term(t) is True]
+        known_types = [t for t in iri_values(obj, spec.TYPE) if ontology.is_interaction_type_term(t) is True]
         if not known_types:
             continue
         for participation in ctx.referenced(obj, spec.HAS_PARTICIPATION):
-            roles = _iris(participation, spec.ROLE)
+            roles = iri_values(participation, spec.ROLE)
             answers = [ontology.is_participation_role_term(role) for role in roles]
             compatible = any(
                 answer is True
@@ -123,10 +124,10 @@ def participation_roles_suit_interaction(ctx: Sbol3Context) -> None:
 
 
 #: Interface property -> the rule requiring its values to be Features of the Component holding the Interface
-_INTERFACE_RULES = ((spec.INPUT, "sbol3-12001"), (spec.OUTPUT, "sbol3-12002"), (spec.NONDIRECTIONAL, "sbol3-12003"))
+INTERFACE_RULES = ((spec.INPUT, "sbol3-12001"), (spec.OUTPUT, "sbol3-12002"), (spec.NONDIRECTIONAL, "sbol3-12003"))
 
 
-@REGISTRY.rule(*(rule for _, rule in _INTERFACE_RULES))
+@REGISTRY.rule(*(rule for _, rule in INTERFACE_RULES))
 def interfaces(ctx: Sbol3Context) -> None:
     """Interface inputs, outputs, and nondirectionals are Features of the containing Component."""
     for obj in ctx.instances(spec.INTERFACE):
@@ -134,7 +135,7 @@ def interfaces(ctx: Sbol3Context) -> None:
         if component is None:
             continue
         features = component.resources(spec.HAS_FEATURE)
-        for predicate, rule in _INTERFACE_RULES:
+        for predicate, rule in INTERFACE_RULES:
             if not all(feature in features for feature in obj.resources(predicate)):
                 ctx.report(
                     rule,

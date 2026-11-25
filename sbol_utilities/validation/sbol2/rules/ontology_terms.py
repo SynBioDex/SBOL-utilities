@@ -18,16 +18,18 @@ def is_edam_iri(iri: str) -> bool:
     )
 
 
-def _count_in_branch(ctx: Sbol2Context, terms: list[str], root: str) -> int:
+def count_in_branch(ctx: Sbol2Context, terms: list[str], root: str) -> int:
+    """How many of the terms are in the ontology branch under ``root``."""
     return sum(1 for t in terms if ctx.ontology.is_in_branch(ontology_curie(t), root))
 
 
-def _in_modeling_framework_branch(ctx: Sbol2Context, iri: str) -> bool:
+def in_modeling_framework_branch(ctx: Sbol2Context, iri: str) -> bool:
+    """Whether the term is in the SBO modeling framework branch."""
     return ctx.ontology.is_in_branch(ontology_curie(iri), S.SBO_MODELING_FRAMEWORK)
 
 
 #: (class, property, rule, whether a value is a recommended term, message): every value should be recommended
-_RECOMMENDED_TERMS: tuple[tuple[str, str, str, Callable[[Sbol2Context, str], bool], str], ...] = (
+RECOMMENDED_TERMS: tuple[tuple[str, str, str, Callable[[Sbol2Context, str], bool], str], ...] = (
     (
         S.SEQUENCE,
         S.ENCODING,
@@ -53,7 +55,7 @@ _RECOMMENDED_TERMS: tuple[tuple[str, str, str, Callable[[Sbol2Context, str], boo
         S.MODEL,
         S.FRAMEWORK,
         "sbol2-11511",
-        _in_modeling_framework_branch,
+        in_modeling_framework_branch,
         "the framework of a Model should refer to a term from the SBO modeling-framework branch",
     ),
     (
@@ -66,17 +68,17 @@ _RECOMMENDED_TERMS: tuple[tuple[str, str, str, Callable[[Sbol2Context, str], boo
 )
 
 
-@REGISTRY.rule(*(rule for _, _, rule, _, _ in _RECOMMENDED_TERMS))
+@REGISTRY.rule(*(rule for _, _, rule, _, _ in RECOMMENDED_TERMS))
 def recommended_terms(ctx: Sbol2Context) -> None:
     """Encoding, restriction, language, framework, and format terms come from the recommended vocabularies."""
-    for class_iri, predicate, rule, recommended, message in _RECOMMENDED_TERMS:
+    for class_iri, predicate, rule, recommended, message in RECOMMENDED_TERMS:
         for obj in ctx.instances(class_iri):
             if not all(recommended(ctx, iri) for iri in obj.iris(predicate)):
                 ctx.report(rule, obj, message, property=predicate)
 
 
 #: (class, property, ontology branch, rule, message): exactly one value should lie in the branch
-_ONE_TERM_IN_BRANCH = (
+ONE_TERM_IN_BRANCH = (
     (
         S.INTERACTION,
         S.TYPE,
@@ -94,12 +96,12 @@ _ONE_TERM_IN_BRANCH = (
 )
 
 
-@REGISTRY.rule(*(rule for _, _, _, rule, _ in _ONE_TERM_IN_BRANCH))
+@REGISTRY.rule(*(rule for _, _, _, rule, _ in ONE_TERM_IN_BRANCH))
 def single_branch_terms(ctx: Sbol2Context) -> None:
     """An Interaction has one occurring-entity type and a Participation one participant role."""
-    for class_iri, predicate, branch_root, rule, message in _ONE_TERM_IN_BRANCH:
+    for class_iri, predicate, branch_root, rule, message in ONE_TERM_IN_BRANCH:
         for obj in ctx.instances(class_iri):
-            if _count_in_branch(ctx, obj.iris(predicate), branch_root) != 1:
+            if count_in_branch(ctx, obj.iris(predicate), branch_root) != 1:
                 ctx.report(rule, obj, message, property=predicate)
 
 
@@ -108,7 +110,7 @@ def measure_types(ctx: Sbol2Context) -> None:
     """A Measure that has types has exactly one from the SBO systems-description-parameter branch."""
     for obj in ctx.instances(S.OM_MEASURE):
         types = obj.iris(S.TYPE)
-        if types and _count_in_branch(ctx, types, S.SBO_SYSTEMS_DESCRIPTION_PARAMETER) != 1:
+        if types and count_in_branch(ctx, types, S.SBO_SYSTEMS_DESCRIPTION_PARAMETER) != 1:
             ctx.report(
                 "sbol2-13505",
                 obj,
@@ -135,8 +137,8 @@ def component_definition_sequence_terms(ctx: Sbol2Context) -> None:
     """Sequence-feature roles and topology or strand types accompany a DNA or RNA type, in the expected numbers."""
     for obj in ctx.instances(S.COMPONENT_DEFINITION):
         types = obj.iris(S.TYPE)
-        feature_roles = _count_in_branch(ctx, obj.iris(S.ROLE), S.SO_SEQUENCE_FEATURE)
-        topologies = _count_in_branch(ctx, types, S.SO_TOPOLOGY_ATTRIBUTE)
+        feature_roles = count_in_branch(ctx, obj.iris(S.ROLE), S.SO_SEQUENCE_FEATURE)
+        topologies = count_in_branch(ctx, types, S.SO_TOPOLOGY_ATTRIBUTE)
         if is_nucleic_acid_region(types):
             if feature_roles != 1:
                 ctx.report(
@@ -160,7 +162,7 @@ def component_definition_sequence_terms(ctx: Sbol2Context) -> None:
                     "a sequence-feature role should not appear without a DNA or RNA type",
                     property=S.ROLE,
                 )
-            if topologies or _count_in_branch(ctx, types, S.SO_STRAND_ATTRIBUTE):
+            if topologies or count_in_branch(ctx, types, S.SO_STRAND_ATTRIBUTE):
                 ctx.report(
                     "sbol2-10529",
                     obj,
@@ -176,7 +178,7 @@ def component_sequence_feature_roles(ctx: Sbol2Context) -> None:
         definition = ctx.get(obj.first_iri(S.DEFINITION))
         if definition is None:
             continue
-        feature_roles = _count_in_branch(ctx, obj.iris(S.ROLE), S.SO_SEQUENCE_FEATURE)
+        feature_roles = count_in_branch(ctx, obj.iris(S.ROLE), S.SO_SEQUENCE_FEATURE)
         if not is_nucleic_acid_region(definition.iris(S.TYPE)):
             if feature_roles:
                 ctx.report(

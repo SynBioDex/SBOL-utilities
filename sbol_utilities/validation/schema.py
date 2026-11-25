@@ -47,10 +47,10 @@ class ValueKind(Enum):
     @property
     def datatype(self) -> str | None:
         """The XSD datatype the data model gives a literal of this kind; None for IRI-valued kinds."""
-        return _DATATYPES.get(self)
+        return DATATYPES.get(self)
 
 
-_DATATYPES = {
+DATATYPES = {
     ValueKind.STRING: XSD_NS + "string",
     ValueKind.INTEGER: XSD_NS + "integer",
     ValueKind.LONG: XSD_NS + "long",
@@ -98,21 +98,24 @@ class Schema:
         :param top_level: IRI of the class whose instances are top-level objects
         """
         self.classes: Mapping[str, ClassSpec] = MappingProxyType(dict(classes))
-        self._ancestors: dict[str, frozenset[str]] = {}
+        self.ancestors_by_class: dict[str, frozenset[str]] = {}
         for class_iri in self.classes:
-            self._add_ancestors(class_iri)
-        self._properties: dict[tuple[str, ...], Mapping[str, PropertySpec]] = {}
+            self.add_ancestors(class_iri)
+        self.properties_by_types: dict[tuple[str, ...], Mapping[str, PropertySpec]] = {}
         #: every predicate some class declares
         self.predicates: frozenset[str] = frozenset(p.predicate for c in classes.values() for p in c.properties)
         #: every class whose instances are top-level objects
-        self.top_level_classes: frozenset[str] = frozenset(c for c in classes if top_level in self._ancestors[c])
+        self.top_level_classes: frozenset[str] = frozenset(
+            c for c in classes if top_level in self.ancestors_by_class[c]
+        )
 
-    def _add_ancestors(self, class_iri: str) -> frozenset[str]:
-        known = self._ancestors.get(class_iri)
+    def add_ancestors(self, class_iri: str) -> frozenset[str]:
+        """Compute and record ``class_iri``'s ancestors, and those of every class it inherits from."""
+        known = self.ancestors_by_class.get(class_iri)
         if known is None:
             parents = self.classes[class_iri].parents
-            known = frozenset({class_iri}).union(*(self._add_ancestors(parent) for parent in parents))
-            self._ancestors[class_iri] = known
+            known = frozenset({class_iri}).union(*(self.add_ancestors(parent) for parent in parents))
+            self.ancestors_by_class[class_iri] = known
         return known
 
     def __contains__(self, class_iri: object) -> bool:
@@ -120,7 +123,7 @@ class Schema:
 
     def ancestors(self, class_iri: str) -> frozenset[str]:
         """``class_iri`` and every class it inherits from; empty for an IRI that is not a class of the model."""
-        return self._ancestors.get(class_iri, frozenset())
+        return self.ancestors_by_class.get(class_iri, frozenset())
 
     def is_a(self, class_iri: str, target: str) -> bool:
         """Whether ``class_iri`` is ``target`` or one of its subclasses."""
@@ -133,20 +136,21 @@ class Schema:
         the same predicate the declaration of the type that sorts last applies.
         """
         key = tuple(sorted(rdf_types))
-        found = self._properties.get(key)
+        found = self.properties_by_types.get(key)
         if found is None:
             collected: dict[str, PropertySpec] = {}
             for rdf_type in key:
-                self._collect(rdf_type, collected)
-            found = self._properties[key] = MappingProxyType(dict(sorted(collected.items())))
+                self.collect(rdf_type, collected)
+            found = self.properties_by_types[key] = MappingProxyType(dict(sorted(collected.items())))
         return found
 
-    def _collect(self, class_iri: str, into: dict[str, PropertySpec]) -> None:
+    def collect(self, class_iri: str, into: dict[str, PropertySpec]) -> None:
+        """Add the properties ``class_iri`` inherits and declares to ``into``, nearest declaration last."""
         spec = self.classes.get(class_iri)
         if spec is None:
             return
         for parent in spec.parents:
-            self._collect(parent, into)
+            self.collect(parent, into)
         for declared in spec.properties:
             into[declared.predicate] = declared
 

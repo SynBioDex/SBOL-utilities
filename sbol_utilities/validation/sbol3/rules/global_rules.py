@@ -14,7 +14,7 @@ from sbol_utilities.validation.sbol3.registry import REGISTRY
 from sbol_utilities.validation.sbol3.resolver import component_allows_sequence
 
 
-def _derived_from(ctx: Sbol3Context, identity: Node) -> Iterator[Node]:
+def derived_from(ctx: Sbol3Context, identity: Node) -> Iterator[Node]:
     """The objects ``identity`` names with prov:wasDerivedFrom."""
     obj = ctx.get(identity)
     if obj is not None:
@@ -24,13 +24,13 @@ def _derived_from(ctx: Sbol3Context, identity: Node) -> Iterator[Node]:
 @REGISTRY.rule("sbol3-10203")
 def derived_from_cycles(ctx: Sbol3Context) -> None:
     """prov:wasDerivedFrom chains are acyclic."""
-    for identity in sorted(nodes_reaching_cycles(ctx.objects, partial(_derived_from, ctx)), key=str):
+    for identity in sorted(nodes_reaching_cycles(ctx.objects, partial(derived_from, ctx)), key=str):
         ctx.report(
             "sbol3-10203", identity, "prov:wasDerivedFrom references form a cycle", property=spec.PROV_WAS_DERIVED_FROM
         )
 
 
-def _generated_from(ctx: Sbol3Context, identity: Node) -> Iterator[Node]:
+def generation_sources(ctx: Sbol3Context, identity: Node) -> Iterator[Node]:
     """The entities used by the Activities that generated ``identity``."""
     obj = ctx.get(identity)
     if obj is None:
@@ -52,9 +52,10 @@ def generation_cycles(ctx: Sbol3Context) -> None:
     An entity that an Activity both uses and generates is tolerated on that entity itself; any other entity whose
     chain leads to it is reported.
     """
-    generated_from = partial(_generated_from, ctx)
+    generated_from = partial(generation_sources, ctx)
 
     def other_sources(identity: Node) -> list[Node]:
+        """The entities ``identity`` is generated from, other than itself."""
         return [source for source in generated_from(identity) if source != identity]
 
     self_generated = [identity for identity in ctx.objects if identity in generated_from(identity)]
@@ -69,7 +70,7 @@ def generation_cycles(ctx: Sbol3Context) -> None:
         )
 
 
-def _instantiated_components(ctx: Sbol3Context, component: Node) -> Iterator[Node]:
+def instantiated_components(ctx: Sbol3Context, component: Node) -> Iterator[Node]:
     """The Components that ``component``'s SubComponents are instances of."""
     obj = ctx.get(component)
     if obj is None:
@@ -87,7 +88,7 @@ def _instantiated_components(ctx: Sbol3Context, component: Node) -> Iterator[Nod
 def component_instance_cycles(ctx: Sbol3Context) -> None:
     """SubComponent instanceOf chains do not loop back to a Component."""
     components = [component.identity for component in ctx.instances(spec.COMPONENT)]
-    for identity in sorted(nodes_reaching_cycles(components, partial(_instantiated_components, ctx)), key=str):
+    for identity in sorted(nodes_reaching_cycles(components, partial(instantiated_components, ctx)), key=str):
         ctx.report(
             "sbol3-10804",
             identity,
@@ -96,7 +97,7 @@ def component_instance_cycles(ctx: Sbol3Context) -> None:
         )
 
 
-def _variant_derivations(ctx: Sbol3Context, derivation: Node) -> Iterator[Node]:
+def variant_derivations(ctx: Sbol3Context, derivation: Node) -> Iterator[Node]:
     """The CombinatorialDerivations that ``derivation``'s VariableFeatures draw variants from."""
     obj = ctx.get(derivation)
     if obj is None:
@@ -111,13 +112,13 @@ def _variant_derivations(ctx: Sbol3Context, derivation: Node) -> Iterator[Node]:
 def variant_derivation_cycles(ctx: Sbol3Context) -> None:
     """variantDerivation chains are acyclic."""
     derivations = [derivation.identity for derivation in ctx.instances(spec.COMBINATORIAL_DERIVATION)]
-    for identity in sorted(nodes_reaching_cycles(derivations, partial(_variant_derivations, ctx)), key=str):
+    for identity in sorted(nodes_reaching_cycles(derivations, partial(variant_derivations, ctx)), key=str):
         ctx.report(
             "sbol3-12204", identity, "variantDerivation references form a cycle", property=spec.VARIANT_DERIVATION
         )
 
 
-def _check_location_sequences(
+def check_location_sequences(
     ctx: Sbol3Context, feature: Sbol3Object, predicate: str, component: Node, rule: str
 ) -> None:
     """Report each of ``feature``'s Locations under ``predicate`` whose Sequence ``component`` does not declare."""
@@ -142,7 +143,7 @@ def location_sequence_membership(ctx: Sbol3Context) -> None:
         component = ctx.parent(feature, spec.HAS_FEATURE)
         if component is None:
             continue
-        _check_location_sequences(ctx, feature, spec.HAS_LOCATION, component.identity, "sbol3-11302")
+        check_location_sequences(ctx, feature, spec.HAS_LOCATION, component.identity, "sbol3-11302")
         instance_of = feature.first_resource(spec.INSTANCE_OF) if feature.has_class(spec.SUB_COMPONENT) else None
         if instance_of is not None:
-            _check_location_sequences(ctx, feature, spec.SOURCE_LOCATION, instance_of, "sbol3-11303")
+            check_location_sequences(ctx, feature, spec.SOURCE_LOCATION, instance_of, "sbol3-11303")

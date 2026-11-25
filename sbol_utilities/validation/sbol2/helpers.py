@@ -11,12 +11,12 @@ from sbol_utilities.validation.graphs import nodes_reaching_cycles
 from sbol_utilities.validation.sbol2 import spec as S
 from sbol_utilities.validation.sbol2.context import Sbol2Context, Sbol2Object
 
-_SEGMENT = re.compile(r"[/#]")
+SEGMENT = re.compile(r"[/#]")
 
 
 def ontology_curie(iri: str) -> str:
     """The compact ontology id an SBOL 2 term IRI ends with: its last path or fragment segment."""
-    return _SEGMENT.split(iri)[-1]
+    return SEGMENT.split(iri)[-1]
 
 
 def is_nucleic_acid_region(types: list[str]) -> bool:
@@ -72,7 +72,8 @@ def extents(ctx: Sbol2Context, obj: Sbol2Object, predicate: str = S.LOCATION_P) 
     return result
 
 
-def _overlap(a: Extent, b: Extent) -> bool:
+def extent_pair_overlaps(a: Extent, b: Extent) -> bool:
+    """Whether two extents share a position; a Cut overlaps a Range it falls strictly inside."""
     if isinstance(a, RangeExtent) and isinstance(b, RangeExtent):
         return b.start <= a.start <= b.end or a.start <= b.start <= a.end
     if isinstance(a, CutExtent) and isinstance(b, CutExtent):
@@ -85,7 +86,7 @@ def _overlap(a: Extent, b: Extent) -> bool:
 def extents_overlap(found: list[Extent]) -> bool:
     """Whether any two extents overlap: two Ranges sharing a position, two Cuts at the same position, or a Cut
     falling inside a Range."""
-    return any(_overlap(a, b) for a, b in combinations(found, 2))
+    return any(extent_pair_overlaps(a, b) for a, b in combinations(found, 2))
 
 
 def range_span(found: list[Extent]) -> int | None:

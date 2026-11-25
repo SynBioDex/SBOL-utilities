@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import re
 
-_DISPLAY_ID = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
+DISPLAY_ID = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
 
 
 def is_valid_display_id(text: str) -> bool:
     """Whether ``text`` is a displayId: ASCII letters, digits, and underscores, not starting with a digit."""
-    return _DISPLAY_ID.fullmatch(text) is not None
+    return DISPLAY_ID.fullmatch(text) is not None

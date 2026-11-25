@@ -79,24 +79,26 @@ EXTERNALLY_DEFINED_RULES = TypeRoleRules(
 )
 
 
-def _types(obj: Sbol3Object) -> list[str]:
+def type_iris(obj: Sbol3Object) -> list[str]:
+    """The object's ``type`` IRIs as strings."""
     return [str(i) for i in obj.iris(spec.TYPE)]
 
 
-def _roles(obj: Sbol3Object) -> list[str]:
+def role_iris(obj: Sbol3Object) -> list[str]:
+    """The object's ``role`` IRIs as strings."""
     return [str(i) for i in obj.iris(spec.ROLE)]
 
 
-def _is_nucleic_acid(ctx: Sbol3Context, obj: Sbol3Object) -> bool:
+def is_nucleic_acid(ctx: Sbol3Context, obj: Sbol3Object) -> bool:
     """Whether one of the object's types is a known DNA or RNA Component type."""
-    return any(is_nucleic_acid_component_type(ctx.ontology, t) for t in _types(obj))
+    return any(is_nucleic_acid_component_type(ctx.ontology, t) for t in type_iris(obj))
 
 
-def _check_types(ctx: Sbol3Context, obj: Sbol3Object, rules: TypeRoleRules) -> None:
+def check_types(ctx: Sbol3Context, obj: Sbol3Object, rules: TypeRoleRules) -> None:
     """Check an object's types against Table 2, the ontology's Component types, and the SO topology and strand
     terms, which accompany a DNA or RNA type."""
     ontology = ctx.ontology
-    types = _types(obj)
+    types = type_iris(obj)
     if sum(1 for t in types if ontology.is_table_2_component_type(t)) > 1:
         ctx.report(
             rules.table_2_count,
@@ -121,7 +123,7 @@ def _check_types(ctx: Sbol3Context, obj: Sbol3Object, rules: TypeRoleRules) -> N
     for left, right in conflicting_pairs(ontology, types):
         ctx.report(rules.type_conflicts, obj, f"type `{left}` conflicts with type `{right}`", property=spec.TYPE)
     topologies = [t for t in types if ontology.in_branch_if_known(t, SO_TOPOLOGY_ATTRIBUTE)]
-    if _is_nucleic_acid(ctx, obj):
+    if is_nucleic_acid(ctx, obj):
         if len(topologies) > 1:
             ctx.report(
                 rules.topology_count,
@@ -140,12 +142,12 @@ def _check_types(ctx: Sbol3Context, obj: Sbol3Object, rules: TypeRoleRules) -> N
             )
 
 
-def _check_roles(ctx: Sbol3Context, obj: Sbol3Object, rules: TypeRoleRules) -> None:
+def check_roles(ctx: Sbol3Context, obj: Sbol3Object, rules: TypeRoleRules) -> None:
     """Check an object's roles against its Table 2 types, the ontology's Component roles, and the SO sequence
     features, of which a DNA or RNA object has one."""
     ontology = ctx.ontology
-    roles = _roles(obj)
-    table_2_types = [t for t in _types(obj) if ontology.is_table_2_component_type(t)]
+    roles = role_iris(obj)
+    table_2_types = [t for t in type_iris(obj) if ontology.is_table_2_component_type(t)]
     for role in roles:
         if rules.role_terms is not None and ontology.is_component_role_term(role) is False:
             ctx.report(
@@ -162,7 +164,7 @@ def _check_roles(ctx: Sbol3Context, obj: Sbol3Object, rules: TypeRoleRules) -> N
                 property=spec.ROLE,
             )
     feature_roles = [ontology.is_sequence_feature_role_term(role) for role in roles]
-    if not _is_nucleic_acid(ctx, obj):
+    if not is_nucleic_acid(ctx, obj):
         if rules.sequence_feature_without_na is not None:
             for role, is_feature_role in zip(roles, feature_roles):
                 if is_feature_role:
@@ -193,7 +195,7 @@ class SequenceInfo:
     elements: str | None
 
 
-def _sequence_infos(ctx: Sbol3Context, component: Sbol3Object) -> list[SequenceInfo]:
+def sequence_infos(ctx: Sbol3Context, component: Sbol3Object) -> list[SequenceInfo]:
     """The Sequences of a Component that are held in the document."""
     infos = []
     for sequence in ctx.referenced(component, spec.HAS_SEQUENCE):
@@ -210,15 +212,16 @@ def _sequence_infos(ctx: Sbol3Context, component: Sbol3Object) -> list[SequenceI
     return infos
 
 
-def _check_component_sequences(ctx: Sbol3Context, component: Sbol3Object) -> None:
+def check_component_sequences(ctx: Sbol3Context, component: Sbol3Object) -> None:
     """Check that a Component's Sequences suit its Table 2 types and agree with one another."""
     ontology = ctx.ontology
-    types = [c for c in (component_type(ontology, t) for t in _types(component)) if c is not None]
+    types = [c for c in (component_type(ontology, t) for t in type_iris(component)) if c is not None]
     cross_listed = [t for t in types if ontology.compatible_sequence_encodings_for_component_type(t)]
-    sequences = _sequence_infos(ctx, component)
+    sequences = sequence_infos(ctx, component)
     encoded = [sequence for sequence in sequences if sequence.encoding is not None]
 
     def compatible(sequence: SequenceInfo, component_type_iri: str) -> bool:
+        """Whether the Sequence's encoding suits the component type."""
         return bool(ontology.encoding_compatible_with_component_type(sequence.encoding or "", component_type_iri))
 
     for t in cross_listed:
@@ -263,8 +266,8 @@ def _check_component_sequences(ctx: Sbol3Context, component: Sbol3Object) -> Non
 def components(ctx: Sbol3Context) -> None:
     """Component types, roles, and Sequence compatibility."""
     for obj in ctx.instances(spec.COMPONENT):
-        _check_types(ctx, obj, COMPONENT_RULES)
-        for t in _types(obj):
+        check_types(ctx, obj, COMPONENT_RULES)
+        for t in type_iris(obj):
             if is_sbo_physical_entity_term(ctx.ontology, t) is False:
                 ctx.report(
                     "sbol3-10604",
@@ -273,33 +276,33 @@ def components(ctx: Sbol3Context) -> None:
                     "branch (SBO:0000236)",
                     property=spec.TYPE,
                 )
-        _check_roles(ctx, obj, COMPONENT_RULES)
-        _check_component_sequences(ctx, obj)
+        check_roles(ctx, obj, COMPONENT_RULES)
+        check_component_sequences(ctx, obj)
 
 
 @REGISTRY.rule(*LOCAL_SUB_COMPONENT_RULES.ids())
 def local_sub_components(ctx: Sbol3Context) -> None:
     """LocalSubComponent types and roles."""
     for obj in ctx.instances(spec.LOCAL_SUB_COMPONENT):
-        _check_types(ctx, obj, LOCAL_SUB_COMPONENT_RULES)
-        _check_roles(ctx, obj, LOCAL_SUB_COMPONENT_RULES)
+        check_types(ctx, obj, LOCAL_SUB_COMPONENT_RULES)
+        check_roles(ctx, obj, LOCAL_SUB_COMPONENT_RULES)
 
 
 #: Component type family -> the external resources recommended for the definition of such an ExternallyDefined
-_RECOMMENDED_RESOURCES = {PROTEIN: ("uniprot",), SIMPLE_CHEMICAL: ("chebi", "pubchem")}
+RECOMMENDED_RESOURCES = {PROTEIN: ("uniprot",), SIMPLE_CHEMICAL: ("chebi", "pubchem")}
 
 
 @REGISTRY.rule(*EXTERNALLY_DEFINED_RULES.ids(), "sbol3-11109")
 def externally_defined(ctx: Sbol3Context) -> None:
     """ExternallyDefined types and recommended definition resources."""
     for obj in ctx.instances(spec.EXTERNALLY_DEFINED):
-        _check_types(ctx, obj, EXTERNALLY_DEFINED_RULES)
+        check_types(ctx, obj, EXTERNALLY_DEFINED_RULES)
         definition = obj.first_iri(spec.DEFINITION)
         resource = None if definition is None else known_external_resource(str(definition))
         if resource is None:
             continue
-        for t in _types(obj):
-            recommended = _RECOMMENDED_RESOURCES.get(ctx.ontology.component_type_family(t) or "")
+        for t in type_iris(obj):
+            recommended = RECOMMENDED_RESOURCES.get(ctx.ontology.component_type_family(t) or "")
             if recommended is not None and resource not in recommended:
                 ctx.report(
                     "sbol3-11109",

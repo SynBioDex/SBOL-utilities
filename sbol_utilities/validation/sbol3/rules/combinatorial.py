@@ -32,7 +32,8 @@ from sbol_utilities.validation.sbol3.resolver import (
 )
 
 
-def _iri_set(obj: Sbol3Object, predicate: str) -> set[str]:
+def iri_set(obj: Sbol3Object, predicate: str) -> set[str]:
+    """The distinct IRI values of ``predicate`` as strings."""
     return {str(i) for i in obj.iris(predicate)}
 
 
@@ -74,7 +75,7 @@ def derivation_strategy_and_variables(ctx: Sbol3Context) -> None:
                 )
 
 
-def _derivations(ctx: Sbol3Context) -> Iterator[tuple[DerivationContext, Sbol3Object]]:
+def template_derivations(ctx: Sbol3Context) -> Iterator[tuple[DerivationContext, Sbol3Object]]:
     """Each CombinatorialDerivation whose template is in the document, with that template."""
     for derivation in ctx.instances(spec.COMBINATORIAL_DERIVATION):
         context = derivation_context(ctx, derivation)
@@ -83,9 +84,9 @@ def _derivations(ctx: Sbol3Context) -> Iterator[tuple[DerivationContext, Sbol3Ob
             yield context, template
 
 
-def _derived_components(ctx: Sbol3Context) -> Iterator[tuple[DerivationContext, Sbol3Object, Sbol3Object]]:
+def each_derived_component(ctx: Sbol3Context) -> Iterator[tuple[DerivationContext, Sbol3Object, Sbol3Object]]:
     """Each Component derived from a CombinatorialDerivation, with the derivation and its template."""
-    for context, template in _derivations(ctx):
+    for context, template in template_derivations(ctx):
         for derived in derived_objects(ctx, context.derivation, spec.COMPONENT):
             yield context, template, derived
 
@@ -93,7 +94,7 @@ def _derived_components(ctx: Sbol3Context) -> Iterator[tuple[DerivationContext, 
 @REGISTRY.rule("sbol3-12104", "sbol3-12106")
 def templates_and_collections(ctx: Sbol3Context) -> None:
     """A derivation's template has Features, and the members of a Collection derived from it derive from it too."""
-    for context, _ in _derivations(ctx):
+    for context, _ in template_derivations(ctx):
         if not context.template_features:
             ctx.report(
                 "sbol3-12104",
@@ -117,7 +118,7 @@ def templates_and_collections(ctx: Sbol3Context) -> None:
 def derived_components(ctx: Sbol3Context) -> None:
     """A derived Component keeps its template's types and roles, and each of its Features derives from a Feature
     of the template."""
-    for context, template, derived in _derived_components(ctx):
+    for context, template, derived in each_derived_component(ctx):
         for feature in derived.resources(spec.HAS_FEATURE):
             feature_obj = ctx.get(feature)
             sources = () if feature_obj is None else feature_obj.resources(spec.PROV_WAS_DERIVED_FROM)
@@ -129,7 +130,7 @@ def derived_components(ctx: Sbol3Context) -> None:
                     property=spec.PROV_WAS_DERIVED_FROM,
                 )
         for predicate, rule, name in ((spec.TYPE, "sbol3-12107", "type"), (spec.ROLE, "sbol3-12108", "role")):
-            if not _iri_set(template, predicate) <= _iri_set(derived, predicate):
+            if not iri_set(template, predicate) <= iri_set(derived, predicate):
                 ctx.report(
                     rule,
                     derived,
@@ -142,7 +143,7 @@ def derived_components(ctx: Sbol3Context) -> None:
 @REGISTRY.rule("sbol3-12109", "sbol3-12110")
 def derived_static_features(ctx: Sbol3Context) -> None:
     """Each template Feature that is not a variable has one derived Feature, which keeps its properties."""
-    for context, _, derived in _derived_components(ctx):
+    for context, _, derived in each_derived_component(ctx):
         for static_feature in context.static_features:
             matching = features_derived_from(ctx, derived, static_feature)
             if len(matching) != 1:
@@ -168,7 +169,7 @@ def derived_static_features(ctx: Sbol3Context) -> None:
 def derived_variable_features(ctx: Sbol3Context) -> None:
     """The Features derived from a variable template Feature are as many as its VariableFeature's cardinality
     allows, instantiate allowed variants, and keep the template Feature's roles and types."""
-    for context, _, derived in _derived_components(ctx):
+    for context, _, derived in each_derived_component(ctx):
         for template_feature, variable_feature_id in context.variables.items():
             variable_feature = ctx.get(variable_feature_id)
             if variable_feature is None:
@@ -184,7 +185,7 @@ def derived_variable_features(ctx: Sbol3Context) -> None:
                 )
             allowed = allowed_variants(ctx, variable_feature)
             template_feature_obj = ctx.get(template_feature)
-            template_roles = set() if template_feature_obj is None else _iri_set(template_feature_obj, spec.ROLE)
+            template_roles = set() if template_feature_obj is None else iri_set(template_feature_obj, spec.ROLE)
             template_types = type_properties(ctx, template_feature)
             for derived_feature in matching:
                 instance_of = (
@@ -200,7 +201,7 @@ def derived_variable_features(ctx: Sbol3Context) -> None:
                         f"VariableFeature `{variable_feature_id}`",
                         property=spec.INSTANCE_OF,
                     )
-                if not template_roles <= _iri_set(derived_feature, spec.ROLE):
+                if not template_roles <= iri_set(derived_feature, spec.ROLE):
                     ctx.report(
                         "sbol3-12114",
                         derived_feature,
@@ -222,7 +223,7 @@ def derived_variable_features(ctx: Sbol3Context) -> None:
 @REGISTRY.rule("sbol3-12113")
 def derived_constraints(ctx: Sbol3Context) -> None:
     """The Features derived from the subject and object of a template Constraint satisfy its restriction."""
-    for context, template, derived in _derived_components(ctx):
+    for context, template, derived in each_derived_component(ctx):
         for constraint in ctx.referenced(template, spec.HAS_CONSTRAINT):
             restriction = constraint.first_iri(spec.RESTRICTION)
             template_subject = constraint.first_resource(spec.SUBJECT)
@@ -300,7 +301,7 @@ def reference_sub_components(ctx: Sbol3Context) -> None:
             )
 
 
-def _instantiated_component(ctx: Sbol3Context, sub_component: Node | None) -> Node | None:
+def instantiated_component(ctx: Sbol3Context, sub_component: Node | None) -> Node | None:
     """The Component a SubComponent held in the document instantiates."""
     obj = ctx.get(sub_component)
     return None if obj is None else obj.first_resource(spec.INSTANCE_OF)
@@ -315,7 +316,7 @@ def reference_targets(ctx: Sbol3Context) -> None:
         enclosing = parent_reference(ctx, obj)
         enclosing_in_child_of = None if enclosing is None else enclosing.first_resource(spec.IN_CHILD_OF)
         if enclosing_in_child_of is not None:
-            reached = _instantiated_component(ctx, enclosing_in_child_of)
+            reached = instantiated_component(ctx, enclosing_in_child_of)
             if reached is None:
                 # nothing is decidable below a reference whose own SubComponent or its Component is not in the document
                 continue
@@ -326,7 +327,7 @@ def reference_targets(ctx: Sbol3Context) -> None:
                     "nested ComponentReference inChildOf must be a SubComponent of the referenced Component",
                     property=spec.IN_CHILD_OF,
                 )
-        referenced_component = _instantiated_component(ctx, in_child_of)
+        referenced_component = instantiated_component(ctx, in_child_of)
         refers_to = obj.first_resource(spec.REFERS_TO)
         target = ctx.get(refers_to)
         if referenced_component is None or refers_to is None or target is None:

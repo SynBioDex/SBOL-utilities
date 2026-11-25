@@ -83,7 +83,7 @@ def download(destination: Path, directories: Collection[str] | None = None) -> N
     staging = Path(tempfile.mkdtemp(prefix=destination.name + ".", dir=destination.parent))
     try:
         try:
-            _extract(payload, staging, directories)
+            extract_archive(payload, staging, directories)
         except zipfile.BadZipFile as error:
             raise DataUnavailable(f"{ARCHIVE_URL} did not return a zip archive: {error}") from error
         try:
@@ -97,7 +97,8 @@ def download(destination: Path, directories: Collection[str] | None = None) -> N
         shutil.rmtree(staging, ignore_errors=True)
 
 
-def _extract(payload: bytes, staging: Path, directories: Collection[str] | None) -> None:
+def extract_archive(payload: bytes, staging: Path, directories: Collection[str] | None) -> None:
+    """Unpack an SBOLTestSuite archive into ``staging``, keeping only the named top-level directories."""
     prefix = f"SBOLTestSuite-{SBOL_TEST_SUITE_COMMIT}/"
     with zipfile.ZipFile(io.BytesIO(payload)) as archive:
         for member in archive.infolist():
@@ -111,25 +112,26 @@ def _extract(payload: bytes, staging: Path, directories: Collection[str] | None)
             target.write_bytes(archive.read(member))
 
 
-def _has_runtime_files(root: Path) -> bool:
+def has_runtime_files(root: Path) -> bool:
+    """Whether every runtime data file exists under ``root``."""
     return all((root / name).is_file() for name in RUNTIME_FILES)
 
 
-def _configured_checkout() -> Path | None:
+def configured_checkout() -> Path | None:
     """The checkout ``$SBOL_TEST_SUITE_DIR`` names, or None when the variable is unset."""
     configured = os.environ.get(CHECKOUT_VARIABLE)
     if not configured:
         return None
     root = Path(configured).expanduser()
-    if not _has_runtime_files(root):
+    if not has_runtime_files(root):
         raise DataUnavailable(f"{CHECKOUT_VARIABLE}={configured} lacks one of {', '.join(RUNTIME_FILES)}")
     return root
 
 
-def _is_current_bundle(root: Path) -> bool:
+def is_current_bundle(root: Path) -> bool:
     """Whether ``root`` holds the runtime files as bundled for the pinned commit."""
     stamp = root / STAMP
-    return _has_runtime_files(root) and stamp.is_file() and stamp.read_text().strip() == SBOL_TEST_SUITE_COMMIT
+    return has_runtime_files(root) and stamp.is_file() and stamp.read_text().strip() == SBOL_TEST_SUITE_COMMIT
 
 
 def fetch_runtime_files(destination: Path) -> None:
@@ -156,21 +158,22 @@ def fetch_runtime_files(destination: Path) -> None:
         os.replace(partial, target)
 
 
-def _cached_root() -> Path:
+def cached_root() -> Path:
+    """The user cache directory, with the runtime data files fetched into it when absent."""
     cache = user_cache_dir()
-    if not _has_runtime_files(cache):
+    if not has_runtime_files(cache):
         fetch_runtime_files(cache)
     return cache
 
 
 def runtime_root() -> Path:
     """Directory holding ``Rules/`` and ``Ontology/``, downloading them when no other copy is available."""
-    checkout = _configured_checkout()
+    checkout = configured_checkout()
     if checkout is not None:
         return checkout
-    if _is_current_bundle(PACKAGE_DATA_DIR):
+    if is_current_bundle(PACKAGE_DATA_DIR):
         return PACKAGE_DATA_DIR
-    return _cached_root()
+    return cached_root()
 
 
 def runtime_file(name: str) -> Path:
@@ -184,11 +187,11 @@ def bundle(destination: Path = PACKAGE_DATA_DIR) -> None:
     The files come from ``$SBOL_TEST_SUITE_DIR`` when it is set and from the pinned commit otherwise. A destination
     already filled for the pinned commit is left as it is unless ``$SBOL_TEST_SUITE_DIR`` is set.
     """
-    checkout = _configured_checkout()
+    checkout = configured_checkout()
     if checkout is None:
-        if _is_current_bundle(destination):
+        if is_current_bundle(destination):
             return
-        source = _cached_root()
+        source = cached_root()
     else:
         source = checkout
         revision = checkout_revision(checkout)

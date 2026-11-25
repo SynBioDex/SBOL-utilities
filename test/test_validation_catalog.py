@@ -26,7 +26,7 @@ RESOLVER_ONLY = {
 }
 
 
-def _covered(version: str) -> set[str]:
+def covered_rules(version: str) -> set[str]:
     """The rules that an invalid file named after them is expected to fire."""
     files = suite.CORPORA[INVALID_FILES[version]]()
     return {rule for path in files if vg.fires(suite.relative_name(path), rule := suite.rule_for(path))}
@@ -47,7 +47,7 @@ def test_every_machine_checkable_rule_is_implemented(version):
 @pytest.mark.parametrize("version", ["sbol2", "sbol3"])
 def test_every_rule_has_an_invalid_file(version, sbol_test_suite):
     """Each machine-checkable rule has an SBOLTestSuite invalid file that is expected to fire it."""
-    covered = _covered(version)
+    covered = covered_rules(version)
     missing = sorted(
         r.id
         for r in REGISTRIES[version].catalog.machine_checkable()

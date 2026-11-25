@@ -84,7 +84,7 @@ def closed_property_sets(ctx: Sbol2Context) -> None:
 
 
 #: (property, rule, the values it may take)
-_ENUMS = (
+ENUMS = (
     (S.ACCESS, "sbol2-10607", (S.PUBLIC, S.PRIVATE)),
     (S.ROLE_INTEGRATION, "sbol2-10708", (S.MERGE_ROLES, S.OVERRIDE_ROLES)),
     (S.REFINEMENT, "sbol2-10810", (S.VERIFY_IDENTICAL, S.USE_LOCAL, S.USE_REMOTE, S.MERGE)),
@@ -93,11 +93,11 @@ _ENUMS = (
 )
 
 
-@REGISTRY.rule(*(rule for _, rule, _ in _ENUMS))
+@REGISTRY.rule(*(rule for _, rule, _ in ENUMS))
 def controlled_values(ctx: Sbol2Context) -> None:
     """Enumerated properties take values from their fixed tables."""
     for obj in ctx.sbol_objects:
-        for predicate, rule, allowed in _ENUMS:
+        for predicate, rule, allowed in ENUMS:
             for value in obj.iris(predicate):
                 if value not in allowed:
                     ctx.report(

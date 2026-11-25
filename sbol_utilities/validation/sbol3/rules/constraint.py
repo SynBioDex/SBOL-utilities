@@ -10,7 +10,7 @@ from sbol_utilities.validation.sbol3.registry import REGISTRY
 from sbol_utilities.validation.sbol3.resolver import Outcome, table8_relation, table10_relation
 
 
-def _contained_constraints(ctx: Sbol3Context) -> Iterator[tuple[Sbol3Object, Sbol3Object]]:
+def contained_constraints(ctx: Sbol3Context) -> Iterator[tuple[Sbol3Object, Sbol3Object]]:
     """Each Constraint held by a Component, with that Component."""
     for obj in ctx.instances(spec.CONSTRAINT):
         component = ctx.parent(obj, spec.HAS_CONSTRAINT)
@@ -21,7 +21,7 @@ def _contained_constraints(ctx: Sbol3Context) -> Iterator[tuple[Sbol3Object, Sbo
 @REGISTRY.rule("sbol3-11701", "sbol3-11702", "sbol3-11703")
 def constraint_features(ctx: Sbol3Context) -> None:
     """A Constraint relates two different Features of the Component that holds it."""
-    for obj, component in _contained_constraints(ctx):
+    for obj, component in contained_constraints(ctx):
         features = component.resources(spec.HAS_FEATURE)
         subject, constrained = obj.first_resource(spec.SUBJECT), obj.first_resource(spec.OBJECT)
         if subject is not None and subject not in features:
@@ -48,7 +48,7 @@ def constraint_features(ctx: Sbol3Context) -> None:
 @REGISTRY.rule("sbol3-11704", "sbol3-11705", "sbol3-11706")
 def constraint_restrictions(ctx: Sbol3Context) -> None:
     """A Constraint's restriction is an SBOL relation that the document's Features and Locations do not contradict."""
-    for obj, _ in _contained_constraints(ctx):
+    for obj, _ in contained_constraints(ctx):
         restriction = obj.first_iri(spec.RESTRICTION)
         if restriction is None:
             continue

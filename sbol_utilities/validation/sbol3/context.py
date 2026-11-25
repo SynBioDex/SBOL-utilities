@@ -21,7 +21,8 @@ from sbol_utilities.validation.sbol3 import spec
 from sbol_utilities.vocab import OM_NS, PROV_NS, RDF_TYPE, SBOL3_NS
 
 
-def _term_order(node: Node) -> tuple[int, str]:
+def term_order(node: Node) -> tuple[int, str]:
+    """Sort key placing IRIs first, then blank nodes, then literals, each group in string order."""
     if isinstance(node, URIRef):
         return 0, str(node)
     if isinstance(node, BNode):
@@ -29,7 +30,8 @@ def _term_order(node: Node) -> tuple[int, str]:
     return 2, str(node)
 
 
-def _is_extension_predicate(predicate: str) -> bool:
+def is_extension_predicate(predicate: str) -> bool:
+    """Whether a predicate is outside the SBOL 3, PROV, and OM namespaces and is not rdf:type."""
     return (
         predicate != RDF_TYPE
         and not predicate.startswith(SBOL3_NS)
@@ -146,11 +148,11 @@ def collect_objects(graph: rdflib.Graph) -> dict[Node, Sbol3Object]:
     returns the value written first.
     """
     objects: dict[Node, Sbol3Object] = {}
-    for subject in sorted(set(graph.subjects()), key=_term_order):
+    for subject in sorted(set(graph.subjects()), key=term_order):
         properties: dict[str, list[Node]] = {}
         for p, o in graph.predicate_objects(subject):
             properties.setdefault(str(p), []).append(o)
-        if any(not _is_extension_predicate(p) for p in properties):
+        if any(not is_extension_predicate(p) for p in properties):
             objects[subject] = Sbol3Object(subject, properties)
     return objects
 
@@ -165,7 +167,7 @@ class Sbol3Context(Context[Sbol3Object]):
         super().__init__(graph, config, catalog, ontology)
         self.objects: dict[Node, Sbol3Object] = collect_objects(graph)
         self.ownership = OwnershipIndex(self.objects.values())
-        self._index_instances(self.objects.values())
+        self.index_instances(self.objects.values())
 
     def get(self, identity: Node | None) -> Sbol3Object | None:
         """The object with this identity, if present in the document."""

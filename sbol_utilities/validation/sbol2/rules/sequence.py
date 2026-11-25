@@ -17,7 +17,7 @@ def elements_match_encoding(ctx: Sbol2Context) -> None:
         if encoding is None or elements is None:
             continue
         if encoding == S.IUPAC_NUCLEIC_ENCODING:
-            consistent = all(c in S.IUPAC_NUCLEIC_ALPHABET for c in _ascii_upper(elements))
+            consistent = all(c in S.IUPAC_NUCLEIC_ALPHABET for c in ascii_upper(elements))
         elif encoding == S.IUPAC_PROTEIN_ENCODING:
             consistent = all(c.isascii() and c.isalpha() for c in elements)
         else:
@@ -31,11 +31,12 @@ def elements_match_encoding(ctx: Sbol2Context) -> None:
             )
 
 
-def _ascii_upper(text: str) -> str:
+def ascii_upper(text: str) -> str:
+    """The text with its ASCII letters upper-cased and every other character unchanged."""
     return "".join(c.upper() if c.isascii() else c for c in text)
 
 
-def _sequences(ctx: Sbol2Context, definition: Sbol2Object) -> list[tuple[str, int]]:
+def definition_sequences(ctx: Sbol2Context, definition: Sbol2Object) -> list[tuple[str, int]]:
     """The (encoding, elements length) of each Sequence of a ComponentDefinition that is held in the document and has
     an encoding; a Sequence without elements has length 0."""
     return [
@@ -45,7 +46,7 @@ def _sequences(ctx: Sbol2Context, definition: Sbol2Object) -> list[tuple[str, in
     ]
 
 
-def _table_1_lengths(sequences: list[tuple[str, int]]) -> dict[str, int]:
+def table_1_lengths(sequences: list[tuple[str, int]]) -> dict[str, int]:
     """Table 1 encoding -> the length of the first Sequence with that encoding."""
     lengths: dict[str, int] = {}
     for encoding, length in sequences:
@@ -54,7 +55,7 @@ def _table_1_lengths(sequences: list[tuple[str, int]]) -> dict[str, int]:
     return lengths
 
 
-def _nucleic_length(ctx: Sbol2Context, definition: Sbol2Object) -> int | None:
+def nucleic_length(ctx: Sbol2Context, definition: Sbol2Object) -> int | None:
     """The length of a ComponentDefinition's first IUPAC nucleic-acid Sequence that has elements."""
     for _, sequence in ctx.resolved(definition, S.SEQUENCE_P):
         elements = sequence.first_literal(S.ELEMENTS)
@@ -68,10 +69,10 @@ def definition_sequence_categories(ctx: Sbol2Context) -> None:
     """A ComponentDefinition with Sequences has one whose encoding matches its DNA/RNA, protein, or small-molecule
     type."""
     for obj in ctx.instances(S.COMPONENT_DEFINITION):
-        sequences = _sequences(ctx, obj)
+        sequences = definition_sequences(ctx, obj)
         if not sequences:
             continue
-        encodings = _table_1_lengths(sequences)
+        encodings = table_1_lengths(sequences)
         types = obj.iris(S.TYPE)
         if (
             (is_nucleic_acid_region(types) and S.IUPAC_NUCLEIC_ENCODING not in encodings)
@@ -90,8 +91,8 @@ def definition_sequence_categories(ctx: Sbol2Context) -> None:
 def definition_sequence_lengths(ctx: Sbol2Context) -> None:
     """A ComponentDefinition's Sequences of one Table 1 encoding share a length."""
     for obj in ctx.instances(S.COMPONENT_DEFINITION):
-        sequences = _sequences(ctx, obj)
-        first = _table_1_lengths(sequences)
+        sequences = definition_sequences(ctx, obj)
+        first = table_1_lengths(sequences)
         if any(first.get(encoding, length) != length for encoding, length in sequences):
             ctx.report(
                 "sbol2-10518",
@@ -101,7 +102,7 @@ def definition_sequence_lengths(ctx: Sbol2Context) -> None:
             )
 
 
-def _outside(location: Sbol2Object, length: int) -> bool:
+def lies_outside(location: Sbol2Object, length: int) -> bool:
     """Whether a Range or Cut lies outside a sequence of ``length`` positions.
 
     A Range without a start is read as starting at 1 and one without an end as ending at 0; a Cut without a
@@ -120,7 +121,7 @@ def _outside(location: Sbol2Object, length: int) -> bool:
 def annotation_positions(ctx: Sbol2Context) -> None:
     """The Locations of a ComponentDefinition's SequenceAnnotations lie within its nucleic-acid Sequence."""
     for obj in ctx.instances(S.COMPONENT_DEFINITION):
-        length = _table_1_lengths(_sequences(ctx, obj)).get(S.IUPAC_NUCLEIC_ENCODING)
+        length = table_1_lengths(definition_sequences(ctx, obj)).get(S.IUPAC_NUCLEIC_ENCODING)
         if length is None:
             continue
         locations = (
@@ -128,7 +129,7 @@ def annotation_positions(ctx: Sbol2Context) -> None:
             for annotation in ctx.referenced(obj, S.SEQUENCE_ANNOTATION_P)
             for location in ctx.referenced(annotation, S.LOCATION_P)
         )
-        if any(_outside(location, length) for location in locations):
+        if any(lies_outside(location, length) for location in locations):
             ctx.report(
                 "sbol2-10523",
                 obj,
@@ -137,22 +138,22 @@ def annotation_positions(ctx: Sbol2Context) -> None:
             )
 
 
-def _annotated_definition_length(ctx: Sbol2Context, annotation: Sbol2Object) -> int | None:
+def annotated_definition_length(ctx: Sbol2Context, annotation: Sbol2Object) -> int | None:
     """The nucleic-acid Sequence length of the definition of the Component a SequenceAnnotation refers to."""
     component = ctx.resolve(annotation.first_iri(S.COMPONENT_P))
     definition = None if component is None else ctx.resolve(component.first_iri(S.DEFINITION))
-    return None if definition is None else _nucleic_length(ctx, definition)
+    return None if definition is None else nucleic_length(ctx, definition)
 
 
 @REGISTRY.rule("sbol2-10520")
 def hierarchy_sequence_lengths(ctx: Sbol2Context) -> None:
     """A SequenceAnnotation's first Range is as long as the Sequence of the Component it annotates."""
     for obj in ctx.instances(S.COMPONENT_DEFINITION):
-        if S.IUPAC_NUCLEIC_ENCODING not in _table_1_lengths(_sequences(ctx, obj)):
+        if S.IUPAC_NUCLEIC_ENCODING not in table_1_lengths(definition_sequences(ctx, obj)):
             continue
         for annotation in ctx.referenced(obj, S.SEQUENCE_ANNOTATION_P):
             span = next((e.length for e in extents(ctx, annotation) if isinstance(e, RangeExtent)), None)
-            child_length = None if span is None else _annotated_definition_length(ctx, annotation)
+            child_length = None if span is None else annotated_definition_length(ctx, annotation)
             if child_length is not None and child_length != span:
                 ctx.report(
                     "sbol2-10520",

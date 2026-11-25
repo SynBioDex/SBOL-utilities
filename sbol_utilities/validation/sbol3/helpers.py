@@ -13,8 +13,8 @@ from sbol_utilities.validation.ontology import NUCLEIC_ACID, Ontology
 from sbol_utilities.validation.schema import ValueKind
 from sbol_utilities.vocab import RDF_LANG_STRING, XSD_NS, XSD_STRING
 
-_HEX = re.compile(r"[0-9A-Fa-f]+")
-_HASH_TOKEN = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*")
+HEX = re.compile(r"[0-9A-Fa-f]+")
+HASH_TOKEN = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*")
 
 EDAM_IUPAC_DNA_RNA = "https://identifiers.org/edam:format_1207"
 EDAM_IUPAC_PROTEIN = "https://identifiers.org/edam:format_1208"
@@ -52,12 +52,12 @@ def is_namespace_url(value: str) -> bool:
 
 def is_hex_digest(value: str) -> bool:
     """Nonempty ASCII hexadecimal string."""
-    return _HEX.fullmatch(value) is not None
+    return HEX.fullmatch(value) is not None
 
 
 def is_hash_algorithm_token(value: str) -> bool:
     """Registry-style hash algorithm token."""
-    return _HASH_TOKEN.fullmatch(value) is not None
+    return HASH_TOKEN.fullmatch(value) is not None
 
 
 def url_is_child_of(candidate: str, parent: str) -> bool:
@@ -79,11 +79,12 @@ def url_matches_namespace_display_id(identity: str, namespace: str, display_id: 
     return bool(rest) and all(segments) and segments[-1] == display_id
 
 
-def _is_string_datatype(datatype: str) -> bool:
+def is_string_datatype(datatype: str) -> bool:
+    """Whether a datatype is ``xsd:string`` or ``rdf:langString``."""
     return datatype in (XSD_STRING, RDF_LANG_STRING)
 
 
-_INTEGER_TYPES = frozenset(
+INTEGER_TYPES = frozenset(
     XSD_NS + t
     for t in (
         "integer",
@@ -101,7 +102,7 @@ _INTEGER_TYPES = frozenset(
         "unsignedByte",
     )
 )
-_FLOAT_TYPES = frozenset(XSD_NS + t for t in ("float", "double", "decimal"))
+FLOAT_TYPES = frozenset(XSD_NS + t for t in ("float", "double", "decimal"))
 
 
 def value_matches_kind(term: Node, kind: ValueKind) -> bool:
@@ -115,16 +116,16 @@ def value_matches_kind(term: Node, kind: ValueKind) -> bool:
     datatype = literal_datatype(term)
     value = str(term)
     if kind is ValueKind.STRING:
-        return _is_string_datatype(datatype)
+        return is_string_datatype(datatype)
     if kind in (ValueKind.INTEGER, ValueKind.LONG):
-        return (datatype in _INTEGER_TYPES or _is_string_datatype(datatype)) and parse_i64(value) is not None
+        return (datatype in INTEGER_TYPES or is_string_datatype(datatype)) and parse_i64(value) is not None
     if kind is ValueKind.FLOAT:
-        return (datatype in _FLOAT_TYPES or _is_string_datatype(datatype)) and is_float_lexical(value)
-    return (datatype == XSD_NS + "dateTime" or _is_string_datatype(datatype)) and is_date_time_lexical(value)
+        return (datatype in FLOAT_TYPES or is_string_datatype(datatype)) and is_float_lexical(value)
+    return (datatype == XSD_NS + "dateTime" or is_string_datatype(datatype)) and is_date_time_lexical(value)
 
 
 #: IRI prefixes (lower case) of records in the external resources the rules recognize
-_EXTERNAL_RESOURCE_PREFIXES: dict[str, tuple[str, ...]] = {
+EXTERNAL_RESOURCE_PREFIXES: dict[str, tuple[str, ...]] = {
     "uniprot": (
         "https://identifiers.org/uniprot:",
         "http://identifiers.org/uniprot:",
@@ -149,7 +150,7 @@ _EXTERNAL_RESOURCE_PREFIXES: dict[str, tuple[str, ...]] = {
 def known_external_resource(iri: str) -> str | None:
     """The resource (``uniprot``, ``chebi``, or ``pubchem``) a definition IRI names a record of, if any."""
     lowered = iri.lower()
-    return next((name for name, prefixes in _EXTERNAL_RESOURCE_PREFIXES.items() if lowered.startswith(prefixes)), None)
+    return next((name for name, prefixes in EXTERNAL_RESOURCE_PREFIXES.items() if lowered.startswith(prefixes)), None)
 
 
 # --- ontology tables ---
@@ -220,7 +221,7 @@ def component_type(ontology: Ontology, iri: str) -> str | None:
     return ontology.canonicalize(iri)
 
 
-def _matches_table_entry(iri: str, table: Iterable[str]) -> str | None:
+def matches_table_entry(iri: str, table: Iterable[str]) -> str | None:
     """The table entry ``iri`` spells, ignoring case and the http/https distinction."""
     lowered = iri.lower()
     for canonical in table:
@@ -231,12 +232,12 @@ def _matches_table_entry(iri: str, table: Iterable[str]) -> str | None:
 
 def canonical_model_language_iri(iri: str) -> str | None:
     """Table 15 URI that ``iri`` is an alias of."""
-    return _matches_table_entry(iri, MODEL_LANGUAGE_TABLE_15)
+    return matches_table_entry(iri, MODEL_LANGUAGE_TABLE_15)
 
 
 def canonical_model_framework_iri(iri: str) -> str | None:
     """Table 16 URI that ``iri`` is an alias of."""
-    return _matches_table_entry(iri, MODEL_FRAMEWORK_TABLE_16)
+    return matches_table_entry(iri, MODEL_FRAMEWORK_TABLE_16)
 
 
 def first_invalid_sequence_element(ontology: Ontology, elements: str, encoding: str) -> str | None:

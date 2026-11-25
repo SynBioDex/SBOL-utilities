@@ -28,6 +28,7 @@ def served(monkeypatch):
     """Serve the given bytes in place of the SBOLTestSuite archive."""
 
     def serve(payload: bytes) -> None:
+        """Make every download return ``payload``."""
         monkeypatch.setattr(runtime_data.urllib.request, "urlopen", lambda *args, **kwargs: io.BytesIO(payload))
 
     return serve
@@ -44,6 +45,7 @@ def checkout(tmp_path: Path) -> Path:
 
 
 def test_download_extracts_requested_directories(tmp_path, served):
+    """Only the requested directories are extracted, and nothing else is left behind."""
     served(archive({"Rules/a.json": "a", "Ontology/b.tsv": "b", "SBOL3/c.ttl": "c", "README.md": "readme"}))
     destination = tmp_path / "cache" / "suite"
     runtime_data.download(destination, ("Rules", "Ontology"))
@@ -55,6 +57,7 @@ def test_download_extracts_requested_directories(tmp_path, served):
 
 
 def test_download_ignores_paths_that_escape_the_destination(tmp_path, served):
+    """An archive member with ``..`` in its path is not written."""
     served(archive({"Rules/../../escaped.txt": "x", "Rules/kept.json": "kept"}))
     destination = tmp_path / "cache" / "suite"
     runtime_data.download(destination, ("Rules",))
@@ -63,6 +66,7 @@ def test_download_ignores_paths_that_escape_the_destination(tmp_path, served):
 
 
 def test_download_fills_an_existing_destination(tmp_path, served):
+    """A download adds to a destination that already exists."""
     destination = tmp_path / "suite"
     (destination / "Rules").mkdir(parents=True)
     (destination / "Rules" / "old.json").write_text("old")
@@ -74,6 +78,7 @@ def test_download_fills_an_existing_destination(tmp_path, served):
 
 
 def test_download_reports_a_malformed_archive(tmp_path, served):
+    """A payload that is not a zip archive raises DataUnavailable and leaves nothing behind."""
     served(b"<html>rate limited</html>")
     with pytest.raises(runtime_data.DataUnavailable, match="zip archive"):
         runtime_data.download(tmp_path / "suite")
@@ -81,7 +86,10 @@ def test_download_reports_a_malformed_archive(tmp_path, served):
 
 
 def test_download_reports_a_network_failure(tmp_path, monkeypatch):
+    """A network failure raises DataUnavailable."""
+
     def unreachable(*args, **kwargs):
+        """Stand in for ``urlopen`` on a machine with no network."""
         raise OSError("network unreachable")
 
     monkeypatch.setattr(runtime_data.urllib.request, "urlopen", unreachable)
@@ -90,17 +98,20 @@ def test_download_reports_a_network_failure(tmp_path, monkeypatch):
 
 
 def test_checkout_variable_takes_precedence(monkeypatch, checkout):
+    """A configured checkout is used before bundled or cached data."""
     monkeypatch.setenv(runtime_data.CHECKOUT_VARIABLE, str(checkout))
     assert runtime_data.runtime_root() == checkout
 
 
 def test_checkout_variable_must_name_a_checkout(monkeypatch, tmp_path):
+    """A configured checkout that does not exist is an error."""
     monkeypatch.setenv(runtime_data.CHECKOUT_VARIABLE, str(tmp_path / "missing"))
     with pytest.raises(runtime_data.DataUnavailable, match=runtime_data.CHECKOUT_VARIABLE):
         runtime_data.runtime_root()
 
 
 def test_bundle_records_the_pinned_commit(monkeypatch, checkout, tmp_path):
+    """Bundling copies the data files and stamps them with the pinned commit."""
     monkeypatch.setenv(runtime_data.CHECKOUT_VARIABLE, str(checkout))
     destination = tmp_path / "data"
     runtime_data.bundle(destination)
@@ -110,6 +121,7 @@ def test_bundle_records_the_pinned_commit(monkeypatch, checkout, tmp_path):
 
 
 def test_bundle_for_another_commit_is_not_used(monkeypatch, checkout, tmp_path):
+    """Bundled data stamped with another commit is passed over for the cache."""
     monkeypatch.delenv(runtime_data.CHECKOUT_VARIABLE, raising=False)
     monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path / "xdg"))
     stale = tmp_path / "data"
@@ -128,6 +140,7 @@ def test_bundle_for_another_commit_is_not_used(monkeypatch, checkout, tmp_path):
 
 
 def test_current_bundle_is_kept_without_a_checkout(monkeypatch, tmp_path):
+    """Bundling over data already at the pinned commit downloads nothing."""
     monkeypatch.delenv(runtime_data.CHECKOUT_VARIABLE, raising=False)
     destination = tmp_path / "data"
     for name in runtime_data.RUNTIME_FILES:
@@ -136,6 +149,7 @@ def test_current_bundle_is_kept_without_a_checkout(monkeypatch, tmp_path):
     (destination / runtime_data.STAMP).write_text(runtime_data.SBOL_TEST_SUITE_COMMIT)
 
     def no_network(*args, **kwargs):
+        """Fail the test if anything is downloaded."""
         raise AssertionError("bundling a current directory must not download")
 
     monkeypatch.setattr(runtime_data.urllib.request, "urlopen", no_network)
@@ -149,7 +163,10 @@ def raw_files(monkeypatch):
     requested: list[str] = []
 
     def serve(content: dict[str, bytes]) -> list[str]:
+        """Serve each data file's content by URL, returning the list that records requested URLs."""
+
         def urlopen(url, **kwargs):
+            """Record the URL and return the content of the file it names."""
             requested.append(url)
             return io.BytesIO(content[url[len(runtime_data.RAW_URL) :]])
 
@@ -160,6 +177,7 @@ def raw_files(monkeypatch):
 
 
 def test_fetch_runtime_files_verifies_checksums(monkeypatch, tmp_path, raw_files):
+    """Each data file is requested by name and stored when its checksum matches."""
     content = {name: f"content of {name}".encode() for name in runtime_data.RUNTIME_FILES}
     checksums = {name: hashlib.sha256(data).hexdigest() for name, data in content.items()}
     monkeypatch.setattr(runtime_data, "RUNTIME_FILES", checksums)
@@ -170,6 +188,7 @@ def test_fetch_runtime_files_verifies_checksums(monkeypatch, tmp_path, raw_files
 
 
 def test_fetch_runtime_files_rejects_unexpected_content(tmp_path, raw_files):
+    """Content with the wrong checksum raises DataUnavailable and stores nothing."""
     raw_files({name: b"tampered" for name in runtime_data.RUNTIME_FILES})
     with pytest.raises(runtime_data.DataUnavailable, match="SHA-256"):
         runtime_data.fetch_runtime_files(tmp_path / "cache")

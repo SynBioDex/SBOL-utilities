@@ -34,26 +34,31 @@ CYCLE_CASES = [
 
 @pytest.mark.parametrize("edges, reaching, on_cycle", CYCLE_CASES)
 def test_nodes_reaching_cycles(edges, reaching, on_cycle):
+    """Every node with a walk into a cycle is reported."""
     assert nodes_reaching_cycles(edges, successors_in(edges)) == reaching
 
 
 @pytest.mark.parametrize("edges, reaching, on_cycle", CYCLE_CASES)
 def test_nodes_on_cycles(edges, reaching, on_cycle):
+    """Exactly the nodes that lie on a cycle are reported."""
     assert nodes_on_cycles(edges, successors_in(edges)) == on_cycle
 
 
 def test_nodes_reaching_cycles_reports_only_starts():
+    """Nodes outside ``starts`` are not reported, even on a cycle."""
     edges = {"a": ["b"], "b": ["b"]}
     assert nodes_reaching_cycles(["a"], successors_in(edges)) == {"a"}
 
 
 def test_nodes_reaching_needs_at_least_one_edge():
+    """A target does not reach itself without a cycle."""
     edges = {"a": ["b"], "b": ["c"], "c": [], "d": []}
     assert nodes_reaching(["c"], edges, successors_in(edges)) == {"a", "b"}
     assert nodes_reaching(["a"], edges, successors_in(edges)) == set()
 
 
 def test_cycle_queries_handle_long_chains():
+    """A 50,000-node chain is traversed without exhausting the stack."""
     edges = {n: [n + 1] for n in range(50_000)}
     assert nodes_reaching_cycles(edges, successors_in(edges)) == set()
     assert nodes_on_cycles(edges, successors_in(edges)) == set()
@@ -80,19 +85,23 @@ def derivation_graph(edges: dict[str, list[str]]) -> Graph:
 
 
 def derivation_cycle_subjects(edges: dict[str, list[str]]) -> set:
+    """The subjects the SBOL 3 validator reports for a wasDerivedFrom cycle."""
     report = validate_sbol3(derivation_graph(edges), ValidationConfig(complete=False, best_practice=False))
     return {issue.subject for issue in report.issues if issue.rule == "sbol3-10203"}
 
 
 def test_derivation_cycle_is_reported_on_every_object_leading_to_it():
+    """Objects on a derivation cycle and objects leading to it are all reported."""
     assert derivation_cycle_subjects({"a": ["b"], "b": ["c"], "c": ["b"], "d": []}) == {EX + "a", EX + "b", EX + "c"}
 
 
 def test_long_derivation_chain_validates():
+    """A long acyclic derivation chain validates without error."""
     assert derivation_cycle_subjects({f"n{i}": [f"n{i + 1}"] for i in range(1_500)}) == set()
 
 
 def test_derivation_ladder_validates():
+    """A derivation graph with exponentially many paths validates quickly."""
     edges = {f"{side}{rung}": [f"l{rung + 1}", f"r{rung + 1}"] for rung in range(40) for side in "lr"}
     assert derivation_cycle_subjects(edges) == set()
 
@@ -110,6 +119,7 @@ def test_derivation_ladder_validates():
     ],
 )
 def test_display_id_syntax(text, valid):
+    """A displayId is letters, digits, and underscores, not starting with a digit."""
     assert is_valid_display_id(text) is valid
 
 
@@ -131,6 +141,7 @@ def test_display_id_syntax(text, valid):
     ],
 )
 def test_parse_i64(text, value):
+    """Integers parse when they fit in 64 signed bits."""
     assert parse_i64(text) == value
 
 
@@ -140,6 +151,7 @@ def test_parse_i64(text, value):
     + [("", False), ("e3", False), ("1e", False), ("1.5\n", False)],
 )
 def test_float_lexical_form(text, valid):
+    """Float lexical forms are recognized."""
     assert is_float_lexical(text) is valid
 
 
@@ -149,6 +161,7 @@ def test_float_lexical_form(text, valid):
     + [("2024-01-02", False), ("2024-01-02 03:04:05", False), ("2024-01-02T03:04:05Z\n", False)],
 )
 def test_date_time_lexical_form(text, valid):
+    """dateTime lexical forms are recognized."""
     assert is_date_time_lexical(text) is valid
 
 
@@ -162,10 +175,12 @@ def test_date_time_lexical_form(text, valid):
     ],
 )
 def test_cardinality_allows(cardinality, allowed):
+    """Each cardinality allows the value counts its bounds describe."""
     assert [cardinality.allows(count) for count in (0, 1, 2)] == allowed
 
 
 def toy_schema() -> Schema:
+    """A four-class schema with one inherited and one overridden property."""
     name = PropertySpec("ex:name", Cardinality.ZERO_OR_ONE, ValueKind.STRING, rule="r-1")
     required_name = PropertySpec("ex:name", Cardinality.EXACTLY_ONE, ValueKind.STRING, rule="r-2")
     size = PropertySpec("ex:size", Cardinality.ZERO_OR_ONE, ValueKind.INTEGER)
@@ -181,6 +196,7 @@ def toy_schema() -> Schema:
 
 
 def test_schema_inheritance():
+    """Ancestors, subclass tests, and top-level classes follow the class hierarchy."""
     schema = toy_schema()
     assert schema.ancestors("ex:Part") == {"ex:Part", "ex:Top", "ex:Thing"}
     assert schema.ancestors("ex:Unknown") == frozenset()
@@ -190,6 +206,7 @@ def test_schema_inheritance():
 
 
 def test_schema_properties():
+    """A class's own property declaration replaces the one it inherits."""
     schema = toy_schema()
     assert schema.predicates == {"ex:name", "ex:size"}
     assert schema.rules() == ["r-1", "r-2"]
@@ -202,6 +219,7 @@ def test_schema_properties():
 
 @pytest.mark.parametrize("spec", [sbol2_spec, sbol3_spec], ids=["sbol2", "sbol3"])
 def test_data_model_references_name_classes_of_the_model(spec):
+    """Every parent and reference target in a data model is a class of that model."""
     for class_iri, declared in spec.SCHEMA.classes.items():
         assert all(parent in spec.SCHEMA for parent in declared.parents), class_iri
         for prop in declared.properties:
@@ -223,6 +241,7 @@ def test_data_model_references_name_classes_of_the_model(spec):
     ],
 )
 def test_version_precedes(earlier, later, precedes):
+    """Versions compare part by part, numerically where both parts are numbers."""
     assert version_precedes(earlier, later) is precedes
 
 
@@ -230,6 +249,7 @@ def test_version_precedes(earlier, later, precedes):
     "version, valid", [("1", True), ("1.0-rc_2", True), ("", False), ("v1", False), ("1 0", False), ("1é", False)]
 )
 def test_sbol2_version_syntax(version, valid):
+    """SBOL 2 version strings are recognized."""
     assert is_valid_version(version) is valid
 
 
@@ -245,4 +265,5 @@ def test_sbol2_version_syntax(version, valid):
     ],
 )
 def test_is_delimited_suffix(full, base, suffix, matches):
+    """A suffix matches only when a delimiter separates it from the base."""
     assert is_delimited_suffix(full, base, suffix) is matches

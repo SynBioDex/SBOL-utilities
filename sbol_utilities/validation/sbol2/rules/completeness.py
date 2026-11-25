@@ -9,10 +9,10 @@ from sbol_utilities.validation.sbol2 import spec as S
 from sbol_utilities.validation.sbol2.context import Sbol2Context
 from sbol_utilities.validation.sbol2.registry import REGISTRY
 
-_PRESENCE_RULES = tuple(dict.fromkeys([*S.COMPLETENESS_RULES.values(), *S.DEFINITION_COMPLETENESS_RULES.values()]))
+PRESENCE_RULES = tuple(dict.fromkeys([*S.COMPLETENESS_RULES.values(), *S.DEFINITION_COMPLETENESS_RULES.values()]))
 
 
-@REGISTRY.rule(*_PRESENCE_RULES)
+@REGISTRY.rule(*PRESENCE_RULES)
 def referenced_objects_present(ctx: Sbol2Context) -> None:
     """Every reference to an object that may live elsewhere names an object held in the document."""
     for obj in ctx.sbol_objects:
@@ -34,7 +34,7 @@ def referenced_objects_present(ctx: Sbol2Context) -> None:
 
 
 #: (reference predicate, class the referenced object must have, rule)
-_CLASS_CHECKS = (
+CLASS_CHECKS = (
     (S.WAS_GENERATED_BY, S.ACTIVITY, "sbol2-10222"),
     (S.WAS_INFORMED_BY, S.ACTIVITY, "sbol2-12407"),
     (S.AGENT_P, S.AGENT, "sbol2-12606"),
@@ -46,11 +46,11 @@ _CLASS_CHECKS = (
 )
 
 
-@REGISTRY.rule(*(rule for _, _, rule in _CLASS_CHECKS))
+@REGISTRY.rule(*(rule for _, _, rule in CLASS_CHECKS))
 def referenced_object_classes(ctx: Sbol2Context) -> None:
     """A reference that resolves in the document names an object of the class the property requires."""
     for obj in ctx.sbol_objects:
-        for predicate, required, rule in _CLASS_CHECKS:
+        for predicate, required, rule in CLASS_CHECKS:
             for iri, target in ctx.resolved(obj, predicate):
                 if not target.has_class(required):
                     ctx.report(

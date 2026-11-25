@@ -46,23 +46,23 @@ UPGRADE_CLASSES: dict[str, str] = {
 }
 
 #: SBOL 2 classes a downgrade chooses from context rather than from the SBOL 3 class alone
-_CONTEXTUAL_CLASSES = (S2.ModuleDefinition, S2.Module, S2.FunctionalComponent)
+CONTEXTUAL_CLASSES = (S2.ModuleDefinition, S2.Module, S2.FunctionalComponent)
 
 #: SBOL 3 class -> SBOL 2 class. For Component and SubComponent this is the class used when the context does not call
 #: for a ModuleDefinition, Module, or FunctionalComponent
 DOWNGRADE_CLASSES: dict[str, str] = {
-    sbol3: sbol2 for sbol2, sbol3 in UPGRADE_CLASSES.items() if sbol2 not in _CONTEXTUAL_CLASSES
+    sbol3: sbol2 for sbol2, sbol3 in UPGRADE_CLASSES.items() if sbol2 not in CONTEXTUAL_CLASSES
 }
 
 #: SBOL 2 predicates whose SBOL 3 counterpart has the same local name
-_SAME_NAME = (
+SAME_NAME = (
     "displayId built type role roleIntegration elements source format size hash hashAlgorithm language framework "
     "start end at variable variant variantCollection variantDerivation restriction subject object participant "
     "strategy template member encoding orientation"
 ).split()
 
 #: SBOL 2 predicate local name -> SBOL 3 local name, where they differ
-_RENAMED = {
+RENAMED = {
     "sequence": "hasSequence",
     "sequenceConstraint": "hasConstraint",
     "interaction": "hasInteraction",
@@ -76,7 +76,7 @@ _RENAMED = {
 }
 
 #: SBOL 2 predicates that all become one SBOL 3 predicate; a downgrade chooses among them from context
-_MERGED = {
+MERGED = {
     "sequenceAnnotation": "hasFeature",
     "component": "hasFeature",
     "functionalComponent": "hasFeature",
@@ -89,14 +89,14 @@ DCTERMS_TO_SBOL3 = {DCTERMS_TITLE: S3.name, DCTERMS_DESCRIPTION: S3.description}
 
 #: SBOL 2 predicate -> SBOL 3 predicate, for predicates that convert one-to-one
 UPGRADE_PREDICATES: dict[str, str] = {
-    **{S2.base + name: S3.base + name for name in _SAME_NAME},
-    **{S2.base + sbol2: S3.base + sbol3 for sbol2, sbol3 in {**_RENAMED, **_MERGED}.items()},
+    **{S2.base + name: S3.base + name for name in SAME_NAME},
+    **{S2.base + sbol2: S3.base + sbol3 for sbol2, sbol3 in {**RENAMED, **MERGED}.items()},
 }
 
 #: SBOL 3 predicate -> SBOL 2 predicate, for predicates that convert one-to-one
 DOWNGRADE_PREDICATES: dict[str, str] = {
-    **{S3.base + name: S2.base + name for name in _SAME_NAME},
-    **{S3.base + sbol3: S2.base + sbol2 for sbol2, sbol3 in _RENAMED.items()},
+    **{S3.base + name: S2.base + name for name in SAME_NAME},
+    **{S3.base + sbol3: S2.base + sbol2 for sbol2, sbol3 in RENAMED.items()},
     **{sbol3: dcterms for dcterms, sbol3 in DCTERMS_TO_SBOL3.items()},
 }
 
@@ -132,7 +132,7 @@ SBO_TO_BIOPAX: dict[str, str] = {
     "https://identifiers.org/SBO:0000253": BIOPAX + "Complex",
 }
 
-_RESTRICTIONS = (
+RESTRICTIONS = (
     "precedes strictlyPrecedes meets isDisjointFrom contains strictlyContains equals covers overlaps finishes starts "
     "sameOrientationAs oppositeOrientationAs differentFrom verifyIdentical replaces"
 ).split()
@@ -141,7 +141,7 @@ _RESTRICTIONS = (
 UPGRADE_VALUES: dict[str, dict[str, str]] = {
     S2.orientation: {S2.inline: SO_INLINE, S2.reverseComplement: SO_REVERSE_COMPLEMENT},
     S2.encoding: ENCODINGS,
-    S2.restriction: {S2.base + r: S3.base + r for r in _RESTRICTIONS},
+    S2.restriction: {S2.base + r: S3.base + r for r in RESTRICTIONS},
     S2.operator: {S2.base + v: S3.base + v for v in ("one", "zeroOrOne", "oneOrMore", "zeroOrMore")},
     S2.strategy: {S2.enumerate: S3.enumerate, S2.sample: S3.sample},
     S2.roleIntegration: {S2.mergeRoles: S3.mergeRoles, S2.overrideRoles: S3.overrideRoles},

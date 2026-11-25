@@ -12,8 +12,8 @@ and are reported as partially applied in the report's coverage.
 from __future__ import annotations
 
 from sbol_utilities.rdf_io import GraphSource, detect_sbol_version, load_graph
-from sbol_utilities.validation import sbol2 as _sbol2
-from sbol_utilities.validation import sbol3 as _sbol3
+from sbol_utilities.validation import sbol2 as sbol2_validator
+from sbol_utilities.validation import sbol3 as sbol3_validator
 from sbol_utilities.validation.catalog import Catalog, RuleSpec, load_catalog
 from sbol_utilities.validation.config import Gate, Severity, ValidationConfig
 from sbol_utilities.validation.report import Coverage, Issue, ValidationReport
@@ -43,7 +43,7 @@ def validate_sbol3(
     :param config: rule gates and severity overrides; defaults to :class:`ValidationConfig()`
     :param fmt: RDF format of a path or text source, when it can't be inferred
     """
-    return _sbol3.validate_graph(load_graph(source, fmt), config or ValidationConfig())
+    return sbol3_validator.validate_graph(load_graph(source, fmt), config or ValidationConfig())
 
 
 def validate_sbol2(
@@ -55,7 +55,7 @@ def validate_sbol2(
     :param config: rule gates and severity overrides; defaults to :class:`ValidationConfig()`
     :param fmt: RDF format of a path or text source, when it can't be inferred
     """
-    return _sbol2.validate_graph(load_graph(source, fmt), config or ValidationConfig())
+    return sbol2_validator.validate_graph(load_graph(source, fmt), config or ValidationConfig())
 
 
 def validate(

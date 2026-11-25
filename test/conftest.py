@@ -34,7 +34,7 @@ def sbol_test_suite():
 
 
 @pytest.fixture(autouse=True)
-def _corpus_tests_need_the_suite(request):
+def corpus_tests_need_the_suite(request):
     """Skip or fail a test marked ``corpus`` or ``sboltestsuite`` when the suite is unavailable."""
     if request.node.get_closest_marker("corpus") or request.node.get_closest_marker("sboltestsuite"):
         request.getfixturevalue("sbol_test_suite")

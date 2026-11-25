@@ -55,7 +55,7 @@ __all__ = [
 ]
 
 
-class _Namespace:
+class Namespace:
     """Attribute access to the plain-string IRIs of one namespace: ``S3.hasFeature``."""
 
     def __init__(self, base: str):
@@ -65,9 +65,9 @@ class _Namespace:
         return self.base + name
 
 
-S2 = _Namespace(SBOL2_NS)
-S3 = _Namespace(SBOL3_NS)
-BP = _Namespace(BACKPORT_NS)
+S2 = Namespace(SBOL2_NS)
+S3 = Namespace(SBOL3_NS)
+BP = Namespace(BACKPORT_NS)
 
 PROV_ACTIVITY = PROV_NS + "Activity"
 PROV_AGENT = PROV_NS + "Agent"
@@ -105,7 +105,8 @@ def plain(value: str) -> Literal:
     return Literal(value)
 
 
-def _unwrap(term) -> Term:
+def from_rdflib(term) -> Term:
+    """An rdflib node as an engine term: an IRI as ``str``, an ``xsd:string`` literal as a plain one."""
     if isinstance(term, URIRef):
         return str(term)
     if isinstance(term, Literal) and term.datatype is not None and str(term.datatype) == XSD_STRING:
@@ -118,22 +119,25 @@ def graph_triples(graph: rdflib.Graph) -> list[Triple]:
 
     ``xsd:string`` literals become simple literals: RDF 1.1 treats the two as the same term.
     """
-    triples = [(_unwrap(s), str(p), _unwrap(o)) for s, p, o in graph]
-    triples.sort(key=_sort_key)
+    triples = [(from_rdflib(s), str(p), from_rdflib(o)) for s, p, o in graph]
+    triples.sort(key=sort_key)
     return triples  # type: ignore[return-value]
 
 
-def _sort_key(triple) -> tuple:
-    return tuple((type(t).__name__, str(t), _literal_tag(t)) for t in triple)
+def sort_key(triple) -> tuple:
+    """A total order over triples whose terms are IRIs, blank nodes, and literals."""
+    return tuple((type(t).__name__, str(t), literal_tag(t)) for t in triple)
 
 
-def _literal_tag(term) -> str:
+def literal_tag(term) -> str:
+    """A literal's language and datatype as one string; empty for any other term."""
     if isinstance(term, Literal):
         return f"{term.language or ''}^{term.datatype or ''}"
     return ""
 
 
-def _wrap(term: Term):
+def to_rdflib(term: Term):
+    """An engine term as an rdflib node, with literals built the way a parser reads them."""
     if type(term) is str:
         return URIRef(term)
     if isinstance(term, Literal):
@@ -150,5 +154,5 @@ def build_graph(triples: Iterable[Triple]) -> rdflib.Graph:
     """An rdflib Graph holding the engine's output triples."""
     graph = rdflib.Graph()
     for s, p, o in triples:
-        graph.add((_wrap(s), URIRef(p), _wrap(o)))
+        graph.add((to_rdflib(s), URIRef(p), to_rdflib(o)))
     return graph

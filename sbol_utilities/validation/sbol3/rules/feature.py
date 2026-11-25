@@ -7,17 +7,17 @@ from sbol_utilities.validation.sbol3.context import Sbol3Context
 from sbol_utilities.validation.sbol3.registry import REGISTRY
 
 #: (class, property, the values it may take, rule, what an unrecognized value is called)
-_VOCABULARIES = (
+VOCABULARIES = (
     (spec.FEATURE, spec.ORIENTATION, spec.ORIENTATION_IRIS, "sbol3-10702", "Feature orientation"),
     (spec.LOCATION, spec.ORIENTATION, spec.ORIENTATION_IRIS, "sbol3-11301", "Location orientation"),
     (spec.SUB_COMPONENT, spec.ROLE_INTEGRATION, spec.ROLE_INTEGRATION_IRIS, "sbol3-10801", "roleIntegration"),
 )
 
 
-@REGISTRY.rule(*(rule for _, _, _, rule, _ in _VOCABULARIES))
+@REGISTRY.rule(*(rule for _, _, _, rule, _ in VOCABULARIES))
 def controlled_values(ctx: Sbol3Context) -> None:
     """Orientations and roleIntegration take values from their SBOL vocabularies."""
-    for class_iri, predicate, allowed, rule, name in _VOCABULARIES:
+    for class_iri, predicate, allowed, rule, name in VOCABULARIES:
         for obj in ctx.instances(class_iri):
             for value in obj.iris(predicate):
                 if str(value) not in allowed:

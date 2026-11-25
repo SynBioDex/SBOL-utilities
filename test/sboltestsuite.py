@@ -58,7 +58,7 @@ def required() -> bool:
 
 
 @cache
-def _located() -> Path | SuiteUnavailable:
+def locate_suite() -> Path | SuiteUnavailable:
     """The corpus directory, or why there is none; decided once per process."""
     configured = os.environ.get("SBOL_TEST_SUITE_DIR")
     if configured:
@@ -82,7 +82,7 @@ def suite_root() -> Path:
 
     :raises SuiteUnavailable: when the corpus is neither configured nor downloadable
     """
-    located = _located()
+    located = locate_suite()
     if isinstance(located, SuiteUnavailable):
         raise located
     return located
@@ -140,7 +140,7 @@ def corpus_params(name: str) -> list:
     return [pytest.param(item, id=relative_name(item) if isinstance(item, Path) else item) for item in items]
 
 
-_RULE_FILE = re.compile(r"(sbol3?)-(\d{5})(?:_.*)?\.(?:xml|ttl)")
+RULE_FILE = re.compile(r"(sbol3?)-(\d{5})(?:_.*)?\.(?:xml|ttl)")
 
 
 def rule_for(path: Path) -> str:
@@ -149,7 +149,7 @@ def rule_for(path: Path) -> str:
 
     :raises ValueError: when the file is not named after a rule
     """
-    match = _RULE_FILE.fullmatch(path.name)
+    match = RULE_FILE.fullmatch(path.name)
     if match is None:
         raise ValueError(f"{path.name} is not named after a validation rule")
     return f"{'sbol2' if match.group(1) == 'sbol' else 'sbol3'}-{match.group(2)}"
