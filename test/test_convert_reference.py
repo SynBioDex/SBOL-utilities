@@ -14,6 +14,7 @@ from pathlib import Path
 
 import conversion_goldens as cg
 import pytest
+import sboltestsuite as suite
 from rdflib import Graph, URIRef
 
 from sbol_utilities.convert import downgrade, upgrade
@@ -82,14 +83,12 @@ def logical_lines(graph: Graph) -> set[str]:
 
 
 def _reference(suite_root: Path) -> Path:
-    return suite_root / "Expected" / "conversion" / "sbolconverter"
+    return suite_root / suite.EXPECTED / "conversion" / "sbolconverter"
 
 
 def _assert_equivalent(ours: Graph, reference: Graph) -> None:
-    mine, ref = logical_lines(ours), logical_lines(reference)
-    detail = [f"reference only ({len(ref - mine)}):", *sorted(ref - mine)[:40]]
-    detail += [f"python only ({len(mine - ref)}):", *sorted(mine - ref)[:40]]
-    assert mine == ref, "\n".join(detail)
+    difference = suite.set_diff(logical_lines(reference), logical_lines(ours))
+    assert not difference, difference
 
 
 @pytest.mark.parametrize("stem", sorted(UPGRADE_CASES))

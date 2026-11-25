@@ -17,17 +17,13 @@ from sbol_utilities.rdf_io import load_graph
 pytestmark = pytest.mark.sboltestsuite
 
 
-def _sbol2_files():
-    return [p for corpus in suite.SBOL2_CORPORA for p in suite.sbol2_files(corpus)]
-
-
 def _check(actual, relative: str, what: str) -> None:
     difference = cg.diff(actual, cg.expected_graph(relative))
     assert not difference, f"{what} differs from {relative}\n{difference}"
 
 
-@pytest.mark.parametrize("path", suite.corpus_params(_sbol2_files))
-def test_sbol2_upgrade_matches_expected(path, sbol_test_suite):
+@pytest.mark.corpus("SBOL2-all")
+def test_sbol2_upgrade_matches_expected(path):
     """Upgrade and the 3 -> 2 -> 3 round trip both match the expected graphs."""
     entry = cg.entry(suite.relative_name(path))
     upgraded, _ = upgrade(load_graph(path))
@@ -39,8 +35,8 @@ def test_sbol2_upgrade_matches_expected(path, sbol_test_suite):
         _check(again, entry["roundtrip"], "round trip")
 
 
-@pytest.mark.parametrize("path", suite.corpus_params(suite.sbol3_manifest))
-def test_sbol3_downgrade_matches_expected(path, sbol_test_suite):
+@pytest.mark.corpus("SBOL3")
+def test_sbol3_downgrade_matches_expected(path):
     """Downgrade and the 2 -> 3 re-upgrade both match the expected graphs."""
     entry = cg.entry(suite.relative_name(path))
     downgraded, _ = downgrade(load_graph(path))

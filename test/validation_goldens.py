@@ -6,11 +6,8 @@ reports for that file, and ``configs`` defines each config name as rule-family g
 
 from __future__ import annotations
 
-import json
-from functools import lru_cache
 from pathlib import Path
 
-import pytest
 import sboltestsuite
 
 from sbol_utilities.validation import ValidationConfig, ValidationReport
@@ -18,19 +15,9 @@ from sbol_utilities.validation import ValidationConfig, ValidationReport
 IssueKey = tuple[str, str, str]
 
 
-@lru_cache(maxsize=None)
 def expectations() -> dict:
     """The parsed expected-issues file."""
-    path = sboltestsuite.suite_root() / sboltestsuite.EXPECTED / "validation" / "issues.json"
-    return json.loads(path.read_text(encoding="utf-8"))
-
-
-def name_params() -> list:
-    """pytest parameters for every file with expected issues, safe to call at collection time."""
-    try:
-        return [pytest.param(name, id=name) for name in sorted(expectations()["files"])]
-    except sboltestsuite.SuiteUnavailable:
-        return [sboltestsuite.UNAVAILABLE]
+    return sboltestsuite.load_json(f"{sboltestsuite.EXPECTED}/validation/issues.json")
 
 
 def configs(version: str) -> dict[str, ValidationConfig]:
@@ -63,16 +50,6 @@ def actual(report: ValidationReport) -> set[IssueKey]:
 def is_parse_error(name: str) -> bool:
     """Whether the file's RDF is expected to be unreadable."""
     return any(rule == "<parse-error>" for rule, *_ in expectations()["files"][name]["issues"])
-
-
-def describe(missing: set[IssueKey], extra: set[IssueKey], limit: int = 25) -> str:
-    """Readable summary of a mismatch."""
-    lines: list[str] = []
-    for label, items in (("missing (expected, not reported)", missing), ("extra (reported, not expected)", extra)):
-        if items:
-            lines.append(f"{label}: {len(items)}")
-            lines.extend(f"  {rule} {severity} {subject}" for rule, severity, subject in sorted(items)[:limit])
-    return "\n".join(lines)
 
 
 def suite_path(name: str) -> Path:

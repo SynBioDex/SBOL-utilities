@@ -13,18 +13,23 @@ Environment:
   revision is used as-is, with a warning.
 * ``SBOL_TEST_SUITE_REQUIRED=1`` -- fail rather than skip when the corpus cannot be found or downloaded (set in CI).
 
+A test marked ``@pytest.mark.corpus("<name>")`` runs once per item of that corpus (see :data:`CORPORA`), receiving the
+item as its ``path`` argument (or the argument the marker names with ``argname=``).
+
 Run ``python test/sboltestsuite.py`` to populate the cache ahead of time.
 """
 
 from __future__ import annotations
 
+import json
 import os
+import re
 import sys
 import warnings
-from collections.abc import Iterable
-from functools import lru_cache
+from collections.abc import Callable
+from functools import cache, partial
 from pathlib import Path
-from typing import Callable
+from typing import Any
 
 import pytest
 
@@ -43,28 +48,23 @@ EXPECTED = "Expected"
 DIRECTORIES = SBOL2_CORPORA + (SBOL2_INVALID, SBOL3_CORPUS, SBOL3_INVALID, EXPECTED, "Rules", "Ontology")
 
 
-#: Placeholder parameter for a parametrized test whose corpus is unavailable; the ``sbol_test_suite`` fixture
-#: decides whether that case skips or fails
-UNAVAILABLE = pytest.param(None, id="sboltestsuite-unavailable")
-
-
 class SuiteUnavailable(RuntimeError):
     """The corpus is neither configured nor downloadable."""
 
 
 def required() -> bool:
     """Whether a missing corpus should fail tests instead of skipping them."""
-    return os.environ.get("SBOL_TEST_SUITE_REQUIRED", "") not in ("", "0", "false")
+    return os.environ.get("SBOL_TEST_SUITE_REQUIRED", "").lower() not in ("", "0", "false", "no", "off")
 
 
-@lru_cache(maxsize=None)
-def suite_root() -> Path:
-    """Directory holding the SBOLTestSuite corpus, downloading the pinned archive on first use."""
+@cache
+def _located() -> Path | SuiteUnavailable:
+    """The corpus directory, or why there is none; decided once per process."""
     configured = os.environ.get("SBOL_TEST_SUITE_DIR")
     if configured:
         path = Path(configured).expanduser()
         if not (path / SBOL3_INVALID).is_dir() or not (path / EXPECTED).is_dir():
-            raise SuiteUnavailable(f"SBOL_TEST_SUITE_DIR={configured} lacks {SBOL3_INVALID}/ or {EXPECTED}/")
+            return SuiteUnavailable(f"SBOL_TEST_SUITE_DIR={configured} lacks {SBOL3_INVALID}/ or {EXPECTED}/")
         revision = checkout_revision(path)
         if revision and revision != COMMIT:
             warnings.warn(f"SBOL_TEST_SUITE_DIR is at {revision}; the tests are pinned to {COMMIT}")
@@ -73,8 +73,30 @@ def suite_root() -> Path:
         try:
             download(CACHE_DIR, DIRECTORIES)
         except DataUnavailable as error:
-            raise SuiteUnavailable(str(error)) from error
+            return SuiteUnavailable(str(error))
     return CACHE_DIR
+
+
+def suite_root() -> Path:
+    """Directory holding the SBOLTestSuite corpus, downloading the pinned archive on first use.
+
+    :raises SuiteUnavailable: when the corpus is neither configured nor downloadable
+    """
+    located = _located()
+    if isinstance(located, SuiteUnavailable):
+        raise located
+    return located
+
+
+@cache
+def load_json(relative: str) -> Any:
+    """The parsed content of a JSON file of the suite, by suite-relative path."""
+    return json.loads((suite_root() / relative).read_text(encoding="utf-8"))
+
+
+def relative_name(path: Path) -> str:
+    """Suite-relative name of a fixture, the key used in Expected/ and in test ids."""
+    return path.relative_to(suite_root()).as_posix()
 
 
 def sbol2_files(corpus: str) -> list[Path]:
@@ -92,21 +114,55 @@ def sbol3_invalid_files() -> list[Path]:
     return sorted((suite_root() / SBOL3_INVALID).glob("*.ttl"))
 
 
-def relative_name(path: Path) -> str:
-    """Suite-relative name of a fixture, the key used in Expected/ and in test ids."""
-    return path.relative_to(suite_root()).as_posix()
+#: name used with ``@pytest.mark.corpus`` -> the files (or, for ``expected-issues``, the suite-relative names) a test
+#: marked with it runs over
+CORPORA: dict[str, Callable[[], list]] = {
+    **{corpus: partial(sbol2_files, corpus) for corpus in SBOL2_CORPORA},
+    "SBOL2-all": lambda: [path for corpus in SBOL2_CORPORA for path in sbol2_files(corpus)],
+    SBOL2_INVALID: partial(sbol2_files, SBOL2_INVALID),
+    SBOL3_CORPUS: sbol3_manifest,
+    SBOL3_INVALID: sbol3_invalid_files,
+    "SBOL3/validation_examples": lambda: sorted((suite_root() / SBOL3_CORPUS / "validation_examples").glob("*.ttl")),
+    "expected-issues": lambda: sorted(load_json(f"{EXPECTED}/validation/issues.json")["files"]),
+}
 
 
-def corpus_params(files: Callable[[], Iterable[Path]]) -> list:
-    """pytest parameters for corpus files, safe to call at collection time.
+def corpus_params(name: str) -> list:
+    """pytest parameters for the items of a corpus, safe to call at collection time.
 
-    When the corpus is unavailable this yields a single placeholder parameter instead of raising during collection;
-    the ``sbol_test_suite`` fixture then skips that case or, under SBOL_TEST_SUITE_REQUIRED, fails it.
+    When the suite is unavailable this is a single placeholder, which the ``sbol_test_suite`` fixture skips or,
+    under SBOL_TEST_SUITE_REQUIRED, fails.
     """
     try:
-        return [pytest.param(path, id=relative_name(path)) for path in files()]
+        items = CORPORA[name]()
     except SuiteUnavailable:
-        return [UNAVAILABLE]
+        return [pytest.param(None, id="sboltestsuite-unavailable")]
+    return [pytest.param(item, id=relative_name(item) if isinstance(item, Path) else item) for item in items]
+
+
+_RULE_FILE = re.compile(r"(sbol3?)-(\d{5})(?:_.*)?\.(?:xml|ttl)")
+
+
+def rule_for(path: Path) -> str:
+    """The rule an invalid file is named after: ``sbol-NNNNN[_case].xml`` violates ``sbol2-NNNNN`` and
+    ``sbol3-NNNNN_case.ttl`` violates ``sbol3-NNNNN``.
+
+    :raises ValueError: when the file is not named after a rule
+    """
+    match = _RULE_FILE.fullmatch(path.name)
+    if match is None:
+        raise ValueError(f"{path.name} is not named after a validation rule")
+    return f"{'sbol2' if match.group(1) == 'sbol' else 'sbol3'}-{match.group(2)}"
+
+
+def set_diff(expected: set, actual: set, limit: int = 40) -> str:
+    """How two sets differ, as text listing up to ``limit`` items of each side ('' when they are equal)."""
+    lines: list[str] = []
+    for label, items in (("expected only", expected - actual), ("actual only", actual - expected)):
+        if items:
+            lines.append(f"{label} ({len(items)}):")
+            lines.extend(f"  {item}" for item in sorted(map(str, items))[:limit])
+    return "\n".join(lines)
 
 
 if __name__ == "__main__":
