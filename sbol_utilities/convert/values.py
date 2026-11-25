@@ -1,14 +1,104 @@
-"""Enumerated-value maps between the SBOL 2 and SBOL 3 vocabularies, in both directions.
+"""Class, predicate, and enumerated-value maps between the SBOL 2 and SBOL 3 vocabularies, in both directions.
 
-Each lookup returns None for a value it does not recognize; callers pass such values through unchanged.
+Each value lookup returns None for a value it does not recognize; callers pass such values through unchanged.
 """
 
 from __future__ import annotations
 
 from rdflib import Literal
 
-from sbol_utilities.convert.terms import EDAM_IUPAC_DNA_RNA, EDAM_IUPAC_PROTEIN, OM_NS, PROV_NS, S2, S3, XSD_STRING
-from sbol_utilities.vocab import DCTERMS_DESCRIPTION, DCTERMS_TITLE, RDFS_COMMENT, RDFS_LABEL, XSD_NS
+from sbol_utilities.convert.terms import (
+    DCTERMS_DESCRIPTION,
+    DCTERMS_TITLE,
+    EDAM_IUPAC_DNA_RNA,
+    EDAM_IUPAC_PROTEIN,
+    OM_NS,
+    PROV_NS,
+    S2,
+    S3,
+    XSD_STRING,
+)
+from sbol_utilities.vocab import RDFS_COMMENT, RDFS_LABEL, XSD_NS
+
+#: SBOL 2 class -> SBOL 3 class
+UPGRADE_CLASSES: dict[str, str] = {
+    S2.ComponentDefinition: S3.Component,
+    S2.ModuleDefinition: S3.Component,
+    S2.Component: S3.SubComponent,
+    S2.Module: S3.SubComponent,
+    S2.FunctionalComponent: S3.SubComponent,
+    S2.SequenceAnnotation: S3.SequenceFeature,
+    S2.SequenceConstraint: S3.Constraint,
+    S2.Sequence: S3.Sequence,
+    S2.Model: S3.Model,
+    S2.Interaction: S3.Interaction,
+    S2.Participation: S3.Participation,
+    S2.Collection: S3.Collection,
+    S2.Implementation: S3.Implementation,
+    S2.Attachment: S3.Attachment,
+    S2.Experiment: S3.Experiment,
+    S2.ExperimentalData: S3.ExperimentalData,
+    S2.CombinatorialDerivation: S3.CombinatorialDerivation,
+    S2.VariableComponent: S3.VariableFeature,
+    S2.Range: S3.Range,
+    S2.Cut: S3.Cut,
+    S2.GenericLocation: S3.Location,
+}
+
+#: SBOL 2 classes a downgrade chooses from context rather than from the SBOL 3 class alone
+_CONTEXTUAL_CLASSES = (S2.ModuleDefinition, S2.Module, S2.FunctionalComponent)
+
+#: SBOL 3 class -> SBOL 2 class. For Component and SubComponent this is the class used when the context does not call
+#: for a ModuleDefinition, Module, or FunctionalComponent
+DOWNGRADE_CLASSES: dict[str, str] = {
+    sbol3: sbol2 for sbol2, sbol3 in UPGRADE_CLASSES.items() if sbol2 not in _CONTEXTUAL_CLASSES
+}
+
+#: SBOL 2 predicates whose SBOL 3 counterpart has the same local name
+_SAME_NAME = (
+    "displayId built type role roleIntegration elements source format size hash hashAlgorithm language framework "
+    "start end at variable variant variantCollection variantDerivation restriction subject object participant "
+    "strategy template member encoding orientation"
+).split()
+
+#: SBOL 2 predicate local name -> SBOL 3 local name, where they differ
+_RENAMED = {
+    "sequence": "hasSequence",
+    "sequenceConstraint": "hasConstraint",
+    "interaction": "hasInteraction",
+    "participation": "hasParticipation",
+    "location": "hasLocation",
+    "definition": "instanceOf",
+    "variableComponent": "hasVariableFeature",
+    "operator": "cardinality",
+    "model": "hasModel",
+    "attachment": "hasAttachment",
+}
+
+#: SBOL 2 predicates that all become one SBOL 3 predicate; a downgrade chooses among them from context
+_MERGED = {
+    "sequenceAnnotation": "hasFeature",
+    "component": "hasFeature",
+    "functionalComponent": "hasFeature",
+    "module": "hasFeature",
+    "experimentalData": "member",
+}
+
+#: Dublin Core predicate SBOL 2 uses -> SBOL 3 predicate
+DCTERMS_TO_SBOL3 = {DCTERMS_TITLE: S3.name, DCTERMS_DESCRIPTION: S3.description}
+
+#: SBOL 2 predicate -> SBOL 3 predicate, for predicates that convert one-to-one
+UPGRADE_PREDICATES: dict[str, str] = {
+    **{S2.base + name: S3.base + name for name in _SAME_NAME},
+    **{S2.base + sbol2: S3.base + sbol3 for sbol2, sbol3 in {**_RENAMED, **_MERGED}.items()},
+}
+
+#: SBOL 3 predicate -> SBOL 2 predicate, for predicates that convert one-to-one
+DOWNGRADE_PREDICATES: dict[str, str] = {
+    **{S3.base + name: S2.base + name for name in _SAME_NAME},
+    **{S3.base + sbol3: S2.base + sbol2 for sbol2, sbol3 in _RENAMED.items()},
+    **{sbol3: dcterms for dcterms, sbol3 in DCTERMS_TO_SBOL3.items()},
+}
 
 SO_INLINE = "https://identifiers.org/SO:0001030"
 SO_REVERSE_COMPLEMENT = "https://identifiers.org/SO:0001031"

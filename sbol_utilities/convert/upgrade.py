@@ -18,16 +18,13 @@ from collections import defaultdict
 from dataclasses import dataclass
 from itertools import count
 
-import rdflib
 from rdflib import Literal
 
 from sbol_utilities.convert import uri
 from sbol_utilities.convert.identity import IdentityMap
-from sbol_utilities.convert.report import ConversionReport
+from sbol_utilities.convert.report import ConversionReport, ConversionResult, WarningKind
 from sbol_utilities.convert.terms import (
     BP,
-    DCTERMS_DESCRIPTION,
-    DCTERMS_TITLE,
     EDAM_IUPAC_DNA_RNA,
     OM_NS,
     OM_TOP_LEVELS,
@@ -47,7 +44,14 @@ from sbol_utilities.convert.terms import (
     is_iri,
     plain,
 )
-from sbol_utilities.convert.values import BIOPAX_TO_SBO, canonical_sbol2_literal, upgrade_value
+from sbol_utilities.convert.values import (
+    BIOPAX_TO_SBO,
+    DCTERMS_TO_SBOL3,
+    UPGRADE_CLASSES,
+    UPGRADE_PREDICATES,
+    canonical_sbol2_literal,
+    upgrade_value,
+)
 from sbol_utilities.rdf_io import GraphSource, load_graph
 
 
@@ -64,9 +68,7 @@ class UpgradeOptions:
     namespaces: list[str] | None = None
 
 
-def upgrade(
-    source: GraphSource, options: UpgradeOptions | None = None, fmt: str | None = None
-) -> tuple[rdflib.Graph, ConversionReport]:
+def upgrade(source: GraphSource, options: UpgradeOptions | None = None, fmt: str | None = None) -> ConversionResult:
     """Convert an SBOL 2 document to SBOL 3.
 
     :param source: an rdflib Graph, path, RDF text, or sbol2.Document holding SBOL 2
@@ -80,40 +82,15 @@ def upgrade(
     output = _Upgrader(triples, options or UpgradeOptions(), report).run()
     graph = build_graph(output)
     report.output_triples = len(graph)
-    return graph, report
+    return ConversionResult(graph, report)
 
 
 def _canonical_literal(predicate: str, term: Term) -> Term:
     return canonical_sbol2_literal(predicate, term) if isinstance(term, Literal) else term
 
 
-#: SBOL 2 class -> SBOL 3 class
-CLASSES: dict[str, str] = {
-    S2.ComponentDefinition: S3.Component,
-    S2.ModuleDefinition: S3.Component,
-    S2.Component: S3.SubComponent,
-    S2.Module: S3.SubComponent,
-    S2.FunctionalComponent: S3.SubComponent,
-    S2.SequenceAnnotation: S3.SequenceFeature,
-    S2.SequenceConstraint: S3.Constraint,
-    S2.Sequence: S3.Sequence,
-    S2.Model: S3.Model,
-    S2.Interaction: S3.Interaction,
-    S2.Participation: S3.Participation,
-    S2.Collection: S3.Collection,
-    S2.Implementation: S3.Implementation,
-    S2.Attachment: S3.Attachment,
-    S2.Experiment: S3.Experiment,
-    S2.ExperimentalData: S3.ExperimentalData,
-    S2.CombinatorialDerivation: S3.CombinatorialDerivation,
-    S2.VariableComponent: S3.VariableFeature,
-    S2.Range: S3.Range,
-    S2.Cut: S3.Cut,
-    S2.GenericLocation: S3.Location,
-}
-
 #: classes the upgrade recognizes: those above plus MapsTo, which decomposes into other objects
-KNOWN_CLASSES = frozenset(CLASSES) | {S2.MapsTo}
+KNOWN_CLASSES = frozenset(UPGRADE_CLASSES) | {S2.MapsTo}
 
 PROV_TOP_LEVELS = frozenset({PROV_ACTIVITY, PROV_AGENT, PROV_PLAN})
 
@@ -130,57 +107,6 @@ TOP_LEVEL_CLASSES = (
     )
     | EXTENSION_TOP_LEVELS
 )
-
-#: SBOL 2 predicate -> SBOL 3 predicate, for predicates that convert one-to-one
-PREDICATES: dict[str, str] = {
-    S2.base + v2: S3.base + v3
-    for v2, v3 in (
-        ("displayId", "displayId"),
-        ("built", "built"),
-        ("type", "type"),
-        ("role", "role"),
-        ("roleIntegration", "roleIntegration"),
-        ("elements", "elements"),
-        ("source", "source"),
-        ("format", "format"),
-        ("size", "size"),
-        ("hash", "hash"),
-        ("hashAlgorithm", "hashAlgorithm"),
-        ("language", "language"),
-        ("framework", "framework"),
-        ("start", "start"),
-        ("end", "end"),
-        ("at", "at"),
-        ("sequence", "hasSequence"),
-        ("sequenceAnnotation", "hasFeature"),
-        ("sequenceConstraint", "hasConstraint"),
-        ("component", "hasFeature"),
-        ("functionalComponent", "hasFeature"),
-        ("module", "hasFeature"),
-        ("interaction", "hasInteraction"),
-        ("participation", "hasParticipation"),
-        ("location", "hasLocation"),
-        ("definition", "instanceOf"),
-        ("variableComponent", "hasVariableFeature"),
-        ("operator", "cardinality"),
-        ("variable", "variable"),
-        ("variant", "variant"),
-        ("variantCollection", "variantCollection"),
-        ("variantDerivation", "variantDerivation"),
-        ("model", "hasModel"),
-        ("attachment", "hasAttachment"),
-        ("restriction", "restriction"),
-        ("subject", "subject"),
-        ("object", "object"),
-        ("participant", "participant"),
-        ("strategy", "strategy"),
-        ("template", "template"),
-        ("member", "member"),
-        ("experimentalData", "member"),
-        ("encoding", "encoding"),
-        ("orientation", "orientation"),
-    )
-}
 
 #: SBOL 2 predicates through which a parent owns a child, as the engine tracks ownership
 OWNING_PREDICATES = frozenset(
@@ -260,7 +186,7 @@ class _Upgrader:
         for canonical in sorted(sources):
             if len(sources[canonical]) > 1:
                 self.report.warn(
-                    "IdentityCollision",
+                    WarningKind.IDENTITY_COLLISION,
                     canonical,
                     f"{len(sources[canonical])} SBOL 2 subjects merge into one: {', '.join(sources[canonical])}",
                 )
@@ -399,19 +325,15 @@ class _Upgrader:
             self._handle_type(triple)
         elif p.startswith(S2.base):
             self._handle_sbol2_predicate(triple)
-        elif p in (DCTERMS_TITLE, DCTERMS_DESCRIPTION):
-            predicate = S3.name if p == DCTERMS_TITLE else S3.description
-            self.out.append((self.identity.term(s), predicate, self.identity.term(o)))
         else:
-            self.out.append((self.identity.term(s), p, self.identity.term(o)))
+            self.out.append((self.identity.term(s), DCTERMS_TO_SBOL3.get(p, p), self.identity.term(o)))
 
     def _move_collapsed_sa_triple(self, triple: Triple, subcomponent: str) -> None:
         """Carry a non-SBOL annotation of a collapsed SequenceAnnotation over to its SubComponent."""
         _, p, o = triple
         if p.startswith(S2.base) or p == RDF_TYPE:
             return
-        predicate = {DCTERMS_TITLE: S3.name, DCTERMS_DESCRIPTION: S3.description}.get(p, p)
-        self.out.append((self.identity.rewrite(subcomponent), predicate, self.identity.term(o)))
+        self.out.append((self.identity.rewrite(subcomponent), DCTERMS_TO_SBOL3.get(p, p), self.identity.term(o)))
 
     def _handle_type(self, triple: Triple) -> None:
         s, p, o = triple
@@ -420,17 +342,21 @@ class _Upgrader:
             return
         if o == S2.SequenceAnnotation and is_iri(s) and s in self.sa_to_subcomponent:
             self.report.warn(
-                "SequenceAnnotationWithComponent", s, "collapsed onto the SubComponent of the Component it references"
+                WarningKind.SEQUENCE_ANNOTATION_WITH_COMPONENT,
+                s,
+                "collapsed onto the SubComponent of the Component it references",
             )
             return
         if o == S2.MapsTo:
             return
         subject = self.identity.term(s)
-        target = CLASSES.get(o)
+        target = UPGRADE_CLASSES.get(o)
         if target is None:
             if o.startswith(S2.base):
                 if is_iri(s):
-                    self.report.warn("UnknownSbol2Type", s, f"unrecognized SBOL 2 type {o}; subject dropped")
+                    self.report.warn(
+                        WarningKind.UNKNOWN_SBOL2_TYPE, s, f"unrecognized SBOL 2 type {o}; subject dropped"
+                    )
                 return
             self.out.append((subject, p, BIOPAX_TO_SBO.get(o, o)))
             return
@@ -452,7 +378,7 @@ class _Upgrader:
             return
         if is_iri(s) and s in self.mapstos:
             return
-        target = PREDICATES.get(p)
+        target = UPGRADE_PREDICATES.get(p)
         if target is None:
             # persistentIdentity and version feed identity derivation; access, direction, and any other SBOL 2-only
             # property has no SBOL 3 home
@@ -552,9 +478,9 @@ class _Upgrader:
         if origin is not None:
             return origin
         if self.options.default_namespace:
-            self.report.warn("NamespaceFallback", iri, "no derivable namespace; used the default namespace")
+            self.report.warn(WarningKind.NAMESPACE_FALLBACK, iri, "no derivable namespace; used the default namespace")
             return self.options.default_namespace
-        self.report.warn("NamespaceFallback", iri, "no derivable namespace; hasNamespace omitted")
+        self.report.warn(WarningKind.NAMESPACE_FALLBACK, iri, "no derivable namespace; hasNamespace omitted")
         return None
 
     def _infer_location_sequences(self) -> None:
@@ -584,7 +510,7 @@ class _Upgrader:
                 sequence = temp_sequences[cd_v3][0]
             else:
                 self.report.warn(
-                    "LocationWithoutSequence",
+                    WarningKind.LOCATION_WITHOUT_SEQUENCE,
                     location,
                     f"{cd} has {len(sequences)} sequences; hasSequence not inferred",
                 )
@@ -614,11 +540,11 @@ class _Upgrader:
         for mapsto, info in sorted(self.mapstos.items()):
             carrier = self.owned_by.get(mapsto)
             if carrier is None:
-                self.report.warn("UnresolvedMapsTo", mapsto, "no Module or FunctionalComponent carries it")
+                self.report.warn(WarningKind.UNRESOLVED_MAPS_TO, mapsto, "no Module or FunctionalComponent carries it")
                 continue
             if info.local is None or info.remote is None:
                 side = "local" if info.local is None else "remote"
-                self.report.warn("UnresolvedMapsTo", mapsto, f"the {side} side is missing")
+                self.report.warn(WarningKind.UNRESOLVED_MAPS_TO, mapsto, f"the {side} side is missing")
                 continue
             top_level = rewrite(self._owning_top_level(carrier))
             local, remote = rewrite(info.local), rewrite(info.remote)
@@ -646,7 +572,9 @@ class _Upgrader:
             else:
                 if refinement not in (None, S2.verifyIdentical):
                     self.report.warn(
-                        "UnsupportedRefinement", mapsto, f"refinement {refinement} treated as verifyIdentical"
+                        WarningKind.UNSUPPORTED_REFINEMENT,
+                        mapsto,
+                        f"refinement {refinement} treated as verifyIdentical",
                     )
                 subject, obj, restriction = cref, local, S3.verifyIdentical
             self.out += [

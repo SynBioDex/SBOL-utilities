@@ -18,11 +18,10 @@ from __future__ import annotations
 from collections import defaultdict
 from dataclasses import dataclass, field
 
-import rdflib
 from rdflib import Literal
 
 from sbol_utilities.convert import uri
-from sbol_utilities.convert.report import ConversionReport
+from sbol_utilities.convert.report import ConversionReport, ConversionResult, WarningKind
 from sbol_utilities.convert.terms import (
     BP,
     DCTERMS_DESCRIPTION,
@@ -43,7 +42,13 @@ from sbol_utilities.convert.terms import (
     is_iri,
     plain,
 )
-from sbol_utilities.convert.values import SBO_TO_BIOPAX, downgrade_value, refinement_for
+from sbol_utilities.convert.values import (
+    DOWNGRADE_CLASSES,
+    DOWNGRADE_PREDICATES,
+    SBO_TO_BIOPAX,
+    downgrade_value,
+    refinement_for,
+)
 from sbol_utilities.identifiers import is_valid_display_id
 from sbol_utilities.rdf_io import GraphSource, load_graph
 
@@ -56,9 +61,7 @@ class DowngradeOptions:
     default_version: str | None = None
 
 
-def downgrade(
-    source: GraphSource, options: DowngradeOptions | None = None, fmt: str | None = None
-) -> tuple[rdflib.Graph, ConversionReport]:
+def downgrade(source: GraphSource, options: DowngradeOptions | None = None, fmt: str | None = None) -> ConversionResult:
     """Convert an SBOL 3 document to SBOL 2.
 
     :param source: an rdflib Graph, path, RDF text, or sbol3.Document holding SBOL 3
@@ -75,78 +78,8 @@ def downgrade(
     output = _Downgrader(triples, options, report).run()
     graph = build_graph(output)
     report.output_triples = len(graph)
-    return graph, report
+    return ConversionResult(graph, report)
 
-
-#: SBOL 3 class -> SBOL 2 class; Component and SubComponent depend on context and are resolved separately
-CLASSES: dict[str, str] = {
-    S3.Component: S2.ComponentDefinition,
-    S3.SubComponent: S2.Component,
-    S3.SequenceFeature: S2.SequenceAnnotation,
-    S3.Constraint: S2.SequenceConstraint,
-    S3.Sequence: S2.Sequence,
-    S3.Model: S2.Model,
-    S3.Interaction: S2.Interaction,
-    S3.Participation: S2.Participation,
-    S3.Collection: S2.Collection,
-    S3.Implementation: S2.Implementation,
-    S3.Attachment: S2.Attachment,
-    S3.Experiment: S2.Experiment,
-    S3.ExperimentalData: S2.ExperimentalData,
-    S3.CombinatorialDerivation: S2.CombinatorialDerivation,
-    S3.VariableFeature: S2.VariableComponent,
-    S3.Range: S2.Range,
-    S3.Cut: S2.Cut,
-    S3.Location: S2.GenericLocation,
-}
-
-#: SBOL 3 predicate -> SBOL 2 predicate, for predicates that convert one-to-one
-PREDICATES: dict[str, str] = {
-    S3.base + v3: v2
-    for v3, v2 in (
-        ("displayId", S2.displayId),
-        ("name", DCTERMS_TITLE),
-        ("description", DCTERMS_DESCRIPTION),
-        ("type", S2.type),
-        ("role", S2.role),
-        ("roleIntegration", S2.roleIntegration),
-        ("elements", S2.elements),
-        ("encoding", S2.encoding),
-        ("source", S2.source),
-        ("format", S2.format),
-        ("size", S2.size),
-        ("hash", S2.hash),
-        ("hashAlgorithm", S2.hashAlgorithm),
-        ("language", S2.language),
-        ("framework", S2.framework),
-        ("start", S2.start),
-        ("end", S2.end),
-        ("at", S2.at),
-        ("built", S2.built),
-        ("orientation", S2.orientation),
-        ("hasSequence", S2.sequence),
-        ("hasConstraint", S2.sequenceConstraint),
-        ("hasInteraction", S2.interaction),
-        ("hasParticipation", S2.participation),
-        ("hasLocation", S2.location),
-        ("hasModel", S2.model),
-        ("hasAttachment", S2.attachment),
-        ("instanceOf", S2.definition),
-        ("hasVariableFeature", S2.variableComponent),
-        ("cardinality", S2.operator),
-        ("variable", S2.variable),
-        ("variant", S2.variant),
-        ("variantCollection", S2.variantCollection),
-        ("variantDerivation", S2.variantDerivation),
-        ("restriction", S2.restriction),
-        ("subject", S2.subject),
-        ("object", S2.object),
-        ("participant", S2.participant),
-        ("strategy", S2.strategy),
-        ("template", S2.template),
-        ("member", S2.member),
-    )
-}
 
 #: classes in the order they are tried for a subject with several rdf:types: the first one it has decides whether
 #: the subject is a top-level
@@ -281,7 +214,9 @@ class _Downgrader:
         for sbol2 in sorted(sources):
             if len(sources[sbol2]) > 1:
                 names = ", ".join(sorted(sources[sbol2]))
-                self.report.warn("IdentityCollision", sbol2, f"{len(sources[sbol2])} SBOL 3 subjects merge: {names}")
+                self.report.warn(
+                    WarningKind.IDENTITY_COLLISION, sbol2, f"{len(sources[sbol2])} SBOL 3 subjects merge: {names}"
+                )
 
         for s, p, o in self.triples:
             if p == S3.instanceOf and is_iri(s) and is_iri(o):
@@ -345,7 +280,7 @@ class _Downgrader:
             if not self._has_type(cref, S3.ComponentReference):
                 continue
             if cref not in cref_to_constraint:
-                self.report.warn("OrphanComponentReference", cref, "no matching Constraint; dropped")
+                self.report.warn(WarningKind.ORPHAN_COMPONENT_REFERENCE, cref, "no matching Constraint; dropped")
                 self.discarded.add(cref)
                 continue
             constraint, cref_is_subject = cref_to_constraint[cref]
@@ -355,7 +290,7 @@ class _Downgrader:
             carrier, remote, display_id = attrs.get(S3.inChildOf), attrs.get(S3.refersTo), attrs.get(S3.displayId)
             if carrier is None or remote is None or display_id is None or local is None:
                 self.report.warn(
-                    "UnresolvableConstraintToMapsTo",
+                    WarningKind.UNRESOLVABLE_CONSTRAINT_TO_MAPS_TO,
                     constraint,
                     "ComponentReference+Constraint pair is missing inChildOf, refersTo, displayId, or its local side",
                 )
@@ -469,7 +404,9 @@ class _Downgrader:
             ):
                 continue
             self.discarded.add(subject)
-            self.report.warn("UnsupportedSbol3Type", subject, f"{sbol_types[0]} has no SBOL 2 equivalent; dropped")
+            self.report.warn(
+                WarningKind.UNSUPPORTED_SBOL3_TYPE, subject, f"{sbol_types[0]} has no SBOL 2 equivalent; dropped"
+            )
 
     def _build_rewrites(self) -> None:
         """Compute the SBOL 2 identity of every subject.
@@ -495,7 +432,9 @@ class _Downgrader:
                 effective = self.options.default_version
                 if effective is not None:
                     self.versions[iri] = effective
-                    self.report.warn("SynthesizedVersion", iri, f"no version in the IRI; synthesized {effective!r}")
+                    self.report.warn(
+                        WarningKind.SYNTHESIZED_VERSION, iri, f"no version in the IRI; synthesized {effective!r}"
+                    )
                     sbol2 = f"{pid}/{effective}"
             self.persistent_identities[iri] = pid
             self.rewrites[iri] = sbol2
@@ -550,7 +489,7 @@ class _Downgrader:
             return self._subcomponent_type(subject)
         if sbol3_type == S3.Component:
             return S2.ModuleDefinition if self.is_md.get(subject) else S2.ComponentDefinition
-        return CLASSES.get(sbol3_type)
+        return DOWNGRADE_CLASSES.get(sbol3_type)
 
     def _subcomponent_type(self, subject: str) -> str:
         parent = self.feature_parent.get(subject)
@@ -605,7 +544,7 @@ class _Downgrader:
             return
         target = self._sbol2_type(s, o)
         if target is None:
-            self.report.warn("UnsupportedSbol3Type", s, f"{o} has no SBOL 2 equivalent; dropped")
+            self.report.warn(WarningKind.UNSUPPORTED_SBOL3_TYPE, s, f"{o} has no SBOL 2 equivalent; dropped")
             return
         subject = self._rewrite(s)
         self.out.append((subject, RDF_TYPE, target))
@@ -632,11 +571,9 @@ class _Downgrader:
                 return  # inferred or synthesized by the upgrade
             if p == S3.orientation and not is_location:
                 return  # SBOL 2 carries orientation only on Locations
-            if p in (S3.name, S3.description):
-                dcterms = DCTERMS_TITLE if p == S3.name else DCTERMS_DESCRIPTION
-                if (s, dcterms, o) in self.dcterms:
-                    return
-        target = PREDICATES.get(p)
+            if p in (S3.name, S3.description) and (s, DOWNGRADE_PREDICATES[p], o) in self.dcterms:
+                return  # the document already states it with the Dublin Core predicate
+        target = DOWNGRADE_PREDICATES.get(p)
         if p == S3.member and is_iri(s) and S2.Experiment in self.resolved_type_sets.get(s, ()):
             target = S2.experimentalData
         if target is None:

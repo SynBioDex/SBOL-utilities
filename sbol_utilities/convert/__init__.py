@@ -12,7 +12,7 @@ annotations.
 from __future__ import annotations
 
 from sbol_utilities.convert.downgrade import DowngradeOptions, downgrade
-from sbol_utilities.convert.report import ConversionReport, ConversionWarning
+from sbol_utilities.convert.report import ConversionReport, ConversionResult, ConversionWarning, WarningKind
 from sbol_utilities.convert.upgrade import UpgradeOptions, upgrade
 
 __all__ = [
@@ -21,5 +21,7 @@ __all__ = [
     "UpgradeOptions",
     "DowngradeOptions",
     "ConversionReport",
+    "ConversionResult",
     "ConversionWarning",
+    "WarningKind",
 ]
