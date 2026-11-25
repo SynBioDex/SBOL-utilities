@@ -407,57 +407,56 @@ class DerivationContext:
 
 
 def derivation_context(ctx: Sbol3Context, derivation: Sbol3Object) -> DerivationContext | None:
-    """Resolve a derivation's local template and variable features."""
+    """A derivation with its template's Features split into static and variable ones, when the template is in the
+    document."""
+    return ctx.memo(("derivation context", derivation.identity), lambda: _derivation_context(ctx, derivation))
+
+
+def _derivation_context(ctx: Sbol3Context, derivation: Sbol3Object) -> DerivationContext | None:
     template = derivation.first_resource(spec.TEMPLATE)
     template_obj = ctx.get(template)
     if template is None or template_obj is None:
         return None
     template_features = list(dict.fromkeys(template_obj.resources(spec.HAS_FEATURE)))
     variables: dict[Node, Node] = {}
-    for variable_feature in derivation.resources(spec.HAS_VARIABLE_FEATURE):
-        variable_feature_obj = ctx.get(variable_feature)
-        if variable_feature_obj is None:
-            continue
-        variable = variable_feature_obj.first_resource(spec.VARIABLE)
-        if variable is None:
-            continue
-        variables[variable] = variable_feature
-    static = [f for f in template_features if f not in variables]
+    for variable_feature in ctx.referenced(derivation, spec.HAS_VARIABLE_FEATURE):
+        variable = variable_feature.first_resource(spec.VARIABLE)
+        if variable is not None:
+            variables[variable] = variable_feature.identity
+    static = [feature for feature in template_features if feature not in variables]
     return DerivationContext(derivation.identity, template, frozenset(template_features), variables, static)
 
 
-def derived_objects(ctx: Sbol3Context, derivation: Node, class_iri: str) -> list[Sbol3Object]:
-    """Objects of a class whose ``prov:wasDerivedFrom`` names the derivation."""
+def _derived_from_index(ctx: Sbol3Context) -> dict[Node, list[Sbol3Object]]:
+    """Source -> the objects recording ``prov:wasDerivedFrom`` it, in document order."""
+
+    def build() -> dict[Node, list[Sbol3Object]]:
+        index: dict[Node, list[Sbol3Object]] = {}
+        for obj in ctx.objects.values():
+            for source in dict.fromkeys(obj.resources(spec.PROV_WAS_DERIVED_FROM)):
+                index.setdefault(source, []).append(obj)
+        return index
+
+    return ctx.memo("derived from index", build)
+
+
+def derived_objects(ctx: Sbol3Context, source: Node, class_iri: str) -> list[Sbol3Object]:
+    """Objects of a class whose ``prov:wasDerivedFrom`` names ``source``, in document order."""
+    return [obj for obj in _derived_from_index(ctx).get(source, ()) if obj.has_class(class_iri)]
+
+
+def features_derived_from(ctx: Sbol3Context, component: Sbol3Object, template_feature: Node) -> list[Sbol3Object]:
+    """The Features of a derived Component that derive from a template Feature."""
     return [
-        o
-        for o in ctx.objects.values()
-        if o.has_class(class_iri) and derivation in o.resources(spec.PROV_WAS_DERIVED_FROM)
+        feature
+        for feature in ctx.referenced(component, spec.HAS_FEATURE)
+        if template_feature in feature.resources(spec.PROV_WAS_DERIVED_FROM)
     ]
 
 
-def features_derived_from(ctx: Sbol3Context, component: Sbol3Object, template_feature: Node) -> list[Node]:
-    """Features of a derived Component that derive from a template Feature."""
-    result = []
-    for feature in component.resources(spec.HAS_FEATURE):
-        obj = ctx.get(feature)
-        if obj is not None and template_feature in obj.resources(spec.PROV_WAS_DERIVED_FROM):
-            result.append(feature)
-    return result
-
-
-def feature_derives_from_template(ctx: Sbol3Context, feature: Node, template_features: frozenset[Node]) -> bool:
-    """Whether a Feature derives from any of the template's Features."""
-    obj = ctx.get(feature)
-    return obj is not None and any(c in template_features for c in obj.resources(spec.PROV_WAS_DERIVED_FROM))
-
-
-def static_feature_properties_match(ctx: Sbol3Context, derived: Node, template: Node) -> bool | None:
-    """Whether a derived Feature preserves the template Feature's core properties."""
-    derived_obj = ctx.get(derived)
-    template_obj = ctx.get(template)
-    if derived_obj is None or template_obj is None:
-        return None
-    return all(set(derived_obj.values(p)) == set(template_obj.values(p)) for p in FEATURE_EQUIVALENCE_PREDICATES)
+def feature_properties_match(derived: Sbol3Object, template: Sbol3Object) -> bool:
+    """Whether a derived Feature has the template Feature's values for the properties derivation preserves."""
+    return all(set(derived.values(p)) == set(template.values(p)) for p in FEATURE_EQUIVALENCE_PREDICATES)
 
 
 #: VariableFeature cardinality -> whether it permits a number of derived Features
@@ -475,34 +474,29 @@ def cardinality_allows(cardinality: Node | None, count: int) -> bool:
 
 
 def _collect_collection_components(ctx: Sbol3Context, collection: Node, visited: set[Node], out: set[Node]) -> None:
+    """Add to ``out`` the Components a Collection holds, directly or through member Collections."""
     if collection in visited:
         return
     visited.add(collection)
     obj = ctx.get(collection)
     if obj is None or not obj.has_class(spec.COLLECTION):
         return
-    for member in obj.resources(spec.MEMBER):
-        member_obj = ctx.get(member)
-        if member_obj is None:
-            continue
-        if member_obj.has_class(spec.COMPONENT):
-            out.add(member)
-        elif member_obj.has_class(spec.COLLECTION):
-            _collect_collection_components(ctx, member, visited, out)
+    for member in ctx.referenced(obj, spec.MEMBER):
+        if member.has_class(spec.COMPONENT):
+            out.add(member.identity)
+        elif member.has_class(spec.COLLECTION):
+            _collect_collection_components(ctx, member.identity, visited, out)
 
 
 def allowed_variants(ctx: Sbol3Context, variable_feature: Sbol3Object) -> set[Node]:
     """Components a VariableFeature allows through variant, variantCollection, and variantDerivation."""
-    allowed: set[Node] = set()
-    for variant in variable_feature.resources(spec.VARIANT):
-        obj = ctx.get(variant)
-        if obj is not None and obj.has_class(spec.COMPONENT):
-            allowed.add(variant)
+    return ctx.memo(("allowed variants", variable_feature.identity), lambda: _allowed_variants(ctx, variable_feature))
+
+
+def _allowed_variants(ctx: Sbol3Context, variable_feature: Sbol3Object) -> set[Node]:
+    allowed = {v.identity for v in ctx.referenced(variable_feature, spec.VARIANT) if v.has_class(spec.COMPONENT)}
     for collection in variable_feature.resources(spec.VARIANT_COLLECTION):
         _collect_collection_components(ctx, collection, set(), allowed)
-    derivations = set(variable_feature.resources(spec.VARIANT_DERIVATION))
-    if derivations:
-        for component in ctx.instances(spec.COMPONENT):
-            if any(c in derivations for c in component.resources(spec.PROV_WAS_DERIVED_FROM)):
-                allowed.add(component.identity)
+    for derivation in variable_feature.resources(spec.VARIANT_DERIVATION):
+        allowed.update(component.identity for component in derived_objects(ctx, derivation, spec.COMPONENT))
     return allowed
