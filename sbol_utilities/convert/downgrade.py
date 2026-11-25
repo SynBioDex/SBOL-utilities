@@ -178,6 +178,19 @@ class _Downgrader:
     # Preflight
 
     def _preflight(self) -> None:
+        """Read the whole input once, so each triple can then be converted knowing its subject's SBOL 2 shape."""
+        self._index_hints()
+        self._find_top_levels()
+        self._discover_mapstos_and_interfaces()
+        self._classify_components()
+        self._discover_sa_wrappers()
+        self._discover_unsupported()
+        self._build_rewrites()
+        self._warn_of_collisions()
+        self._resolve_types()
+
+    def _index_hints(self) -> None:
+        """Record the backport annotations an upgrade left, each object's namespace, and Dublin Core statements."""
         for s, p, o in self.triples:
             if not is_iri(s):
                 continue
@@ -195,29 +208,26 @@ class _Downgrader:
             elif p in (DCTERMS_TITLE, DCTERMS_DESCRIPTION):
                 self.dcterms.add((s, p, o))
 
+    def _find_top_levels(self) -> None:
+        """A top-level is a subject whose deciding class is a top-level class, or that has a namespace (which
+        marks every SBOL 3 top-level, including custom-typed ones)."""
         for subject, types in self.types.items():
-            primary = next((cls for cls in DISPATCH_ORDER if cls in types), None)
-            if primary in TOP_LEVEL_CLASSES:
+            if next((cls for cls in DISPATCH_ORDER if cls in types), None) in TOP_LEVEL_CLASSES:
                 self.top_levels.add(subject)
-        # hasNamespace marks every SBOL 3 top-level, including custom-typed ones
         self.top_levels.update(self.namespaces)
 
-        self._discover_mapstos_and_interfaces()
-        self._classify_components()
-        self._discover_sa_wrappers()
-        self._discover_unsupported()
-        self._build_rewrites()
-
+    def _warn_of_collisions(self) -> None:
+        """Warn where several SBOL 3 subjects take one SBOL 2 identity."""
         sources: dict[str, list[str]] = defaultdict(list)
         for sbol3, sbol2 in self.rewrites.items():
             sources[sbol2].append(sbol3)
-        for sbol2 in sorted(sources):
-            if len(sources[sbol2]) > 1:
-                names = ", ".join(sorted(sources[sbol2]))
-                self.report.warn(
-                    WarningKind.IDENTITY_COLLISION, sbol2, f"{len(sources[sbol2])} SBOL 3 subjects merge: {names}"
-                )
+        for sbol2, merged in sorted(sources.items()):
+            if len(merged) > 1:
+                names = ", ".join(sorted(merged))
+                self.report.warn(WarningKind.IDENTITY_COLLISION, sbol2, f"{len(merged)} SBOL 3 subjects merge: {names}")
 
+    def _resolve_types(self) -> None:
+        """Record the SBOL 2 class each SBOL 3 type of each subject becomes."""
         for s, p, o in self.triples:
             if p == S3.instanceOf and is_iri(s) and is_iri(o):
                 self.subcomponent_targets[s] = o
@@ -227,6 +237,15 @@ class _Downgrader:
                 if resolved is not None:
                     self.resolved_type_sets[s].add(resolved)
                     self.resolved_types.setdefault(s, resolved)
+
+    def _is_consumed(self, subject: object) -> bool:
+        """Whether a subject is not converted triple by triple: it folds into a MapsTo, a direction, or nothing."""
+        return (
+            subject in self.mapstos
+            or subject in self.mapsto_constraints
+            or subject in self.interfaces
+            or subject in self.discarded
+        )
 
     def _has_type(self, subject: str, cls: str) -> bool:
         return cls in self.types.get(subject, ())
@@ -396,12 +415,7 @@ class _Downgrader:
                 continue
             if not sbol_types or any(self._sbol2_type(subject, t) is not None for t in sbol_types):
                 continue
-            if (
-                subject in self.mapstos
-                or subject in self.mapsto_constraints
-                or subject in self.interfaces
-                or subject in self.discarded
-            ):
+            if self._is_consumed(subject):
                 continue
             self.discarded.add(subject)
             self.report.warn(
@@ -492,6 +506,8 @@ class _Downgrader:
         return DOWNGRADE_CLASSES.get(sbol3_type)
 
     def _subcomponent_type(self, subject: str) -> str:
+        """The SBOL 2 class of a SubComponent: a Component in a ComponentDefinition, and in a ModuleDefinition a
+        Module when it instantiates one (or came from one), otherwise a FunctionalComponent."""
         parent = self.feature_parent.get(subject)
         if parent is None or self._component_type(parent) != S2.ModuleDefinition:
             return S2.Component
@@ -512,10 +528,9 @@ class _Downgrader:
         self.out.append((self._rewrite(s), p, self._rewrite(o)))
 
     def _handle(self, triple: Triple) -> None:
+        """Convert one input triple, or drop it when its subject or object is rebuilt elsewhere."""
         s, p, o = triple
-        if is_iri(s) and (
-            s in self.mapstos or s in self.mapsto_constraints or s in self.interfaces or s in self.discarded
-        ):
+        if is_iri(s) and self._is_consumed(s):
             return
         if is_iri(o) and (
             (p.startswith(S3.base) and o in self.discarded)
@@ -536,6 +551,7 @@ class _Downgrader:
             self._passthrough(triple)
 
     def _handle_type(self, triple: Triple) -> None:
+        """Convert an rdf:type statement, adding the access an SBOL 2 Component or FunctionalComponent requires."""
         s, p, o = triple
         if o in EXTENSION_MARKERS and any(not t.startswith(S3.base) for t in self.types.get(s, ())):
             return  # SBOL 2 places objects of other vocabularies' classes in its data model without a marker type
@@ -555,6 +571,7 @@ class _Downgrader:
             self.out.append((subject, S2.access, S2.public if s in self.fc_directions else S2.private))
 
     def _handle_sbol3_predicate(self, triple: Triple) -> None:
+        """Convert a statement with an SBOL 3 predicate, dropping those SBOL 2 states elsewhere or not at all."""
         s, p, o = triple
         if p == S3.hasNamespace:
             return  # implicit in the SBOL 2 persistentIdentity
@@ -581,6 +598,7 @@ class _Downgrader:
         self.out.append((self._rewrite(s), target, self._reverse_value(s, p, self._rewrite(o))))
 
     def _handle_has_feature(self, triple: Triple) -> None:
+        """Convert hasFeature to the SBOL 2 predicate the parent and feature classes call for."""
         s, _, o = triple
         parent_type = self.resolved_types.get(s) if is_iri(s) else None
         feature_type = self.resolved_types.get(o) if is_iri(o) else None
@@ -617,6 +635,7 @@ class _Downgrader:
     # Synthesis
 
     def _emit_sa_wrappers(self) -> None:
+        """Write the SequenceAnnotation that carries each located SubComponent's Locations."""
         for subcomponent in sorted(self.sa_wrappers):
             wrapper = self.sa_wrappers[subcomponent]
             version = self._top_level_version(wrapper.parent_component)
@@ -696,9 +715,7 @@ class _Downgrader:
         for sbol3 in sorted(self.rewrites):
             if sbol3 not in sbol_subjects:
                 continue
-            if sbol3 in self.mapstos or sbol3 in self.mapsto_constraints or sbol3 in self.interfaces:
-                continue
-            if sbol3 in self.discarded:
+            if self._is_consumed(sbol3):
                 continue
             sbol2 = self.rewrites[sbol3]
             self.out.append((sbol2, S2.persistentIdentity, self.persistent_identities.get(sbol3, sbol3)))

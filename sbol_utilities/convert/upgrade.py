@@ -161,6 +161,11 @@ class _Upgrader:
         self.generic_top_levels: dict[str, str] = {}
         #: subjects with SBOL 2 identity properties and only classes from other vocabularies (PROV, OM, custom)
         self.extension_objects: set[str] = set()
+        #: subjects with a persistentIdentity or displayId
+        self.sbol2_identified: set[str] = set()
+        #: subjects with a type in the SBOL 2, PROV, or OM namespace, and subjects with a type in any other
+        self.recognized_typed: set[str] = set()
+        self.custom_typed: set[str] = set()
 
     def run(self) -> list[Triple]:
         """Convert the input, returning the SBOL 3 triples."""
@@ -177,39 +182,43 @@ class _Upgrader:
     # Preflight
 
     def _preflight(self) -> None:
-        rewrite = self.identity.rewrite
+        """Read the whole input once, so each triple can then be converted knowing its subject's class and place."""
+        self._claim_identities()
+        self._index_document()
+        self._find_extension_objects()
+        self._collapse_annotations()
+        self._index_interfaces()
+        self._index_mapstos()
+
+    def _claim_identities(self) -> None:
+        """Reserve the SBOL 3 identity of every subject, warning where several subjects share one."""
         sources: dict[str, list[str]] = defaultdict(list)
         for subject in sorted({s for s, _, _ in self.triples if is_iri(s)}):
-            canonical = rewrite(subject)
+            canonical = self.identity.rewrite(subject)
             self.used_iris.add(canonical)
             sources[canonical].append(subject)
-        for canonical in sorted(sources):
-            if len(sources[canonical]) > 1:
+        for canonical, merged in sorted(sources.items()):
+            if len(merged) > 1:
                 self.report.warn(
                     WarningKind.IDENTITY_COLLISION,
                     canonical,
-                    f"{len(sources[canonical])} SBOL 2 subjects merge into one: {', '.join(sources[canonical])}",
+                    f"{len(merged)} SBOL 2 subjects merge into one: {', '.join(merged)}",
                 )
 
+    def _index_document(self) -> None:
+        """Record each subject's class, displayId, Sequences, and owner.
+
+        :raises ValueError: when the input has triples but neither an SBOL 2 predicate nor a recognized type
+        """
         saw_sbol2_predicate = False
-        custom_typed: set[str] = set()
-        recognized_typed: set[str] = set()
-        sbol2_identified: set[str] = set()
         for s, p, o in self.triples:
             if p.startswith(S2.base):
                 saw_sbol2_predicate = True
                 if p in (S2.persistentIdentity, S2.displayId) and is_iri(s):
-                    sbol2_identified.add(s)
+                    self.sbol2_identified.add(s)
             if p == RDF_TYPE:
                 if is_iri(o) and is_iri(s):
-                    if o.startswith(S2.base) or o.startswith(PROV_NS) or o.startswith(OM_NS):
-                        recognized_typed.add(s)
-                    else:
-                        custom_typed.add(s)
-                    if o.startswith(S2.base) or o in EXTENSION_TOP_LEVELS:
-                        existing = self.typed.get(s)
-                        if existing is None or _type_precedence(o) > _type_precedence(existing):
-                            self.typed[s] = o
+                    self._record_type(s, o)
                 continue
             if not is_iri(s):
                 continue
@@ -225,34 +234,49 @@ class _Upgrader:
                 self.location_to_sa[o] = s
             if p in OWNING_PREDICATES:
                 self.owned_by[o] = s
-
-        has_recognized_type = bool(recognized_typed) or any(
-            t.startswith(S2.base) or t in EXTENSION_TOP_LEVELS for t in self.typed.values()
-        )
-        if self.triples and not saw_sbol2_predicate and not has_recognized_type:
+        if self.triples and not saw_sbol2_predicate and not self.recognized_typed:
             raise ValueError("input contains no SBOL 2 typed subjects or properties; nothing to upgrade")
 
-        # A custom-typed subject with SBOL 2 identity properties and no recognized type is a GenericTopLevel. SBOL 3
-        # has no such class, so it keeps its custom type and becomes a top-level, unless it nests under another
-        # identified subject.
-        prefixes = [rewrite(iri) + "/" for iri in sbol2_identified]
-        for subject in sorted(sbol2_identified):
-            if subject not in custom_typed or subject in recognized_typed:
-                continue
+    def _record_type(self, subject: str, type_iri: str) -> None:
+        """Note one rdf:type of a subject, keeping as its class the type of highest precedence."""
+        if type_iri.startswith((S2.base, PROV_NS, OM_NS)):
+            self.recognized_typed.add(subject)
+        else:
+            self.custom_typed.add(subject)
+        if type_iri.startswith(S2.base) or type_iri in EXTENSION_TOP_LEVELS:
+            existing = self.typed.get(subject)
+            if existing is None or _type_precedence(type_iri) > _type_precedence(existing):
+                self.typed[subject] = type_iri
+
+    def _find_extension_objects(self) -> None:
+        """Find the objects of other vocabularies' classes that the SBOL 3 data model must place.
+
+        A custom-typed subject with SBOL 2 identity properties and no recognized type is a GenericTopLevel. SBOL 3
+        has no such class, so it keeps its custom type and becomes a top-level, unless it nests under another
+        identified subject.
+        """
+        rewrite = self.identity.rewrite
+        prefixes = [rewrite(iri) + "/" for iri in self.sbol2_identified]
+        for subject in sorted(self.sbol2_identified & self.custom_typed - self.recognized_typed):
             canonical = rewrite(subject)
             if not any(canonical.startswith(prefix) for prefix in prefixes):
                 self.generic_top_levels.setdefault(canonical, subject)
-
         self.extension_objects = {
-            s for s in sbol2_identified if (s in custom_typed or s in recognized_typed) and not self._has_sbol2_class(s)
+            s
+            for s in self.sbol2_identified & (self.custom_typed | self.recognized_typed)
+            if not self._has_sbol2_class(s)
         }
 
+    def _collapse_annotations(self) -> None:
+        """Fold each SequenceAnnotation that refers to a Component onto that Component's SubComponent.
+
+        The annotation's Locations move under the SubComponent. A Location's own SBOL 3 identity is released first:
+        it is being re-homed, not duplicated.
+        """
+        rewrite = self.identity.rewrite
         for s, p, o in self.triples:
             if p == S2.component and is_iri(s) and is_iri(o) and self.typed.get(s) == S2.SequenceAnnotation:
                 self.sa_to_subcomponent[s] = o
-
-        # Locations of a collapsed SA move under their new SubComponent parent. The Location's own canonical IRI is
-        # released first: it is being re-homed, not duplicated.
         owners = sorted(
             (loc, self.sa_to_subcomponent[sa])
             for loc, sa in self.location_to_sa.items()
@@ -268,14 +292,16 @@ class _Upgrader:
                 self.location_display_id_overrides[loc] = display_id
             self.identity.rehome(loc, new_iri)
 
-        # Interface membership: in/out/inout directions, public direction-none FunctionalComponents, and public
-        # Components (SBOL 3.1.0 §10.2).
+    def _index_interfaces(self) -> None:
+        """Decide which features join their Component's Interface, and in which slot (SBOL 3.1.0 §10.2).
+
+        A FunctionalComponent with direction in, out, or inout takes the matching slot; a public one with direction
+        none, and a public Component, are nondirectional.
+        """
         direction_none: set[str] = set()
         public_fcs: set[str] = set()
         for s, p, o in self.triples:
-            if not (is_iri(s) and is_iri(o)):
-                continue
-            if p == S2.direction and self.typed.get(s) == S2.FunctionalComponent:
+            if is_iri(s) and is_iri(o) and p == S2.direction and self.typed.get(s) == S2.FunctionalComponent:
                 if o == S2.none:
                     direction_none.add(s)
                 elif o in DIRECTIONS:
@@ -289,6 +315,8 @@ class _Upgrader:
         for fc in direction_none & public_fcs:
             self.fc_directions.setdefault(fc, "nondirectional")
 
+    def _index_mapstos(self) -> None:
+        """Collect the local, remote, refinement, and displayId of every MapsTo."""
         for s, p, o in self.triples:
             if not is_iri(s) or self.typed.get(s) != S2.MapsTo:
                 continue
@@ -316,6 +344,7 @@ class _Upgrader:
     # Per-triple conversion
 
     def _handle(self, triple: Triple) -> None:
+        """Convert one input triple."""
         s, p, o = triple
         if not p.startswith(S2.base) and is_iri(s) and s in self.sa_to_subcomponent:
             if not (p == RDF_TYPE and o == S2.SequenceAnnotation):
@@ -336,6 +365,7 @@ class _Upgrader:
         self.out.append((self.identity.rewrite(subcomponent), DCTERMS_TO_SBOL3.get(p, p), self.identity.term(o)))
 
     def _handle_type(self, triple: Triple) -> None:
+        """Convert an rdf:type statement, recording what a downgrade needs to restore the SBOL 2 class."""
         s, p, o = triple
         if not is_iri(o):
             self.out.append((self.identity.term(s), p, o))
@@ -371,6 +401,7 @@ class _Upgrader:
                 self.out.append((subject, BP.sbol2OriginalURI, s))
 
     def _handle_sbol2_predicate(self, triple: Triple) -> None:
+        """Convert a statement with an SBOL 2 predicate; one with no SBOL 3 counterpart is dropped."""
         s, p, o = triple
         if self._collapse_sa_triple(triple):
             return
@@ -442,6 +473,7 @@ class _Upgrader:
         return self.identity.namespace_for(canonical)
 
     def _emit_namespaces(self) -> None:
+        """Give every top-level its hasNamespace."""
         # (SBOL 2 identity, SBOL 3 identity, IRI the URL-origin fallback reads) of every top-level
         top_levels = [
             (iri, self.identity.rewrite(iri), iri)
@@ -474,6 +506,7 @@ class _Upgrader:
             self.out.append((canonical, RDF_TYPE, markers[canonical]))
 
     def _fallback_namespace(self, iri: str) -> str | None:
+        """A namespace for a top-level whose identity yields none: its URL origin, else the default namespace."""
         origin = uri.url_origin(iri)
         if origin is not None:
             return origin
