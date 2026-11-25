@@ -1,2 +1,3 @@
+include sbol_utilities/validation/data/COMMIT
 include sbol_utilities/validation/data/Rules/*.json
 include sbol_utilities/validation/data/Ontology/*.tsv

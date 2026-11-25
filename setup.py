@@ -98,6 +98,7 @@ setup(name='sbol-utilities',
           'sbol_utilities': [
               'gb2so.csv',
               'so2gb.csv',
+              'validation/data/COMMIT',
               'validation/data/Rules/*.json',
               'validation/data/Ontology/*.tsv',
           ],

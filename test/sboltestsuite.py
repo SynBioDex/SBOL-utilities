@@ -19,17 +19,16 @@ Run ``python test/sboltestsuite.py`` to populate the cache ahead of time.
 from __future__ import annotations
 
 import os
-import subprocess
 import sys
 import warnings
 from functools import lru_cache
 from pathlib import Path
-from typing import Callable, Iterable, List, Optional
+from typing import Callable, Iterable, List
 
 import pytest
 
 from sbol_utilities.validation.runtime_data import SBOL_TEST_SUITE_COMMIT as COMMIT
-from sbol_utilities.validation.runtime_data import DataUnavailable, download
+from sbol_utilities.validation.runtime_data import DataUnavailable, checkout_revision, download
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 CACHE_DIR = REPO_ROOT / ".cache" / "sboltestsuite" / COMMIT
@@ -57,14 +56,6 @@ def required() -> bool:
     return os.environ.get("SBOL_TEST_SUITE_REQUIRED", "") not in ("", "0", "false")
 
 
-def _checkout_revision(path: Path) -> Optional[str]:
-    try:
-        result = subprocess.run(["git", "-C", str(path), "rev-parse", "HEAD"], capture_output=True, text=True)
-    except OSError:
-        return None
-    return result.stdout.strip() if result.returncode == 0 else None
-
-
 @lru_cache(maxsize=None)
 def suite_root() -> Path:
     """Directory holding the SBOLTestSuite corpus, downloading the pinned archive on first use."""
@@ -73,7 +64,7 @@ def suite_root() -> Path:
         path = Path(configured).expanduser()
         if not (path / SBOL3_INVALID).is_dir() or not (path / EXPECTED).is_dir():
             raise SuiteUnavailable(f"SBOL_TEST_SUITE_DIR={configured} lacks {SBOL3_INVALID}/ or {EXPECTED}/")
-        revision = _checkout_revision(path)
+        revision = checkout_revision(path)
         if revision and revision != COMMIT:
             warnings.warn(f"SBOL_TEST_SUITE_DIR is at {revision}; the tests are pinned to {COMMIT}")
         return path

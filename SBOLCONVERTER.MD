@@ -90,9 +90,14 @@ New test documents and expected outputs belong in SBOLTestSuite: invalid SBOL 3 
 documents in the SBOL 2 / SBOL 3 directories. SBOLTestSuite's `scripts/generate_expected.py` regenerates
 `Expected/`, `Rules/`, and `Ontology/`. Then move `SBOL_TEST_SUITE_COMMIT` here to the new SBOLTestSuite commit.
 
-Building the package (`pip install .`, `python -m build`) copies `Rules/` and `Ontology/` from the pinned commit into
-`sbol_utilities/validation/data/`, so installed packages validate offline. A source checkout without that copy reads
-them from `$SBOL_TEST_SUITE_DIR`, or downloads them once into the user cache.
+Building the package (`pip install .`, `python -m build`) copies `Rules/` and `Ontology/` into
+`sbol_utilities/validation/data/` and records the pinned commit there, so installed packages validate offline. The
+build takes the files from `$SBOL_TEST_SUITE_DIR` when it is set (warning if that checkout is not at the pinned
+commit) and from the pinned commit otherwise.
+
+At run time the validators read `$SBOL_TEST_SUITE_DIR` when it is set, otherwise the copy in
+`sbol_utilities/validation/data/` when it was made for the pinned commit, otherwise they download the pinned commit's
+files once into the user cache.
 
 ## Finding issues
 
