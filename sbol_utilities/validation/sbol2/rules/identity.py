@@ -3,8 +3,6 @@ wasDerivedFrom cycles and version order, and the compliant-URI family."""
 
 from __future__ import annotations
 
-from typing import Dict, List, Optional, Set
-
 from sbol_utilities.validation.catalog import Context
 from sbol_utilities.validation.graphs import nodes_on_cycles
 from sbol_utilities.validation.rdf import has_valid_display_id
@@ -54,7 +52,7 @@ def identity_syntax(context: Context) -> None:
 def persistent_identity_classes(context: Context) -> None:
     """Objects sharing a persistentIdentity are instances of the same class."""
     ctx: Sbol2Context = context  # type: ignore[assignment]
-    classes: Dict[str, Set[str]] = {}
+    classes: dict[str, set[str]] = {}
     for obj in ctx.objects:
         pid = obj.first_ref(S.PERSISTENT_IDENTITY)
         if pid is not None:
@@ -86,7 +84,7 @@ def document_namespace(context: Context) -> None:
 def derivation_cycles(context: Context) -> None:
     """A TopLevel does not derive from itself, directly or through a wasDerivedFrom chain of TopLevels."""
     ctx: Sbol2Context = context  # type: ignore[assignment]
-    graph: Dict[str, List[str]] = {}
+    graph: dict[str, list[str]] = {}
     for obj in ctx.objects:
         if not obj.is_top_level or obj.iri is None:
             continue
@@ -207,9 +205,9 @@ def compliant_identities(context: Context) -> None:
                 )
 
 
-def parent_map(ctx: Sbol2Context) -> Dict[str, str]:
+def parent_map(ctx: Sbol2Context) -> dict[str, str]:
     """Composite child identity -> identity of the object holding it through a local-reference property."""
-    parents: Dict[str, str] = {}
+    parents: dict[str, str] = {}
     for obj in ctx.objects:
         if obj.iri is None:
             continue
@@ -235,7 +233,7 @@ def compliant_children(context: Context) -> None:
         display_id = obj.display_id
         if parent_id is None or display_id is None:
             continue
-        parent: Optional[Obj] = ctx.resolve(parent_id)
+        parent: Obj | None = ctx.resolve(parent_id)
         if parent is None:
             continue
         child_pid = obj.first_ref(S.PERSISTENT_IDENTITY)

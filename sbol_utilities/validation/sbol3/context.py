@@ -7,7 +7,7 @@ nodes), and composite parent/child edges are recorded in an ownership index.
 
 from __future__ import annotations
 
-from typing import Dict, Iterable, List, Optional, Set, Tuple
+from collections.abc import Iterable
 
 import rdflib
 from rdflib.term import BNode, Literal, Node, URIRef
@@ -38,7 +38,7 @@ HASH_LENIENT = "Lenient"
 SHOULD = "SHOULD"
 
 
-def _term_order(node: Node) -> Tuple[int, str]:
+def _term_order(node: Node) -> tuple[int, str]:
     if isinstance(node, URIRef):
         return 0, str(node)
     if isinstance(node, BNode):
@@ -69,56 +69,56 @@ class SbolObject:
 
     __slots__ = ("identity", "rdf_types", "properties", "classes", "ancestors", "display_id", "is_top_level")
 
-    def __init__(self, identity: Node, properties: Dict[str, List[Node]]):
+    def __init__(self, identity: Node, properties: dict[str, list[Node]]):
         self.identity = identity
         self.properties = properties
-        self.rdf_types: Tuple[str, ...] = tuple(
+        self.rdf_types: tuple[str, ...] = tuple(
             sorted(str(t) for t in properties.get(spec.RDF_TYPE, ()) if isinstance(t, URIRef))
         )
         #: recognized SBOL / PROV / OM classes among the rdf:types
-        self.classes: Tuple[str, ...] = tuple(t for t in self.rdf_types if t in spec.CLASS_SPECS)
-        ancestors: Set[str] = set()
+        self.classes: tuple[str, ...] = tuple(t for t in self.rdf_types if t in spec.CLASS_SPECS)
+        ancestors: set[str] = set()
         for cls in self.classes:
             ancestors |= spec.ANCESTORS[cls]
         #: every class this object is an instance of, through the class hierarchy
         self.ancestors = frozenset(ancestors)
-        self.display_id: Optional[str] = self.first_literal_value(spec.DISPLAY_ID)
+        self.display_id: str | None = self.first_literal_value(spec.DISPLAY_ID)
         self.is_top_level = any(c in spec.TOP_LEVEL_CLASSES for c in self.classes)
 
     def __repr__(self) -> str:
         return f"SbolObject({self.identity!s})"
 
-    def values(self, predicate: str) -> List[Node]:
+    def values(self, predicate: str) -> list[Node]:
         """All values of a predicate."""
         return self.properties.get(predicate, [])
 
-    def resources(self, predicate: str) -> List[Node]:
+    def resources(self, predicate: str) -> list[Node]:
         """IRI and blank-node values of a predicate."""
         return [v for v in self.values(predicate) if isinstance(v, (URIRef, BNode))]
 
-    def iris(self, predicate: str) -> List[URIRef]:
+    def iris(self, predicate: str) -> list[URIRef]:
         """IRI values of a predicate."""
         return [v for v in self.values(predicate) if isinstance(v, URIRef)]
 
-    def literals(self, predicate: str) -> List[Literal]:
+    def literals(self, predicate: str) -> list[Literal]:
         """Literal values of a predicate."""
         return [v for v in self.values(predicate) if isinstance(v, Literal)]
 
-    def first_resource(self, predicate: str) -> Optional[Node]:
+    def first_resource(self, predicate: str) -> Node | None:
         """First IRI or blank-node value of a predicate."""
         for v in self.values(predicate):
             if isinstance(v, (URIRef, BNode)):
                 return v
         return None
 
-    def first_iri(self, predicate: str) -> Optional[URIRef]:
+    def first_iri(self, predicate: str) -> URIRef | None:
         """First IRI value of a predicate."""
         for v in self.values(predicate):
             if isinstance(v, URIRef):
                 return v
         return None
 
-    def first_literal_value(self, predicate: str) -> Optional[str]:
+    def first_literal_value(self, predicate: str) -> str | None:
         """Lexical form of the first literal value of a predicate."""
         for v in self.values(predicate):
             if isinstance(v, Literal):
@@ -133,12 +133,12 @@ class SbolObject:
         """Whether the object carries exactly this rdf:type."""
         return iri in self.rdf_types
 
-    def derived_from(self) -> List[Node]:
+    def derived_from(self) -> list[Node]:
         """The object's prov:wasDerivedFrom resources."""
         return self.resources(spec.PROV_WAS_DERIVED_FROM)
 
 
-def primary_kind(obj: SbolObject) -> Optional[str]:
+def primary_kind(obj: SbolObject) -> str | None:
     """The single typed class an object is read as (first match in sbol-rs dispatch order)."""
     for cls in spec.TYPED_DISPATCH_ORDER:
         if obj.has_class(cls):
@@ -152,24 +152,24 @@ class OwnershipIndex:
     """Composite parent/child edges of the document (``hasFeature``, ``hasLocation``, ...)."""
 
     def __init__(self, objects: Iterable[SbolObject]):
-        self.parents_by_child: Dict[Node, List[Tuple[Node, str]]] = {}
-        self.children_by_parent: Dict[Tuple[Node, str], List[Node]] = {}
+        self.parents_by_child: dict[Node, list[tuple[Node, str]]] = {}
+        self.children_by_parent: dict[tuple[Node, str], list[Node]] = {}
         for obj in objects:
             for predicate in spec.COMPOSITE_PREDICATES:
                 for child in obj.resources(predicate):
                     self.parents_by_child.setdefault(child, []).append((obj.identity, predicate))
                     self.children_by_parent.setdefault((obj.identity, predicate), []).append(child)
 
-    def parents(self, child: Node, predicate: str) -> List[Node]:
+    def parents(self, child: Node, predicate: str) -> list[Node]:
         """Every parent holding ``child`` under ``predicate``."""
         return [parent for parent, p in self.parents_by_child.get(child, ()) if p == predicate]
 
-    def single_parent(self, child: Node, predicate: str) -> Optional[Node]:
+    def single_parent(self, child: Node, predicate: str) -> Node | None:
         """The first parent holding ``child`` under ``predicate``."""
         parents = self.parents(child, predicate)
         return parents[0] if parents else None
 
-    def children(self, parent: Node, predicate: str) -> List[Node]:
+    def children(self, parent: Node, predicate: str) -> list[Node]:
         """Children held by ``parent`` under ``predicate``."""
         return self.children_by_parent.get((parent, predicate), [])
 
@@ -178,15 +178,15 @@ class OwnershipIndex:
         return child in self.children(parent, predicate)
 
 
-def collect_objects(graph: rdflib.Graph) -> Dict[Node, SbolObject]:
+def collect_objects(graph: rdflib.Graph) -> dict[Node, SbolObject]:
     """Index the graph's SBOL-relevant subjects, ordered by identity.
 
     Property values keep the graph's insertion order (document order for a parsed file), so "first value" lookups
     agree with sbol-rs, which reads values in document order.
     """
-    objects: Dict[Node, SbolObject] = {}
+    objects: dict[Node, SbolObject] = {}
     for subject in sorted(set(graph.subjects()), key=_term_order):
-        properties: Dict[str, List[Node]] = {}
+        properties: dict[str, list[Node]] = {}
         for p, o in graph.predicate_objects(subject):
             properties.setdefault(str(p), []).append(o)
         if any(not _is_extension_predicate(p) for p in properties):
@@ -215,26 +215,26 @@ class SBOL3Context(Context):
         self.external_mode = external_mode
         self.topology_completeness = topology_completeness
         self.hash_algorithm_registry = hash_algorithm_registry
-        self.objects: Dict[Node, SbolObject] = collect_objects(graph)
+        self.objects: dict[Node, SbolObject] = collect_objects(graph)
         self.ownership = OwnershipIndex(self.objects.values())
-        self._typed: Dict[str, List[SbolObject]] = {}
-        self._instances: Dict[str, List[SbolObject]] = {}
+        self._typed: dict[str, list[SbolObject]] = {}
+        self._instances: dict[str, list[SbolObject]] = {}
         for obj in self.objects.values():
             kind = primary_kind(obj)
             if kind is not None:
                 self._typed.setdefault(kind, []).append(obj)
 
-    def get(self, identity: Optional[Node]) -> Optional[SbolObject]:
+    def get(self, identity: Node | None) -> SbolObject | None:
         """The object with this identity, if present in the document."""
         if identity is None:
             return None
         return self.objects.get(identity)
 
-    def typed(self, class_iri: str) -> List[SbolObject]:
+    def typed(self, class_iri: str) -> list[SbolObject]:
         """Objects whose primary typed kind is ``class_iri`` (sbol-rs ``Document::components()`` and friends)."""
         return self._typed.get(class_iri, [])
 
-    def instances(self, class_iri: str) -> List[SbolObject]:
+    def instances(self, class_iri: str) -> list[SbolObject]:
         """Objects that are instances of ``class_iri`` or a subclass."""
         found = self._instances.get(class_iri)
         if found is None:
@@ -247,8 +247,8 @@ class SBOL3Context(Context):
         subject,
         message: str,
         property=None,
-        hint: Optional[str] = None,
-        severity: Optional[str] = None,
+        hint: str | None = None,
+        severity: str | None = None,
     ) -> None:
         """Record a violation; SHOULD-level rules are dropped while the best-practice family is off."""
         if not self.config.best_practice and self.catalog[rule_id].normative_severity == SHOULD:
@@ -257,10 +257,10 @@ class SBOL3Context(Context):
             subject = subject.identity
         super().emit(rule_id, subject, message, property=property, hint=hint, severity=severity)
 
-    def error(self, rule_id: str, subject, property: Optional[str], message: str) -> None:
+    def error(self, rule_id: str, subject, property: str | None, message: str) -> None:
         """Emit at Error severity."""
         self.emit(rule_id, subject, message, property=property, severity="Error")
 
-    def warning(self, rule_id: str, subject, property: Optional[str], message: str) -> None:
+    def warning(self, rule_id: str, subject, property: str | None, message: str) -> None:
         """Emit at Warning severity."""
         self.emit(rule_id, subject, message, property=property, severity="Warning")

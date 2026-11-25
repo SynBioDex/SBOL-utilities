@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from functools import partial
-from typing import Iterator, List, Tuple
 
 from rdflib.term import Node
 
@@ -51,7 +51,7 @@ def generation_cycles(ctx: SBOL3Context) -> None:
     """
     generated_from = partial(_generated_from, ctx)
 
-    def other_sources(identity: Node) -> List[Node]:
+    def other_sources(identity: Node) -> list[Node]:
         return [source for source in generated_from(identity) if source != identity]
 
     self_generated = [identity for identity in ctx.objects if identity in generated_from(identity)]
@@ -115,7 +115,7 @@ def variant_derivation_cycles(ctx: SBOL3Context) -> None:
 @REGISTRY.rule("sbol3-11302", "sbol3-11303")
 def location_sequence_membership(ctx: SBOL3Context) -> None:
     """Feature Locations refer to Sequences of their Component; sourceLocations to the instanceOf's Sequences."""
-    checks: List[Tuple[Node, Node, str, str]] = []
+    checks: list[tuple[Node, Node, str, str]] = []
     for kind in (spec.SUB_COMPONENT, spec.SEQUENCE_FEATURE, spec.LOCAL_SUB_COMPONENT):
         for feature in ctx.typed(kind):
             component = ctx.ownership.single_parent(feature.identity, spec.HAS_FEATURE)

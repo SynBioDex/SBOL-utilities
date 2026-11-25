@@ -7,7 +7,6 @@ spans, the Table 8 / Table 10 constraint relations, and CombinatorialDerivation 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Dict, FrozenSet, List, Optional, Set, Tuple
 
 from rdflib.term import Node, URIRef
 
@@ -39,18 +38,18 @@ class Relation:
     """Outcome of evaluating a constraint relation, with the witnessing locations when contradicted."""
 
     outcome: str
-    subject_location: Optional[Node] = None
-    object_location: Optional[Node] = None
+    subject_location: Node | None = None
+    object_location: Node | None = None
 
 
 @dataclass(frozen=True)
 class FeatureTrace:
     """Result of following a ``refersTo`` chain: the target and the ComponentReferences passed through."""
 
-    target: Optional[Node]
-    path: Tuple[Node, ...]
+    target: Node | None
+    path: tuple[Node, ...]
     #: "missing", "missing_refers_to", or "cycle" when the chain could not be resolved
-    error: Optional[str] = None
+    error: str | None = None
 
 
 @dataclass(frozen=True)
@@ -61,10 +60,10 @@ class LinearLocation:
     sequence: Node
     start: int
     end: int
-    orientation: Optional[str]
+    orientation: str | None
 
 
-def directional_orientation(value: Optional[Node]) -> Optional[str]:
+def directional_orientation(value: Node | None) -> str | None:
     """Normalize SBOL and SO orientation IRIs to inline / reverseComplement."""
     if value is None:
         return None
@@ -76,7 +75,7 @@ def directional_orientation(value: Optional[Node]) -> Optional[str]:
     return None
 
 
-def parent_by_identity_prefix(ctx: SBOL3Context, obj: SbolObject) -> Optional[SbolObject]:
+def parent_by_identity_prefix(ctx: SBOL3Context, obj: SbolObject) -> SbolObject | None:
     """The object whose identity is this object's identity with the last path segment removed."""
     identity = str(obj.identity) if isinstance(obj.identity, URIRef) else "_:" + str(obj.identity)
     if "/" not in identity:
@@ -87,8 +86,8 @@ def parent_by_identity_prefix(ctx: SBOL3Context, obj: SbolObject) -> Optional[Sb
 def trace_feature(ctx: SBOL3Context, feature: Node) -> FeatureTrace:
     """Follow ComponentReference ``refersTo`` links from ``feature`` to the first non-reference object."""
     current = feature
-    path: List[Node] = []
-    visited: Set[Node] = set()
+    path: list[Node] = []
+    visited: set[Node] = set()
     while True:
         if current in visited:
             path.append(current)
@@ -106,7 +105,7 @@ def trace_feature(ctx: SBOL3Context, feature: Node) -> FeatureTrace:
         current = nxt
 
 
-def parent_reference(ctx: SBOL3Context, reference: SbolObject) -> Optional[SbolObject]:
+def parent_reference(ctx: SBOL3Context, reference: SbolObject) -> SbolObject | None:
     """The ComponentReference whose identity prefixes this reference's identity."""
     parent = parent_by_identity_prefix(ctx, reference)
     return parent if parent is not None and parent.has_class(spec.COMPONENT_REFERENCE) else None
@@ -121,7 +120,7 @@ def reference_is_child_of(ctx: SBOL3Context, reference: Node, parent: Node) -> b
     return found is not None and found.identity == parent
 
 
-def linear_location(ctx: SBOL3Context, identity: Node) -> Optional[LinearLocation]:
+def linear_location(ctx: SBOL3Context, identity: Node) -> LinearLocation | None:
     """Normalize a local Range, Cut, or EntireSequence to a span."""
     location = ctx.get(identity)
     if location is None:
@@ -152,7 +151,7 @@ def linear_location(ctx: SBOL3Context, identity: Node) -> Optional[LinearLocatio
     return None
 
 
-def locations_for_feature(ctx: SBOL3Context, feature: Node) -> List[LinearLocation]:
+def locations_for_feature(ctx: SBOL3Context, feature: Node) -> list[LinearLocation]:
     """Spans of the (reference-resolved) feature's local locations."""
     trace = trace_feature(ctx, feature)
     target = trace.target if trace.error is None else feature
@@ -185,7 +184,7 @@ def _sequential_relation_satisfied(restriction: str, s: LinearLocation, o: Linea
     return True
 
 
-def _identity_key(ctx: SBOL3Context, feature: Node) -> Optional[Tuple[Tuple[str, Node], bool]]:
+def _identity_key(ctx: SBOL3Context, feature: Node) -> tuple[tuple[str, Node], bool] | None:
     trace = trace_feature(ctx, feature)
     if trace.error is not None:
         return None
@@ -202,7 +201,7 @@ def _identity_key(ctx: SBOL3Context, feature: Node) -> Optional[Tuple[Tuple[str,
     return None
 
 
-def _feature_orientation(ctx: SBOL3Context, feature: Node) -> Optional[str]:
+def _feature_orientation(ctx: SBOL3Context, feature: Node) -> str | None:
     trace = trace_feature(ctx, feature)
     if trace.error is not None:
         return None
@@ -245,7 +244,7 @@ def table10_relation(ctx: SBOL3Context, restriction: str, subject: Node, obj: No
         return Relation(UNSUPPORTED)
     subject_locations = locations_for_feature(ctx, subject)
     object_locations = locations_for_feature(ctx, obj)
-    comparable: Optional[Tuple[Node, Node]] = None
+    comparable: tuple[Node, Node] | None = None
     for s in subject_locations:
         for o in object_locations:
             if s.sequence != o.sequence:
@@ -259,7 +258,7 @@ def table10_relation(ctx: SBOL3Context, restriction: str, subject: Node, obj: No
     return Relation(CONTRADICTED, comparable[0], comparable[1])
 
 
-def type_properties(ctx: SBOL3Context, feature: Node) -> Optional[FrozenSet[str]]:
+def type_properties(ctx: SBOL3Context, feature: Node) -> frozenset[str] | None:
     """The ``sbol:type`` IRIs of the object that determines a Feature's type, when resolvable."""
     trace = trace_feature(ctx, feature)
     if trace.error is not None:
@@ -267,7 +266,7 @@ def type_properties(ctx: SBOL3Context, feature: Node) -> Optional[FrozenSet[str]
     obj = ctx.get(trace.target)
     if obj is None:
         return None
-    referent: Optional[Node] = None
+    referent: Node | None = None
     if obj.has_class(spec.LOCAL_SUB_COMPONENT) or obj.has_class(spec.EXTERNALLY_DEFINED):
         referent = trace.target
     elif obj.has_class(spec.SUB_COMPONENT):
@@ -284,19 +283,19 @@ class DerivationContext:
 
     derivation: Node
     template: Node
-    template_features: FrozenSet[Node]
-    variables: Dict[Node, Node] = field(default_factory=dict)
-    static_features: List[Node] = field(default_factory=list)
+    template_features: frozenset[Node]
+    variables: dict[Node, Node] = field(default_factory=dict)
+    static_features: list[Node] = field(default_factory=list)
 
 
-def derivation_context(ctx: SBOL3Context, derivation: SbolObject) -> Optional[DerivationContext]:
+def derivation_context(ctx: SBOL3Context, derivation: SbolObject) -> DerivationContext | None:
     """Resolve a derivation's local template and variable features."""
     template = derivation.first_resource(spec.TEMPLATE)
     template_obj = ctx.get(template)
     if template is None or template_obj is None:
         return None
     template_features = list(dict.fromkeys(template_obj.resources(spec.HAS_FEATURE)))
-    variables: Dict[Node, Node] = {}
+    variables: dict[Node, Node] = {}
     for variable_feature in derivation.resources(spec.HAS_VARIABLE_FEATURE):
         variable_feature_obj = ctx.get(variable_feature)
         if variable_feature_obj is None:
@@ -309,12 +308,12 @@ def derivation_context(ctx: SBOL3Context, derivation: SbolObject) -> Optional[De
     return DerivationContext(derivation.identity, template, frozenset(template_features), variables, static)
 
 
-def derived_objects(ctx: SBOL3Context, derivation: Node, class_iri: str) -> List[SbolObject]:
+def derived_objects(ctx: SBOL3Context, derivation: Node, class_iri: str) -> list[SbolObject]:
     """Objects of a class whose ``prov:wasDerivedFrom`` names the derivation."""
     return [o for o in ctx.objects.values() if o.has_class(class_iri) and derivation in o.derived_from()]
 
 
-def features_derived_from(ctx: SBOL3Context, component: SbolObject, template_feature: Node) -> List[Node]:
+def features_derived_from(ctx: SBOL3Context, component: SbolObject, template_feature: Node) -> list[Node]:
     """Features of a derived Component that derive from a template Feature."""
     result = []
     for feature in component.resources(spec.HAS_FEATURE):
@@ -324,13 +323,13 @@ def features_derived_from(ctx: SBOL3Context, component: SbolObject, template_fea
     return result
 
 
-def feature_derives_from_template(ctx: SBOL3Context, feature: Node, template_features: FrozenSet[Node]) -> bool:
+def feature_derives_from_template(ctx: SBOL3Context, feature: Node, template_features: frozenset[Node]) -> bool:
     """Whether a Feature derives from any of the template's Features."""
     obj = ctx.get(feature)
     return obj is not None and any(c in template_features for c in obj.derived_from())
 
 
-def static_feature_properties_match(ctx: SBOL3Context, derived: Node, template: Node) -> Optional[bool]:
+def static_feature_properties_match(ctx: SBOL3Context, derived: Node, template: Node) -> bool | None:
     """Whether a derived Feature preserves the template Feature's core properties."""
     derived_obj = ctx.get(derived)
     template_obj = ctx.get(template)
@@ -339,7 +338,7 @@ def static_feature_properties_match(ctx: SBOL3Context, derived: Node, template: 
     return all(set(derived_obj.values(p)) == set(template_obj.values(p)) for p in FEATURE_EQUIVALENCE_PREDICATES)
 
 
-def cardinality_allows(cardinality: Optional[Node], count: int) -> bool:
+def cardinality_allows(cardinality: Node | None, count: int) -> bool:
     """Whether a derived Feature count satisfies a VariableFeature cardinality."""
     value = None if cardinality is None else str(cardinality)
     if value == spec.ONE:
@@ -351,7 +350,7 @@ def cardinality_allows(cardinality: Optional[Node], count: int) -> bool:
     return True
 
 
-def _collect_collection_components(ctx: SBOL3Context, collection: Node, visited: Set[Node], out: Set[Node]) -> None:
+def _collect_collection_components(ctx: SBOL3Context, collection: Node, visited: set[Node], out: set[Node]) -> None:
     if collection in visited:
         return
     visited.add(collection)
@@ -368,9 +367,9 @@ def _collect_collection_components(ctx: SBOL3Context, collection: Node, visited:
             _collect_collection_components(ctx, member, visited, out)
 
 
-def allowed_variants(ctx: SBOL3Context, variable_feature: SbolObject) -> Set[Node]:
+def allowed_variants(ctx: SBOL3Context, variable_feature: SbolObject) -> set[Node]:
     """Components a VariableFeature allows through variant, variantCollection, and variantDerivation."""
-    allowed: Set[Node] = set()
+    allowed: set[Node] = set()
     for variant in variable_feature.resources(spec.VARIANT):
         obj = ctx.get(variant)
         if obj is not None and obj.has_class(spec.COMPONENT):

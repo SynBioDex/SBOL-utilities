@@ -6,8 +6,6 @@ rules stay silent, and otherwise they report that no content resolver is configu
 
 from __future__ import annotations
 
-from typing import List, Tuple
-
 from rdflib.term import Node, URIRef
 
 from sbol_utilities.validation.sbol3 import REGISTRY, spec
@@ -81,7 +79,7 @@ def models(ctx: SBOL3Context) -> None:
 def implementations(ctx: SBOL3Context) -> None:
     """Implementation derivations refer to Components whose types do not conflict."""
     for obj in ctx.instances(spec.IMPLEMENTATION):
-        components: List[SbolObject] = []
+        components: list[SbolObject] = []
         for derived_from in obj.derived_from():
             target = ctx.get(derived_from)
             if target is None:
@@ -97,7 +95,7 @@ def implementations(ctx: SBOL3Context) -> None:
             components.append(target)
         if len(components) < 2:
             continue
-        typed: List[Tuple[Node, URIRef]] = [(c.identity, t) for c in components for t in c.iris(spec.TYPE)]
+        typed: list[tuple[Node, URIRef]] = [(c.identity, t) for c in components for t in c.iris(spec.TYPE)]
         for index, (left_component, left_type) in enumerate(typed):
             for right_component, right_type in typed[index + 1 :]:
                 if left_component == right_component:

@@ -3,8 +3,6 @@ draw from (Tables 1, 2, 7, 11 and the ontology branches the specification names)
 
 from __future__ import annotations
 
-from typing import List, Optional
-
 from sbol_utilities.validation.catalog import Context
 from sbol_utilities.validation.sbol2 import REGISTRY
 from sbol_utilities.validation.sbol2 import spec as S
@@ -22,11 +20,11 @@ def is_edam_iri(iri: str) -> bool:
     )
 
 
-def _count_in_branch(ctx: Sbol2Context, terms: List[str], root: str) -> int:
+def _count_in_branch(ctx: Sbol2Context, terms: list[str], root: str) -> int:
     return sum(1 for t in terms if ctx.ontology.is_in_branch(ontology_curie(t), root))
 
 
-def _definition_types(ctx: Sbol2Context, component: Obj) -> Optional[List[str]]:
+def _definition_types(ctx: Sbol2Context, component: Obj) -> list[str] | None:
     definition = ctx.get(component.first_ref(S.DEFINITION))
     return None if definition is None else definition.iris(S.TYPE)
 

@@ -16,9 +16,10 @@ Statuses:
 from __future__ import annotations
 
 import json
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 from functools import lru_cache
-from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
+from typing import Any, Callable
 
 import rdflib
 from rdflib.term import BNode
@@ -40,9 +41,9 @@ class RuleSpec:
     normative_severity: str
     spec_section: str
     note: str
-    gate: Optional[str] = None
-    blocker: Optional[str] = None
-    coverage_kind: Optional[str] = None
+    gate: str | None = None
+    blocker: str | None = None
+    coverage_kind: str | None = None
 
     @property
     def machine_checkable(self) -> bool:
@@ -64,7 +65,7 @@ class Catalog:
     """All rules of one SBOL specification version."""
 
     spec_version: str
-    rules: Dict[str, RuleSpec]
+    rules: dict[str, RuleSpec]
 
     def __getitem__(self, rule_id: str) -> RuleSpec:
         return self.rules[rule_id]
@@ -72,7 +73,7 @@ class Catalog:
     def __contains__(self, rule_id: object) -> bool:
         return rule_id in self.rules
 
-    def machine_checkable(self) -> List[RuleSpec]:
+    def machine_checkable(self) -> list[RuleSpec]:
         """Rules whose violations are to be machine-reported."""
         return [r for r in self.rules.values() if r.machine_checkable]
 
@@ -111,7 +112,7 @@ class Context:
         self.config = config
         self.catalog = catalog
         self.ontology = ontology
-        self.issues: List[Issue] = []
+        self.issues: list[Issue] = []
         self._seen: set = set()
 
     def enabled(self, rule_id: str) -> bool:
@@ -124,8 +125,8 @@ class Context:
         subject: Any,
         message: str,
         property: Any = None,
-        hint: Optional[str] = None,
-        severity: Optional[str] = None,
+        hint: str | None = None,
+        severity: str | None = None,
     ) -> None:
         """Record a violation of ``rule_id``; duplicate (rule, subject, property, message) records are dropped."""
         spec = self.catalog[rule_id]
@@ -153,7 +154,7 @@ class Registry:
     """Rule implementations for one SBOL version, in registration order."""
 
     version: int
-    functions: List[Tuple[Tuple[str, ...], RuleFunction]] = field(default_factory=list)
+    functions: list[tuple[tuple[str, ...], RuleFunction]] = field(default_factory=list)
 
     @property
     def catalog(self) -> Catalog:
@@ -172,9 +173,9 @@ class Registry:
 
         return register
 
-    def implemented(self) -> Dict[str, List[str]]:
+    def implemented(self) -> dict[str, list[str]]:
         """Rule id -> names of the functions implementing it."""
-        result: Dict[str, List[str]] = {}
+        result: dict[str, list[str]] = {}
         for rule_ids, function in self.functions:
             for rule_id in rule_ids:
                 result.setdefault(rule_id, []).append(f"{function.__module__}.{function.__qualname__}")

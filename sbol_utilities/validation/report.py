@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from sbol_utilities.validation.config import ERROR, WARNING, ValidationConfig
 
@@ -21,10 +21,10 @@ class Issue:
 
     severity: str
     rule: str
-    subject: Optional[str]
+    subject: str | None
     message: str
-    property: Optional[str] = None
-    hint: Optional[str] = None
+    property: str | None = None
+    hint: str | None = None
 
     def __str__(self) -> str:
         where = self.subject or "<document>"
@@ -32,7 +32,7 @@ class Issue:
             where = f"{where} [{self.property}]"
         return f"{self.severity} {self.rule}: {where}: {self.message}"
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """JSON-ready form of this issue."""
         return {
             "severity": self.severity,
@@ -48,13 +48,13 @@ class Issue:
 class Coverage:
     """Which catalog rules were evaluated against the document, and how completely."""
 
-    fully_applied: List[str] = field(default_factory=list)
+    fully_applied: list[str] = field(default_factory=list)
     #: entries carry ``rule``, ``blocker``, and ``coverage_kind``
-    partially_applied: List[Dict[str, str]] = field(default_factory=list)
+    partially_applied: list[dict[str, str]] = field(default_factory=list)
     #: entries carry ``rule`` and ``reason``
-    not_applied: List[Dict[str, str]] = field(default_factory=list)
+    not_applied: list[dict[str, str]] = field(default_factory=list)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """JSON-ready form of the coverage partition."""
         return {
             "fully_applied": sorted(self.fully_applied),
@@ -69,16 +69,16 @@ class ValidationReport:
 
     spec_version: str
     config: ValidationConfig
-    issues: List[Issue] = field(default_factory=list)
+    issues: list[Issue] = field(default_factory=list)
     coverage: Coverage = field(default_factory=Coverage)
 
     @property
-    def errors(self) -> List[Issue]:
+    def errors(self) -> list[Issue]:
         """Issues at Error severity."""
         return [i for i in self.issues if i.severity == ERROR]
 
     @property
-    def warnings(self) -> List[Issue]:
+    def warnings(self) -> list[Issue]:
         """Issues at Warning severity."""
         return [i for i in self.issues if i.severity == WARNING]
 
@@ -101,15 +101,15 @@ class ValidationReport:
             return f"Valid SBOL {self.spec_version} document."
         return "\n".join(str(i) for i in self.sorted_issues())
 
-    def sorted_issues(self) -> List[Issue]:
+    def sorted_issues(self) -> list[Issue]:
         """Issues in a stable order: rule, subject, property, message."""
         return sorted(self.issues, key=lambda i: (i.rule, i.subject or "", i.property or "", i.message))
 
-    def rule_ids(self) -> List[str]:
+    def rule_ids(self) -> list[str]:
         """Sorted distinct rule ids that fired."""
         return sorted({i.rule for i in self.issues})
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """JSON-ready form of the whole report."""
         cfg = self.config
         overridden = [
@@ -133,6 +133,6 @@ class ValidationReport:
             "issues": [i.to_dict() for i in self.sorted_issues()],
         }
 
-    def to_json(self, indent: Optional[int] = 1) -> str:
+    def to_json(self, indent: int | None = 1) -> str:
         """Serialize the report as JSON."""
         return json.dumps(self.to_dict(), indent=indent)

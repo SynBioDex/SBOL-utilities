@@ -11,8 +11,6 @@ and are reported as partially applied in the report's coverage.
 
 from __future__ import annotations
 
-from typing import Optional
-
 from sbol_utilities.rdf_io import GraphSource, detect_sbol_version, load_graph
 from sbol_utilities.validation import sbol2 as _sbol2
 from sbol_utilities.validation import sbol3 as _sbol3
@@ -35,7 +33,7 @@ __all__ = [
 
 
 def validate_sbol3(
-    source: GraphSource, config: Optional[ValidationConfig] = None, fmt: Optional[str] = None
+    source: GraphSource, config: ValidationConfig | None = None, fmt: str | None = None
 ) -> ValidationReport:
     """Validate a document against the SBOL 3.1.0 rule catalog.
 
@@ -47,7 +45,7 @@ def validate_sbol3(
 
 
 def validate_sbol2(
-    source: GraphSource, config: Optional[ValidationConfig] = None, fmt: Optional[str] = None
+    source: GraphSource, config: ValidationConfig | None = None, fmt: str | None = None
 ) -> ValidationReport:
     """Validate a document against the SBOL 2.3.0 rule catalog.
 
@@ -61,8 +59,8 @@ def validate_sbol2(
 def validate(
     source: GraphSource,
     version: str = "auto",
-    config: Optional[ValidationConfig] = None,
-    fmt: Optional[str] = None,
+    config: ValidationConfig | None = None,
+    fmt: str | None = None,
 ) -> ValidationReport:
     """Validate an SBOL 2 or SBOL 3 document.
 

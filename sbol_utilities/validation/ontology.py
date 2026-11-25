@@ -20,7 +20,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from functools import lru_cache
-from typing import Dict, List, Optional, Set, Tuple
 
 from sbol_utilities.validation.runtime_data import runtime_file
 
@@ -45,10 +44,10 @@ CELL_ROOT = "CL:0000000"
 _PREFIXES = {"EDAM": "EDAM", "SBO": "SBO", "SO": "SO", "GO": "GO", "CHEBI": "CHEBI", "CL": "CL", "NCIT": "NCIT"}
 
 
-def normalize_term_id(value: str) -> Optional[str]:
+def normalize_term_id(value: str) -> str | None:
     """Return the compact ontology id for a supported IRI, PURL, or compact id, or None."""
 
-    def prefixed(prefix: str, local: str) -> Optional[str]:
+    def prefixed(prefix: str, local: str) -> str | None:
         canonical = _PREFIXES.get(prefix.upper())
         return f"{canonical}:{local}" if canonical else None
 
@@ -81,20 +80,20 @@ class TermFact:
     """Classification of one ontology term."""
 
     iri: str
-    parents: Tuple[str, ...]
+    parents: tuple[str, ...]
     namespace: str
     role: str
-    component_family: Optional[str]
-    sequence_family: Optional[str]
+    component_family: str | None
+    sequence_family: str | None
     table_1_sequence_encoding: bool
     table_2_component_type: bool
 
 
-def _optional(value: str) -> Optional[str]:
+def _optional(value: str) -> str | None:
     return None if value in ("", "-") else value
 
 
-def _ordered(left: str, right: str) -> Tuple[str, str]:
+def _ordered(left: str, right: str) -> tuple[str, str]:
     return (left, right) if left <= right else (right, left)
 
 
@@ -102,18 +101,18 @@ class Ontology:
     """Query surface over an ontology fact snapshot."""
 
     def __init__(self) -> None:
-        self.terms: Dict[str, TermFact] = {}
-        self.aliases: Dict[str, str] = {}
-        self.branches: Set[Tuple[str, str]] = set()
-        self.compatibilities: Set[Tuple[str, str]] = set()
-        self.conflicts: Set[Tuple[str, str]] = set()
-        self.component_role_terms: Set[str] = set()
-        self.component_role_compatibilities: Set[Tuple[str, str]] = set()
-        self.participation_compatibilities: Set[Tuple[str, str]] = set()
-        self._ancestors: Dict[str, frozenset] = {}
+        self.terms: dict[str, TermFact] = {}
+        self.aliases: dict[str, str] = {}
+        self.branches: set[tuple[str, str]] = set()
+        self.compatibilities: set[tuple[str, str]] = set()
+        self.conflicts: set[tuple[str, str]] = set()
+        self.component_role_terms: set[str] = set()
+        self.component_role_compatibilities: set[tuple[str, str]] = set()
+        self.participation_compatibilities: set[tuple[str, str]] = set()
+        self._ancestors: dict[str, frozenset] = {}
 
     @classmethod
-    def from_tsv(cls, text: str) -> "Ontology":
+    def from_tsv(cls, text: str) -> Ontology:
         """Parse an ontology facts TSV (the SBOLTestSuite ``Ontology/ontology_facts.tsv`` format)."""
         ontology = cls()
         version_seen = False
@@ -165,7 +164,7 @@ class Ontology:
 
     # --- identity ---
 
-    def canonical_id(self, term: str) -> Optional[str]:
+    def canonical_id(self, term: str) -> str | None:
         """Compact canonical id for a known term, or None."""
         term = str(term)
         if term in self.aliases:
@@ -173,12 +172,12 @@ class Ontology:
         candidate = normalize_term_id(term)
         return candidate if candidate in self.terms else None
 
-    def fact(self, term: str) -> Optional[TermFact]:
+    def fact(self, term: str) -> TermFact | None:
         """Classification of a known term, or None."""
         canonical = self.canonical_id(term)
         return self.terms.get(canonical) if canonical else None
 
-    def canonical_iri(self, term: str) -> Optional[str]:
+    def canonical_iri(self, term: str) -> str | None:
         """Preferred SBOL-facing IRI of a known term."""
         fact = self.fact(term)
         return fact.iri if fact else None
@@ -187,35 +186,35 @@ class Ontology:
         """Whether the term is in the snapshot."""
         return self.canonical_id(term) is not None
 
-    def namespace(self, term: str) -> Optional[str]:
+    def namespace(self, term: str) -> str | None:
         """Source ontology (EDAM, SBO, SO, GO, CHEBI, CL) of a known term."""
         fact = self.fact(term)
         return fact.namespace if fact else None
 
-    def term_role(self, term: str) -> Optional[str]:
+    def term_role(self, term: str) -> str | None:
         """SBOL-facing role of a known term."""
         fact = self.fact(term)
         return fact.role if fact else None
 
     # --- role predicates ---
 
-    def _role_is(self, term: str, *roles: str) -> Optional[bool]:
+    def _role_is(self, term: str, *roles: str) -> bool | None:
         role = self.term_role(term)
         return None if role is None else role in roles
 
-    def is_sequence_encoding_term(self, term: str) -> Optional[bool]:
+    def is_sequence_encoding_term(self, term: str) -> bool | None:
         """Whether a known term is a Sequence encoding."""
         return self._role_is(term, SEQUENCE_ENCODING)
 
-    def is_component_type_term(self, term: str) -> Optional[bool]:
+    def is_component_type_term(self, term: str) -> bool | None:
         """Whether a known term may be a Component type (including topology/strand modifiers)."""
         return self._role_is(term, COMPONENT_TYPE, COMPONENT_TYPE_MODIFIER)
 
-    def is_feature_role_term(self, term: str) -> Optional[bool]:
+    def is_feature_role_term(self, term: str) -> bool | None:
         """Whether a known term may be a Feature role."""
         return self._role_is(term, FEATURE_ROLE)
 
-    def is_component_role_term(self, term: str) -> Optional[bool]:
+    def is_component_role_term(self, term: str) -> bool | None:
         """Whether a known term may be a Component role."""
         canonical = self.canonical_id(term)
         if canonical is None:
@@ -224,19 +223,19 @@ class Ontology:
             return True
         return self.terms[canonical].role == FEATURE_ROLE
 
-    def is_sequence_feature_role_term(self, term: str) -> Optional[bool]:
+    def is_sequence_feature_role_term(self, term: str) -> bool | None:
         """Whether a known term lies in the SO sequence_feature branch."""
         return self.is_in_branch(term, SEQUENCE_FEATURE_ROOT) if self.contains_term(term) else None
 
-    def is_cell_type_term(self, term: str) -> Optional[bool]:
+    def is_cell_type_term(self, term: str) -> bool | None:
         """Whether a known term is a Cell Ontology cell type."""
         return self.is_in_branch(term, CELL_ROOT) if self.contains_term(term) else None
 
-    def is_interaction_type_term(self, term: str) -> Optional[bool]:
+    def is_interaction_type_term(self, term: str) -> bool | None:
         """Whether a known term may be an Interaction type."""
         return self._role_is(term, INTERACTION_TYPE)
 
-    def is_participation_role_term(self, term: str) -> Optional[bool]:
+    def is_participation_role_term(self, term: str) -> bool | None:
         """Whether a known term may be a Participation role."""
         return self._role_is(term, PARTICIPATION_ROLE)
 
@@ -256,8 +255,8 @@ class Ontology:
         cached = self._ancestors.get(term_id)
         if cached is not None:
             return cached
-        result: Set[str] = set()
-        stack: List[str] = list(self.terms[term_id].parents) if term_id in self.terms else []
+        result: set[str] = set()
+        stack: list[str] = list(self.terms[term_id].parents) if term_id in self.terms else []
         while stack:
             parent = stack.pop()
             if parent in result:
@@ -288,7 +287,7 @@ class Ontology:
 
     # --- compatibility ---
 
-    def terms_conflict(self, left: str, right: str) -> Optional[bool]:
+    def terms_conflict(self, left: str, right: str) -> bool | None:
         """Whether two known terms conflict (explicit conflict, or different component/sequence families)."""
         lid, rid = self.canonical_id(left), self.canonical_id(right)
         if lid is None or rid is None:
@@ -304,7 +303,7 @@ class Ontology:
             return lf.sequence_family != rf.sequence_family
         return False
 
-    def participation_role_compatible_with_interaction_type(self, role: str, interaction_type: str) -> Optional[bool]:
+    def participation_role_compatible_with_interaction_type(self, role: str, interaction_type: str) -> bool | None:
         """Whether SBOL 3 Tables 11/12 cross-list the Participation role for the Interaction type."""
         rid, iid = self.canonical_id(role), self.canonical_id(interaction_type)
         if rid is None or iid is None:
@@ -313,7 +312,7 @@ class Ontology:
             return None
         return (iid, rid) in self.participation_compatibilities
 
-    def component_role_compatible_with_component_type(self, role: str, component_type: str) -> Optional[bool]:
+    def component_role_compatible_with_component_type(self, role: str, component_type: str) -> bool | None:
         """Whether a Component role suits a Component type; None when the question doesn't apply."""
         rid, cid = self.canonical_id(role), self.canonical_id(component_type)
         if rid is None or cid is None:
@@ -334,7 +333,7 @@ class Ontology:
             return family == SIMPLE_CHEMICAL
         return None
 
-    def encoding_compatible_with_component_type(self, encoding: str, component_type: str) -> Optional[bool]:
+    def encoding_compatible_with_component_type(self, encoding: str, component_type: str) -> bool | None:
         """Whether a Sequence encoding suits a Component type; None when the question doesn't apply."""
         eid, cid = self.canonical_id(encoding), self.canonical_id(component_type)
         if eid is None or cid is None:
@@ -352,24 +351,24 @@ class Ontology:
             SIMPLE_CHEMICAL,
         )
 
-    def compatible_sequence_encodings_for_component_type(self, component_type: str) -> List[str]:
+    def compatible_sequence_encodings_for_component_type(self, component_type: str) -> list[str]:
         """IRIs of the Table 1 encodings explicitly compatible with a Component type, sorted by compact id."""
         cid = self.canonical_id(component_type)
         if cid is None:
             return []
         return [self.terms[e].iri for e, c in sorted(self.compatibilities) if c == cid and e in self.terms]
 
-    def recommended_sequence_encoding_for_component_type(self, component_type: str) -> Optional[str]:
+    def recommended_sequence_encoding_for_component_type(self, component_type: str) -> str | None:
         """First compatible Table 1 encoding for a Component type."""
         encodings = self.compatible_sequence_encodings_for_component_type(component_type)
         return encodings[0] if encodings else None
 
-    def component_type_family(self, component_type: str) -> Optional[str]:
+    def component_type_family(self, component_type: str) -> str | None:
         """Broad family (nucleic_acid, protein, simple_chemical, complex, functional) of a Component type."""
         fact = self.fact(component_type)
         return fact.component_family if fact else None
 
-    def sequence_encoding_family(self, encoding: str) -> Optional[str]:
+    def sequence_encoding_family(self, encoding: str) -> str | None:
         """Broad family (nucleic_acid, protein, simple_chemical, other_textual) of a Sequence encoding."""
         fact = self.fact(encoding)
         return fact.sequence_family if fact else None

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from typing import Iterable, Iterator, List, Optional, Set
+from collections.abc import Iterable, Iterator
 
 import rdflib
 from rdflib.term import BNode, Literal, Node, URIRef
@@ -14,31 +14,31 @@ from sbol_utilities.vocab import TYPE
 DISPLAY_ID_PATTERN = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
 
-def objects(graph: rdflib.Graph, subject: Node, predicate: Node) -> List[Node]:
+def objects(graph: rdflib.Graph, subject: Node, predicate: Node) -> list[Node]:
     """All values of ``predicate`` on ``subject``, in a stable order."""
     return sorted(graph.objects(subject, predicate), key=str)
 
 
-def value(graph: rdflib.Graph, subject: Node, predicate: Node) -> Optional[Node]:
+def value(graph: rdflib.Graph, subject: Node, predicate: Node) -> Node | None:
     """One value of ``predicate`` on ``subject`` (the smallest, for determinism), or None."""
     values = objects(graph, subject, predicate)
     return values[0] if values else None
 
 
-def text(graph: rdflib.Graph, subject: Node, predicate: Node) -> Optional[str]:
+def text(graph: rdflib.Graph, subject: Node, predicate: Node) -> str | None:
     """String form of one value of ``predicate`` on ``subject``, or None."""
     v = value(graph, subject, predicate)
     return None if v is None else str(v)
 
 
-def types(graph: rdflib.Graph, subject: Node) -> Set[URIRef]:
+def types(graph: rdflib.Graph, subject: Node) -> set[URIRef]:
     """The rdf:type values of ``subject``."""
     return {t for t in graph.objects(subject, TYPE) if isinstance(t, URIRef)}
 
 
-def subjects_of_type(graph: rdflib.Graph, *classes: Node) -> List[Node]:
+def subjects_of_type(graph: rdflib.Graph, *classes: Node) -> list[Node]:
     """Subjects typed with any of ``classes``, sorted, without duplicates."""
-    found: Set[Node] = set()
+    found: set[Node] = set()
     for cls in classes:
         found.update(graph.subjects(TYPE, cls))
     return sorted(found, key=str)
@@ -46,24 +46,24 @@ def subjects_of_type(graph: rdflib.Graph, *classes: Node) -> List[Node]:
 
 def subjects_in_namespace(graph: rdflib.Graph, namespace: str) -> Iterator[Node]:
     """Subjects with at least one rdf:type in ``namespace``."""
-    seen: Set[Node] = set()
+    seen: set[Node] = set()
     for s, _, o in graph.triples((None, TYPE, None)):
         if s not in seen and str(o).startswith(namespace):
             seen.add(s)
             yield s
 
 
-def is_iri(node: Optional[Node]) -> bool:
+def is_iri(node: Node | None) -> bool:
     """Whether a node is an IRI (not a literal or blank node)."""
     return isinstance(node, URIRef)
 
 
-def is_literal(node: Optional[Node]) -> bool:
+def is_literal(node: Node | None) -> bool:
     """Whether a node is a literal."""
     return isinstance(node, Literal)
 
 
-def is_blank(node: Optional[Node]) -> bool:
+def is_blank(node: Node | None) -> bool:
     """Whether a node is a blank node."""
     return isinstance(node, BNode)
 

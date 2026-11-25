@@ -8,18 +8,19 @@ linear in the number of edges.
 
 from __future__ import annotations
 
-from typing import Callable, Dict, Hashable, Iterable, Iterator, List, Set, Tuple, TypeVar
+from collections.abc import Hashable, Iterable, Iterator
+from typing import Callable, TypeVar
 
 N = TypeVar("N", bound=Hashable)
 
 Successors = Callable[[N], Iterable[N]]
 
 
-def _memoized(successors: Successors[N]) -> Callable[[N], Tuple[N, ...]]:
+def _memoized(successors: Successors[N]) -> Callable[[N], tuple[N, ...]]:
     """``successors`` evaluated at most once per node."""
-    edges: Dict[N, Tuple[N, ...]] = {}
+    edges: dict[N, tuple[N, ...]] = {}
 
-    def lookup(node: N) -> Tuple[N, ...]:
+    def lookup(node: N) -> tuple[N, ...]:
         if node not in edges:
             edges[node] = tuple(successors(node))
         return edges[node]
@@ -27,16 +28,16 @@ def _memoized(successors: Successors[N]) -> Callable[[N], Tuple[N, ...]]:
     return lookup
 
 
-def nodes_reaching_cycles(starts: Iterable[N], successors: Successors[N]) -> Set[N]:
+def nodes_reaching_cycles(starts: Iterable[N], successors: Successors[N]) -> set[N]:
     """The nodes of ``starts`` from which a directed walk reaches a cycle (self-loops included)."""
     starts = list(starts)
     edges = _memoized(successors)
-    on_path: Set[N] = set()
-    reaches: Dict[N, bool] = {}  # set for every node visited; final once the node leaves the path
+    on_path: set[N] = set()
+    reaches: dict[N, bool] = {}  # set for every node visited; final once the node leaves the path
     for start in starts:
         if start in reaches:
             continue
-        path: List[Tuple[N, Iterator[N]]] = [(start, iter(edges(start)))]
+        path: list[tuple[N, Iterator[N]]] = [(start, iter(edges(start)))]
         on_path.add(start)
         reaches[start] = False
         while path:
@@ -59,20 +60,20 @@ def nodes_reaching_cycles(starts: Iterable[N], successors: Successors[N]) -> Set
     return {node for node in starts if reaches[node]}
 
 
-def nodes_on_cycles(nodes: Iterable[N], successors: Successors[N]) -> Set[N]:
+def nodes_on_cycles(nodes: Iterable[N], successors: Successors[N]) -> set[N]:
     """The nodes reachable from ``nodes`` that lie on a directed cycle.
 
     These are the members of every strongly connected component with more than one node, plus every node with a
     self-loop.
     """
     edges = _memoized(successors)
-    index_of: Dict[N, int] = {}
-    low: Dict[N, int] = {}
-    component_stack: List[N] = []
-    in_component_stack: Set[N] = set()
-    result: Set[N] = set()
+    index_of: dict[N, int] = {}
+    low: dict[N, int] = {}
+    component_stack: list[N] = []
+    in_component_stack: set[N] = set()
+    result: set[N] = set()
 
-    def enter(node: N) -> Tuple[N, Iterator[N]]:
+    def enter(node: N) -> tuple[N, Iterator[N]]:
         index_of[node] = low[node] = len(index_of)
         component_stack.append(node)
         in_component_stack.add(node)
@@ -108,13 +109,13 @@ def nodes_on_cycles(nodes: Iterable[N], successors: Successors[N]) -> Set[N]:
     return result
 
 
-def nodes_reaching(targets: Iterable[N], nodes: Iterable[N], successors: Successors[N]) -> Set[N]:
+def nodes_reaching(targets: Iterable[N], nodes: Iterable[N], successors: Successors[N]) -> set[N]:
     """The nodes of ``nodes`` with a walk of at least one edge to a node of ``targets``."""
     nodes = list(nodes)
     edges = _memoized(successors)
-    predecessors: Dict[N, List[N]] = {}
+    predecessors: dict[N, list[N]] = {}
     pending = list(nodes)
-    seen: Set[N] = set(pending)
+    seen: set[N] = set(pending)
     while pending:
         node = pending.pop()
         for successor in edges(node):
@@ -122,7 +123,7 @@ def nodes_reaching(targets: Iterable[N], nodes: Iterable[N], successors: Success
             if successor not in seen:
                 seen.add(successor)
                 pending.append(successor)
-    found: Set[N] = set()
+    found: set[N] = set()
     frontier = list(targets)
     while frontier:
         for predecessor in predecessors.get(frontier.pop(), ()):

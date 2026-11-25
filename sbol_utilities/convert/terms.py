@@ -7,7 +7,8 @@ wrapped again on the way out.)
 
 from __future__ import annotations
 
-from typing import Iterable, List, Tuple, Union
+from collections.abc import Iterable
+from typing import Union
 
 import rdflib
 from rdflib import BNode, Literal, URIRef
@@ -60,7 +61,7 @@ EDAM_IUPAC_PROTEIN = "https://identifiers.org/edam:format_1208"
 
 Node = Union[str, BNode]
 Term = Union[str, BNode, Literal]
-Triple = Tuple[Node, str, Term]
+Triple = tuple[Node, str, Term]
 
 
 def is_iri(term: object) -> bool:
@@ -81,7 +82,7 @@ def _unwrap(term) -> Term:
     return term
 
 
-def graph_triples(graph: rdflib.Graph) -> List[Triple]:
+def graph_triples(graph: rdflib.Graph) -> list[Triple]:
     """The graph's triples as engine tuples, in a stable (sorted) order.
 
     ``xsd:string`` literals become simple literals: RDF 1.1 treats the two as the same term, and sbol-rs never

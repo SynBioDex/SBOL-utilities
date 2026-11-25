@@ -22,8 +22,8 @@ import tempfile
 import urllib.request
 import warnings
 import zipfile
+from collections.abc import Collection
 from pathlib import Path, PurePosixPath
-from typing import Collection, Optional
 
 #: SBOLTestSuite commit providing the rule catalogs, ontology facts, and (for the tests) the conformance corpus
 SBOL_TEST_SUITE_COMMIT = "708911542acc1903e66a7d3bdd775e945597611b"
@@ -53,7 +53,7 @@ def user_cache_dir() -> Path:
     return Path(base) / "sbol-utilities" / "sboltestsuite" / SBOL_TEST_SUITE_COMMIT
 
 
-def checkout_revision(path: Path) -> Optional[str]:
+def checkout_revision(path: Path) -> str | None:
     """The commit a git checkout is at, or None when ``path`` is not a checkout or git is unavailable."""
     try:
         result = subprocess.run(["git", "-C", str(path), "rev-parse", "HEAD"], capture_output=True, text=True)
@@ -62,7 +62,7 @@ def checkout_revision(path: Path) -> Optional[str]:
     return result.stdout.strip() if result.returncode == 0 else None
 
 
-def download(destination: Path, directories: Optional[Collection[str]] = None) -> None:
+def download(destination: Path, directories: Collection[str] | None = None) -> None:
     """Extract the pinned SBOLTestSuite archive's top-level ``directories`` (all when None) into ``destination``.
 
     The files are staged beside ``destination`` and moved into place once all are written, so ``destination``
@@ -91,7 +91,7 @@ def download(destination: Path, directories: Optional[Collection[str]] = None) -
         shutil.rmtree(staging, ignore_errors=True)
 
 
-def _extract(payload: bytes, staging: Path, directories: Optional[Collection[str]]) -> None:
+def _extract(payload: bytes, staging: Path, directories: Collection[str] | None) -> None:
     prefix = f"SBOLTestSuite-{SBOL_TEST_SUITE_COMMIT}/"
     with zipfile.ZipFile(io.BytesIO(payload)) as archive:
         for member in archive.infolist():
@@ -109,7 +109,7 @@ def _has_runtime_files(root: Path) -> bool:
     return all((root / name).is_file() for name in RUNTIME_FILES)
 
 
-def _configured_checkout() -> Optional[Path]:
+def _configured_checkout() -> Path | None:
     """The checkout ``$SBOL_TEST_SUITE_DIR`` names, or None when the variable is unset."""
     configured = os.environ.get(CHECKOUT_VARIABLE)
     if not configured:

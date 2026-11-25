@@ -3,7 +3,7 @@ requires. References are resolved by identity or persistentIdentity, as libSBOLj
 
 from __future__ import annotations
 
-from typing import Iterable, Set
+from collections.abc import Iterable
 
 from rdflib.term import URIRef
 
@@ -30,8 +30,8 @@ _COMPLETENESS_RULES = (
 )
 
 
-def _resolvable(ctx: Sbol2Context) -> Set[str]:
-    uris: Set[str] = set()
+def _resolvable(ctx: Sbol2Context) -> set[str]:
+    uris: set[str] = set()
     for obj in ctx.objects:
         if obj.iri is not None:
             uris.add(obj.iri)

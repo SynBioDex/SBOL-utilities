@@ -5,7 +5,6 @@ from __future__ import annotations
 import io
 import zipfile
 from pathlib import Path
-from typing import Dict
 
 import pytest
 
@@ -14,7 +13,7 @@ from sbol_utilities.validation import runtime_data
 PREFIX = f"SBOLTestSuite-{runtime_data.SBOL_TEST_SUITE_COMMIT}/"
 
 
-def archive(files: Dict[str, str]) -> bytes:
+def archive(files: dict[str, str]) -> bytes:
     """A zip archive laid out like GitHub's archive of the pinned commit."""
     payload = io.BytesIO()
     with zipfile.ZipFile(payload, "w") as zipped:

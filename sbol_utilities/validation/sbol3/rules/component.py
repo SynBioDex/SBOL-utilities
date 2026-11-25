@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import List, Optional
 
 from rdflib.term import Node
 
@@ -56,11 +55,11 @@ EXTERNALLY_DEFINED_RULES = {
 }
 
 
-def _types(obj: SbolObject) -> List[str]:
+def _types(obj: SbolObject) -> list[str]:
     return [str(i) for i in obj.iris(spec.TYPE)]
 
 
-def _roles(obj: SbolObject) -> List[str]:
+def _roles(obj: SbolObject) -> list[str]:
     return [str(i) for i in obj.iris(spec.ROLE)]
 
 
@@ -181,12 +180,12 @@ class SequenceInfo:
     """A Component's local Sequence with its canonical encoding."""
 
     identity: Node
-    encoding: Optional[str]
-    encoding_iri: Optional[str]
-    elements: Optional[str]
+    encoding: str | None
+    encoding_iri: str | None
+    elements: str | None
 
 
-def _sequence_infos(ctx: SBOL3Context, component: SbolObject) -> List[SequenceInfo]:
+def _sequence_infos(ctx: SBOL3Context, component: SbolObject) -> list[SequenceInfo]:
     infos = []
     for identity in component.resources(spec.HAS_SEQUENCE):
         sequence = ctx.get(identity)

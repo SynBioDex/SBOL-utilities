@@ -11,7 +11,6 @@ from __future__ import annotations
 import hashlib
 import re
 from pathlib import Path
-from typing import Dict, Set
 
 import conversion_goldens as cg
 import pytest
@@ -62,9 +61,9 @@ def scheme_neutral_vocabulary(line: str) -> str:
 DISPLAY_ID_PREDICATES = {"http://sbols.org/v3#displayId", "http://sbols.org/v2#displayId"}
 
 
-def logical_lines(graph: Graph) -> Set[str]:
+def logical_lines(graph: Graph) -> set[str]:
     """Canonical N-Triples with each generated Constraint<N> IRI replaced by a hash of its content."""
-    renames: Dict[str, str] = {}
+    renames: dict[str, str] = {}
     for subject in set(graph.subjects()):
         if isinstance(subject, URIRef) and GENERATED_CONSTRAINT.match(str(subject).rsplit("/", 1)[-1]):
             content = sorted(

@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Dict, List, Optional, Tuple
-
 from sbol_utilities.validation.catalog import Context
 from sbol_utilities.validation.sbol2 import REGISTRY
 from sbol_utilities.validation.sbol2 import spec as S
@@ -36,7 +34,7 @@ def _ascii_upper(text: str) -> str:
     return "".join(c.upper() if c.isascii() else c for c in text)
 
 
-def _nucleic_length(ctx: Sbol2Context, definition: Obj) -> Optional[int]:
+def _nucleic_length(ctx: Sbol2Context, definition: Obj) -> int | None:
     for iri in definition.iris(S.SEQUENCE_P):
         sequence = ctx.resolve(iri)
         if sequence is None or sequence.first_ref(S.ENCODING) != S.IUPAC_NUCLEIC_ENCODING:
@@ -59,7 +57,7 @@ def definition_sequences(context: Context) -> None:
 
 
 def _check_definition(ctx: Sbol2Context, obj: Obj) -> None:
-    sequences: List[Tuple[str, int]] = []
+    sequences: list[tuple[str, int]] = []
     for iri in obj.iris(S.SEQUENCE_P):
         sequence = ctx.resolve(iri)
         if sequence is None:
@@ -71,7 +69,7 @@ def _check_definition(ctx: Sbol2Context, obj: Obj) -> None:
         sequences.append((encoding, len(elements) if elements is not None else 0))
     if not sequences:
         return
-    lengths: Dict[str, int] = {}
+    lengths: dict[str, int] = {}
     length_mismatch = False
     for encoding, length in sequences:
         if encoding not in S.TABLE_1_ENCODINGS:

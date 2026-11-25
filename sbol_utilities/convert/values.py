@@ -5,8 +5,6 @@ Each lookup returns None for a value it does not recognize; callers pass such va
 
 from __future__ import annotations
 
-from typing import Dict, Optional
-
 from rdflib import Literal
 
 from sbol_utilities.convert.terms import EDAM_IUPAC_DNA_RNA, EDAM_IUPAC_PROTEIN, OM_NS, PROV_NS, S2, S3, XSD_STRING
@@ -17,7 +15,7 @@ SO_REVERSE_COMPLEMENT = "https://identifiers.org/SO:0001031"
 
 BIOPAX = "http://www.biopax.org/release/biopax-level3.owl#"
 
-ENCODINGS: Dict[str, str] = {
+ENCODINGS: dict[str, str] = {
     "http://www.chem.qmul.ac.uk/iubmb/misc/naseq.html": EDAM_IUPAC_DNA_RNA,
     "http://www.chem.qmul.ac.uk/iupac/AminoAcid/": EDAM_IUPAC_PROTEIN,
     "http://www.opensmiles.org/opensmiles.html": "https://identifiers.org/edam:format_1196",
@@ -25,7 +23,7 @@ ENCODINGS: Dict[str, str] = {
 }
 
 #: BioPAX ComponentDefinition types and their SBO equivalents; both ``Dna`` and ``DnaRegion`` occur in the wild
-BIOPAX_TO_SBO: Dict[str, str] = {
+BIOPAX_TO_SBO: dict[str, str] = {
     BIOPAX + "Dna": "https://identifiers.org/SBO:0000251",
     BIOPAX + "DnaRegion": "https://identifiers.org/SBO:0000251",
     BIOPAX + "Rna": "https://identifiers.org/SBO:0000250",
@@ -36,7 +34,7 @@ BIOPAX_TO_SBO: Dict[str, str] = {
 }
 
 #: the downgrade emits the ``*Region`` BioPAX spelling, the modern norm
-SBO_TO_BIOPAX: Dict[str, str] = {
+SBO_TO_BIOPAX: dict[str, str] = {
     "https://identifiers.org/SBO:0000251": BIOPAX + "DnaRegion",
     "https://identifiers.org/SBO:0000250": BIOPAX + "RnaRegion",
     "https://identifiers.org/SBO:0000252": BIOPAX + "Protein",
@@ -50,7 +48,7 @@ _RESTRICTIONS = (
 ).split()
 
 #: SBOL 2 value -> SBOL 3 value, keyed by the SBOL 2 predicate the value appears under
-UPGRADE_VALUES: Dict[str, Dict[str, str]] = {
+UPGRADE_VALUES: dict[str, dict[str, str]] = {
     S2.orientation: {S2.inline: SO_INLINE, S2.reverseComplement: SO_REVERSE_COMPLEMENT},
     S2.encoding: ENCODINGS,
     S2.restriction: {S2.base + r: S3.base + r for r in _RESTRICTIONS},
@@ -60,7 +58,7 @@ UPGRADE_VALUES: Dict[str, Dict[str, str]] = {
 }
 
 #: SBOL 3 value -> SBOL 2 value, keyed by the SBOL 3 predicate the value appears under
-DOWNGRADE_VALUES: Dict[str, Dict[str, str]] = {
+DOWNGRADE_VALUES: dict[str, dict[str, str]] = {
     S3.orientation: {
         S3.inline: S2.inline,
         SO_INLINE: S2.inline,
@@ -74,7 +72,7 @@ DOWNGRADE_VALUES: Dict[str, Dict[str, str]] = {
 }
 
 #: SBOL 2 MapsTo refinement -> SBOL 3 Constraint restriction; ``merge`` is treated as ``useRemote`` (SBOL 3.1.0 §10.2)
-REFINEMENTS: Dict[str, str] = {
+REFINEMENTS: dict[str, str] = {
     S2.verifyIdentical: S3.verifyIdentical,
     S2.useLocal: S3.replaces,
     S2.useRemote: S3.replaces,
@@ -82,12 +80,12 @@ REFINEMENTS: Dict[str, str] = {
 }
 
 
-def upgrade_value(predicate: str, value: str) -> Optional[str]:
+def upgrade_value(predicate: str, value: str) -> str | None:
     """The SBOL 3 spelling of an enumerated SBOL 2 value under ``predicate``."""
     return UPGRADE_VALUES.get(predicate, {}).get(value)
 
 
-def downgrade_value(predicate: str, value: str) -> Optional[str]:
+def downgrade_value(predicate: str, value: str) -> str | None:
     """The SBOL 2 spelling of an enumerated SBOL 3 value under ``predicate``.
 
     Constraint restrictions keep their local name and move from the SBOL 3 to the SBOL 2 namespace.
@@ -97,7 +95,7 @@ def downgrade_value(predicate: str, value: str) -> Optional[str]:
     return DOWNGRADE_VALUES.get(predicate, {}).get(value)
 
 
-def refinement_for(restriction: str, cref_is_subject: bool) -> Optional[str]:
+def refinement_for(restriction: str, cref_is_subject: bool) -> str | None:
     """The SBOL 2 MapsTo refinement for a MapsTo-shaped Constraint.
 
     The ComponentReference's position carries the useLocal/useRemote distinction: ``replaces`` with the reference in
@@ -113,7 +111,7 @@ def refinement_for(restriction: str, cref_is_subject: bool) -> Optional[str]:
 # Literal datatypes the SBOL 2 data model assigns, by predicate. SBOL 2 files differ in how they type literals (RDF/XML
 # leaves ``sbol:start`` untyped where Turtle writes an integer), so sbol-rs normalizes every literal of a recognized
 # property to its model datatype before converting; extension properties keep their literals verbatim.
-SBOL2_LITERAL_DATATYPES: Dict[str, str] = {
+SBOL2_LITERAL_DATATYPES: dict[str, str] = {
     S2.displayId: XSD_STRING,
     S2.version: XSD_STRING,
     S2.elements: XSD_STRING,

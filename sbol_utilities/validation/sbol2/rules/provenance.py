@@ -3,8 +3,6 @@ Associations, and Usages."""
 
 from __future__ import annotations
 
-from typing import Dict, List
-
 from sbol_utilities.validation.catalog import Context
 from sbol_utilities.validation.graphs import nodes_reaching_cycles
 from sbol_utilities.validation.sbol2 import REGISTRY
@@ -16,7 +14,7 @@ from sbol_utilities.validation.sbol2.context import Sbol2Context
 def generation_cycles(context: Context) -> None:
     """wasGeneratedBy and the entities of the generating Activities' Usages do not form a cycle."""
     ctx: Sbol2Context = context  # type: ignore[assignment]
-    graph: Dict[str, List[str]] = {}
+    graph: dict[str, list[str]] = {}
     starts = []
     for obj in ctx.objects:
         if obj.iri is None:

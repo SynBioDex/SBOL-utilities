@@ -8,8 +8,8 @@ every rule read these tables.
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Dict, FrozenSet, Iterable, Optional, Tuple
 
 SBOL = "http://sbols.org/v3#"
 PROV = "http://www.w3.org/ns/prov#"
@@ -50,7 +50,7 @@ class PropertySpec:
     cardinality: str
     value_kind: str
     #: an SBOL class IRI or one of the ``*_TARGET`` tokens, for reference properties
-    target: Optional[str] = None
+    target: str | None = None
     #: the target must be present in the document (a contained child)
     require_local: bool = False
     #: rule policing this property's cardinality
@@ -61,8 +61,8 @@ class PropertySpec:
 class ClassSpec:
     """One class: its direct parents and the properties it declares."""
 
-    parents: Tuple[str, ...]
-    fields: Tuple[PropertySpec, ...]
+    parents: tuple[str, ...]
+    fields: tuple[PropertySpec, ...]
 
 
 def _p(predicate: str, cardinality: str, kind: str) -> PropertySpec:
@@ -289,7 +289,7 @@ COMPOSITE_PREDICATES = (
     PROV_QUALIFIED_ASSOCIATION,
 )
 
-CLASS_SPECS: Dict[str, ClassSpec] = {
+CLASS_SPECS: dict[str, ClassSpec] = {
     IDENTIFIED: ClassSpec(
         (),
         (
@@ -512,7 +512,7 @@ CLASS_SPECS: Dict[str, ClassSpec] = {
 }
 
 #: Classes that make an object a TopLevel
-TOP_LEVEL_CLASSES: FrozenSet[str] = frozenset(
+TOP_LEVEL_CLASSES: frozenset[str] = frozenset(
     {
         TOP_LEVEL,
         ATTACHMENT,
@@ -541,7 +541,7 @@ TOP_LEVEL_CLASSES: FrozenSet[str] = frozenset(
 )
 
 #: Order in which a multiply-typed object is assigned its primary typed kind (sbol-rs ``SbolObject`` dispatch)
-TYPED_DISPATCH_ORDER: Tuple[str, ...] = (
+TYPED_DISPATCH_ORDER: tuple[str, ...] = (
     ATTACHMENT,
     EXPERIMENT,
     COLLECTION,
@@ -582,10 +582,10 @@ TYPED_DISPATCH_ORDER: Tuple[str, ...] = (
     OM_MEASURE,
 )
 
-KNOWN_PROPERTIES: FrozenSet[str] = frozenset(f.predicate for c in CLASS_SPECS.values() for f in c.fields)
+KNOWN_PROPERTIES: frozenset[str] = frozenset(f.predicate for c in CLASS_SPECS.values() for f in c.fields)
 
 
-def _ancestors(class_iri: str) -> FrozenSet[str]:
+def _ancestors(class_iri: str) -> frozenset[str]:
     result = {class_iri}
     for parent in CLASS_SPECS[class_iri].parents:
         result |= _ancestors(parent)
@@ -593,7 +593,7 @@ def _ancestors(class_iri: str) -> FrozenSet[str]:
 
 
 #: class IRI -> the class and every ancestor
-ANCESTORS: Dict[str, FrozenSet[str]] = {iri: _ancestors(iri) for iri in CLASS_SPECS}
+ANCESTORS: dict[str, frozenset[str]] = {iri: _ancestors(iri) for iri in CLASS_SPECS}
 
 
 def is_a(class_iri: str, target: str) -> bool:
@@ -607,9 +607,9 @@ def is_known_sbol_iri(iri: str) -> bool:
     return iri in CLASS_SPECS or iri in KNOWN_PROPERTIES or iri in KNOWN_VALUE_IRIS
 
 
-def property_specs_for(rdf_types: Iterable[str]) -> Dict[str, PropertySpec]:
+def property_specs_for(rdf_types: Iterable[str]) -> dict[str, PropertySpec]:
     """Allowed properties for an object with these rdf:types; subclass rows override inherited ones."""
-    specs: Dict[str, PropertySpec] = {}
+    specs: dict[str, PropertySpec] = {}
 
     def collect(iri: str) -> None:
         spec = CLASS_SPECS.get(iri)

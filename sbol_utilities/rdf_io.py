@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Any, Union
 
 import rdflib
 import sbol2
@@ -49,7 +49,7 @@ FORMAT_ALIASES = {
 GraphSource = Union[rdflib.Graph, str, "os.PathLike[str]", Any]
 
 
-def rdflib_format(fmt: Optional[str]) -> Optional[str]:
+def rdflib_format(fmt: str | None) -> str | None:
     """Map a user-facing format name to an rdflib parser/serializer name; ``None`` passes through."""
     if fmt is None:
         return None
@@ -59,7 +59,7 @@ def rdflib_format(fmt: Optional[str]) -> Optional[str]:
         raise ValueError(f"Unknown RDF format {fmt!r}; expected one of {sorted(set(FORMAT_ALIASES))}") from None
 
 
-def guess_format(path: Union[str, "os.PathLike[str]"]) -> str:
+def guess_format(path: str | os.PathLike[str]) -> str:
     """Infer an rdflib format from a file extension, defaulting to RDF/XML (the SBOL 2 exchange format)."""
     return EXTENSION_FORMATS.get(Path(path).suffix.lower(), "xml")
 
@@ -75,7 +75,7 @@ def _sniff_text_format(text: str) -> str:
     return "nt" if stripped.startswith("<") else "turtle"
 
 
-def load_graph(source: GraphSource, fmt: Optional[str] = None) -> rdflib.Graph:
+def load_graph(source: GraphSource, fmt: str | None = None) -> rdflib.Graph:
     """Load an SBOL document from any supported source into an rdflib Graph.
 
     :param source: an rdflib Graph (returned as-is), a path, RDF text, an sbol3.Document, or an sbol2.Document
@@ -97,7 +97,7 @@ def load_graph(source: GraphSource, fmt: Optional[str] = None) -> rdflib.Graph:
     raise TypeError(f"Cannot load an SBOL graph from {type(source).__name__}")
 
 
-def detect_sbol_version(graph: rdflib.Graph) -> Optional[int]:
+def detect_sbol_version(graph: rdflib.Graph) -> int | None:
     """Return 3 or 2 according to which SBOL namespace the document's rdf:type statements use, or None.
 
     A graph that types subjects in both namespaces is reported as SBOL 3 only when it has more SBOL 3 typed

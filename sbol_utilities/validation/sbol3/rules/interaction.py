@@ -2,14 +2,12 @@
 
 from __future__ import annotations
 
-from typing import List
-
 from sbol_utilities.validation.sbol3 import REGISTRY, spec
 from sbol_utilities.validation.sbol3.context import SBOL3Context, SbolObject
 from sbol_utilities.validation.sbol3.helpers import component_contains
 
 
-def _iris(obj: SbolObject, predicate: str) -> List[str]:
+def _iris(obj: SbolObject, predicate: str) -> list[str]:
     return [str(i) for i in obj.iris(predicate)]
 
 

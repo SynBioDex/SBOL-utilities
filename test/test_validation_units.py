@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Dict, List
-
 import pytest
 from rdflib import Graph, URIRef
 
@@ -14,7 +12,7 @@ from sbol_utilities.vocab import PROV, SBOL3, TYPE
 EX = "https://example.org/"
 
 
-def successors_in(edges: Dict[str, List[str]]):
+def successors_in(edges: dict[str, list[str]]):
     """A successors function over an adjacency table."""
     return lambda node: edges.get(node, ())
 
@@ -63,7 +61,7 @@ def test_cycle_queries_are_linear_on_ladders():
     assert nodes_reaching_cycles(edges, successors_in(edges)) == set()
 
 
-def derivation_graph(edges: Dict[str, List[str]]) -> Graph:
+def derivation_graph(edges: dict[str, list[str]]) -> Graph:
     """An SBOL 3 document of Collections linked by prov:wasDerivedFrom."""
     graph = Graph()
     for name, sources in edges.items():
@@ -75,7 +73,7 @@ def derivation_graph(edges: Dict[str, List[str]]) -> Graph:
     return graph
 
 
-def derivation_cycle_subjects(edges: Dict[str, List[str]]) -> set:
+def derivation_cycle_subjects(edges: dict[str, list[str]]) -> set:
     report = validate_sbol3(derivation_graph(edges), ValidationConfig(complete=False, best_practice=False))
     return {issue.subject for issue in report.issues if issue.rule == "sbol3-10203"}
 

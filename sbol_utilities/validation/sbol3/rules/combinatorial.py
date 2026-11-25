@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Set
-
 from rdflib.term import Node
 
 from sbol_utilities.validation.sbol3 import REGISTRY, spec
@@ -30,11 +28,11 @@ from sbol_utilities.validation.sbol3.resolver import (
 )
 
 
-def _iri_set(obj: SbolObject, predicate: str) -> Set[str]:
+def _iri_set(obj: SbolObject, predicate: str) -> set[str]:
     return {str(i) for i in obj.iris(predicate)}
 
 
-def _roles_of(ctx: SBOL3Context, feature: Node) -> Set[str]:
+def _roles_of(ctx: SBOL3Context, feature: Node) -> set[str]:
     obj = ctx.get(feature)
     return set() if obj is None else _iri_set(obj, spec.ROLE)
 
@@ -216,7 +214,7 @@ def combinatorial_derivations(ctx: SBOL3Context) -> None:
                         spec.CARDINALITY,
                         "enumerate strategy cannot use zeroOrMore or oneOrMore cardinality",
                     )
-        variables: Set[Node] = set()
+        variables: set[Node] = set()
         for variable_feature in obj.resources(spec.HAS_VARIABLE_FEATURE):
             variable_feature_obj = ctx.get(variable_feature)
             if variable_feature_obj is None:

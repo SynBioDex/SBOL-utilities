@@ -17,7 +17,6 @@ from __future__ import annotations
 
 from collections import defaultdict
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Set, Tuple
 
 import rdflib
 from rdflib import Literal
@@ -54,12 +53,12 @@ class DowngradeOptions:
     """Configuration for :func:`downgrade`."""
 
     #: sbol2:version for top-level objects whose SBOL 3 IRI carries no version segment; None leaves them unversioned
-    default_version: Optional[str] = None
+    default_version: str | None = None
 
 
 def downgrade(
-    source: GraphSource, options: Optional[DowngradeOptions] = None, fmt: Optional[str] = None
-) -> Tuple[rdflib.Graph, ConversionReport]:
+    source: GraphSource, options: DowngradeOptions | None = None, fmt: str | None = None
+) -> tuple[rdflib.Graph, ConversionReport]:
     """Convert an SBOL 3 document to SBOL 2.
 
     :param source: an rdflib Graph, path, RDF text, or sbol3.Document holding SBOL 3
@@ -80,7 +79,7 @@ def downgrade(
 
 
 #: SBOL 3 class -> SBOL 2 class; Component and SubComponent depend on context and are resolved separately
-CLASSES: Dict[str, str] = {
+CLASSES: dict[str, str] = {
     S3.Component: S2.ComponentDefinition,
     S3.SubComponent: S2.Component,
     S3.SequenceFeature: S2.SequenceAnnotation,
@@ -102,7 +101,7 @@ CLASSES: Dict[str, str] = {
 }
 
 #: SBOL 3 predicate -> SBOL 2 predicate, for predicates that convert one-to-one
-PREDICATES: Dict[str, str] = {
+PREDICATES: dict[str, str] = {
     S3.base + v3: v2
     for v3, v2 in (
         ("displayId", S2.displayId),
@@ -181,7 +180,7 @@ class _MapsTo:
     display_id: str
     local: str
     remote: str
-    refinement: Optional[str]
+    refinement: str | None
 
 
 @dataclass
@@ -191,46 +190,46 @@ class _SaWrapper:
     display_id: str
     iri_unversioned: str
     parent_component: str
-    locations: List[str] = field(default_factory=list)
+    locations: list[str] = field(default_factory=list)
 
 
 class _Downgrader:
     """One SBOL 3 -> SBOL 2 conversion run."""
 
-    def __init__(self, triples: List[Triple], options: DowngradeOptions, report: ConversionReport):
+    def __init__(self, triples: list[Triple], options: DowngradeOptions, report: ConversionReport):
         self.triples = triples
         self.options = options
         self.report = report
-        self.out: List[Triple] = []
-        self.types: Dict[str, Set[str]] = defaultdict(set)
+        self.out: list[Triple] = []
+        self.types: dict[str, set[str]] = defaultdict(set)
         for s, p, o in triples:
             if p == RDF_TYPE and is_iri(s) and is_iri(o):
                 self.types[s].add(o)
         #: every IRI in use, so synthesized SBOL 2 IRIs never land on an existing subject
-        self.used_iris: Set[str] = {s for s, _, _ in triples if is_iri(s)}
-        self.top_levels: Set[str] = set()
-        self.versions: Dict[str, str] = {}
-        self.preserved_versions: Set[str] = set()
-        self.persistent_identities: Dict[str, str] = {}
-        self.rewrites: Dict[str, str] = {}
+        self.used_iris: set[str] = {s for s, _, _ in triples if is_iri(s)}
+        self.top_levels: set[str] = set()
+        self.versions: dict[str, str] = {}
+        self.preserved_versions: set[str] = set()
+        self.persistent_identities: dict[str, str] = {}
+        self.rewrites: dict[str, str] = {}
         #: Component -> True when it downgrades to a ModuleDefinition
-        self.is_md: Dict[str, bool] = {}
-        self.feature_parent: Dict[str, str] = {}
-        self.subcomponent_targets: Dict[str, str] = {}
-        self.module_origin: Set[str] = set()
-        self.null_sequence_locations: Set[str] = set()
-        self.namespaces: Dict[str, str] = {}
-        self.dcterms: Set[Tuple[str, str, Term]] = set()
-        self.mapstos: Dict[str, _MapsTo] = {}
-        self.mapsto_constraints: Set[str] = set()
-        self.interfaces: Set[str] = set()
-        self.discarded: Set[str] = set()
-        self.fc_directions: Dict[str, str] = {}
-        self.sa_wrappers: Dict[str, _SaWrapper] = {}
-        self.resolved_types: Dict[str, str] = {}
-        self.resolved_type_sets: Dict[str, Set[str]] = defaultdict(set)
+        self.is_md: dict[str, bool] = {}
+        self.feature_parent: dict[str, str] = {}
+        self.subcomponent_targets: dict[str, str] = {}
+        self.module_origin: set[str] = set()
+        self.null_sequence_locations: set[str] = set()
+        self.namespaces: dict[str, str] = {}
+        self.dcterms: set[tuple[str, str, Term]] = set()
+        self.mapstos: dict[str, _MapsTo] = {}
+        self.mapsto_constraints: set[str] = set()
+        self.interfaces: set[str] = set()
+        self.discarded: set[str] = set()
+        self.fc_directions: dict[str, str] = {}
+        self.sa_wrappers: dict[str, _SaWrapper] = {}
+        self.resolved_types: dict[str, str] = {}
+        self.resolved_type_sets: dict[str, set[str]] = defaultdict(set)
 
-    def run(self) -> List[Triple]:
+    def run(self) -> list[Triple]:
         """Convert the input, returning the SBOL 2 triples."""
         self._preflight()
         for triple in self.triples:
@@ -275,7 +274,7 @@ class _Downgrader:
         self._discover_unsupported()
         self._build_rewrites()
 
-        sources: Dict[str, List[str]] = defaultdict(list)
+        sources: dict[str, list[str]] = defaultdict(list)
         for sbol3, sbol2 in self.rewrites.items():
             sources[sbol2].append(sbol3)
         for sbol2 in sorted(sources):
@@ -302,9 +301,9 @@ class _Downgrader:
         Only a Constraint whose restriction is ``verifyIdentical`` or ``replaces`` (the two the upgrade writes) is a
         MapsTo back-half; any other Constraint touching a ComponentReference is a genuine SBOL 3 Constraint.
         """
-        crefs: Dict[str, Dict[str, str]] = defaultdict(dict)
-        constraints: Dict[str, Dict[str, str]] = defaultdict(dict)
-        interface_members: Dict[str, List[Tuple[str, str]]] = defaultdict(list)
+        crefs: dict[str, dict[str, str]] = defaultdict(dict)
+        constraints: dict[str, dict[str, str]] = defaultdict(dict)
+        interface_members: dict[str, list[tuple[str, str]]] = defaultdict(list)
         for s, p, o in self.triples:
             if not is_iri(s):
                 continue
@@ -324,7 +323,7 @@ class _Downgrader:
                 if is_iri(o):
                     interface_members[s].append((o, DIRECTION_SLOTS[p]))
 
-        cref_to_constraint: Dict[str, Tuple[str, bool]] = {}
+        cref_to_constraint: dict[str, tuple[str, bool]] = {}
         for constraint in sorted(constraints):
             attrs = constraints[constraint]
             if not self._has_type(constraint, S3.Constraint):
@@ -381,7 +380,7 @@ class _Downgrader:
         A Component is a ModuleDefinition when it has interactions or the SBO functional entity type, or contains a
         SubComponent whose ``instanceOf`` is (recursively) a ModuleDefinition.
         """
-        instance_of: Dict[str, str] = {}
+        instance_of: dict[str, str] = {}
         for s, p, o in self.triples:
             if is_iri(s) and is_iri(o):
                 if p == S3.hasFeature:
@@ -389,11 +388,11 @@ class _Downgrader:
                 elif p == S3.instanceOf:
                     instance_of[s] = o
         components = {s for s, types in self.types.items() if S3.Component in types}
-        functional: Set[str] = set()
+        functional: set[str] = set()
         for s, p, o in self.triples:
             if s in components and (p == S3.hasInteraction or (p == S3.type and o == SBO_FUNCTIONAL_ENTITY)):
                 functional.add(s)
-        child_targets: Dict[str, List[str]] = defaultdict(list)
+        child_targets: dict[str, list[str]] = defaultdict(list)
         for child, parent in self.feature_parent.items():
             if self._has_type(child, S3.SubComponent) and child in instance_of:
                 child_targets[parent].append(instance_of[child])
@@ -414,9 +413,9 @@ class _Downgrader:
         any other located SubComponent needs a wrapper too, since an SBOL 2 Component cannot carry Locations. The
         wrapper restores the recorded displayId, or is named ``{subComponent}_{firstLocation}`` like the reference.
         """
-        locations_of: Dict[str, List[str]] = defaultdict(list)
-        display_ids: Dict[str, str] = {}
-        recorded: Dict[str, str] = {}
+        locations_of: dict[str, list[str]] = defaultdict(list)
+        display_ids: dict[str, str] = {}
+        recorded: dict[str, str] = {}
         for s, p, o in self.triples:
             if not is_iri(s):
                 continue
@@ -479,17 +478,17 @@ class _Downgrader:
         under the parent's persistent identity.
         """
         subjects = sorted({s for s, _, _ in self.triples if is_iri(s) and s not in self.discarded})
-        tops: List[Tuple[str, str, Optional[str]]] = []
+        tops: list[tuple[str, str, str | None]] = []
         for iri in subjects:
             if iri not in self.top_levels:
                 continue
             sbol2 = uri.create_sbol2_uri(iri)
-            version: Optional[str] = uri.version_sbol3(iri) or None
+            version: str | None = uri.version_sbol3(iri) or None
             if version is not None:
                 pid = sbol2[: -len(version) - 1] if sbol2.endswith("/" + version) else sbol2
                 self.versions[iri] = version
                 self.preserved_versions.add(iri)
-                effective: Optional[str] = version
+                effective: str | None = version
             else:
                 pid = sbol2
                 effective = self.options.default_version
@@ -522,30 +521,30 @@ class _Downgrader:
                 self.persistent_identities[loc] = loc_pid
                 self.rewrites[loc] = f"{loc_pid}/{version}" if version is not None else loc_pid
 
-    def _top_level_version(self, iri: str) -> Optional[str]:
+    def _top_level_version(self, iri: str) -> str | None:
         if iri in self.preserved_versions:
             return self.versions.get(iri)
         return self.options.default_version
 
-    def _owning_top_level(self, iri: str) -> Optional[str]:
+    def _owning_top_level(self, iri: str) -> str | None:
         if iri in self.top_levels:
             return iri
         owners = [top for top in self.top_levels if iri.startswith(top + "/")]
         return min(owners, key=lambda top: (-len(top), top)) if owners else None
 
-    def _version_for(self, iri: str) -> Optional[str]:
+    def _version_for(self, iri: str) -> str | None:
         top = self._owning_top_level(iri)
         version = self._top_level_version(top) if top is not None else None
         return version if version is not None else self.options.default_version
 
     # Type resolution
 
-    def _component_type(self, component: str) -> Optional[str]:
+    def _component_type(self, component: str) -> str | None:
         if component not in self.is_md:
             return None
         return S2.ModuleDefinition if self.is_md[component] else S2.ComponentDefinition
 
-    def _sbol2_type(self, subject: str, sbol3_type: str) -> Optional[str]:
+    def _sbol2_type(self, subject: str, sbol3_type: str) -> str | None:
         if sbol3_type == S3.SubComponent:
             return self._subcomponent_type(subject)
         if sbol3_type == S3.Component:
@@ -743,7 +742,7 @@ class _Downgrader:
             if kind == S2.FunctionalComponent:
                 self._emit_default(existing, subject, S2.direction, S2.base + self.fc_directions[feature])
 
-    def _emit_default(self, existing: Set[Tuple[str, str]], subject: str, predicate: str, value: str) -> None:
+    def _emit_default(self, existing: set[tuple[str, str]], subject: str, predicate: str, value: str) -> None:
         if (subject, predicate) not in existing:
             self.out.append((subject, predicate, value))
             existing.add((subject, predicate))

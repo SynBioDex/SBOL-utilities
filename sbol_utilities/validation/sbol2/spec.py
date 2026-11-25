@@ -8,9 +8,9 @@ held in the same document. The table mirrors the sbol-rs SBOL 2 schema so both v
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
 from functools import lru_cache
-from typing import Dict, Iterable, List, Optional, Tuple
 
 SBOL2_NS = "http://sbols.org/v2#"
 PROV_NS = "http://www.w3.org/ns/prov#"
@@ -280,7 +280,7 @@ class Field:
     predicate: str
     cardinality: str
     kind: str
-    reference: Optional[Reference] = None
+    reference: Reference | None = None
 
 
 def _local(target: str, match: str = TARGET_CLASS) -> Reference:
@@ -295,8 +295,8 @@ def _external(target: str, match: str = TARGET_CLASS) -> Reference:
 class ClassSpec:
     """A class's parents and the fields it declares directly."""
 
-    parents: Tuple[str, ...]
-    fields: Tuple[Field, ...]
+    parents: tuple[str, ...]
+    fields: tuple[Field, ...]
 
 
 F = Field
@@ -459,7 +459,7 @@ OM_PREFIXED_UNIT_FIELDS = (
 OM_PREFIX_FIELDS = _OM_LABELS + (F(NO_RULE, OM_HAS_FACTOR, EXACTLY_ONE, FLOAT),)
 
 #: class IRI -> (parents, directly declared fields), in the order the schema lists them
-CLASSES: Dict[str, ClassSpec] = {
+CLASSES: dict[str, ClassSpec] = {
     IDENTIFIED: ClassSpec((), IDENTIFIED_FIELDS),
     TOP_LEVEL: ClassSpec((IDENTIFIED,), TOP_LEVEL_FIELDS),
     MEASURED: ClassSpec((IDENTIFIED,), MEASURED_FIELDS),
@@ -538,7 +538,7 @@ TOP_LEVEL_CLASSES = frozenset(
 )
 
 #: concrete class -> its "MUST NOT have properties other than ..." rule; the first class an object has wins
-CLOSED_PROPERTY_RULES: Tuple[Tuple[str, str], ...] = (
+CLOSED_PROPERTY_RULES: tuple[tuple[str, str], ...] = (
     (SEQUENCE, "sbol2-10401"),
     (COMPONENT_DEFINITION, "sbol2-10501"),
     (COMPONENT, "sbol2-10701"),
@@ -599,7 +599,7 @@ def ancestors(class_iri: str) -> frozenset:
     return frozenset(result)
 
 
-def _collect(class_iri: str, into: Dict[str, Field]) -> None:
+def _collect(class_iri: str, into: dict[str, Field]) -> None:
     spec = CLASSES.get(class_iri)
     if spec is None:
         return
@@ -610,16 +610,16 @@ def _collect(class_iri: str, into: Dict[str, Field]) -> None:
 
 
 @lru_cache(maxsize=None)
-def fields_for_types(rdf_types: Tuple[str, ...]) -> Dict[str, Field]:
+def fields_for_types(rdf_types: tuple[str, ...]) -> dict[str, Field]:
     """Every field (inherited and own) the sorted rdf:types resolve to, keyed by predicate; later types win."""
-    result: Dict[str, Field] = {}
+    result: dict[str, Field] = {}
     for rdf_type in rdf_types:
         _collect(rdf_type, result)
     return dict(sorted(result.items()))
 
 
-def _literal_datatypes(classes: Iterable[str]) -> Dict[str, str]:
-    result: Dict[str, str] = {}
+def _literal_datatypes(classes: Iterable[str]) -> dict[str, str]:
+    result: dict[str, str] = {}
     for class_iri in classes:
         for f in CLASSES[class_iri].fields:
             datatype = KIND_DATATYPES.get(f.kind)
@@ -629,7 +629,7 @@ def _literal_datatypes(classes: Iterable[str]) -> Dict[str, str]:
 
 
 #: predicate -> the XSD datatype the data model assigns its literals
-LITERAL_DATATYPES: Dict[str, str] = _literal_datatypes(CLASSES)
+LITERAL_DATATYPES: dict[str, str] = _literal_datatypes(CLASSES)
 
 #: predicates whose triples are interpreted by the data model (all others are extension annotations)
 MODEL_PREDICATES = frozenset([RDF_TYPE, TITLE, DESCRIPTION, RDFS_LABEL, RDFS_COMMENT])
@@ -641,7 +641,7 @@ def is_extension_predicate(predicate: str) -> bool:
 
 
 #: (predicate, reference target) -> the completeness rule requiring the referenced object in the document
-def completeness_rule(predicate: str, target: str) -> Optional[str]:
+def completeness_rule(predicate: str, target: str) -> str | None:
     """The Complete-gated rule governing presence of an object referenced through ``predicate``."""
     if predicate == DEFINITION:
         return {COMPONENT_DEFINITION: "sbol2-10604", MODULE_DEFINITION: "sbol2-11703"}.get(target)
@@ -664,7 +664,7 @@ _COMPLETENESS_RULES = {
 }
 
 #: permitted participant-role SBO terms for each interaction-type SBO term (Table 11)
-PARTICIPANT_ROLES_FOR_INTERACTION: Dict[str, Tuple[str, ...]] = {
+PARTICIPANT_ROLES_FOR_INTERACTION: dict[str, tuple[str, ...]] = {
     "SBO:0000169": ("SBO:0000020", "SBO:0000642", "SBO:0000598"),
     "SBO:0000170": ("SBO:0000459", "SBO:0000643", "SBO:0000598"),
     "SBO:0000177": ("SBO:0000010", "SBO:0000011"),
@@ -675,6 +675,6 @@ PARTICIPANT_ROLES_FOR_INTERACTION: Dict[str, Tuple[str, ...]] = {
 }
 
 
-def field_rules() -> List[str]:
+def field_rules() -> list[str]:
     """Every catalog rule a property descriptor carries."""
     return sorted({f.rule for spec in CLASSES.values() for f in spec.fields if f.rule != NO_RULE})

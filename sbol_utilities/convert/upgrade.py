@@ -16,7 +16,6 @@ from __future__ import annotations
 
 from collections import defaultdict
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Set, Tuple
 
 import rdflib
 from rdflib import Literal
@@ -56,17 +55,17 @@ class UpgradeOptions:
     """Configuration for :func:`upgrade`."""
 
     #: hasNamespace for top-level objects whose namespace cannot be derived from the input
-    default_namespace: Optional[str] = None
+    default_namespace: str | None = None
     #: write https://sbols.org/backport/2_3# annotations so a later downgrade can rebuild the SBOL 2 shape
     preserve_backport: bool = True
     #: URI prefixes; a top-level whose SBOL 2 identity starts with one takes it (minus a trailing ``/``) as its
     #: hasNamespace, in preference to the derived namespace
-    namespaces: Optional[List[str]] = None
+    namespaces: list[str] | None = None
 
 
 def upgrade(
-    source: GraphSource, options: Optional[UpgradeOptions] = None, fmt: Optional[str] = None
-) -> Tuple[rdflib.Graph, ConversionReport]:
+    source: GraphSource, options: UpgradeOptions | None = None, fmt: str | None = None
+) -> tuple[rdflib.Graph, ConversionReport]:
     """Convert an SBOL 2 document to SBOL 3.
 
     :param source: an rdflib Graph, path, RDF text, or sbol2.Document holding SBOL 2
@@ -88,7 +87,7 @@ def _canonical_literal(predicate: str, term: Term) -> Term:
 
 
 #: SBOL 2 class -> SBOL 3 class
-CLASSES: Dict[str, str] = {
+CLASSES: dict[str, str] = {
     S2.ComponentDefinition: S3.Component,
     S2.ModuleDefinition: S3.Component,
     S2.Component: S3.SubComponent,
@@ -132,7 +131,7 @@ TOP_LEVEL_CLASSES = (
 )
 
 #: SBOL 2 predicate -> SBOL 3 predicate, for predicates that convert one-to-one
-PREDICATES: Dict[str, str] = {
+PREDICATES: dict[str, str] = {
     S2.base + v2: S3.base + v3
     for v2, v3 in (
         ("displayId", "displayId"),
@@ -200,43 +199,43 @@ def _type_precedence(type_iri: str) -> int:
 
 @dataclass
 class _MapsTo:
-    local: Optional[str] = None
-    remote: Optional[str] = None
-    refinement: Optional[str] = None
-    display_id: Optional[str] = None
+    local: str | None = None
+    remote: str | None = None
+    refinement: str | None = None
+    display_id: str | None = None
 
 
 class _Upgrader:
     """One SBOL 2 -> SBOL 3 conversion run."""
 
-    def __init__(self, triples: List[Triple], options: UpgradeOptions, report: ConversionReport):
+    def __init__(self, triples: list[Triple], options: UpgradeOptions, report: ConversionReport):
         self.triples = triples
         self.options = options
         self.report = report
         self.identity = IdentityMap(triples)
-        self.out: List[Triple] = []
+        self.out: list[Triple] = []
         #: original subject IRI -> its SBOL 2 (or PROV/OM top-level) class
-        self.typed: Dict[str, str] = {}
+        self.typed: dict[str, str] = {}
         #: CD (or Location) IRI -> the Sequences it references via sbol2:sequence
-        self.cd_sequences: Dict[str, List[str]] = defaultdict(list)
-        self.location_to_sa: Dict[str, str] = {}
-        self.sa_to_cd: Dict[str, str] = {}
+        self.cd_sequences: dict[str, list[str]] = defaultdict(list)
+        self.location_to_sa: dict[str, str] = {}
+        self.sa_to_cd: dict[str, str] = {}
         #: SequenceAnnotation -> the Component it references; such an SA collapses onto that SubComponent
-        self.sa_to_subcomponent: Dict[str, str] = {}
-        self.display_ids: Dict[str, str] = {}
-        self.owned_by: Dict[str, str] = {}
-        self.mapstos: Dict[str, _MapsTo] = {}
+        self.sa_to_subcomponent: dict[str, str] = {}
+        self.display_ids: dict[str, str] = {}
+        self.owned_by: dict[str, str] = {}
+        self.mapstos: dict[str, _MapsTo] = {}
         #: FunctionalComponent (or public Component) -> SBOL 3 Interface slot
-        self.fc_directions: Dict[str, str] = {}
+        self.fc_directions: dict[str, str] = {}
         #: every SBOL 3 IRI in use, so synthesized IRIs never land on an existing subject
-        self.used_iris: Set[str] = set()
-        self.location_display_id_overrides: Dict[str, str] = {}
+        self.used_iris: set[str] = set()
+        self.location_display_id_overrides: dict[str, str] = {}
         #: canonical IRI -> original IRI of custom-typed (GenericTopLevel) subjects
-        self.generic_top_levels: Dict[str, str] = {}
+        self.generic_top_levels: dict[str, str] = {}
         #: subjects with SBOL 2 identity properties and only classes from other vocabularies (PROV, OM, custom)
-        self.extension_objects: Set[str] = set()
+        self.extension_objects: set[str] = set()
 
-    def run(self) -> List[Triple]:
+    def run(self) -> list[Triple]:
         """Convert the input, returning the SBOL 3 triples."""
         self._preflight()
         for triple in self.triples:
@@ -252,7 +251,7 @@ class _Upgrader:
 
     def _preflight(self) -> None:
         rewrite = self.identity.rewrite
-        sources: Dict[str, List[str]] = defaultdict(list)
+        sources: dict[str, list[str]] = defaultdict(list)
         for subject in sorted({s for s, _, _ in self.triples if is_iri(s)}):
             canonical = rewrite(subject)
             self.used_iris.add(canonical)
@@ -266,9 +265,9 @@ class _Upgrader:
                 )
 
         saw_sbol2_predicate = False
-        custom_typed: Set[str] = set()
-        recognized_typed: Set[str] = set()
-        sbol2_identified: Set[str] = set()
+        custom_typed: set[str] = set()
+        recognized_typed: set[str] = set()
+        sbol2_identified: set[str] = set()
         for s, p, o in self.triples:
             if p.startswith(S2.base):
                 saw_sbol2_predicate = True
@@ -344,8 +343,8 @@ class _Upgrader:
 
         # Interface membership: in/out/inout directions, public direction-none FunctionalComponents, and public
         # Components (SBOL 3.1.0 §10.2).
-        direction_none: Set[str] = set()
-        public_fcs: Set[str] = set()
+        direction_none: set[str] = set()
+        public_fcs: set[str] = set()
         for s, p, o in self.triples:
             if not (is_iri(s) and is_iri(o)):
                 continue
@@ -509,7 +508,7 @@ class _Upgrader:
 
     # Synthesis
 
-    def _namespace(self, sbol2_iri: str, canonical: str) -> Optional[str]:
+    def _namespace(self, sbol2_iri: str, canonical: str) -> str | None:
         for prefix in self.options.namespaces or ():
             if sbol2_iri.startswith(prefix):
                 return prefix[:-1] if prefix.endswith("/") else prefix
@@ -523,7 +522,7 @@ class _Upgrader:
             if cls in TOP_LEVEL_CLASSES
         ]
         top_levels += [(self.generic_top_levels[c], c, c) for c in sorted(self.generic_top_levels)]
-        done: Set[str] = set()
+        done: set[str] = set()
         for sbol2_iri, canonical, fallback_source in top_levels:
             if canonical in done:
                 continue
@@ -539,7 +538,7 @@ class _Upgrader:
 
         Objects without SBOL 2 identity properties (plain nested annotations) stay outside the SBOL data model.
         """
-        markers: Dict[str, str] = {}
+        markers: dict[str, str] = {}
         for subject in sorted(self.extension_objects):
             canonical = self.identity.rewrite(subject)
             top_level = self.typed.get(subject) in EXTENSION_TOP_LEVELS or canonical in self.generic_top_levels
@@ -547,7 +546,7 @@ class _Upgrader:
         for canonical in sorted(markers):
             self.out.append((canonical, RDF_TYPE, markers[canonical]))
 
-    def _fallback_namespace(self, iri: str) -> Optional[str]:
+    def _fallback_namespace(self, iri: str) -> str | None:
         origin = uri.url_origin(iri)
         if origin is not None:
             return origin
@@ -564,7 +563,7 @@ class _Upgrader:
         Sequence (as the reference does); one with several is ambiguous and left for validation to flag.
         """
         rewrite = self.identity.rewrite
-        temp_sequences: Dict[str, Tuple[str, Optional[str]]] = {}
+        temp_sequences: dict[str, tuple[str, str | None]] = {}
         for location, sa in sorted(self.location_to_sa.items()):
             cd = self.sa_to_cd.get(sa)
             if cd is None:
@@ -656,7 +655,7 @@ class _Upgrader:
                 (top_level, S3.hasConstraint, constraint),
             ]
 
-    def _next_constraint(self, top_level: str) -> Tuple[str, str]:
+    def _next_constraint(self, top_level: str) -> tuple[str, str]:
         """The next free ``Constraint<N>`` child of a Component, numbered like the reference's ``createConstraint``."""
         counter = 1
         while True:
@@ -669,7 +668,7 @@ class _Upgrader:
 
     def _synthesize_interfaces(self) -> None:
         """Give each Component with directional or public features an Interface listing them."""
-        by_top_level: Dict[str, List[Tuple[str, str]]] = defaultdict(list)
+        by_top_level: dict[str, list[tuple[str, str]]] = defaultdict(list)
         for fc, slot in sorted(self.fc_directions.items()):
             by_top_level[self._owning_top_level(fc)].append((fc, slot))
         for top in sorted(by_top_level):

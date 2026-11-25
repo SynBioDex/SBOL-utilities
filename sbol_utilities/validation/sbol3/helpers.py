@@ -6,7 +6,6 @@ These mirror sbol-rs ``crates/sbol3/src/validation/helpers`` and ``tables.rs``.
 from __future__ import annotations
 
 import re
-from typing import List, Optional, Set
 
 from rdflib.term import Literal, Node, URIRef
 
@@ -51,7 +50,7 @@ MODEL_FRAMEWORK_TABLE_16 = ("https://identifiers.org/SBO:0000062", "https://iden
 # --- lexical forms ---
 
 
-def parse_i64(value: Optional[str]) -> Optional[int]:
+def parse_i64(value: str | None) -> int | None:
     """Parse a signed 64-bit integer the way Rust's ``i64::from_str`` does, or None."""
     if value is None or not _INTEGER.match(value):
         return None
@@ -59,7 +58,7 @@ def parse_i64(value: Optional[str]) -> Optional[int]:
     return number if I64_MIN <= number <= I64_MAX else None
 
 
-def integer_value(obj: SbolObject, predicate: str) -> Optional[int]:
+def integer_value(obj: SbolObject, predicate: str) -> int | None:
     """The first literal value of a predicate parsed as an i64."""
     return parse_i64(obj.first_literal_value(predicate))
 
@@ -206,7 +205,7 @@ def is_external_top_level_reference(target: str) -> bool:
     return target in spec.TOP_LEVEL_CLASSES and target.startswith(spec.SBOL)
 
 
-def known_external_resource(iri: str) -> Optional[str]:
+def known_external_resource(iri: str) -> str | None:
     """Classify a definition IRI as a UniProt, ChEBI, or PubChem record."""
     iri = iri.lower()
     if iri.startswith(
@@ -242,43 +241,43 @@ def known_external_resource(iri: str) -> Optional[str]:
 # --- ontology tables ---
 
 
-def _branch_if_known(ontology: Ontology, iri: str, root: str) -> Optional[bool]:
+def _branch_if_known(ontology: Ontology, iri: str, root: str) -> bool | None:
     return ontology.is_in_branch(iri, root) if ontology.contains_term(iri) else None
 
 
-def is_topology_type_term(ontology: Ontology, iri: str) -> Optional[bool]:
+def is_topology_type_term(ontology: Ontology, iri: str) -> bool | None:
     """Known term in the SO topology attribute branch."""
     return _branch_if_known(ontology, iri, SO_TOPOLOGY_ATTRIBUTE)
 
 
-def is_strand_type_term(ontology: Ontology, iri: str) -> Optional[bool]:
+def is_strand_type_term(ontology: Ontology, iri: str) -> bool | None:
     """Known term in the SO strand attribute branch."""
     return _branch_if_known(ontology, iri, SO_STRAND_ATTRIBUTE)
 
 
-def is_edam_textual_format(ontology: Ontology, iri: str) -> Optional[bool]:
+def is_edam_textual_format(ontology: Ontology, iri: str) -> bool | None:
     """Known term in the EDAM textual format branch."""
     return _branch_if_known(ontology, iri, EDAM_TEXTUAL_FORMAT)
 
 
-def is_sbo_modeling_framework_term(ontology: Ontology, iri: str) -> Optional[bool]:
+def is_sbo_modeling_framework_term(ontology: Ontology, iri: str) -> bool | None:
     """Known term in the SBO modelling framework branch."""
     return _branch_if_known(ontology, iri, SBO_MODELING_FRAMEWORK)
 
 
-def is_sbo_systems_description_parameter_term(ontology: Ontology, iri: str) -> Optional[bool]:
+def is_sbo_systems_description_parameter_term(ontology: Ontology, iri: str) -> bool | None:
     """Known term in the SBO systems description parameter branch."""
     return _branch_if_known(ontology, iri, SBO_SYSTEMS_DESCRIPTION_PARAMETER)
 
 
-def is_sbo_physical_entity_term(ontology: Ontology, iri: str) -> Optional[bool]:
+def is_sbo_physical_entity_term(ontology: Ontology, iri: str) -> bool | None:
     """For known SBO terms, whether the term lies in the physical entity representation branch."""
     if ontology.namespace(iri) != "SBO":
         return None
     return ontology.is_in_branch(iri, SBO_PHYSICAL_ENTITY)
 
 
-def is_edam_format_term(ontology: Ontology, iri: str) -> Optional[bool]:
+def is_edam_format_term(ontology: Ontology, iri: str) -> bool | None:
     """For known terms, whether the term is an EDAM format."""
     if not ontology.contains_term(iri):
         return None
@@ -296,28 +295,28 @@ def is_nucleic_acid_component_type(ontology: Ontology, iri: str) -> bool:
     return ontology.component_type_family(iri) == NUCLEIC_ACID
 
 
-def canonical_table_1_sequence_encoding_iri(ontology: Ontology, iri: str) -> Optional[str]:
+def canonical_table_1_sequence_encoding_iri(ontology: Ontology, iri: str) -> str | None:
     """Preferred IRI of a Table 1 encoding term."""
     if not ontology.is_table_1_sequence_encoding(iri):
         return None
     return ontology.canonical_iri(iri) or iri
 
 
-def sequence_encoding(ontology: Ontology, iri: str) -> Optional[str]:
+def sequence_encoding(ontology: Ontology, iri: str) -> str | None:
     """Canonical IRI of a known Sequence encoding term."""
     if ontology.is_sequence_encoding_term(iri) is not True:
         return None
     return ontology.canonical_iri(iri) or iri
 
 
-def component_type(ontology: Ontology, iri: str) -> Optional[str]:
+def component_type(ontology: Ontology, iri: str) -> str | None:
     """Canonical IRI of a Table 2 Component type term."""
     if not ontology.is_table_2_component_type(iri):
         return None
     return ontology.canonical_iri(iri) or iri
 
 
-def _matches_table_entry(iri: str, table) -> Optional[str]:
+def _matches_table_entry(iri: str, table) -> str | None:
     lowered = iri.lower()
     for canonical in table:
         if lowered == canonical.lower() or lowered == canonical.replace("https://", "http://").lower():
@@ -325,17 +324,17 @@ def _matches_table_entry(iri: str, table) -> Optional[str]:
     return None
 
 
-def canonical_model_language_iri(iri: str) -> Optional[str]:
+def canonical_model_language_iri(iri: str) -> str | None:
     """Table 15 URI that ``iri`` is an alias of."""
     return _matches_table_entry(iri, MODEL_LANGUAGE_TABLE_15)
 
 
-def canonical_model_framework_iri(iri: str) -> Optional[str]:
+def canonical_model_framework_iri(iri: str) -> str | None:
     """Table 16 URI that ``iri`` is an alias of."""
     return _matches_table_entry(iri, MODEL_FRAMEWORK_TABLE_16)
 
 
-def first_invalid_sequence_element(ontology: Ontology, elements: str, encoding: str) -> Optional[str]:
+def first_invalid_sequence_element(ontology: Ontology, elements: str, encoding: str) -> str | None:
     """First character of ``elements`` outside the IUPAC alphabet of a Table 1 IUPAC encoding."""
     canonical = ontology.canonical_iri(encoding) or encoding
     if canonical == EDAM_IUPAC_DNA_RNA:
@@ -354,7 +353,7 @@ def first_invalid_sequence_element(ontology: Ontology, elements: str, encoding: 
 # --- document queries ---
 
 
-def component_contains(ctx: SBOL3Context, component: Optional[Node], predicate: str, child: Node) -> bool:
+def component_contains(ctx: SBOL3Context, component: Node | None, predicate: str, child: Node) -> bool:
     """Whether the object ``component`` lists ``child`` under ``predicate``."""
     obj = ctx.get(component)
     return obj is not None and child in obj.resources(predicate)
@@ -382,7 +381,7 @@ def component_allows_sequence(ctx: SBOL3Context, component: Node, sequence: Node
     return False
 
 
-def collection_contains_only_components_or_collections(ctx: SBOL3Context, collection: Node, visited: Set[Node]) -> bool:
+def collection_contains_only_components_or_collections(ctx: SBOL3Context, collection: Node, visited: set[Node]) -> bool:
     """Whether every local member of a Collection, recursively, is a Component or Collection."""
     if collection in visited:
         return True
@@ -402,7 +401,7 @@ def collection_contains_only_components_or_collections(ctx: SBOL3Context, collec
     return True
 
 
-def location_sequence_length(ctx: SBOL3Context, location: SbolObject) -> Optional[int]:
+def location_sequence_length(ctx: SBOL3Context, location: SbolObject) -> int | None:
     """Length of the elements of a Location's local Sequence."""
     sequence = ctx.get(location.first_resource(spec.HAS_SEQUENCE))
     if sequence is None:
@@ -411,7 +410,7 @@ def location_sequence_length(ctx: SBOL3Context, location: SbolObject) -> Optiona
     return None if elements is None else len(elements.encode("utf-8"))
 
 
-def location_length(ctx: SBOL3Context, location: Node) -> Optional[int]:
+def location_length(ctx: SBOL3Context, location: Node) -> int | None:
     """Length covered by a local Location, when known."""
     obj = ctx.get(location)
     if obj is None:
@@ -429,7 +428,7 @@ def location_length(ctx: SBOL3Context, location: Node) -> Optional[int]:
     return None
 
 
-def sum_location_lengths(ctx: SBOL3Context, locations: List[Node]) -> Optional[int]:
+def sum_location_lengths(ctx: SBOL3Context, locations: list[Node]) -> int | None:
     """Total length of several Locations, or None when any is unknown."""
     total = 0
     for location in locations:

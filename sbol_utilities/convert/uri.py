@@ -11,8 +11,6 @@ or ``-``.
 
 from __future__ import annotations
 
-from typing import Optional, Set, Tuple
-
 
 def is_version_valid(segment: str) -> bool:
     """Whether ``segment`` is a valid SBOL version: empty, or a leading ASCII digit then word characters."""
@@ -61,7 +59,7 @@ def namespace_sbol3(uri: str) -> str:
 # or one without any "/": the IRIs the reference treats as non-decomposable.
 
 
-def _sbol2_split(uri: str) -> Optional[Tuple[int, str]]:
+def _sbol2_split(uri: str) -> tuple[int, str] | None:
     if not uri or uri.endswith("/"):
         return None
     last = uri.rfind("/")
@@ -70,7 +68,7 @@ def _sbol2_split(uri: str) -> Optional[Tuple[int, str]]:
     return last, uri[last + 1 :]
 
 
-def version_sbol2(uri: str) -> Optional[str]:
+def version_sbol2(uri: str) -> str | None:
     """The version segment, ``""`` when the last segment is not version-shaped, None when not decomposable."""
     split = _sbol2_split(uri)
     if split is None:
@@ -78,7 +76,7 @@ def version_sbol2(uri: str) -> Optional[str]:
     return split[1] if is_version_valid(split[1]) else ""
 
 
-def display_id_sbol2(uri: str) -> Optional[str]:
+def display_id_sbol2(uri: str) -> str | None:
     """The segment before the version when the IRI is versioned, otherwise the last segment."""
     split = _sbol2_split(uri)
     if split is None:
@@ -90,7 +88,7 @@ def display_id_sbol2(uri: str) -> Optional[str]:
     return uri[second_last + 1 : last] if second_last >= 0 else uri
 
 
-def uri_prefix_sbol2(uri: str) -> Optional[str]:
+def uri_prefix_sbol2(uri: str) -> str | None:
     """The IRI minus its displayId (and version, when present)."""
     split = _sbol2_split(uri)
     if split is None:
@@ -135,7 +133,7 @@ def create_sbol3_uri(sbol2_uri: str) -> str:
 # http://identifiers.org/so/SO:<id>, .../biomodels.sbo/SBO:<id>, .../edam/<id>.
 
 
-def _identifiers_org_path(uri: str) -> Optional[str]:
+def _identifiers_org_path(uri: str) -> str | None:
     """Path of an identifiers.org IRI (either scheme), or None for any other IRI.
 
     Ontology-term spelling applies only to identifiers.org IRIs; every other IRI (a lab's own role or type
@@ -206,7 +204,7 @@ def last_segment(iri: str) -> str:
     return iri[split + 1 :] if 0 <= split < len(iri) - 1 else iri
 
 
-def url_origin(iri: str) -> Optional[str]:
+def url_origin(iri: str) -> str | None:
     """``scheme://host`` of a URL, or ``urn:<nid>`` of a URN; None for anything else."""
     scheme, sep, rest = iri.partition("://")
     if sep:
@@ -229,8 +227,8 @@ def append_segment(iri: str, segment: str) -> str:
 
 
 def next_available_child_iri(
-    parent: str, base_display_id: str, used: Set[str], collapse_slash: bool = True
-) -> Tuple[str, str]:
+    parent: str, base_display_id: str, used: set[str], collapse_slash: bool = True
+) -> tuple[str, str]:
     """A ``(displayId, iri)`` child of ``parent`` whose IRI is not in ``used``, claiming that IRI.
 
     Collisions are disambiguated with ``_2``, ``_3``, … appended to the displayId, so the displayId always matches the

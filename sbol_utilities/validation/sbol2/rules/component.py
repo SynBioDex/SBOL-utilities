@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Dict, List, Optional, Tuple
-
 from sbol_utilities.validation.catalog import Context
 from sbol_utilities.validation.graphs import nodes_reaching_cycles
 from sbol_utilities.validation.sbol2 import REGISTRY
@@ -12,9 +10,9 @@ from sbol_utilities.validation.sbol2.context import Obj, Sbol2Context
 from sbol_utilities.validation.sbol2.rules.structural import regions
 
 
-def parent_definition(ctx: Sbol2Context, child: str) -> Optional[Obj]:
+def parent_definition(ctx: Sbol2Context, child: str) -> Obj | None:
     """The first Component- or ModuleDefinition listing ``child`` as a component, functionalComponent, or module."""
-    best: Optional[Obj] = None
+    best: Obj | None = None
     for predicate in (S.COMPONENT_P, S.FUNCTIONAL_COMPONENT_P, S.MODULE_P):
         for candidate in ctx.containers(child, predicate):
             if candidate.has_class(S.COMPONENT_DEFINITION) or candidate.has_class(S.MODULE_DEFINITION):
@@ -67,17 +65,17 @@ def sequence_annotation_components(context: Context) -> None:
             )
 
 
-def _annotation_for(ctx: Sbol2Context, definition: Obj, component: str) -> Optional[Obj]:
+def _annotation_for(ctx: Sbol2Context, definition: Obj, component: str) -> Obj | None:
     for annotation in ctx.children(definition, S.SEQUENCE_ANNOTATION_P):
         if annotation.first_ref(S.COMPONENT_P) == component:
             return annotation
     return None
 
 
-def _position(ctx: Sbol2Context, annotation: Obj) -> Optional[Tuple[int, int]]:
-    best: Optional[Tuple[int, int]] = None
+def _position(ctx: Sbol2Context, annotation: Obj) -> tuple[int, int] | None:
+    best: tuple[int, int] | None = None
     for location in ctx.children(annotation, S.LOCATION_P):
-        position: Optional[Tuple[int, int]] = None
+        position: tuple[int, int] | None = None
         if location.has_class(S.RANGE):
             start, end = location.integer(S.START), location.integer(S.END)
             if start is not None and end is not None:
@@ -91,11 +89,11 @@ def _position(ctx: Sbol2Context, annotation: Obj) -> Optional[Tuple[int, int]]:
     return best
 
 
-def _orientations(ctx: Sbol2Context, annotation: Obj) -> List[str]:
+def _orientations(ctx: Sbol2Context, annotation: Obj) -> list[str]:
     return [location.first_ref(S.ORIENTATION) or S.INLINE for location in ctx.children(annotation, S.LOCATION_P)]
 
 
-def _definition_of(ctx: Sbol2Context, instance: str) -> Optional[str]:
+def _definition_of(ctx: Sbol2Context, instance: str) -> str | None:
     obj = ctx.get(instance)
     return None if obj is None else obj.first_ref(S.DEFINITION)
 
@@ -172,9 +170,9 @@ def _check_positions(
     ctx: Sbol2Context,
     constraint: Obj,
     definition_id: str,
-    restriction: Optional[str],
-    subject: Optional[str],
-    target: Optional[str],
+    restriction: str | None,
+    subject: str | None,
+    target: str | None,
 ) -> None:
     if subject is None or target is None:
         return
@@ -254,7 +252,7 @@ def unique_annotated_components(context: Context) -> None:
     for obj in ctx.sbol_objects:
         if not obj.has_class(S.COMPONENT_DEFINITION):
             continue
-        by_annotation: Dict[str, str] = {}
+        by_annotation: dict[str, str] = {}
         for annotation in ctx.children(obj, S.SEQUENCE_ANNOTATION_P):
             component = annotation.first_ref(S.COMPONENT_P)
             if annotation.iri is not None and component is not None:
@@ -268,10 +266,10 @@ def unique_annotated_components(context: Context) -> None:
             )
 
 
-def definition_cycles(ctx: Sbol2Context, class_iri: str, instance_predicate: str, link_predicate: str) -> List[Obj]:
+def definition_cycles(ctx: Sbol2Context, class_iri: str, instance_predicate: str, link_predicate: str) -> list[Obj]:
     """Definitions of ``class_iri`` whose instance-to-definition reference graph reaches a cycle."""
-    graph: Dict[str, List[str]] = {}
-    members: List[Obj] = []
+    graph: dict[str, list[str]] = {}
+    members: list[Obj] = []
     for obj in ctx.objects:
         if not obj.has_class(class_iri) or obj.iri is None:
             continue
@@ -300,13 +298,13 @@ def component_definition_cycles(context: Context) -> None:
         )
 
 
-def use_remote_collisions(ctx: Sbol2Context, class_iri: str, instance_predicates: Tuple[str, ...]) -> List[Obj]:
+def use_remote_collisions(ctx: Sbol2Context, class_iri: str, instance_predicates: tuple[str, ...]) -> list[Obj]:
     """Definitions in which two useRemote MapsTos of their instances share a local."""
     offenders = []
     for obj in ctx.objects:
         if not obj.has_class(class_iri):
             continue
-        locals_: List[str] = []
+        locals_: list[str] = []
         for predicate in instance_predicates:
             for instance in ctx.children(obj, predicate):
                 for maps_to in ctx.children(instance, S.MAPS_TO_P):
@@ -341,7 +339,7 @@ def annotation_location_overlaps(context: Context) -> None:
             ctx.warning("sbol2-10903", obj, "the Locations of a SequenceAnnotation should not overlap", S.LOCATION_P)
 
 
-def regions_overlap(extents: List[tuple]) -> bool:
+def regions_overlap(extents: list[tuple]) -> bool:
     """Whether any two Range/Cut extents overlap, using libSBOLj's pairwise test."""
     for i, a in enumerate(extents):
         for b in extents[i + 1 :]:
@@ -357,7 +355,7 @@ def regions_overlap(extents: List[tuple]) -> bool:
     return False
 
 
-def range_span(extents: List[tuple]) -> Optional[int]:
+def range_span(extents: list[tuple]) -> int | None:
     """The summed inclusive length of the Range extents, or None when there are none."""
     spans = [e[2] - e[1] + 1 for e in extents if e[0] == "range"]
     return sum(spans) if spans else None
@@ -369,7 +367,7 @@ def component_source_locations(context: Context) -> None:
     ctx: Sbol2Context = context  # type: ignore[assignment]
     if not ctx.config.best_practice:
         return
-    annotation_by_component: Dict[str, Obj] = {}
+    annotation_by_component: dict[str, Obj] = {}
     for candidate in ctx.objects:
         if candidate.has_class(S.SEQUENCE_ANNOTATION):
             component = candidate.first_ref(S.COMPONENT_P)

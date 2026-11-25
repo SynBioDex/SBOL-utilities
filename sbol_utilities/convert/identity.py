@@ -9,8 +9,6 @@ reference's ``getLatestUri``). References to objects outside the document fall b
 
 from __future__ import annotations
 
-from typing import Dict, List, Optional, Set
-
 from rdflib import Literal
 
 from sbol_utilities.convert import uri
@@ -59,7 +57,7 @@ def compare_versions(a: str, b: str) -> int:
     return 0
 
 
-def _as_int(text: str) -> Optional[int]:
+def _as_int(text: str) -> int | None:
     body = text[1:] if text[:1] in "+-" else text
     if not body or not body.isascii() or not body.isdigit():
         return None
@@ -70,12 +68,12 @@ def _as_int(text: str) -> Optional[int]:
 class IdentityMap:
     """SBOL 2 IRI -> SBOL 3 IRI rewrites and derived namespaces for one document."""
 
-    def __init__(self, triples: List[Triple]):
-        identified: Set[str] = set()
-        candidates: Set[str] = set()
-        owned_by: Dict[str, str] = {}
-        persistent_identity_of: Dict[str, str] = {}
-        version_of: Dict[str, str] = {}
+    def __init__(self, triples: list[Triple]):
+        identified: set[str] = set()
+        candidates: set[str] = set()
+        owned_by: dict[str, str] = {}
+        persistent_identity_of: dict[str, str] = {}
+        version_of: dict[str, str] = {}
 
         for s, p, o in triples:
             if not is_iri(s):
@@ -98,7 +96,7 @@ class IdentityMap:
             if p in REFERENCE_PREDICATES and is_iri(o):
                 candidates.add(o)
 
-        latest: Dict[str, str] = {}
+        latest: dict[str, str] = {}
         for subject in sorted(persistent_identity_of):
             pid = persistent_identity_of[subject]
             best = latest.setdefault(pid, subject)
@@ -106,7 +104,7 @@ class IdentityMap:
                 latest[pid] = subject
 
         # a top-level is an identified subject that nothing owns
-        tops: Dict[str, tuple] = {}
+        tops: dict[str, tuple] = {}
         for subject in identified:
             if subject in owned_by:
                 continue
@@ -116,7 +114,7 @@ class IdentityMap:
             display_id = uri.display_id_sbol2(subject) or ""
             tops[subject] = (namespace, f"{namespace}/{display_id}", uri.create_sbol3_uri(subject))
 
-        self.rewrites: Dict[str, str] = {}
+        self.rewrites: dict[str, str] = {}
         for iri in candidates:
             resolved = latest.get(iri, iri)
             top = _owning_top_level(resolved, owned_by, tops)
@@ -135,7 +133,7 @@ class IdentityMap:
                 self.rewrites[iri] = sbol3
 
         #: derived hasNamespace, keyed by SBOL 3 identity (the engine emits it only for top-levels)
-        self.namespaces: Dict[str, str] = {self.rewrite(top): info[0] for top, info in tops.items()}
+        self.namespaces: dict[str, str] = {self.rewrite(top): info[0] for top, info in tops.items()}
 
     def rewrite(self, iri: str) -> str:
         """The SBOL 3 form of an SBOL 2 IRI (unchanged when it needs no rewrite)."""
@@ -145,12 +143,12 @@ class IdentityMap:
         """Rewrite a term when it is an IRI."""
         return self.rewrites.get(term, term) if is_iri(term) else term
 
-    def namespace_for(self, sbol3_iri: str) -> Optional[str]:
+    def namespace_for(self, sbol3_iri: str) -> str | None:
         """The derived ``hasNamespace`` of a top-level, by its SBOL 3 identity."""
         return self.namespaces.get(sbol3_iri)
 
 
-def _owning_top_level(iri: str, owned_by: Dict[str, str], tops: Dict[str, tuple]) -> Optional[str]:
+def _owning_top_level(iri: str, owned_by: dict[str, str], tops: dict[str, tuple]) -> str | None:
     if iri in tops:
         return iri
     current = iri
@@ -164,7 +162,7 @@ def _owning_top_level(iri: str, owned_by: Dict[str, str], tops: Dict[str, tuple]
     return None
 
 
-def _child_relative_path(iri: str, persistent_identity: str) -> Optional[str]:
+def _child_relative_path(iri: str, persistent_identity: str) -> str | None:
     """The path of a child below ``persistent_identity``, minus any trailing version segment."""
     prefix = persistent_identity + "/"
     if not iri.startswith(prefix):

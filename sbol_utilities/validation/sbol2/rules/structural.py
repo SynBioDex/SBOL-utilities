@@ -4,7 +4,6 @@ enumerated vocabularies, and positional bounds. All run on every document (the l
 from __future__ import annotations
 
 import re
-from typing import List
 
 from rdflib.term import URIRef
 
@@ -174,9 +173,9 @@ def location_bounds(context: Context) -> None:
                 ctx.error("sbol2-11202", obj, "the at position of a Cut must be greater than or equal to zero", S.AT)
 
 
-def regions(ctx: Sbol2Context, obj: Obj, predicate: str = S.LOCATION_P) -> List[tuple]:
+def regions(ctx: Sbol2Context, obj: Obj, predicate: str = S.LOCATION_P) -> list[tuple]:
     """The ``("range", start, end)`` / ``("cut", at)`` extents of the Locations ``obj`` names under ``predicate``."""
-    result: List[tuple] = []
+    result: list[tuple] = []
     for location in ctx.children(obj, predicate):
         if location.has_class(S.RANGE):
             start, end = location.integer(S.START), location.integer(S.END)

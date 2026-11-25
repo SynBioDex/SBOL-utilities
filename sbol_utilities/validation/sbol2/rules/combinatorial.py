@@ -3,8 +3,6 @@ Collections to the derivation they come from."""
 
 from __future__ import annotations
 
-from typing import List, Optional, Set, Tuple
-
 from sbol_utilities.validation.catalog import Context
 from sbol_utilities.validation.sbol2 import REGISTRY
 from sbol_utilities.validation.sbol2 import spec as S
@@ -29,7 +27,7 @@ def variable_components(context: Context) -> None:
                 "an enumerate CombinatorialDerivation must not use a zeroOrMore or oneOrMore operator",
                 S.STRATEGY,
             )
-        variables: Set[str] = set()
+        variables: set[str] = set()
         duplicate = False
         for vc in variable_components:
             variable = vc.first_ref(S.VARIABLE)
@@ -73,7 +71,7 @@ _MESSAGES = {
     "sbol2-12913": "a Collection's members should derive from the same CombinatorialDerivation",
 }
 
-Finding = Tuple[str, Obj, str]
+Finding = tuple[str, Obj, str]
 
 
 @REGISTRY.rule(*_MESSAGES)
@@ -84,7 +82,7 @@ def combinatorial_best_practices(context: Context) -> None:
     if not ctx.config.best_practice:
         return
     for obj in ctx.sbol_objects:
-        findings: List[Finding] = []
+        findings: list[Finding] = []
         if obj.has_class(S.COMBINATORIAL_DERIVATION):
             template = ctx.resolve(obj.first_ref(S.TEMPLATE))
             if template is not None and not template.resources(S.COMPONENT_P):
@@ -102,7 +100,7 @@ def combinatorial_best_practices(context: Context) -> None:
             ctx.warning(rule, subject, _MESSAGES[rule], prop)
 
 
-def _child_by_identity(ctx: Sbol2Context, parent: Obj, predicate: str, identity: str) -> Optional[Obj]:
+def _child_by_identity(ctx: Sbol2Context, parent: Obj, predicate: str, identity: str) -> Obj | None:
     return ctx.get(identity) if identity in parent.iris(predicate) else None
 
 
@@ -110,7 +108,7 @@ def _count_derived_from(ctx: Sbol2Context, obj: Obj, source: str) -> int:
     return sum(1 for component in ctx.children(obj, S.COMPONENT_P) if component.lists(S.WAS_DERIVED_FROM, source))
 
 
-def _derived_definition_findings(ctx: Sbol2Context, obj: Obj, findings: List[Finding]) -> None:
+def _derived_definition_findings(ctx: Sbol2Context, obj: Obj, findings: list[Finding]) -> None:
     for iri in obj.iris(S.WAS_DERIVED_FROM):
         derivation = ctx.resolve(iri)
         if derivation is None or not derivation.has_class(S.COMBINATORIAL_DERIVATION):
@@ -155,7 +153,7 @@ def _is_combinatorial(ctx: Sbol2Context, iri: str) -> bool:
     return target is not None and target.has_class(S.COMBINATORIAL_DERIVATION)
 
 
-def _collection_findings(ctx: Sbol2Context, obj: Obj, findings: List[Finding]) -> None:
+def _collection_findings(ctx: Sbol2Context, obj: Obj, findings: list[Finding]) -> None:
     members = [m for m in (ctx.resolve(iri) for iri in obj.iris(S.MEMBER)) if m is not None]
     for iri in obj.iris(S.WAS_DERIVED_FROM):
         if not _is_combinatorial(ctx, iri):

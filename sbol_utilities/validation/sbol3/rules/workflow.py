@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Dict, Optional
-
 from rdflib.term import Node
 
 from sbol_utilities.validation.sbol3 import REGISTRY, spec
@@ -14,7 +12,7 @@ BUILD = "build"
 TEST = "test"
 LEARN = "learn"
 
-STAGES: Dict[str, str] = {spec.DESIGN: DESIGN, spec.BUILD: BUILD, spec.TEST: TEST, spec.LEARN: LEARN}
+STAGES: dict[str, str] = {spec.DESIGN: DESIGN, spec.BUILD: BUILD, spec.TEST: TEST, spec.LEARN: LEARN}
 #: Table 21: the stage preceding each stage
 PRECEDING = {DESIGN: LEARN, BUILD: DESIGN, TEST: BUILD, LEARN: TEST}
 REFERRED_TYPE = {
@@ -25,7 +23,7 @@ REFERRED_TYPE = {
 }
 
 
-def _stage(iri: Node) -> Optional[str]:
+def _stage(iri: Node) -> str | None:
     return STAGES.get(str(iri))
 
 

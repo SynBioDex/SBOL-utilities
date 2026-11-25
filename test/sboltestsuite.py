@@ -21,9 +21,10 @@ from __future__ import annotations
 import os
 import sys
 import warnings
+from collections.abc import Iterable
 from functools import lru_cache
 from pathlib import Path
-from typing import Callable, Iterable, List
+from typing import Callable
 
 import pytest
 
@@ -76,17 +77,17 @@ def suite_root() -> Path:
     return CACHE_DIR
 
 
-def sbol2_files(corpus: str) -> List[Path]:
+def sbol2_files(corpus: str) -> list[Path]:
     """Sorted RDF/XML files of one SBOL 2 corpus directory."""
     return sorted((suite_root() / corpus).glob("*.xml"))
 
 
-def sbol3_manifest() -> List[Path]:
+def sbol3_manifest() -> list[Path]:
     """Every valid SBOL 3 file: the Turtle serialization of each SBOL3 test case and validation example."""
     return sorted((suite_root() / SBOL3_CORPUS).rglob("*.ttl"))
 
 
-def sbol3_invalid_files() -> List[Path]:
+def sbol3_invalid_files() -> list[Path]:
     """SBOL 3 files that each violate the rule they are named after."""
     return sorted((suite_root() / SBOL3_INVALID).glob("*.ttl"))
 

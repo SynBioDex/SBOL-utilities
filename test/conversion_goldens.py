@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import json
 from functools import lru_cache
-from typing import List, Set
 
 import sboltestsuite
 from rdflib import Graph
@@ -18,7 +17,7 @@ from rdflib.compare import to_canonical_graph
 from sbol_utilities.rdf_io import load_graph
 
 
-def canonical_lines(graph: Graph) -> List[str]:
+def canonical_lines(graph: Graph) -> list[str]:
     """Sorted N-Triples lines of a graph with blank nodes canonically relabeled."""
     text = to_canonical_graph(graph).serialize(format="nt")
     if isinstance(text, bytes):
@@ -45,8 +44,8 @@ def expected_graph(relative: str) -> Graph:
 
 def diff(actual: Graph, expected: Graph, limit: int = 40) -> str:
     """Triple-level description of how two graphs differ ('' when they are equivalent)."""
-    mine: Set[str] = set(canonical_lines(actual))
-    want: Set[str] = set(canonical_lines(expected))
+    mine: set[str] = set(canonical_lines(actual))
+    want: set[str] = set(canonical_lines(expected))
     if mine == want:
         return ""
     lines = [f"expected only ({len(want - mine)}):", *sorted(want - mine)[:limit]]
