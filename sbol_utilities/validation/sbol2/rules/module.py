@@ -52,31 +52,25 @@ def participants_in_module_definition(ctx: Sbol2Context) -> None:
             )
 
 
+def _only_term_in_branch(ctx: Sbol2Context, iris: list[str], branch_root: str) -> str | None:
+    """The compact id of the one term among ``iris`` lying in an ontology branch; None when there is not exactly one."""
+    found = [curie for curie in map(ontology_curie, iris) if ctx.ontology.is_in_branch(curie, branch_root)]
+    return found[0] if len(found) == 1 else None
+
+
 @REGISTRY.rule("sbol2-11907")
 def interaction_participation_roles(ctx: Sbol2Context) -> None:
     """An Interaction's participant roles are compatible with its SBO type (Table 11)."""
-    ontology = ctx.ontology
     for obj in ctx.instances(S.INTERACTION):
-        types = [
-            ontology_curie(t)
-            for t in obj.iris(S.TYPE)
-            if ontology.is_in_branch(ontology_curie(t), S.SBO_OCCURRING_ENTITY_REPRESENTATION)
-        ]
-        if len(types) != 1:
-            continue
-        allowed = S.PARTICIPANT_ROLES_FOR_INTERACTION.get(types[0])
+        interaction_type = _only_term_in_branch(ctx, obj.iris(S.TYPE), S.SBO_OCCURRING_ENTITY_REPRESENTATION)
+        allowed = S.PARTICIPANT_ROLES_FOR_INTERACTION.get(interaction_type or "")
         if allowed is None:
             continue
-        offending = False
-        for participation in ctx.referenced(obj, S.PARTICIPATION_P):
-            roles = [
-                ontology_curie(r)
-                for r in participation.iris(S.ROLE)
-                if ontology.is_in_branch(ontology_curie(r), S.SBO_PARTICIPANT_ROLE)
-            ]
-            if len(roles) == 1 and roles[0] not in allowed:
-                offending = True
-        if offending:
+        roles = (
+            _only_term_in_branch(ctx, participation.iris(S.ROLE), S.SBO_PARTICIPANT_ROLE)
+            for participation in ctx.referenced(obj, S.PARTICIPATION_P)
+        )
+        if any(role is not None and role not in allowed for role in roles):
             ctx.report(
                 "sbol2-11907",
                 obj,

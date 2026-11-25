@@ -19,6 +19,11 @@ def ontology_curie(iri: str) -> str:
     return _SEGMENT.split(iri)[-1]
 
 
+def is_nucleic_acid_region(types: list[str]) -> bool:
+    """Whether ComponentDefinition types include the BioPAX DNA or RNA region type."""
+    return S.BIOPAX_DNA_REGION in types or S.BIOPAX_RNA_REGION in types
+
+
 @dataclass(frozen=True)
 class RangeExtent:
     """The positions a Range covers, both ends included."""

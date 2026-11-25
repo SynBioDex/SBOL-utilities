@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from sbol_utilities.validation.sbol2 import spec as S
 from sbol_utilities.validation.sbol2.context import Sbol2Context, Sbol2Object
-from sbol_utilities.validation.sbol2.helpers import RangeExtent, extents
+from sbol_utilities.validation.sbol2.helpers import RangeExtent, extents, is_nucleic_acid_region
 from sbol_utilities.validation.sbol2.registry import REGISTRY
 
 
@@ -35,116 +35,129 @@ def _ascii_upper(text: str) -> str:
     return "".join(c.upper() if c.isascii() else c for c in text)
 
 
+def _sequences(ctx: Sbol2Context, definition: Sbol2Object) -> list[tuple[str, int]]:
+    """The (encoding, elements length) of each Sequence of a ComponentDefinition that is held in the document and has
+    an encoding; a Sequence without elements has length 0."""
+    return [
+        (encoding, len(sequence.first_literal(S.ELEMENTS) or ""))
+        for _, sequence in ctx.resolved(definition, S.SEQUENCE_P)
+        if (encoding := sequence.first_iri(S.ENCODING)) is not None
+    ]
+
+
+def _table_1_lengths(sequences: list[tuple[str, int]]) -> dict[str, int]:
+    """Table 1 encoding -> the length of the first Sequence with that encoding."""
+    lengths: dict[str, int] = {}
+    for encoding, length in sequences:
+        if encoding in S.TABLE_1_ENCODINGS:
+            lengths.setdefault(encoding, length)
+    return lengths
+
+
 def _nucleic_length(ctx: Sbol2Context, definition: Sbol2Object) -> int | None:
-    for iri in definition.iris(S.SEQUENCE_P):
-        sequence = ctx.resolve(iri)
-        if sequence is None or sequence.first_iri(S.ENCODING) != S.IUPAC_NUCLEIC_ENCODING:
-            continue
+    """The length of a ComponentDefinition's first IUPAC nucleic-acid Sequence that has elements."""
+    for _, sequence in ctx.resolved(definition, S.SEQUENCE_P):
         elements = sequence.first_literal(S.ELEMENTS)
-        if elements is not None:
+        if sequence.first_iri(S.ENCODING) == S.IUPAC_NUCLEIC_ENCODING and elements is not None:
             return len(elements)
     return None
 
 
-@REGISTRY.rule("sbol2-10516", "sbol2-10518", "sbol2-10520", "sbol2-10523")
-def definition_sequences(ctx: Sbol2Context) -> None:
-    """A ComponentDefinition carries sequences matching its type, of consistent lengths, covering its annotations."""
-    for obj in ctx.sbol_objects:
-        if obj.has_class(S.COMPONENT_DEFINITION):
-            _check_definition(ctx, obj)
-
-
-def _check_definition(ctx: Sbol2Context, obj: Sbol2Object) -> None:
-    sequences: list[tuple[str, int]] = []
-    for iri in obj.iris(S.SEQUENCE_P):
-        sequence = ctx.resolve(iri)
-        if sequence is None:
+@REGISTRY.rule("sbol2-10516")
+def definition_sequence_categories(ctx: Sbol2Context) -> None:
+    """A ComponentDefinition with Sequences has one whose encoding matches its DNA/RNA, protein, or small-molecule
+    type."""
+    for obj in ctx.instances(S.COMPONENT_DEFINITION):
+        sequences = _sequences(ctx, obj)
+        if not sequences:
             continue
-        encoding = sequence.first_iri(S.ENCODING)
-        if encoding is None:
-            continue
-        elements = sequence.first_literal(S.ELEMENTS)
-        sequences.append((encoding, len(elements) if elements is not None else 0))
-    if not sequences:
-        return
-    lengths: dict[str, int] = {}
-    length_mismatch = False
-    for encoding, length in sequences:
-        if encoding not in S.TABLE_1_ENCODINGS:
-            continue
-        if encoding in lengths:
-            if lengths[encoding] != length:
-                length_mismatch = True
-        else:
-            lengths[encoding] = length
-    nucleic = lengths.get(S.IUPAC_NUCLEIC_ENCODING)
+        encodings = _table_1_lengths(sequences)
+        types = obj.iris(S.TYPE)
+        if (
+            (is_nucleic_acid_region(types) and S.IUPAC_NUCLEIC_ENCODING not in encodings)
+            or (S.BIOPAX_PROTEIN in types and S.IUPAC_PROTEIN_ENCODING not in encodings)
+            or (S.BIOPAX_SMALL_MOLECULE in types and S.SMILES_ENCODING not in encodings)
+        ):
+            ctx.report(
+                "sbol2-10516",
+                obj,
+                "a ComponentDefinition must carry a Sequence whose encoding matches its type",
+                property=S.SEQUENCE_P,
+            )
 
-    types = obj.iris(S.TYPE)
-    wants_nucleic = S.BIOPAX_DNA_REGION in types or S.BIOPAX_RNA_REGION in types
-    missing_category = (
-        (wants_nucleic and nucleic is None)
-        or (S.BIOPAX_PROTEIN in types and S.IUPAC_PROTEIN_ENCODING not in lengths)
-        or (S.BIOPAX_SMALL_MOLECULE in types and S.SMILES_ENCODING not in lengths)
-    )
 
-    out_of_bounds = False
-    hierarchy_inconsistent = False
-    if nucleic is not None:
+@REGISTRY.rule("sbol2-10518")
+def definition_sequence_lengths(ctx: Sbol2Context) -> None:
+    """A ComponentDefinition's Sequences of one Table 1 encoding share a length."""
+    for obj in ctx.instances(S.COMPONENT_DEFINITION):
+        sequences = _sequences(ctx, obj)
+        first = _table_1_lengths(sequences)
+        if any(first.get(encoding, length) != length for encoding, length in sequences):
+            ctx.report(
+                "sbol2-10518",
+                obj,
+                "a ComponentDefinition's Sequences of one encoding should share a length",
+                property=S.SEQUENCE_P,
+            )
+
+
+def _outside(location: Sbol2Object, length: int) -> bool:
+    """Whether a Range or Cut lies outside a sequence of ``length`` positions.
+
+    A Range without a start is read as starting at 1 and one without an end as ending at 0; a Cut without a
+    position is read as at 0.
+    """
+    if location.has_class(S.RANGE):
+        start, end = location.integer(S.START), location.integer(S.END)
+        return (1 if start is None else start) <= 0 or (0 if end is None else end) > length
+    if location.has_class(S.CUT):
+        at = location.integer(S.AT) or 0
+        return at < 0 or at > length
+    return False
+
+
+@REGISTRY.rule("sbol2-10523")
+def annotation_positions(ctx: Sbol2Context) -> None:
+    """The Locations of a ComponentDefinition's SequenceAnnotations lie within its nucleic-acid Sequence."""
+    for obj in ctx.instances(S.COMPONENT_DEFINITION):
+        length = _table_1_lengths(_sequences(ctx, obj)).get(S.IUPAC_NUCLEIC_ENCODING)
+        if length is None:
+            continue
+        locations = (
+            location
+            for annotation in ctx.referenced(obj, S.SEQUENCE_ANNOTATION_P)
+            for location in ctx.referenced(annotation, S.LOCATION_P)
+        )
+        if any(_outside(location, length) for location in locations):
+            ctx.report(
+                "sbol2-10523",
+                obj,
+                "a SequenceAnnotation position should lie within the ComponentDefinition's sequence",
+                property=S.SEQUENCE_ANNOTATION_P,
+            )
+
+
+def _annotated_definition_length(ctx: Sbol2Context, annotation: Sbol2Object) -> int | None:
+    """The nucleic-acid Sequence length of the definition of the Component a SequenceAnnotation refers to."""
+    component = ctx.resolve(annotation.first_iri(S.COMPONENT_P))
+    definition = None if component is None else ctx.resolve(component.first_iri(S.DEFINITION))
+    return None if definition is None else _nucleic_length(ctx, definition)
+
+
+@REGISTRY.rule("sbol2-10520")
+def hierarchy_sequence_lengths(ctx: Sbol2Context) -> None:
+    """A SequenceAnnotation's first Range is as long as the Sequence of the Component it annotates."""
+    for obj in ctx.instances(S.COMPONENT_DEFINITION):
+        if S.IUPAC_NUCLEIC_ENCODING not in _table_1_lengths(_sequences(ctx, obj)):
+            continue
         for annotation in ctx.referenced(obj, S.SEQUENCE_ANNOTATION_P):
-            for location in ctx.referenced(annotation, S.LOCATION_P):
-                if location.has_class(S.RANGE):
-                    start = location.integer(S.START)
-                    end = location.integer(S.END)
-                    start = 1 if start is None else start
-                    end = 0 if end is None else end
-                    if start <= 0 or end > nucleic:
-                        out_of_bounds = True
-                elif location.has_class(S.CUT):
-                    at = location.integer(S.AT)
-                    at = 0 if at is None else at
-                    if at < 0 or at > nucleic:
-                        out_of_bounds = True
-        for annotation in ctx.referenced(obj, S.SEQUENCE_ANNOTATION_P):
-            component_iri = annotation.first_iri(S.COMPONENT_P)
-            if component_iri is None:
-                continue
             span = next((e.length for e in extents(ctx, annotation) if isinstance(e, RangeExtent)), None)
-            if span is None:
-                continue
-            component = ctx.resolve(component_iri)
-            definition_iri = None if component is None else component.first_iri(S.DEFINITION)
-            if definition_iri is None:
-                continue
-            definition = ctx.resolve(definition_iri)
-            child_length = None if definition is None else _nucleic_length(ctx, definition)
+            child_length = None if span is None else _annotated_definition_length(ctx, annotation)
             if child_length is not None and child_length != span:
-                hierarchy_inconsistent = True
-
-    if missing_category:
-        ctx.report(
-            "sbol2-10516",
-            obj,
-            "a ComponentDefinition must carry a Sequence whose encoding matches its type",
-            property=S.SEQUENCE_P,
-        )
-    if length_mismatch:
-        ctx.report(
-            "sbol2-10518",
-            obj,
-            "a ComponentDefinition's Sequences of one encoding should share a length",
-            property=S.SEQUENCE_P,
-        )
-    if out_of_bounds:
-        ctx.report(
-            "sbol2-10523",
-            obj,
-            "a SequenceAnnotation position should lie within the ComponentDefinition's sequence",
-            property=S.SEQUENCE_ANNOTATION_P,
-        )
-    if hierarchy_inconsistent:
-        ctx.report(
-            "sbol2-10520",
-            obj,
-            "Sequences across a ComponentDefinition-Component hierarchy should be consistent",
-            property=S.SEQUENCE_P,
-        )
+                ctx.report(
+                    "sbol2-10520",
+                    obj,
+                    "Sequences across a ComponentDefinition-Component hierarchy should be consistent",
+                    property=S.SEQUENCE_P,
+                )
+                break
