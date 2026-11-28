@@ -1,8 +1,8 @@
 """Validation conformance: the validators must report exactly the issues SBOLTestSuite expects.
 
 For every file with expected issues in SBOLTestSuite's ``Expected/validation/issues.json`` (the SBOL 2 corpora,
-InvalidFiles, the SBOL 3 corpus, and SBOL3_InvalidFiles) and every configuration, the set of (rule, severity,
-subject) issues must match.
+InvalidFiles, SBOL2_InvalidFiles, the SBOL 3 corpus, and SBOL3_InvalidFiles) and every configuration, the set of
+(rule, severity, subject) issues must match.
 """
 
 from __future__ import annotations

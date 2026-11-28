@@ -1,7 +1,8 @@
 """Catalog completeness: every machine-checkable rule is implemented and fires on an SBOLTestSuite invalid file.
 
-SBOLTestSuite names each invalid file after the rule it violates: ``InvalidFiles/sbol-NNNNN[_case].xml`` for rule
-``sbol2-NNNNN`` and ``SBOL3_InvalidFiles/sbol3-NNNNN_case.ttl`` for rule ``sbol3-NNNNN``. A rule counts as covered
+SBOLTestSuite names each invalid file after the rule it violates: ``InvalidFiles/sbol-NNNNN.xml`` and
+``SBOL2_InvalidFiles/sbol2-NNNNN_case.xml`` for rule ``sbol2-NNNNN``, and
+``SBOL3_InvalidFiles/sbol3-NNNNN_case.ttl`` for rule ``sbol3-NNNNN``. A rule counts as covered
 when such a file is expected to fire it (``Expected/validation/issues.json``). ``SBOL3/validation_examples/`` holds
 documents that must be clean.
 """
@@ -17,7 +18,7 @@ from sbol_utilities.validation.sbol2 import REGISTRY as SBOL2
 from sbol_utilities.validation.sbol3 import REGISTRY as SBOL3
 
 REGISTRIES = {"sbol2": SBOL2, "sbol3": SBOL3}
-INVALID_FILES = {"sbol2": suite.SBOL2_INVALID, "sbol3": suite.SBOL3_INVALID}
+INVALID_FILES = {"sbol2": "SBOL2-invalid", "sbol3": suite.SBOL3_INVALID}
 
 #: Rules that act only when references are resolved against other documents. Validation of a single document has
 #: no implementation for them, and no single-document case can fire them.

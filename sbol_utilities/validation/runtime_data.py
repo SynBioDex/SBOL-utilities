@@ -28,7 +28,7 @@ from collections.abc import Collection
 from pathlib import Path, PurePosixPath
 
 #: SBOLTestSuite commit providing the rule catalogs, ontology facts, and (for the tests) the conformance corpus
-SBOL_TEST_SUITE_COMMIT = "708911542acc1903e66a7d3bdd775e945597611b"
+SBOL_TEST_SUITE_COMMIT = "f435eb0ff98ecbd931e2331ec277db19b95ef513"
 ARCHIVE_URL = f"https://github.com/SynBioDex/SBOLTestSuite/archive/{SBOL_TEST_SUITE_COMMIT}.zip"
 
 PACKAGE_DATA_DIR = Path(__file__).resolve().parent / "data"

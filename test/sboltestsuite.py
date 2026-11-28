@@ -41,11 +41,12 @@ CACHE_DIR = REPO_ROOT / ".cache" / "sboltestsuite" / COMMIT
 
 #: Corpus directories used by the tests
 SBOL2_CORPORA = ("SBOL2", "SBOL2_bp", "SBOL2_ic", "SBOL2_nc")
-SBOL2_INVALID = "InvalidFiles"
+#: SBOL 2 files that each violate the rule they are named after: libSBOLj's set, then the further cases
+SBOL2_INVALID = ("InvalidFiles", "SBOL2_InvalidFiles")
 SBOL3_CORPUS = "SBOL3"
 SBOL3_INVALID = "SBOL3_InvalidFiles"
 EXPECTED = "Expected"
-DIRECTORIES = SBOL2_CORPORA + (SBOL2_INVALID, SBOL3_CORPUS, SBOL3_INVALID, EXPECTED, "Rules", "Ontology")
+DIRECTORIES = SBOL2_CORPORA + SBOL2_INVALID + (SBOL3_CORPUS, SBOL3_INVALID, EXPECTED, "Rules", "Ontology")
 
 
 class SuiteUnavailable(RuntimeError):
@@ -119,7 +120,7 @@ def sbol3_invalid_files() -> list[Path]:
 CORPORA: dict[str, Callable[[], list]] = {
     **{corpus: partial(sbol2_files, corpus) for corpus in SBOL2_CORPORA},
     "SBOL2-all": lambda: [path for corpus in SBOL2_CORPORA for path in sbol2_files(corpus)],
-    SBOL2_INVALID: partial(sbol2_files, SBOL2_INVALID),
+    "SBOL2-invalid": lambda: [path for corpus in SBOL2_INVALID for path in sbol2_files(corpus)],
     SBOL3_CORPUS: sbol3_manifest,
     SBOL3_INVALID: sbol3_invalid_files,
     "SBOL3/validation_examples": lambda: sorted((suite_root() / SBOL3_CORPUS / "validation_examples").glob("*.ttl")),
@@ -140,19 +141,19 @@ def corpus_params(name: str) -> list:
     return [pytest.param(item, id=relative_name(item) if isinstance(item, Path) else item) for item in items]
 
 
-RULE_FILE = re.compile(r"(sbol3?)-(\d{5})(?:_.*)?\.(?:xml|ttl)")
+RULE_FILE = re.compile(r"sbol([23]?)-(\d{5})(?:_.*)?\.(?:xml|ttl)")
 
 
 def rule_for(path: Path) -> str:
-    """The rule an invalid file is named after: ``sbol-NNNNN[_case].xml`` violates ``sbol2-NNNNN`` and
-    ``sbol3-NNNNN_case.ttl`` violates ``sbol3-NNNNN``.
+    """The rule an invalid file is named after: ``sbol-NNNNN.xml`` and ``sbol2-NNNNN_case.xml`` violate
+    ``sbol2-NNNNN``, and ``sbol3-NNNNN_case.ttl`` violates ``sbol3-NNNNN``.
 
     :raises ValueError: when the file is not named after a rule
     """
     match = RULE_FILE.fullmatch(path.name)
     if match is None:
         raise ValueError(f"{path.name} is not named after a validation rule")
-    return f"{'sbol2' if match.group(1) == 'sbol' else 'sbol3'}-{match.group(2)}"
+    return f"sbol{match.group(1) or '2'}-{match.group(2)}"
 
 
 def set_diff(expected: set, actual: set, limit: int = 40) -> str:

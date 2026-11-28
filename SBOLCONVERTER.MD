@@ -116,8 +116,9 @@ A failing conversion test prints the triples that differ from the expected graph
 ## Reference data
 
 New test documents and expected outputs belong in SBOLTestSuite: invalid SBOL 3 documents in `SBOL3_InvalidFiles/`
-(named `sbol3-NNNNN_<case>.ttl` after the rule they violate), invalid SBOL 2 documents in `InvalidFiles/`, valid
-documents in the SBOL 2 / SBOL 3 directories. SBOLTestSuite's `scripts/generate_expected.py` regenerates
+(named `sbol3-NNNNN_<case>.ttl` after the rule they violate), invalid SBOL 2 documents in `SBOL2_InvalidFiles/`
+(named `sbol2-NNNNN_<case>.xml`; `InvalidFiles/` holds only files libSBOLj rejects with the rule in their name),
+valid documents in the SBOL 2 / SBOL 3 directories. SBOLTestSuite's `scripts/generate_expected.py` regenerates
 `Expected/`, `Rules/`, and `Ontology/`. Then move `SBOL_TEST_SUITE_COMMIT` here to the new SBOLTestSuite commit and
 set the checksums in `RUNTIME_FILES` beside it to those of the four runtime files at that commit
 (`test/test_validation_runtime_data.py` compares them with a checkout at the pinned commit).
