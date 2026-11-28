@@ -35,6 +35,7 @@ from sbol_utilities.convert.terms import (
     S2,
     S3,
     SBO_FUNCTIONAL_ENTITY,
+    Node,
     Term,
     Triple,
     build_graph,
@@ -254,12 +255,8 @@ class Downgrader:
         return cls in self.types.get(subject, ())
 
     def discover_mapstos_and_interfaces(self) -> None:
-        """Pair each ComponentReference with the Constraint naming it, and index Interface membership.
-
-        Only a Constraint whose restriction is ``verifyIdentical`` or ``replaces`` (the two the upgrade writes) is a
-        MapsTo back-half; any other Constraint touching a ComponentReference is a genuine SBOL 3 Constraint.
-        """
-        crefs: dict[str, dict[str, str]] = defaultdict(dict)
+        """Pair each ComponentReference with the Constraint naming it, and flatten Interface membership."""
+        references: dict[str, dict[str, str]] = defaultdict(dict)
         constraints: dict[str, dict[str, str]] = defaultdict(dict)
         interface_members: dict[str, list[tuple[str, str]]] = defaultdict(list)
         for s, p, o in self.triples:
@@ -270,44 +267,55 @@ class Downgrader:
                     self.interfaces.add(s)
             elif p in (S3.inChildOf, S3.refersTo):
                 if is_iri(o):
-                    crefs[s][p] = o
+                    references[s][p] = o
             elif p == S3.displayId:
                 if isinstance(o, Literal):
-                    crefs[s][p] = str(o)
+                    references[s][p] = str(o)
             elif p in (S3.subject, S3.object, S3.restriction):
                 if is_iri(o):
                     constraints[s][p] = o
             elif p in DIRECTION_SLOTS:
                 if is_iri(o):
                     interface_members[s].append((o, DIRECTION_SLOTS[p]))
+        self.fold_mapstos(references, constraints)
+        self.merge_directions(interface_members)
 
-        cref_to_constraint: dict[str, tuple[str, bool]] = {}
+    def mapsto_constraints_by_reference(self, constraints: dict[str, dict[str, str]]) -> dict[str, tuple[str, bool]]:
+        """ComponentReference -> the Constraint that completes its MapsTo, and whether the reference is its subject.
+
+        Only a Constraint whose restriction is ``verifyIdentical`` or ``replaces`` (the two the upgrade writes) is a
+        MapsTo back-half; any other Constraint touching a ComponentReference is a genuine SBOL 3 Constraint.
+        """
+        found: dict[str, tuple[str, bool]] = {}
         for constraint in sorted(constraints):
             attrs = constraints[constraint]
             if not self.has_type(constraint, S3.Constraint):
                 continue
             subject, obj = attrs.get(S3.subject), attrs.get(S3.object)
             if subject is not None and self.has_type(subject, S3.ComponentReference):
-                cref, cref_is_subject = subject, True
+                reference, reference_is_subject = subject, True
             elif obj is not None and self.has_type(obj, S3.ComponentReference):
-                cref, cref_is_subject = obj, False
+                reference, reference_is_subject = obj, False
             else:
                 continue
-            if attrs.get(S3.restriction) not in (S3.verifyIdentical, S3.replaces):
-                continue
-            cref_to_constraint[cref] = (constraint, cref_is_subject)
+            if attrs.get(S3.restriction) in (S3.verifyIdentical, S3.replaces):
+                found[reference] = (constraint, reference_is_subject)
+        return found
 
-        for cref in sorted(crefs):
-            attrs = crefs[cref]
-            if not self.has_type(cref, S3.ComponentReference):
+    def fold_mapstos(self, references: dict[str, dict[str, str]], constraints: dict[str, dict[str, str]]) -> None:
+        """Record the MapsTo each ComponentReference and its Constraint become, dropping references without one."""
+        constraint_of = self.mapsto_constraints_by_reference(constraints)
+        for reference in sorted(references):
+            attrs = references[reference]
+            if not self.has_type(reference, S3.ComponentReference):
                 continue
-            if cref not in cref_to_constraint:
-                self.report.warn(WarningKind.ORPHAN_COMPONENT_REFERENCE, cref, "no matching Constraint; dropped")
-                self.discarded.add(cref)
+            if reference not in constraint_of:
+                self.report.warn(WarningKind.ORPHAN_COMPONENT_REFERENCE, reference, "no matching Constraint; dropped")
+                self.discarded.add(reference)
                 continue
-            constraint, cref_is_subject = cref_to_constraint[cref]
+            constraint, reference_is_subject = constraint_of[reference]
             constraint_attrs = constraints[constraint]
-            local = constraint_attrs.get(S3.object if cref_is_subject else S3.subject)
+            local = constraint_attrs.get(S3.object if reference_is_subject else S3.subject)
             restriction = constraint_attrs.get(S3.restriction)
             carrier, remote, display_id = attrs.get(S3.inChildOf), attrs.get(S3.refersTo), attrs.get(S3.displayId)
             if carrier is None or remote is None or display_id is None or local is None:
@@ -316,20 +324,20 @@ class Downgrader:
                     constraint,
                     "ComponentReference+Constraint pair is missing inChildOf, refersTo, displayId, or its local side",
                 )
-                self.discarded.update((cref, constraint))
+                self.discarded.update((reference, constraint))
                 continue
-            refinement = refinement_for(restriction, cref_is_subject) if restriction else None
-            self.mapstos[cref] = MapsToParts(carrier, display_id, local, remote, refinement)
+            refinement = refinement_for(restriction, reference_is_subject) if restriction else None
+            self.mapstos[reference] = MapsToParts(carrier, display_id, local, remote, refinement)
             self.mapsto_constraints.add(constraint)
 
+    def merge_directions(self, interface_members: dict[str, list[tuple[str, str]]]) -> None:
+        """Record each Interface member's SBOL 2 direction; a feature listed under several directions is ``inout``."""
         for interface, members in interface_members.items():
             if interface not in self.interfaces:
                 continue
             for feature, direction in members:
-                existing = self.fc_directions.get(feature)
-                if existing is None or existing == direction:
-                    self.fc_directions[feature] = direction
-                elif existing == "inout" or direction == "inout" or {existing, direction} == {"in", "out"}:
+                existing = self.fc_directions.setdefault(feature, direction)
+                if existing != direction:
                     self.fc_directions[feature] = "inout"
 
     def classify_components(self) -> None:
@@ -528,7 +536,7 @@ class Downgrader:
 
     # Per-triple conversion
 
-    def rewrite(self, term):
+    def rewrite(self, term: Term) -> Term:
         """The SBOL 2 identity of an IRI the conversion renames; any other term unchanged."""
         return self.rewrites.get(term, term) if is_iri(term) else term
 
@@ -622,7 +630,7 @@ class Downgrader:
             predicate = S2.component
         self.out.append((self.rewrite(s), predicate, self.rewrite(o)))
 
-    def reverse_value(self, subject, predicate: str, value: Term) -> Term:
+    def reverse_value(self, subject: Node, predicate: str, value: Term) -> Term:
         """The SBOL 2 spelling of an enumerated value or ontology term."""
         if not is_iri(value):
             return value

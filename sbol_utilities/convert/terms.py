@@ -105,13 +105,15 @@ def plain(value: str) -> Literal:
     return Literal(value)
 
 
-def from_rdflib(term) -> Term:
+def from_rdflib(term: rdflib.term.Node) -> Term:
     """An rdflib node as an engine term: an IRI as ``str``, an ``xsd:string`` literal as a plain one."""
     if isinstance(term, URIRef):
         return str(term)
     if isinstance(term, Literal) and term.datatype is not None and str(term.datatype) == XSD_STRING:
         return Literal(str(term))
-    return term
+    if isinstance(term, (BNode, Literal)):
+        return term
+    raise TypeError(f"Cannot convert an RDF term of type {type(term).__name__}")
 
 
 def graph_triples(graph: rdflib.Graph) -> list[Triple]:
@@ -121,25 +123,23 @@ def graph_triples(graph: rdflib.Graph) -> list[Triple]:
     """
     triples = [(from_rdflib(s), str(p), from_rdflib(o)) for s, p, o in graph]
     triples.sort(key=sort_key)
-    return triples  # type: ignore[return-value]
+    return triples
 
 
-def sort_key(triple) -> tuple:
+def sort_key(triple: Triple) -> tuple[tuple[str, str, str], ...]:
     """A total order over triples whose terms are IRIs, blank nodes, and literals."""
     return tuple((type(t).__name__, str(t), literal_tag(t)) for t in triple)
 
 
-def literal_tag(term) -> str:
+def literal_tag(term: Term) -> str:
     """A literal's language and datatype as one string; empty for any other term."""
     if isinstance(term, Literal):
         return f"{term.language or ''}^{term.datatype or ''}"
     return ""
 
 
-def to_rdflib(term: Term):
+def to_rdflib(term: Term) -> URIRef | BNode | Literal:
     """An engine term as an rdflib node, with literals built the way a parser reads them."""
-    if type(term) is str:
-        return URIRef(term)
     if isinstance(term, Literal):
         # rebuild typed literals the way a parser would read them, so lexical forms are normalized identically
         if term.language:
@@ -147,7 +147,7 @@ def to_rdflib(term: Term):
         if term.datatype is None or str(term.datatype) == XSD_STRING:
             return Literal(str(term))
         return Literal(str(term), datatype=term.datatype)
-    return term
+    return term if isinstance(term, BNode) else URIRef(term)
 
 
 def build_graph(triples: Iterable[Triple]) -> rdflib.Graph:

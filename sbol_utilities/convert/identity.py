@@ -14,7 +14,7 @@ from typing import NamedTuple
 from rdflib import Literal
 
 from sbol_utilities.convert import uri
-from sbol_utilities.convert.terms import RDF_TYPE, S2, Triple, is_iri
+from sbol_utilities.convert.terms import RDF_TYPE, S2, Term, Triple, is_iri
 from sbol_utilities.vocab import PROV_NS
 
 #: SBOL 2 predicates by which a parent owns a child object, including the PROV qualified-usage/association children
@@ -141,7 +141,7 @@ class IdentityMap:
         """The SBOL 3 form of an SBOL 2 IRI (unchanged when it needs no rewrite)."""
         return self.rewrites.get(iri, iri)
 
-    def term(self, term):
+    def term(self, term: Term) -> Term:
         """Rewrite a term when it is an IRI."""
         return self.rewrites.get(term, term) if is_iri(term) else term
 

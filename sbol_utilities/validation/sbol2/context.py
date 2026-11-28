@@ -96,7 +96,7 @@ class Sbol2Object:
 
     def resources(self, predicate: str) -> list[Resource]:
         """IRI and blank-node values of ``predicate``."""
-        return [v for v in self.properties.get(predicate, ()) if not isinstance(v, Sbol2Literal)]  # type: ignore[misc]
+        return [v for v in self.properties.get(predicate, ()) if not isinstance(v, Sbol2Literal)]
 
     def iris(self, predicate: str) -> list[str]:
         """IRI values of ``predicate`` as strings."""
