@@ -14,6 +14,8 @@ jobs:
   build:
     runs-on: ${{ matrix.os }}
     strategy:
+      # one environment's failure leaves the others' results visible
+      fail-fast: false
       matrix:
         # Default builds are on Ubuntu
         os: [ubuntu-latest]
